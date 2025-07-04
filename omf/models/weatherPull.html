@@ -845,6 +845,17 @@
 					<option value="minrh" {{ 'selected' if allInputDataDict.ndfdParam == 'minrh' }}>Minimum Relative Humidity</option>
 				</select>
 			</div>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Climate Data Store Copernicus Weather Pulling </p>
+			</div>
+			<hr>
+			<div class="shortInput">
+				<label>Pull Climate Data Store Copernicus Data</label>
+				<select id="pullCDSCoperData" name="pullCDSCoperData" value="{{allInputDataDict.pullCDSCoperData}}" required>
+					<option value="off" {% if allInputDataDict.pullCDSCoperData == 'off' %}selected{% endif %}>Off</option>
+					<option value="on" {% if allInputDataDict.pullCDSCoperData == 'on' %}selected{% endif %}>On</option>
+				</select>
+			</div>
 			{{ omfModelButtons }}
 		</form>
 	</div>

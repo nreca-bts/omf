@@ -8,7 +8,7 @@ import os, csv, re, json, sys
 from math import sqrt, exp, cos, radians
 import numpy as np
 from os.path import join as pJoin
-from datetime import timedelta, datetime
+import datetime as dt
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode, quote
 import requests
@@ -21,6 +21,7 @@ import pysolar
 import pytz
 import xml.etree.ElementTree as ET
 import xmltodict
+from pathlib import Path
 
 omfDir = os.path.dirname(os.path.abspath(__file__))
 
@@ -45,7 +46,7 @@ def pullAsos(year, station, datatype):
 	assert r.status_code != 404, "Dataset URL does not exist. " + url
 	data = [x.split(',') for x in r.text.splitlines()[1:]]
 	verifiedData = [-9999.0] * 8760
-	firstDT = datetime(int(year), 1, 1)
+	firstDT = dt.datetime(int(year), 1, 1)
 	for r in data:
 		if 'M' not in r:
 			deltatime = parse_dt(r[1]) - firstDT
@@ -218,8 +219,8 @@ def _pullWeatherWunderground(start, end, airport, workDir):
 	Download weather CSV data to workDir. 1 file for each day between start and 
 	end (YYYY-MM-DD format). Location is set by airport (three letter airport code, e.g. DCA). '''
 	# Parse start and end dates.
-	start_dt = datetime.strptime(start, "%Y-%m-%d")
-	end_dt = datetime.strptime(end, "%Y-%m-%d")
+	start_dt = dt.datetime.strptime(start, "%Y-%m-%d")
+	end_dt = dt.datetime.strptime(end, "%Y-%m-%d")
 	# Calculate the number of days to fetch.
 	num_days = (end_dt - start_dt).days
 	work_day = start_dt
@@ -243,7 +244,7 @@ def _pullWeatherWunderground(start, end, airport, workDir):
 		except:
 			print("ERROR: unable to get data from URL " + address)
 			continue # Just try to grab the next one.
-		work_day = work_day + timedelta(days = 1) # Advance one day
+		work_day = work_day + dt.timedelta(days = 1) # Advance one day
 
 
 def airportCodeToLatLon(airport):
@@ -302,10 +303,6 @@ def zipCodeToClimateName(zipCode):
 	assert foundCity != None, "A city is spelled differently between two datasets. Please notify the OMF team."
 	return '{}-{}'.format(zipState, foundCity)
 
-
-
-
-
 ########################
 ### aGosedWeather.py ###
 ########################
@@ -332,7 +329,7 @@ def attachHistoricalWeather(omd_path, year, station):
 	wind_speed = USCRNDataType(21, -99.00, flag_index=22, transformation_function=lambda x: round(x, 2))
 	subhourly_data_types = [wind_speed]
 	_write_USCRN_csv(csv_path, year, station, hourly_data_types, subhourly_data_types)
-	start_date = datetime(year, 1, 1)
+	start_date = dt.datetime(year, 1, 1)
 	_calibrate_omd(start_date, omd_path, csv_path)
 
 
@@ -606,8 +603,8 @@ def _merge_hourly_subhourly(hourly, subhourly, insert_idx):
 	merged_rows = [
 		["temperature", "wind_speed", "humidity", "solar_dir", "solar_diff", "solar_global"]
 	]
-	start_date = datetime(2000, 1, 1, 0, 0, 0) # arbitrary datetime, this could be any year
-	hour = timedelta(hours=1)
+	start_date = dt.datetime(2000, 1, 1, 0, 0, 0) # arbitrary datetime, this could be any year
+	hour = dt.timedelta(hours=1)
 	for i in range(len(hourly)):
 		dt = start_date + hour * i
 		gridlabd_date = '{}:{}:{}:{}:{}'.format(dt.month, dt.day, dt.hour, dt.minute, dt.second)
@@ -1144,12 +1141,12 @@ def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station
     ghiData = _getUscrnData(year, station, dataType="SOLARAD")
     #for each 8760 hourly time slots, make a timestamp for each slot, look up cloud cover by that slot
     #then append cloud cover and GHI reading together
-    start_time = datetime(int(year),1,1,0)
+    start_time = dt.datetime(int(year),1,1,0)
     cosArray = []
     input_array = []
     for i in range(len(ghiData)): #Because ghiData is leneth 8760, one for each hour of a year
-        time = start_time + timedelta(minutes=60*i)
-        tstamp = int(datetime.timestamp(time))
+        time = start_time + dt.timedelta(minutes=60*i)
+        tstamp = int(dt.datetime.timestamp(time))
         hour = time.hour
         minute = time.minute
         try:
@@ -1205,9 +1202,7 @@ def easy_solar_tests(uscrn_station='TX_Austin_33_NW'):
 	print("Easy Solar Test Suceeded.........")
 
 
-
-
-########### NDFD API ################
+########### NDFD API #################
 
 """
 NDFD code written by Tuomas Talvitie, 2020
@@ -1297,14 +1292,14 @@ def _run_ndfd_request(q):
 
 
 #Gets predictions from current moment to 10 weeks in future. Data not avaliable for past dates, not avaliable for too long in future
-def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(datetime.now().isoformat()), end=(datetime.now()+timedelta(weeks=+10)).isoformat(), product='time-series', unit='m'):
+def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), product='time-series', unit='m'):
 	query = _singlePointDataQuery(lat1, lon1, product, begin, end, unit, optional_params)
 	res = _run_ndfd_request(query)
 	data = _generalParseXml(res)
 	return data
 
 #Wrapper to call _subGrid, return parsed dict
-def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product='time-series', begin=str(datetime.now().isoformat()), end=(datetime.now()+timedelta(weeks=+10)).isoformat(), Unit='m', optional_params=['critfireo', 'dryfireo']):
+def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product='time-series', begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), Unit='m', optional_params=['critfireo', 'dryfireo']):
 	data = _run_ndfd_request(_subGrid(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit, optional_params))
 	outData = _generalParseXml(data)
 	return outData
@@ -1327,6 +1322,356 @@ class ApiError(Exception):
 		rv['message'] = self.message
 		print(rv['message'])
 		return rv
+	
+##################### Climate Data Store/Copernicus API #####################
+
+# Getting the data
+def api_request( request, target ):
+	import cdsapi
+	dataset = "reanalysis-era5-single-levels"
+	client = cdsapi.Client()
+	client.retrieve(dataset, request=request, target=target)
+
+async def async_api_request(request, target):
+	import asyncio
+	await asyncio.to_thread(api_request, request, target)
+
+# Default year if not given is last year
+async def format_request(variable="default", year:str=str(dt.date.today().year - 1), latitude=None, longitude=None, modelDir="./"):
+	import asyncio
+	request_params = { 
+		"data_format": "netcdf",
+		"download_format": "zip",
+		"product_type": ["reanalysis"],
+		"day": [
+				"01", "02", "03",
+				"04", "05", "06",
+				"07", "08", "09",
+				"10", "11", "12",
+				"13", "14", "15",
+				"16", "17", "18",
+				"19", "20", "21",
+				"22", "23", "24",
+				"25", "26", "27",
+				"28", "29", "30",
+				"31"
+		],
+		"time": [
+				"00:00", "01:00", "02:00",
+				"03:00", "04:00", "05:00",
+				"06:00", "07:00", "08:00",
+				"09:00", "10:00", "11:00",
+				"12:00", "13:00", "14:00",
+				"15:00", "16:00", "17:00",
+				"18:00", "19:00", "20:00",
+				"21:00", "22:00", "23:00"
+		],
+		"year": [year]
+	}
+	if variable == "default":
+		variable = {"variable": [
+			"10m_u_component_of_wind",
+			"10m_v_component_of_wind",
+			"2m_temperature",
+			"surface_pressure",
+			"100m_u_component_of_wind",
+			"100m_v_component_of_wind",
+			"surface_solar_radiation_downwards",
+			"total_sky_direct_solar_radiation_at_surface",
+			"forecast_surface_roughness"
+		]}
+	request_params.update( variable )
+	# 0.01 of a degree works btw
+	#Process latitude and longitude
+	if latitude != None or longitude != None:
+		if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
+			# North, West, South, East
+			area = [latitude + 0.01, longitude - 0.01, latitude - 0.01, longitude + 0.01]
+			if area[0] > 90:
+				area[0] = 90
+				# Logging
+				print("North value for sub-region area greater than 90 degrees - setting it to 90")
+			if area[2] < -90:
+				area[2] = -90
+				print("South value for sub-region area less than -90 degrees - setting it to -90")
+			if area[1] < -360:
+				area[1] = -360
+				print("West value for sub-region area less than -360 degrees - setting it to -360")
+			if area[3] > 360:
+				area[3] = 360
+				print("East value for sub-region area greater than 360 degrees - setting it to 360")
+			if abs(area[0]) + abs(area[2]) > 180:
+				raise ValueError("Latitude Range cannot exceed 180")
+			if abs(area[1]) + abs(area[3]) > 360:
+				raise ValueError("Longitude Range cannot exceed 360")
+	area_dict = {"area": "/".join(str(e) for e in area)}
+	request_params.update(area_dict)
+
+	# Each request will pull 2 months worth of data
+	months = []
+	fileNameByMonth = []
+	for duo_month in range(1,12,2):
+		months.append( {"month": [f"0{duo_month}", f"0{duo_month+1}"]})
+		fileNameByMonth.append( f"month-{duo_month}-{duo_month+1}-data.zip")
+	tasks = []
+	for i in range(len(months)):
+		from copy import deepcopy
+		request_copy = deepcopy(request_params)
+		request_copy.update(months[i])
+		file_name = Path(modelDir, fileNameByMonth[i])
+		tasks.append(async_api_request(request=request_copy, target=file_name))
+	await asyncio.gather( *tasks )
+
+# This is the function to call to trigger getting the data
+def get_cds_coper_data(latitude, longitude, year, modelDir):
+	import asyncio
+	requestSuccess = False
+
+	key = '2fb47bd4-ed07-4961-bd15-ff1e51d1c8fe'
+	# get user home directory
+	home_dir = os.path.expanduser("~")
+	print('HOME_DIR: ', home_dir)
+	with open(f'{home_dir}/.cdsapirc','w') as keyFile:
+		keyFile.write(
+			'url: https://cds.climate.copernicus.eu/api\n' + 
+			f'key: {key}' )
+	os.environ['EIA_KEY'] = '431b0c60584d74a1ba22c60dbd929619'
+	print(f'\nGetting new ERA5 data for ERA5_weather_data_{year}_{latitude}_{longitude}.zip')
+	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
+	asyncio.run( format_request(
+	variable='default',
+	year=str(year),
+	latitude=latitude,
+	longitude=longitude,
+	modelDir=weather_data_dir ) )
+
+	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
+	counter = 0
+	if weather_data_dir.is_dir():
+		for file in weather_data_dir.iterdir():
+			if file.suffix == '.zip':
+				counter += 1
+	if counter == 6:
+		requestSuccess = True
+	return requestSuccess
+
+# Processing the zip files into one nice large CSV
+def process_weather_data():
+	from zipfile import ZipFile
+	import xarray as xr
+	modelDir = Path()
+	total_weather_data_ds = xr.Dataset()
+	total_weather_data_df = pd.DataFrame()
+	# For each file we downloaded ( month-1-2-data.zip )
+	for zipfiles in Path(modelDir,"./copernicus_raw_data").iterdir():
+		with ZipFile(zipfiles) as zObject:
+			# extract it to unzipped_data
+			zObject.extractall(path="./copernicus_unzipped_data/")
+				#"data_stream-oper_stepType-accum.nc"
+				#"data_stream-oper_stepType-instant.nc"
+			unzippedDir = Path(modelDir, "./copernicus_unzipped_data")
+			for file in unzippedDir.iterdir():
+				file_accum = Path(unzippedDir, "data_stream-oper_stepType-accum.nc")
+				file_instant = Path(unzippedDir, "data_stream-oper_stepType-instant.nc")
+				weather_ds_accum = xr.open_dataset(file_accum, engine="netcdf4")
+				weather_ds_instant = xr.open_dataset(file_instant, engine="netcdf4")
+				month_weather_data = weather_ds_accum.combine_first(weather_ds_instant)
+				total_weather_data_ds.update(month_weather_data)
+				month_weather_data_df = month_weather_data.to_dataframe()
+				total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
+	total_weather_data_df.to_csv(Path(modelDir, "total_weather_data.csv"), index=False)
+	return [total_weather_data_ds, total_weather_data_df]
+
+# Cool stuff with data
+def get_solar(copernicus_csv_path):
+
+	import PySAM.Pvwattsv8 as pvwatts
+
+	copernicus_df = pd.read_csv(copernicus_csv_path)
+	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
+	copernicus_df = copernicus_df.set_index("Timestamp")
+	# DNI - Direct Normal
+	# GHI - Global Horizontal
+	# DHI - Diffuse Horizontal
+	from pvlib.irradiance import erbs
+	copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] = (copernicus_df.ssrd / 3600.0)
+	copernicus_df["dirhi"] = (copernicus_df.fdir / 3600.0)
+	copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"] = (copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] - copernicus_df.dirhi)
+	dni_data = erbs(copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"], zenith=30, datetime_or_doy=copernicus_df.index )
+	copernicus_df["CDS Direct Normal Irradiance (DNI) (W/m²_irr)"] = dni_data["dni"]
+	copernicus_df["CDS Wind Speed"] = np.sqrt(copernicus_df["u10"] ** 2 + copernicus_df["v10"] ** 2)
+	copernicus_df["CDS Temp"] = copernicus_df.t2m - 273.15
+	weather_data = np.array([
+    copernicus_df.index.year,
+    copernicus_df.index.month,
+    copernicus_df.index.day,
+    copernicus_df.index.hour,
+    copernicus_df.index.minute,
+    copernicus_df['CDS Direct Normal Irradiance (DNI) (W/m²_irr)'], #5 = dn
+    copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"],
+    copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"],
+    copernicus_df["CDS Wind Speed"],
+    copernicus_df['CDS Temp']
+	])
+	sys_design = {
+    "ModelParams": {
+        "SystemDesign": {
+            "array_type": 2.0,
+            "azimuth": 180.0,
+            "dc_ac_ratio": 1.08,
+            "gcr": 0.592,
+            "inv_eff": 97.5,
+            "losses": 15.53,
+            "module_type": 2.0,
+            "system_capacity": 720,
+            "tilt": 0.0
+        },
+        "SolarResource": {
+        }
+    },
+    "Other": {
+        "lat": copernicus_df.iloc[0][1],
+        "lon": copernicus_df.iloc[0][2],
+        "elev": 1829
+    }
+	}  
+	model_params = sys_design['ModelParams']
+	elev = sys_design['Other']['elev']
+	lat = sys_design['Other']['lat']
+	lon = sys_design['Other']['lon']
+	tz = copernicus_df.index[0].utcoffset().total_seconds()/60/60
+
+	system_model = pvwatts.new()
+	system_model.assign(model_params)
+	solar_resource_data = {
+		'tz': tz, # timezone
+		'elev': elev, # elevation
+		'lat': lat, # latitude
+		'lon': lon, # longitude
+		'year': tuple(weather_data[0]), # year
+		'month': tuple(weather_data[1]), # month
+		'day': tuple(weather_data[2]), # day
+		'hour': tuple(weather_data[3]), # hour
+		'minute': tuple(weather_data[4]), # minute
+		'dn': tuple(weather_data[5]), # direct normal irradiance
+		'df': tuple(weather_data[6]), # diffuse irradiance
+		'gh': tuple(weather_data[7]), # global horizontal irradiance
+		'wspd': tuple(weather_data[8]), # windspeed
+		'tdry': tuple(weather_data[9]) # dry bulb temperature
+		}
+	system_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
+	system_model.AdjustmentFactors.assign({'adjust_constant': 0})
+	resource = system_model.SolarResource.export()
+	# Convert and write JSON object to file
+	with open("solar_resource.json", "w") as outfile: 
+			json.dump(resource, outfile)
+	system_model.execute()
+	out = system_model.Outputs.export()
+	ac = np.array(out['ac']) / 1000
+	dc = np.array(out['dc']) / 1000
+	ac_dc_df = pd.DataFrame({"ac": ac, "dc": dc}, columns = ['ac','dc'])
+	ac_dc_df = ac_dc_df.set_index(copernicus_df.index.copy())
+	return ac_dc_df
+
+def format_windpowerlib(ds):
+    """
+    Code from feedinlib
+    Format dataset to dataframe as required by the windpowerlib's ModelChain.
+
+    The windpowerlib's ModelChain requires a weather DataFrame with time
+    series for
+
+    - wind speed `wind_speed` in m/s,
+    - temperature `temperature` in K,
+    - roughness length `roughness_length` in m,
+    - pressure `pressure` in Pa.
+
+    The columns of the DataFrame need to be a MultiIndex where the first level
+    contains the variable name as string (e.g. 'wind_speed') and the second
+    level contains the height as integer in m at which it applies (e.g. 10,
+    if it was measured at a height of 10 m).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset with ERA5 weather data.
+
+    Returns
+    --------
+    pd.DataFrame
+        Dataframe formatted for the windpowerlib.
+
+    """
+
+    # compute the norm of the wind speed
+    ds["wnd100m"] = np.sqrt(ds["u100"] ** 2 + ds["v100"] ** 2).assign_attrs(
+        units=ds["u100"].attrs["units"], long_name="100 metre wind speed"
+    )
+
+    ds["wnd10m"] = np.sqrt(ds["u10"] ** 2 + ds["v10"] ** 2).assign_attrs(
+        units=ds["u10"].attrs["units"], long_name="10 metre wind speed"
+    )
+    # drop not needed variables
+    windpowerlib_vars = ["wnd10m", "wnd100m", "sp", "t2m", "fsr"]
+    ds_vars = list(ds.variables)
+    drop_vars = [
+        _
+        for _ in ds_vars
+        if _ not in windpowerlib_vars + ["latitude", "longitude", "time"]
+    ]
+    ds = ds.drop(drop_vars)
+    # convert to dataframe
+    df = ds.to_dataframe().reset_index()
+    # the time stamp given by ERA5 for mean values (probably) corresponds to
+    # the end of the valid time interval; the following sets the time stamp
+    # to the middle of the valid time interval
+    df['valid_time'] = pd.to_datetime(df['valid_time'])
+    df["time"] = df["valid_time"] - pd.Timedelta(minutes=60)
+
+    df.set_index(["time", "latitude", "longitude"], inplace=True)
+    df.sort_index(inplace=True)
+    df = df.tz_localize("UTC", level=0)
+
+    # reorder the columns of the dataframe
+    df = df[windpowerlib_vars]
+
+    # define a multiindexing on the columns
+    midx = pd.MultiIndex(
+        levels=[
+            ["wind_speed", "pressure", "temperature", "roughness_length"],
+            # variable
+            [0, 2, 10, 100],  # height
+        ],
+        codes=[
+            [0, 0, 1, 2, 3],  # indexes from variable list above
+            [2, 3, 0, 1, 0],  # indexes from the height list above
+        ],
+        names=["variable", "height"],  # name of the levels
+    )
+    df.columns = midx
+    df.dropna(inplace=True)
+    return df
+
+def get_wind(weather_dataset):
+	from omf.solvers import feedinlib_custom
+
+	bergey_turbine_data = {
+		'nominal_power': 15600, # in W
+		'hub_height': 24, # in meters  
+		'power_curve': pd.DataFrame( # https://github.com/wind-python/windpowerlib <-- for info on adding custom loadshapes 
+			data={'value': [p * 1000 for p in [0, 0, 0.108, 0.679, 2.074, 3.824, 6.089, 8.500, 11.265, 13.664, 15.612, 16.876, 18.212, 19.096, 20.355, 20.611, 19.687]],  # kW -> W
+			'wind_speed': [1.0, 2.01, 2.99, 4.01, 5.00, 6.00, 7.00, 8.00, 9.00, 9.99, 11.01, 11.97, 12.99, 13.99, 15.00, 15.97, 16.47]})  # in m/s
+	}
+	wind_turbine = feedinlib_custom.powerplants.WindPowerPlant(**bergey_turbine_data)
+	windpowerlib_df = format_windpowerlib(weather_dataset)  
+	windpowerlib_df = windpowerlib_df.droplevel([1,2])
+	wind_output_ds = wind_turbine.feedin(
+		weather = windpowerlib_df,
+		density_correction = True,
+		scaling = 'nominal_power',
+	)
+	wind_output_ds.reset_index(drop=True, inplace=True)
+	return wind_output_ds
 
 def _tests():
 	# import traceback

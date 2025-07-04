@@ -127,7 +127,13 @@ def work(modelDir, inputDict):
 			else:
 				data[i] = last
 
-
+	if inputDict["pullCDSCoperData"] == 'on':
+		lat = float( inputDict['LatInput'] )
+		long = float ( inputDict['LonInput'] )
+		year = int( inputDict['year'] )
+		successful = weather.get_cds_coper_data( latitude=lat, longitude=long, year=year, modelDir=modelDir)
+		if (successful == False):
+			raise Exception("CDS Copernicus Weather Pulling Code Failed")
 
 	# station = inputDict['stationASOS'] if source == 'ASOS' else inputDict['stationUSCRN']
 	# parameter = inputDict['weatherParameterASOS'] if source == 'ASOS' else inputDict['weatherParameterUSCRN']
@@ -172,6 +178,7 @@ def new(modelDir):
 		'weatherParameterSurfrad': '',
 		'surfradSite': 'PSU',
 		'ndfdParam': '',
+		'pullCDSCoperData': 'on',
 		"modelType": modelName}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
