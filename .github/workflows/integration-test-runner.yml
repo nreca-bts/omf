@@ -5,7 +5,7 @@ on: push
 jobs:
   Ubuntu:
     name: Test OMF on Ubuntu
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v2 # Checkout whichever ref that triggered this workflow
