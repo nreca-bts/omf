@@ -26,8 +26,8 @@ if major_platform == "Linux" and "ubuntu" in linux_distro:
 	os.system("sudo apt-get install -f")
 	# os.system(f"{sys.executable} -m pip install --upgrade pip setuptools")
 	# os.system(f"{sys.executable} -m pip install 'Flask-Login<0.3'")
-	os.system(f"{sys.executable} -m pip install -r {source_dir}/requirements.txt")
-	os.system(f"{sys.executable} -m pip install -e {source_dir}")
+	os.system(f"{sys.executable} -m pip install --ignore-installed -r {source_dir}/requirements.txt")
+	os.system(f"{sys.executable} -m pip install --ignore-installed -e {source_dir}")
 	os.system(f'sudo chmod 755 {source_dir}/omf/solvers/opendss/opendsscmd-1.7.4-linux-x64-installer.run && sudo {source_dir}/omf/solvers/opendss/opendsscmd-1.7.4-linux-x64-installer.run --mode unattended')
     # - If using Docker, this configuration should be done in the Dockerfile
 	print('*****\nRun $ export LC_ALL=C.UTF-8 $ if running phaseId._tests() gives an ascii decode error.\n*****')
