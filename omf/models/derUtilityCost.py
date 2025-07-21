@@ -112,15 +112,10 @@ def work(modelDir, inputDict):
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
 	longitude = float(inputDict['longitude'])
-	year = int(inputDict['year'])
-	#start_time = str(inputDict['start_time'])
-	#end_time = str(inputDict['end_time'])
-	timestamps = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31 23:59', freq='h')
-	
-	## NOTE: the following couple lines are hard-coded temporarily to account for Kenergy's timestamp data being offset
-	#start_time = '2024-5-1'
-	#end_time = '2025-4-30 23:59'
-	#timestamps = pd.date_range(start=start_time, end=end_time, freq='h')
+	start_time = str(inputDict['start_time'])
+	end_time = str(inputDict['end_time'])
+	timestamps = pd.date_range(start=start_time, end=end_time, freq='h')
+	year = int(start_time[0:4])
 
 	if len(timestamps) != 8760:
 		raise ValueError(f"The start time and end time must define a full year of hourly incremements (8760 elements). Instead, got {len(timestamps)} elements.")
@@ -1127,7 +1122,8 @@ def new(modelDir):
 		## REopt inputs:
 		'latitude' : '39.969753', ## Brighton, CO
 		'longitude' : '-104.812599', ## Brighton, CO
-		'year' : '2018',
+		'start_time': '2018-01-01 00:00:00',
+		'end_time': '2018-12-31 23:59',
 		'fileName': 'utility_2018_kW_load.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
