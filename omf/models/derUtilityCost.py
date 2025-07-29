@@ -26,74 +26,69 @@ tooltip = ('The derUtilityCost model evaluates the financial costs of controllin
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True ## Keep the model hidden=True during active development
 
-'''
 ## NOTE & TODO: This function needs development. The purpose of this function is to handle both the energy rate structure and the demand charge rate structure from the .json response file, whereas the construct_energy_rate_array() function only handles the energy rate structure information.
-def construct_tariff_arrays(response_file, timestamps):
+def construct_tou_tariff_arrays(response_file, timestamps):
 	"""
-	Constructs hourly energy rate array (length 8760), and computes a blended annual demand charge.
+	Constructs hourly rate arrays (length 8760) for TOU Energy Charges ($/kWh), TOU Demand Charges ($/kW), and fixed monthly facility demand charges ($/kW/month).
+	Inputs:
+	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
+	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
+
 	Returns:
-	- energy_rate_array (array): an array of length 8760 for the hourly energy rate $/kWh for an entire year
-	- monthly_demand_rates (list of 12 floats): a monthly array of demand charges in $/kW
-	- blended_annual_demand_rate (float): Average monthly demand charge [$ per kW per month]. Rate will be applied to monthly peak demand.
+	- energy_rate_array (array, length 8760): The hourly energy rates ($/kWh) for an entire year
+	- TODO: demand_rate_array (not currently implemented)
+	- monthly_demand_rates (array, length 12): The monthly demand charges ($/kW) for an entire year
 	"""
-
-	## --- Energy Rate Construction ---
-	energy_weekday_schedule = response_file['energyweekdayschedule']
-	energy_weekend_schedule = response_file['energyweekendschedule']
-	energy_rate_structure = np.array(response_file['energyratestructure'])
-	energy_rates = [item[0]['rate'] for item in energy_rate_structure]
-
 	energy_rate_array = np.zeros(8760)
-	for i, date in enumerate(timestamps):
-		schedule = energy_weekday_schedule if date.weekday() < 5 else energy_weekend_schedule
-		tier = schedule[date.month - 1][date.hour]
-		energy_rate_array[i] = energy_rates[tier]
+	if 'energyratestructure' in response_file:
+		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
+		## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
+		## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
+		energy_weekday_schedule = response_file['energyweekdayschedule']
+		energy_weekend_schedule = response_file['energyweekendschedule']
+		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
+		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
+		
+		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+		for hour_index, date in enumerate(timestamps):
+			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
+				energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
+			else: ## Weekends - use the weekend rate schedule
+				energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
 
 	## --- Demand Rate Construction ---
-	#monthly_demand_rates = None
-
+	#demand_rate_array = np.zeros(8760)
 	#if 'demandratestructure' in response_file:
-	#	demand_rate_structure = np.array(response_file['demandratestructure'])
-	#	demand_rates = [item[0]['rate'] for item in demand_rate_structure]
+	#	demand_weekday_schedule = response_file['demandweekdayschedule']
+	#	demand_weekend_schedule = response_file['demandweekendschedule']
+	#	demand_rate_structure_flattened = [item[0] for item in response_file['demandratestructure']]
+	#	demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
 
 	#	demand_rate_array = np.zeros(8760)
 	#	for i, date in enumerate(timestamps):
 	#		schedule = demand_weekday_schedule if date.weekday() < 5 else demand_weekend_schedule
 	#		tier = schedule[date.month - 1][date.hour]
 	#		demand_rate_array[i] = demand_rates[tier]
+			
+	## --- Facility Demand Charge Construction ---
+	monthly_demand_charge = np.zeros(12)
+	if 'flatdemandmonths' in response_file and len(response_file['flatdemandmonths']) != 0:
+		demand_rate_structure_flattened = [item[0] for item in response_file['flatdemandstructure']]
+		demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
+		del demand_rates[0] ## Drop the first element which is a value of 0 due to zero-indexing structure
+		monthly_demand_charge = np.array(demand_rates)
 
-	return energy_rate_array
+		##TODO: Add functionality for multi-tiered rates?
+		#for month in range(12):
+		#	period = response_file['flatdemandmonths'][month] ## zero-indexed
+		#	rate = response_file['flatdemandstructure'][period] ## Rate for the corresponding period month
+		#	
+		#	for t, tier in enumerate(rates):
+		#		demand_rates[month,t] = 
+		
+	## --- Fixed charges $/day ---
 
-'''
-
-def construct_energy_rate_array(response_file, timestamps):
-	'''
-	Constructs an array of hourly energy rates for an entire year (length 8760) based on the provided response file's weekday and weekend rate schedule information.
-	Expected inputs are: 
-	- response_file: (dict) containing the energy rate structure information e.g. energyweekendschedule, energyweekdayschedule, rate, and energyratestructure.
-	- timestamps: (array) of length 8760 with the hourly timestamps corresponding to the desired energy rate structure (this is used to determine when the weekdays and weekends occur for the given year)
-
-	Returns
-	- energy_rate_array: (array) of length 8760 with the appropriate hourly rate ($/kWh) depending on the weekday or weekend rate schedule.
-	'''
-	
-	## The energy rate structure info contains a nested list of dictionary items with "rate" and "unit"
-	## For example: [[{'rate': 0, 'unit': 'kWh'}][{'rate': 0.06, 'unit': 'kWh'}][{'rate': 0.1525, 'unit': 'kWh'}]]
-	energy_weekday_schedule = response_file['energyweekdayschedule']
-	energy_weekend_schedule = response_file['energyweekendschedule']
-	energy_rate_structure = np.array(response_file['energyratestructure'])
-	energy_rate_structure_flattened = [item[0] for item in energy_rate_structure]
-	energy_rates = [rate['rate'] for rate in energy_rate_structure_flattened]
-
-	## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
-	energy_rate_array = np.zeros(8760)
-	for hour_index, date in enumerate(timestamps):
-		if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
-			energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
-		else: ## Weekends - use the weekend rate schedule
-			energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
-
-	return energy_rate_array
+	return energy_rate_array, monthly_demand_charge #, demand_rate_array
 
 
 def work(modelDir, inputDict):
@@ -117,15 +112,10 @@ def work(modelDir, inputDict):
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
 	longitude = float(inputDict['longitude'])
-	year = int(inputDict['year'])
-	#start_time = str(inputDict['start_time'])
-	#end_time = str(inputDict['end_time'])
-	timestamps = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31 23:59', freq='h')
-	
-	## NOTE: the following couple lines are hard-coded temporarily to account for Kenergy's timestamp data being offset
-	#start_time = '2024-5-1'
-	#end_time = '2025-4-30 23:59'
-	#timestamps = pd.date_range(start=start_time, end=end_time, freq='h')
+	start_time = str(inputDict['start_time'])
+	end_time = str(inputDict['end_time'])
+	timestamps = pd.date_range(start=start_time, end=end_time, freq='h')
+	year = int(start_time[0:4])
 
 	if len(timestamps) != 8760:
 		raise ValueError(f"The start time and end time must define a full year of hourly incremements (8760 elements). Instead, got {len(timestamps)} elements.")
@@ -151,10 +141,16 @@ def work(modelDir, inputDict):
 				response_file = inputDict['wholesaleRateStructureFile']
 		
 		## Construct the energy rate array from the JSON file (used in the financial analysis below)
-		energy_rate_array = construct_energy_rate_array(response_file, timestamps)
+		#print(response_file)
+		
+		#energy_rate_array, demand_rate_array, monthly_demand_charge = construct_tou_tariff_arrays(response_file, timestamps)
+		energy_rate_array, monthly_demand_charge = construct_tou_tariff_arrays(response_file, timestamps)
 	
 	else: ## Use the Wholesale Energy Rate Curve (.csv) file instead of the Wholesale Energy Rate Structure (.json) file
 		energy_rate_array = [float(value) for value in inputDict['wholesaleRateCurveFile'].split('\n') if value.strip()]
+		monthly_demand_charge = np.zeros(12)
+		if len(energy_rate_array) != 8760:
+			raise ValueError(f"Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.")
 
 	########################################################################################################################
 	## Run REopt.jl solver
@@ -187,6 +183,7 @@ def work(modelDir, inputDict):
 	else: ## Use the Wholesale Energy Rate Curve (.csv) file
 		## NOTE: This method results in discrepant outputs compared to the urdb_response input method
 		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array#.tolist()
+		scenario['add_tou_energy_rates_to_urdb_rate'] = True
 
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
@@ -317,15 +314,19 @@ def work(modelDir, inputDict):
 
 			## Go back to the main derUtilityCost model directory and continue on
 			os.chdir(modelDir)
-
-
-	monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
-		(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
-		(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
+	
+	## Define the consumption rate compensation ($/kWh) paid to member-consumers
 	#consumptionCost = float(inputDict['electricityCost'])
-	demandCost = float(inputDict['demandChargeCost'])
 	rateCompensation = float(inputDict['rateCompensation'])
 
+	## Define the monthly peak demand charge array ($/kW per month) the utility pays to the G&T
+	if sum(monthly_demand_charge) == 0:
+		## Use the user-defined flat rate $/kW imput for every month of the year
+		peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
+	else:
+		## Use the array of $/kW demand charges defined in the input JSON response file, assuming the values are non-zero.
+		peakDemandCharge = np.array(monthly_demand_charge)
+	
 	########################################################################################################################
 	## TESS technology combined and individual calculations
 	########################################################################################################################
@@ -388,6 +389,9 @@ def work(modelDir, inputDict):
 		single_device_subsidy_allyears_array[0] += single_device_subsidy_onetime
 
 		## Calculate the consumer compensation for each thermal DER technology
+		monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
+				(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
+				(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
 		single_device_compensation_year1_array = np.array([sum(single_device_vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
 		single_device_compensation_year1_total = np.sum(single_device_compensation_year1_array)
 		single_device_compensation_allyears_array = np.full(projectionLength, single_device_compensation_year1_total)
@@ -779,10 +783,10 @@ def work(modelDir, inputDict):
 	## Calculate the monthly peak demand and energy consumption of the base demand curve
 	## NOTE: The base demand = the demand curve without DERs
 	outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## The maximum peak kW for each month
-	outData['monthlyPeakDemandCost'] = [peak*demandCost for peak in outData['monthlyPeakDemand']] ## peak demand charge before including DERs
-	demand_cost_array = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
+	outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
+	consumption_cost_array = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
 	monthlyEnergyConsumption = [sum(demand[s:f]) for s, f in monthHours] ## The total energy in kWh for each month
-	monthlyEnergyConsumptionCost = [sum(demand_cost_array[s:f]) for s, f in monthHours] ## The total energy cost in $$ for each month	
+	monthlyEnergyConsumptionCost = [sum(consumption_cost_array[s:f]) for s, f in monthHours] ## The total energy cost in $$ for each month	
 
 	## Calculate the monthly peak demand and energy consumption of the adjusted demand curve
 	## NOTE: The adjusted demand = the demand curve including DERs
@@ -790,13 +794,13 @@ def work(modelDir, inputDict):
 	outData['adjustedDemand'] = list(adjusted_demand)
 	#monthly_peak_adjusted_demand = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] 
 	monthlyAdjustedEnergyConsumption = [sum(adjusted_demand[s:f]) for s, f in monthHours] ## The total adjusted energy in kWh for each month
-	adjusted_demand_cost_array = [float(a) * float(b) for a, b in zip(adjusted_demand, energy_rate_array)]
-	monthlyAdjustedEnergyConsumptionCost = [sum(adjusted_demand_cost_array[s:f]) for s, f in monthHours] ## The total adjusted energy cost in $$ for each month	
+	adjusted_consumption_cost_array = [float(a) * float(b) for a, b in zip(adjusted_demand, energy_rate_array)]
+	monthlyAdjustedEnergyConsumptionCost = [sum(adjusted_consumption_cost_array[s:f]) for s, f in monthHours] ## The total adjusted energy cost in $$ for each month	
 	monthlyEnergyConsumptionSavings = np.array(monthlyEnergyConsumptionCost) - np.array(monthlyAdjustedEnergyConsumptionCost)
 	outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
 	outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
-	outData['monthlyAdjustedPeakDemandCost'] = [pad*demandCost for pad in outData['monthlyAdjustedPeakDemand']] ## peak demand charge after including all DERs
-	outData['monthlyPeakDemandSavings'] = list(np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])) ## total demand charge savings from all DERs
+	outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
+	outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist() ## total demand charge savings from all DERs
 	
 	## Calculate the combined costs and savings from the adjusted energy and adjusted demand charges
 	outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
@@ -831,13 +835,13 @@ def work(modelDir, inputDict):
 
 	peak_demand_at_baseP = demand[peak_demand_indices]
 	peak_demand_at_adjP = demand[adjusted_demand_indices]
-	adjusted_demand_at_baseP = adjusted_demand[peak_demand_indices]
-	adjusted_demand_at_adjP = adjusted_demand[adjusted_demand_indices]
+	#adjusted_demand_at_baseP = adjusted_demand[peak_demand_indices]
+	#adjusted_demand_at_adjP = adjusted_demand[adjusted_demand_indices]
 	
-	peak_demand_at_baseP_cost = peak_demand_at_baseP*demandCost
-	peak_demand_at_adjP_cost = peak_demand_at_adjP*demandCost
-	adjusted_demand_at_baseP_cost = adjusted_demand_at_baseP*demandCost
-	adjusted_demand_at_adjP_cost = adjusted_demand_at_adjP*demandCost
+	#peak_demand_at_baseP_cost = peak_demand_at_baseP * peakDemandCharge
+	#peak_demand_at_adjP_cost = peak_demand_at_adjP * peakDemandCharge
+	#adjusted_demand_at_baseP_cost = adjusted_demand_at_baseP * peakDemandCharge
+	#adjusted_demand_at_adjP_cost = adjusted_demand_at_adjP * peakDemandCharge
 
 	BESS_demand_at_baseP = BESS_demand[peak_demand_indices]
 	BESS_demand_at_adjP = BESS_demand[adjusted_demand_indices]
@@ -846,13 +850,13 @@ def work(modelDir, inputDict):
 	GEN_demand_at_baseP = GEN_demand[peak_demand_indices]
 	GEN_demand_at_adjP = GEN_demand[adjusted_demand_indices]
 
-	BESS_demand_at_baseP_cost = BESS_demand_at_baseP * demandCost
-	TESS_demand_at_baseP_cost = TESS_demand_at_baseP * demandCost
-	GEN_demand_at_baseP_cost = GEN_demand_at_baseP * demandCost
+	BESS_demand_at_baseP_cost = BESS_demand_at_baseP * peakDemandCharge
+	TESS_demand_at_baseP_cost = TESS_demand_at_baseP * peakDemandCharge
+	GEN_demand_at_baseP_cost = GEN_demand_at_baseP * peakDemandCharge
 
-	BESS_demand_at_adjP_cost = BESS_demand_at_adjP * demandCost
-	TESS_demand_at_adjP_cost = TESS_demand_at_adjP * demandCost
-	GEN_demand_at_adjP_cost = GEN_demand_at_adjP * demandCost
+	#BESS_demand_at_adjP_cost = BESS_demand_at_adjP * peakDemandCharge
+	#TESS_demand_at_adjP_cost = TESS_demand_at_adjP * peakDemandCharge
+	#GEN_demand_at_adjP_cost = GEN_demand_at_adjP * peakDemandCharge
 
 	allDER_at_baseP = BESS_demand_at_baseP+TESS_demand_at_baseP+GEN_demand_at_baseP
 	allDER_at_adjP = BESS_demand_at_adjP+TESS_demand_at_adjP+GEN_demand_at_adjP
@@ -888,7 +892,7 @@ def work(modelDir, inputDict):
 	for device_result in single_device_results:
 		device_demand = thermal_device_savings[device_result]['demand']
 		device_demand_at_baseP = device_demand[peak_demand_indices]
-		device_demand_at_baseP_cost = device_demand_at_baseP * demandCost
+		device_demand_at_baseP_cost = device_demand_at_baseP * peakDemandCharge
 		device_peakDemand_savings_monthly = device_demand_at_baseP_cost*F_val
 
 		device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
@@ -898,7 +902,6 @@ def work(modelDir, inputDict):
 
 		#device_savings_monthly = device_peakDemand_savings_monthly + device_consumption_savings_monthly
 		#device_savings_allyears = device_peakDemand_savings_allyears + device_consumption_savings_allyears
-
 		#print(device_result+' savings :', device_peakDemand_savings_monthly)
 
 		outData[device_result+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
@@ -1119,7 +1122,8 @@ def new(modelDir):
 		## REopt inputs:
 		'latitude' : '39.969753', ## Brighton, CO
 		'longitude' : '-104.812599', ## Brighton, CO
-		'year' : '2018',
+		'start_time': '2018-01-01 00:00:00',
+		'end_time': '2018-12-31 23:59',
 		'fileName': 'utility_2018_kW_load.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',

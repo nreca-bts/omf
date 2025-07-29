@@ -110,10 +110,13 @@
 				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Year<span class="classic">Specify the year that the Demand Curve and Temperature Curve values correspond to.</span></label>
-				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^\d{4}$" required="required"/>
+				<label class="tooltip">Start Date/Time<span class="classic">Specify the start date and time (e.g. 'YYYY-MM-DD HH:MM:SS') that the Demand Curve and Temperature Curve values correspond to.</span></label>
+				<input type="text" id="start_time" name="start_time" value="{{allInputDataDict.start_time}}" required="required"/>
 			</div>
-			
+			<div class="shortInput">
+				<label class="tooltip">End Date/Time<span class="classic">Specify the end date and time (e.g. 'YYYY-MM-DD HH:MM:SS') that the Demand Curve and Temperature Curve values correspond to.</span></label>
+				<input type="text" id="end_time" name="end_time" value="{{allInputDataDict.end_time}}" required="required"/>
+			</div>
 			<!-- Financial Inputs -->
 			<div class="wideInput">
 				<p class="inputSectionHeader">Financial Inputs</p>
