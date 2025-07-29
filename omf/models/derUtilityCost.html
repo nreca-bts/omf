@@ -110,12 +110,8 @@
 				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Start Date/Time<span class="classic">Specify the start date and time (e.g. 'YYYY-MM-DD HH:MM:SS') that the Demand Curve and Temperature Curve values correspond to.</span></label>
-				<input type="text" id="start_time" name="start_time" value="{{allInputDataDict.start_time}}" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">End Date/Time<span class="classic">Specify the end date and time (e.g. 'YYYY-MM-DD HH:MM:SS') that the Demand Curve and Temperature Curve values correspond to.</span></label>
-				<input type="text" id="end_time" name="end_time" value="{{allInputDataDict.end_time}}" required="required"/>
+				<label class="tooltip">Year<span class="classic">Specify the year that corresponds with the Demand Curve.</span></label>
+				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^\d{4}$" required="required"/>
 			</div>
 			<!-- Financial Inputs -->
 			<div class="wideInput">
@@ -128,8 +124,8 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Wholesale Energy Rate Structure (.json file)<span class="classic">Please see the documentation at the help link for the required format and an example wholesale energy rate structure.</span></label>
-				<input id="wholesaleRateStructureFile" type="file" style="display:none" onchange="handle_files(this.files,'wholesaleRateStructureFile','wholesaleRateStructureFileName')">
-				<input id="wholesaleRateStructureFile" name="wholesaleRateStructureFile" value="{{allInputDataDict.wholesaleRateStructureFile}}" type="hidden">
+				<input id="wholesaleRateStructureFile" type="file" style="display:none" onchange="handle_files(this.files,'wholesaleRateStructure','wholesaleRateStructureFileName')">
+				<input id="wholesaleRateStructure" name="wholesaleRateStructure" value="{{allInputDataDict.wholesaleRateStructure}}" type="hidden">
 				<div>
 					<label for="wholesaleRateStructureFile" class="fileButton">Choose File</label>
 					<input id="wholesaleRateStructureFileName" name="wholesaleRateStructureFileName" value="{{allInputDataDict.wholesaleRateStructureFileName}}" value='' readonly class="uploadFileName">
@@ -137,8 +133,8 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">(Optional) Wholesale Energy Rate Curve (.csv file)<span class="classic">Please see the documentation at the help link for the required format and an example wholesale energy rate curve.</span></label>
-				<input id="wholesaleRateCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'wholesaleRateCurveFile','wholesaleRateCurveFileName')">
-				<input id="wholesaleRateCurveFile" name="wholesaleRateCurveFile" value="{{allInputDataDict.wholesaleRateCurveFile}}" type="hidden">
+				<input id="wholesaleRateCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'wholesaleRateCurve','wholesaleRateCurveFileName')">
+				<input id="wholesaleRateCurve" name="wholesaleRateCurve" value="{{allInputDataDict.wholesaleRateCurve}}" type="hidden">
 				<div>
 					<label for="wholesaleRateCurveFile" class="fileButton">Choose File</label>
 					<input id="wholesaleRateCurveFileName" name="wholesaleRateCurveFileName" value="{{allInputDataDict.wholesaleRateCurveFileName}}" value='' readonly class="uploadFileName">

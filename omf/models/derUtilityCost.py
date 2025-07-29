@@ -88,8 +88,7 @@ def construct_tou_tariff_arrays(response_file, timestamps):
 		
 	## --- Fixed charges $/day ---
 
-	return energy_rate_array, monthly_demand_charge #, demand_rate_array
-
+	return energy_rate_array, monthly_demand_charge#, demand_rate_array
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -103,55 +102,75 @@ def work(modelDir, inputDict):
 	temperatures_degC = [float(value)-32.0 * 5/9 for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
 	
-	## Check if the demand and temperature curves are the correct length
+	## Check if the demand and temperature curves are the correct length and account for leap years by removing Dec 31 data.
 	if len(demand) != 8760:
-		raise ValueError(f"Demand curve must have exactly 8760 elements, but got {len(demand)}.")
+		raise Exception(f"Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
 	if len(temperatures_degF) != 8760:
-		raise ValueError(f"Temperature curve must have exactly 8760 elements, but got {len(temperatures_degF)}.")
+		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
 
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
 	longitude = float(inputDict['longitude'])
-	start_time = str(inputDict['start_time'])
-	end_time = str(inputDict['end_time'])
-	timestamps = pd.date_range(start=start_time, end=end_time, freq='h')
-	year = int(start_time[0:4])
+	year = int(inputDict['year'])
+	projectionLength = int(inputDict['projectionLength'])
+	
+	########################################################################################################################################################
+	## Construct the timestamp array
+	## If the input year is a leap year, remove the last day in December and keep the extra day in February as recommended in REopt's documentation:
+	## https://reopt.nrel.gov/tool/reopt-user-manual.pdf#page=37 (Section 7.1 Actual (Custom) Load Profile)
+	########################################################################################################################################################
+	start_date = pd.Timestamp(f'{year}-01-01')
+	is_leap_year = start_date.is_leap_year
+	if is_leap_year == True:
+		## If it's a leap year, do not use the last day in December
+		end_date = f'{year}-12-30 23:59'
+	else:
+		## If it's not a leap year, use all of December
+		end_date = f'{year}-12-31 23:59'
+	timestamps = pd.date_range(start=start_date, end=end_date, freq='h')
 
 	if len(timestamps) != 8760:
-		raise ValueError(f"The start time and end time must define a full year of hourly incremements (8760 elements). Instead, got {len(timestamps)} elements.")
-	projectionLength = int(inputDict['projectionLength'])
-
+		raise Exception(f"The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.")
+	
 	########################################################################################################################################################
 	## Construct the wholesale energy rate structure array
 	## Expects a user-provided JSON file or the default static testFile provided in the OMF
 	########################################################################################################################################################
-
 	if inputDict.get('useWholesaleJSONBool'): ## Checkbox to use the .json file is True by default
 		## Load the Wholesale Energy Rate Structure JSON file
 		try:
 			## Try to normally parse the JSON file
-			response_file = json.loads(inputDict['wholesaleRateStructureFile'])
+			response_file = json.loads(inputDict['wholesaleRateStructure'])
 		except json.JSONDecodeError:
 			## Convert single quotes to double quotes for proper JSON formatting
-			fixed = inputDict['wholesaleRateStructureFile'].replace("'", '"')
+			fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
 			response_file = json.loads(fixed)
 		except TypeError:
 			## If the wholesale_rate_curve is already a dictionary, use it directly
-			if isinstance(inputDict['wholesaleRateStructureFile'], dict):
-				response_file = inputDict['wholesaleRateStructureFile']
+			if isinstance(inputDict['wholesaleRateStructure'], dict):
+				response_file = inputDict['wholesaleRateStructure']
 		
 		## Construct the energy rate array from the JSON file (used in the financial analysis below)
-		#print(response_file)
-		
-		#energy_rate_array, demand_rate_array, monthly_demand_charge = construct_tou_tariff_arrays(response_file, timestamps)
+		#energy_rate_array, monthly_demand_charge, demand_rate_array = construct_tou_tariff_arrays(response_file, timestamps)
 		energy_rate_array, monthly_demand_charge = construct_tou_tariff_arrays(response_file, timestamps)
-	
+
 	else: ## Use the Wholesale Energy Rate Curve (.csv) file instead of the Wholesale Energy Rate Structure (.json) file
-		energy_rate_array = [float(value) for value in inputDict['wholesaleRateCurveFile'].split('\n') if value.strip()]
+		energy_rate_array = [float(value) for value in inputDict['wholesaleRateCurve'].split('\n') if value.strip()]
 		monthly_demand_charge = np.zeros(12)
+		#demand_rate_array = np.fill(12,inputDict['demandChargeCost'])
 		if len(energy_rate_array) != 8760:
 			raise ValueError(f"Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.")
-
+		
+	########################################################################################################################
+	## Construct monthly demand charge ($/kW) array
+	########################################################################################################################
+	## Define the monthly peak demand charge array ($/kW per month) the utility pays to the G&T
+	if sum(monthly_demand_charge) == 0:
+		## Use the user-defined flat rate $/kW imput for every month of the year
+		peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
+	else:
+		## Use the array of $/kW demand charges defined in the input JSON response file, assuming the values are non-zero.
+		peakDemandCharge = np.array(monthly_demand_charge)
 	########################################################################################################################
 	## Run REopt.jl solver
 	########################################################################################################################
@@ -166,7 +185,7 @@ def work(modelDir, inputDict):
 			#'urdb_label': urdbLabel,
 			#'urdb_response': response_file,
 			#'tou_energy_rates_per_kwh': energy_rate_array.tolist(), ## This method produced some issues with REopt (e.g. no generator was present in the outputs)
-			#'add_tou_energy_rates_to_urdb_rate': True
+			'add_tou_energy_rates_to_urdb_rate': True
 		},
 		'ElectricLoad': {
 			'loads_kw': demand,
@@ -178,12 +197,12 @@ def work(modelDir, inputDict):
 	}
 
 	## Adjust the Electric Tariff input to REopt based on the user's preference of either the Wholesale Energy Rate Structure (.json) or Wholesale Energy Rate Curve (.csv)
-	if inputDict.get('useWholesaleJSONBool'): ## Use the Wholesale Energy Rate Structure (.json) file
+	if inputDict.get('useWholesaleJSONBool'): 
+		## Use the Wholesale Energy Rate Structure (.json) file
 		scenario['ElectricTariff']['urdb_response'] = response_file
-	else: ## Use the Wholesale Energy Rate Curve (.csv) file
-		## NOTE: This method results in discrepant outputs compared to the urdb_response input method
+	else: 
+		## Use the Wholesale Energy Rate Curve (.csv) file
 		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array#.tolist()
-		scenario['add_tou_energy_rates_to_urdb_rate'] = True
 
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
@@ -270,7 +289,6 @@ def work(modelDir, inputDict):
 		'unitDeviceCost': '0.0', ## set to zero: assuming utility does not pay for this
 		'unitUpkeepCost':  '0.0', ## set to zero: assuming utility does not pay for this
 		'demandChargeCost': inputDict['demandChargeCost'],
-		'electricityCost': '0.12',
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
@@ -315,21 +333,12 @@ def work(modelDir, inputDict):
 			## Go back to the main derUtilityCost model directory and continue on
 			os.chdir(modelDir)
 	
-	## Define the consumption rate compensation ($/kWh) paid to member-consumers
-	#consumptionCost = float(inputDict['electricityCost'])
-	rateCompensation = float(inputDict['rateCompensation'])
-
-	## Define the monthly peak demand charge array ($/kW per month) the utility pays to the G&T
-	if sum(monthly_demand_charge) == 0:
-		## Use the user-defined flat rate $/kW imput for every month of the year
-		peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
-	else:
-		## Use the array of $/kW demand charges defined in the input JSON response file, assuming the values are non-zero.
-		peakDemandCharge = np.array(monthly_demand_charge)
-	
 	########################################################################################################################
 	## TESS technology combined and individual calculations
 	########################################################################################################################
+	## Define the consumption rate compensation ($/kWh) paid to member-consumers
+	#consumptionCost = float(inputDict['electricityCost'])
+	rateCompensation = float(inputDict['rateCompensation'])
 
 	## Initialize an empty dictionary to hold all thermal device results added together
 	## Length 8760 represents hourly data for one year, length 12 is monthly data for a year
@@ -1122,17 +1131,16 @@ def new(modelDir):
 		## REopt inputs:
 		'latitude' : '39.969753', ## Brighton, CO
 		'longitude' : '-104.812599', ## Brighton, CO
-		'start_time': '2018-01-01 00:00:00',
-		'end_time': '2018-12-31 23:59',
+		'year': '2018',
 		'fileName': 'utility_2018_kW_load.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
 		'useWholesaleJSONBool': True,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
-		'wholesaleRateCurveFile': wholesale_rate_curve,
+		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
-		'wholesaleRateStructureFile': wholesale_rate_structure,
+		'wholesaleRateStructure': wholesale_rate_structure,
 
 		## Fossil Fuel Generator Inputs
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
