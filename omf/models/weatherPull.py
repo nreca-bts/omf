@@ -18,6 +18,8 @@ def work(modelDir, inputDict):
 		'''
 	print(inputDict)
 	source = inputDict['source']
+	lat = inputDict['LatInput']
+	long = inputDict['LonInput']
 	if source =='ASOS':
 		station = inputDict['stationASOS']
 		parameter = inputDict['weatherParameterASOS']
@@ -27,17 +29,13 @@ def work(modelDir, inputDict):
 		parameter = inputDict['weatherParameterUSCRN']
 		data = weather.pullUscrn(inputDict['year'], station, parameter)
 	elif source == 'darkSky':
-		lat = inputDict['LatInput']
-		lon = inputDict['LonInput']
 		parameter = inputDict['weatherParameterdarkSky']
 		data = weather.pullDarksky(inputDict['year'], lat, lon, parameter, units='si')
 	elif source == 'NRSDB':
 		nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
-		latitude = float(inputDict['LatInput'])
-		longitude = float(inputDict['LonInput'])
 		year = inputDict['year']
 		param = inputDict['weatherParameterNRSDB']
-		data = weather.get_nrsdb_data('psm', longitude, latitude, year, nsrdbkey, interval=60)
+		data = weather.get_nrsdb_data('psm', float(long), float(lat), year, nsrdbkey, interval=60)
 		#Data must be a list. Extract correct column from returned pandas df, return this column as array of int
 		data = list(data[param].values[3:].astype(float))
 		print(data)
@@ -57,10 +55,8 @@ def work(modelDir, inputDict):
 			print(data)
 	elif source == 'tmy3':
 		param = inputDict['weatherParameterTmy3']
-		lat = float(inputDict['LatInput'])
-		lon = float(inputDict['LonInput'])
 		year = int(inputDict['year'])
-		data = weather.tmy3_pull(weather.nearest_tmy3_station(lat, lon))
+		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(lon)))
 		#Now get data for the year in question
 		data = data.loc[data['year']==year]
 		print(data)
@@ -79,8 +75,6 @@ def work(modelDir, inputDict):
 	elif source == 'ndfd':
 		#This will just just current date for forecast, as it does not support historical forecasts
 		#and future forcasts are limited
-		lat = inputDict['LatInput']
-		lon = inputDict['LonInput']
 		param = [inputDict['ndfdParam']]
 		d = weather.get_ndfd_data(lat, lon, param)
 		#data is now an json-like object. Parse it, and get the data ready for presentation
@@ -127,7 +121,11 @@ def work(modelDir, inputDict):
 			else:
 				data[i] = last
 
-
+	if inputDict["pullCDSCoperData"] == 'on':
+		year = int( inputDict['year'] )
+		successful = weather.get_cds_coper_data( latitude=float(lat), longitude=float(long), year=year, modelDir=modelDir)
+		if (successful == False):
+			raise Exception("CDS Copernicus Weather Pulling Code Failed")
 
 	# station = inputDict['stationASOS'] if source == 'ASOS' else inputDict['stationUSCRN']
 	# parameter = inputDict['weatherParameterASOS'] if source == 'ASOS' else inputDict['weatherParameterUSCRN']
@@ -172,6 +170,7 @@ def new(modelDir):
 		'weatherParameterSurfrad': '',
 		'surfradSite': 'PSU',
 		'ndfdParam': '',
+		'pullCDSCoperData': 'off',
 		"modelType": modelName}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
