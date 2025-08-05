@@ -532,23 +532,26 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	if useZillowData:
 		# Group by 'blockgroup' and calculate desired metrics
 		newdf_loads = df_loads.groupby('blockgroupFIPS').agg(
-			avg_base_criticality_score=('base crit score', 'mean'),
-			avg_community_criticality_score=('community crit score', 'mean'),
-			avg_base_criticality_score_index=('base crit index', 'mean'),
-			avg_community_criticality_score_index=('community crit index', 'mean'),
+			avg_BCS=('base crit score', 'mean'),
+			avg_CCS=('community crit score', 'mean'),
+			avg_BCI=('base crit index', 'mean'),
+			avg_CCI=('community crit index', 'mean'),
 			avg_zillow_price=('zillow price', 'mean'),
 			load_count=('base crit score', 'count'),
 			load_amount=('kva', 'sum')
 			).reset_index()
 		newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+		newsviDFcols = newsviDF.columns.tolist()
+		newsviDFcols = newsviDFcols[-9:]+newsviDFcols[0:-9]
+		newsviDF = newsviDF[newsviDFcols]
 		sviGeoDF = createGeoDF(newsviDF)
 		newsviDF = newsviDF.drop(columns=['geometry'])
 		# Group by 'section' and calculate desired metrics
 		section_loads = df_loads.groupby('section').agg(
-			avg_base_criticality_score=('base crit score', 'mean'),
-			avg_community_criticality_score=('community crit score', 'mean'),
-			avg_base_criticality_score_index=('base crit index', 'mean'),
-			avg_community_criticality_score_index=('community crit index', 'mean'),
+			avg_BCS=('base crit score', 'mean'),
+			avg_CCS=('community crit score', 'mean'),
+			avg_BCI=('base crit index', 'mean'),
+			avg_CCI=('community crit index', 'mean'),
 			avg_zillow_price=('zillow price', 'mean'),
 			avg_svi_score=('SOVI_SCORE', 'mean'),
 			load_count=('base crit score', 'count'),
@@ -557,22 +560,25 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	else:
 		# Group by 'blockgroup' and calculate desired metrics
 		newdf_loads = df_loads.groupby('blockgroupFIPS').agg(
-			avg_base_criticality_score=('base crit score', 'mean'),
-			avg_community_criticality_score=('community crit score', 'mean'),
-			avg_base_criticality_score_index=('base crit index', 'mean'),
-			avg_community_criticality_score_index=('community crit index', 'mean'),
+			avg_BCS=('base crit score', 'mean'),
+			avg_CCS=('community crit score', 'mean'),
+			avg_BCI=('base crit index', 'mean'),
+			avg_CCI=('community crit index', 'mean'),
 			load_count=('base crit score', 'count'),
 			load_amount=('kva', 'sum')
 			).reset_index()
 		newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+		newsviDFcols = newsviDF.columns.tolist()
+		newsviDFcols = newsviDFcols[-8:]+newsviDFcols[0:-8]
+		newsviDF = newsviDF[newsviDFcols]
 		sviGeoDF = createGeoDF(newsviDF)
 		newsviDF = newsviDF.drop(columns=['geometry'])
 		# Group by 'section' and calculate desired metrics
 		section_loads = df_loads.groupby('section').agg(
-			avg_base_criticality_score=('base crit score', 'mean'),
-			avg_community_criticality_score=('community crit score', 'mean'),
-			avg_base_criticality_score_index=('base crit index', 'mean'),
-			avg_community_criticality_score_index=('community crit index', 'mean'),
+			avg_BCS=('base crit score', 'mean'),
+			avg_CCS=('community crit score', 'mean'),
+			avg_BCI=('base crit index', 'mean'),
+			avg_CCI=('community crit index', 'mean'),
 			avg_svi_score=('SOVI_SCORE', 'mean'),
 			load_count=('base crit score', 'count'),
 			load_amount=('kva', 'sum')
@@ -587,10 +593,10 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 				section_loads,
 				pd.DataFrame({
 					'section': [section],
-					'avg_base_criticality_score': [None],
-					'avg_community_criticality_score': [None],
-					'avg_base_criticality_score_index': [None],
-					'avg_community_criticality_score_index': [None],
+					'avg_BCS': [None],
+					'avg_CCS': [None],
+					'avg_BCI': [None],
+					'avg_CCI': [None],
 					'avg_zillow_price': [None],
 					'load_count': [None],
 					'avg_svi_score':[None],
@@ -1418,6 +1424,8 @@ def work(modelDir, inputDict):
 	else:
 		colVal = None
 	# Load Geojson file more efficiently
+	smartRound = lambda x: round(x,2) if isinstance(x,float) else x
+	geoDF = geoDF.map(smartRound)
 	geoDF.to_file(geoJson_shapes_file, driver="GeoJSON")
 	sviDF.to_csv(sviDF_file)
 	with open(geoJson_shapes_file) as f1:
@@ -1454,7 +1462,6 @@ def work(modelDir, inputDict):
 	outData['geojsonData'] = open(geoJson_shapes_file, 'r').read()
 	
 	# Collect Loads Data Table Info
-	smartRound = lambda x: round(x,2) if isinstance(x,float) else x
 	tableRows1 = []
 	for load_names,v in loads.items():
 		row = (
@@ -1489,7 +1496,7 @@ def work(modelDir, inputDict):
 	# Collect Sections Data Table Info
 	useZillow = False
 	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Affluent Score', 'Load Count', 'Load Amount']
-	cols = ['section', 'avg_base_criticality_score', 'avg_base_criticality_score_index', 'avg_community_criticality_score', 'avg_community_criticality_score_index', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
+	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_CCS', 'avg_CCI', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
 	if not useZillow:
 		headers3.remove('Affluent Score')
 		cols.remove('avg_zillow_price')
