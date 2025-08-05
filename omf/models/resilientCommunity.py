@@ -425,15 +425,13 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 		obDict[key] = ob
 		from_field = ob.get('from', None)
 		to_field = ob.get('to', None)
-		if from_field and to_field:
-			section_key = str((from_field, to_field))
-			if key in obDict and section_key in sectionsDict:
-				obDict[key]['section'] = sectionsDict[section_key]
-			else:
-				obDict[key]['section'] = None
-		elif obType == 'bus':
-			if key in obDict and section_key in sectionsDict:
-				obDict[key]['section'] = sectionsDict[section_key]
+		section_key = str((from_field, to_field))
+		# Check all three rather than just (section_key in sectionsDict) for robustness 
+		# in case, for example, there is a "('bus1',None)" in sectionsDict by some error
+		if section_key in sectionsDict and from_field and to_field:
+			obDict[key]['section'] = sectionsDict[section_key]
+		elif obName in sectionsDict:
+			obDict[key]['section'] = sectionsDict[obName]
 		else:
 			obDict[key]['section'] = None
 		if (obType == 'load'):
