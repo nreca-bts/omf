@@ -44,18 +44,39 @@
 				<p class="inputSectionHeader">System Parameters</p>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Circuit Data Input File <span class="classic">Import a omd file to map</span></label>
-				<div>{{ insert_file_upload_block('inputDataFileName','inputDataFileContent') }}</div>
-			</div>
-
-			<div class="shortInput">
 				<label>Feeder</label>
 				<button id="feederButton" type="button" onclick="javascript:editFeeder(allInputData.modelName,1);" style="display:block;width:125px;">Open Editor</button>
 				<input type="text" id="feederName1" name="feederName1" value="{{allInputDataDict.feederName1}}" style="display:none">
 			</div>
-		
 			<div class="shortInput">
-
+				<label class="tooltip">Customer Information (.csv file)<span class="classic">Please see the documentation at the help link for the required format</span></label>
+				<input id="customerFile" type="file" style="display:none" onchange="handle_files(this.files,'customerData','customerFileName')">
+				<input id="customerData" name="customerData" value='{{allInputDataDict.customerData}}' type="hidden">
+				<div>
+					<label for="customerFile" class="fileButton">Choose File</label>
+					<input id="customerFileName" name="customerFileName" value="{{allInputDataDict.customerFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household
+						in the area </span></label>
+				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Loads Coloring By<span class="classic">Select the simulation output value that will be used to color the loads in the circuit.</span></label>
+				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
+					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
+					<option value="Community Criticality Score" {% if allInputDataDict.loadCol == "Community Criticality Score" %}selected{% endif %}>Community Criticality Score</option>
+					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
+					<option value="Community Criticality Index" {% if allInputDataDict.loadCol == "Community Criticality Index" %}selected{% endif %}>Community Criticality Index</option>
+					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
+				</select>
+			</div>
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Include In Analysis</p>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Lines<span class="classic">Select Yes if you would like to include Lines in the analysis </span></label>
 				<select name="lines" id="lines" value="{{allInputDataDict.lines}}">
 					<option value="yes" {% if allInputDataDict.lines | lower == "yes" %}selected{% endif %} >Yes</option>
@@ -76,25 +97,6 @@
 					<option value="no" {% if allInputDataDict.fuses | lower != "yes" %}selected{% endif %}>No</option>
 				</select>
 			</div>
-
-			<!-- New input for Average Peak Demand -->
-			<div class="shortInput">
-				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household
-						in the area </span></label>
-				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
-			</div>
-				
-			<div class="shortInput">
-				<label class="tooltip">Loads Coloring By<span class="classic">Select the simulation output value that will be used to color the loads in the circuit.</span></label>
-				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
-					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
-					<option value="Community Criticality Score" {% if allInputDataDict.loadCol == "Community Criticality Score" %}selected{% endif %}>Community Criticality Score</option>
-					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
-					<option value="Community Criticality Index" {% if allInputDataDict.loadCol == "Community Criticality Index" %}selected{% endif %}>Community Criticality Index</option>
-					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
-				</select>
-			</div>
-
 			<div class="shortInput">
 				<label class="tooltip">Residential
 					<span class="classic">Select Yes if you would like to include Residential load in the analysis</span>
@@ -212,7 +214,7 @@
 					<div class="legend-container">
 						<div class="my-legend">
 							<div class="legend-title">
-								<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+								<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 									Social Vulnerability Legend
 								</p>
 							</div>
@@ -220,37 +222,37 @@
 								<ul class="legend-labels">
 									<li>
 										<span style="background:#0000FF;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Very High
 										</p>
 									</li>
 									<li>
 										<span style="background:#ADD8E6;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. High
 										</p>
 									</li>
 									<li>
 										<span style="background:#90EE90;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. Moderate
 										</p>
 									</li>
 									<li>
 										<span style="background:#FFFF00;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. Low
 										</p>
 									</li>
 									<li>
 										<span style="background:#808080;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Very Low
 										</p>
 									</li>
 									<li>
 										<span style="background:#000000;"></span>
-										<p style="color:black; text-shadow: 0 0 1px white, 0 0 1px white, 0 0 1px white, 0 0 1px white;">
+										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Data Unavailable
 										</p>
 									</li>

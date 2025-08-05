@@ -172,7 +172,7 @@
 			document.getElementById("surfradSite").disabled = true;
 			document.getElementById("ndfdParam").disabled = false;
 		}
-		else{
+		else {
 			document.getElementById("stationASOS").disabled = true;
 			document.getElementById("stationUSCRN").disabled = true;
 			document.getElementById("LatInput").disabled = true;
@@ -187,6 +187,15 @@
 			document.getElementById("surfradSite").disabled = true;
 			document.getElementById("ndfdParam").disabled = true;
 
+		}
+	}
+	function ensureLatLongParameters()
+	{
+		const cdsCoperData = document.getElementById('pullCDSCoperData').value;
+		if (cdsCoperData == 'on')
+		{
+			document.getElementById("LatInput").disabled = false;
+			document.getElementById("LonInput").disabled = false;
 		}
 	}
 	</script>
@@ -851,7 +860,7 @@
 			<hr>
 			<div class="shortInput">
 				<label>Pull Climate Data Store Copernicus Data</label>
-				<select id="pullCDSCoperData" name="pullCDSCoperData" value="{{allInputDataDict.pullCDSCoperData}}" required>
+				<select id="pullCDSCoperData" name="pullCDSCoperData" value="{{allInputDataDict.pullCDSCoperData}}" onchange="ensureLatLongParameters()">
 					<option value="off" {% if allInputDataDict.pullCDSCoperData == 'off' %}selected{% endif %}>Off</option>
 					<option value="on" {% if allInputDataDict.pullCDSCoperData == 'on' %}selected{% endif %}>On</option>
 				</select>
