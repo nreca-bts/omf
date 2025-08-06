@@ -1110,7 +1110,7 @@ def runSections(pathToOmd, omd):
 	from_to_tuples_with_switch = [
 		(entry.get("from"), entry.get("to"))
 		for entry in omd.get('tree', {}).values()
-		if entry.get("switch") == "y" and entry.get("enabled") != "n" and "from" in entry and "to" in entry
+		if str(entry.get("switch")).lower() in ["y","yes","t","true"] and str(entry.get("enabled")).lower() not in ["n","no","f","false"] and "from" in entry and "to" in entry
 	]
 	for i in from_to_tuples_with_switch:
 		G[i[0]][i[1]]['switch'] = True
