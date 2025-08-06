@@ -1407,8 +1407,11 @@ def work(modelDir, inputDict):
 
 	# check downline loads
 	#loads_typeList = [item.lower() for item in inputDict['load_type'] ]
-	#obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList, zillowPricesPath, True)
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList)
+	useZillow = False
+	if useZillow:
+		obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList, zillowPricesPath, True)
+	else:
+		obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
@@ -1492,14 +1495,13 @@ def work(modelDir, inputDict):
 	outData['loadTableValues2'] = tableRows2
 	
 	# Collect Sections Data Table Info
-	useZillow = False
 	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Affluent Score', 'Load Count', 'Load Amount']
 	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_CCS', 'avg_CCI', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
 	if not useZillow:
 		headers3.remove('Affluent Score')
 		cols.remove('avg_zillow_price')
-	smartRound4DF = lambda x: round(x,2) if pd.notnull(x) else None
-	loadSections[cols[1:]] = loadSections[cols[1:]].map(smartRound4DF)
+	loadSections[['load_count','load_amount']] = loadSections[['load_count','load_amount']].fillna(0)
+	loadSections[cols[1:]] = loadSections[cols[1:]].fillna('None').map(smartRound)
 	tableRows3 = list(loadSections[cols].itertuples(index=False, name=None))
 	outData['loadTableHeadings3'] = headers3
 	outData['loadTableValues3'] = tableRows3
