@@ -581,6 +581,41 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 			load_count=('base crit score', 'count'),
 			load_amount=('kva', 'sum')
 			).reset_index()
+	# Leave 'SOVI_RATING' out of this becasuse it's dealt with elsewhere
+	readableColsDict = {	'pct_Prs_Blw_Pov_Lev_ACS_16_20': '_____________% Individuals Below Poverty Level',
+							'pct_Civ_emp_16p_ACS_16_20': '_____________% Age 16+ Employed',
+							'avg_Agg_HH_INC_ACS_16_20': '_____________Per Capita Income (USD)',
+							'pct_Not_HS_Grad_ACS_16_20': '_____________% Non-HS Grads',
+							'pct_Pop_65plus_ACS_16_20': '_____________% Age 65+',
+							'pct_u19ACS_16_20': '_____________% Non-Instituionalized Below Age 19',
+							'pct_Pop_Disabled_ACS_16_20': '_____________% Individuals Disabled',
+							'pct_singlefamily_u18': '_____________% Single Parent Families',
+							'pct_MLT_U10p_ACS_16_20': '_____________% Multi-Unit Structure',
+							'pct_Mobile_Homes_ACS_16_20': '_____________% Mobile Home',
+							'pct_Crowd_Occp_U_ACS_16_20': '_____________% Crowding',
+							'pct_noVehicle': '_____________% No Vehicle',
+							'pct_Prs_Blw_Pov_Lev_ACS_16_20_pct_rank': '_____________% Individuals Below Poverty Level (%ile)',
+							'pct_Civ_emp_16p_ACS_16_20_pct_rank': '_____________% Age 16+ Employed (%ile)',
+							'avg_Agg_HH_INC_ACS_16_20_pct_rank': '_____________Per Capita Income (USD) (%ile)',
+							'pct_Not_HS_Grad_ACS_16_20_pct_rank': '_____________% Non-HS Grads (%ile)',
+							'pct_Pop_65plus_ACS_16_20_pct_rank': '_____________% Age 65+ (%ile)',
+							'pct_u19ACS_16_20_pct_rank': '_____________% Non-Instituionalized Below Age 19 (%ile)',
+							'pct_Pop_Disabled_ACS_16_20_pct_rank': '_____________% Individuals Disabled (%ile)',
+							'pct_singlefamily_u18_pct_rank': '_____________% Single Parent Families (%ile)',
+							'pct_MLT_U10p_ACS_16_20_pct_rank': '_____________% Multi-Unit Structure (%ile)',
+							'pct_Mobile_Homes_ACS_16_20_pct_rank': '_____________% Mobile Home (%ile)',
+							'pct_Crowd_Occp_U_ACS_16_20_pct_rank': '_____________% Crowding (%ile)',
+							'pct_noVehicle_pct_rank': '_____________% No Vehicle (%ile)',
+							'SOVI_TOTAL': '_____________SVI Total',
+							'blockgroupFIPS': '_____________blockgroupFIPS',
+							'SOVI_SCORE': 'SVI',
+							'avg_BCS': 'Avg BCS',
+							'avg_CCS': 'Avg CCS',
+							'avg_BCI': 'Avg BCI',
+							'avg_CCI': 'Avg CCI',
+							'load_count': 'Load Count',
+							'load_amount': 'Load Amount'}
+	sviGeoDF = sviGeoDF.rename(columns=readableColsDict)
 	# Convert existing sections to a set for quick lookup
 	existing_sections = set(section_loads['section'])
 	# Iterate from 1 to totalSections to check for missing sections
@@ -838,7 +873,7 @@ def buildsviBlockGroup(blockgroupFIPS):
 	# Name of feature | Feature name (short): Variable name
 
 	# Percent Individuals Below Poverty Level | Poverty level: pct_Prs_Blw_Pov_Lev_ACS_16_20
-	# Percent Individuals 16+ Unemployyed | Unemployed: pct_Civ_emp_16p_ACS_16_20
+	# Percent Individuals 16+ Employed | Employed: pct_Civ_emp_16p_ACS_16_20
 	# Per capita Income | Income: avg_Agg_HH_INC_ACS_16_20
 	# Percent non highschool grads | Highschool: pct_Not_HS_Grad_ACS_16_20
 
