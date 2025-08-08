@@ -811,10 +811,12 @@ def addLoadInfoToOmd(loadsDict, omdDict):
 			obType = ob['object']
 			obName = ob['name']
 			k = obType + '.' + obName
+			section	  = loadsDict[k]['section']
 			bcs_score = loadsDict[k]['base crit score']
 			ccs_score = loadsDict[k]['community crit score']
 			bcs_index = loadsDict[k]['base crit index']
 			ccs_index = loadsDict[k]['community crit index']
+			ob['section'] = section
 			ob['base crit score'] = bcs_score
 			ob['community crit score'] = ccs_score
 			ob['community crit index'] = ccs_index
@@ -835,10 +837,12 @@ def addEquipmentInfoToOmd(obDict, omdDict, equipList):
 			obType = ob['object']
 			obName = ob['name']
 			k = obType + '.' + obName
+			section   = obDict[k]['section']
 			bcs_score = obDict[k]['base crit score']
 			ccs_score = obDict[k]['community crit score']
 			bcs_index = obDict[k]['base crit score']
 			ccs_index = obDict[k]['community crit index']
+			ob['section'] = section
 			ob['base crit score'] = bcs_score
 			ob['community crit score'] = ccs_score
 			ob['community crit index'] = ccs_index
@@ -857,7 +861,7 @@ def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
 	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
 	combined_dict = {**newloadsDict, **newobjectsDict}
 	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
-	new_df[['base crit score','community crit score','base crit index','community crit index']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
+	new_df[['base crit score','community crit score','base crit index','community crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
 
 def buildsviBlockGroup(blockgroupFIPS):
 	'''
@@ -1457,6 +1461,8 @@ def work(modelDir, inputDict):
 		colVal = "3"
 	elif(inputDict['loadCol'] == 'Community Criticality Index'):
 		colVal = "4"
+	elif(inputDict['loadCol'] == 'Feeder Sections'):
+		colVal = "5"
 	else:
 		colVal = None
 	# Load Geojson file more efficiently
