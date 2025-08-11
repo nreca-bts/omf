@@ -119,7 +119,7 @@
 			</div>
 			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
 			<div class="shortInput">
-				<label class="tooltip">Use Wholesale Energy Rate Structure (.json) file?<span class="classic">If checked, the model will use the (.json) Wholesale Energy Rate Structure file instead of the (.csv) Wholesale Energy Rate Curve file to obtain the energy rate structure information.</span></label>
+				<label class="tooltip">Use Wholesale Energy Rate Structure (.json) file?<span class="classic">If checked, the model will use only the (.json) Wholesale Energy Rate Structure file in lieu of the two optional (.csv) inputs: Wholesale Energy Rate Curve and Monthly Demand Charges.</span></label>
 				<input type="checkbox" id="useWholesaleJSONBool" name="useWholesaleJSONBool" {% if allInputDataDict.useWholesaleJSONBool %} checked {% endif %}/>
 			</div>
 			<div class="shortInput">
@@ -141,8 +141,13 @@
 				</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Demand Charge Cost ($/kW)<span class="classic">User defined demand charge that the utility pays per kW.</span></label>
-				<input type="text" id="demandChargeCost" name="demandChargeCost" value="{{allInputDataDict.demandChargeCost}}" pattern="^\d+\.?\d*?$" required="required">
+				<label class="tooltip">(Optional) Monthly Demand Charges (.csv file)<span class="classic">A CSV file containing the monthly demand charges ($/kW) that the utility pays to the service provider for the full year (total of 12).</span></label>
+				<input id="monthlyDemandChargesFile" type="file" style="display:none" onchange="handle_files(this.files,'monthlyDemandCharges','monthlyDemandChargesFileName')">
+				<input id="monthlyDemandCharges" name="monthlyDemandCharges" value="{{allInputDataDict.monthlyDemandCharges}}" type="hidden">
+				<div>
+					<label for="monthlyDemandChargesFile" class="fileButton">Choose File</label>
+					<input id="monthlyDemandChargesFileName" name="monthlyDemandChargesFileName" value="{{allInputDataDict.monthlyDemandChargesFileName}}" value='' readonly class="uploadFileName">
+				</div>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Financial Projection Length (years)<span class="classic">Number of years to project out estimated savings. Must be between 1 and 75 years.</span></label>

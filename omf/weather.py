@@ -1418,7 +1418,7 @@ async def format_request(variable="default", year:str=str(dt.date.today().year -
 		from copy import deepcopy
 		request_copy = deepcopy(request_params)
 		request_copy.update(months[i])
-		file_name = Path(modelDir, fileNameByMonth[i])
+		file_name = modelDir + fileNameByMonth[i]
 		tasks.append(async_api_request(request=request_copy, target=file_name))
 	await asyncio.gather( *tasks )
 
@@ -1437,15 +1437,16 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 			f'key: {key}' )
 	os.environ['EIA_KEY'] = '431b0c60584d74a1ba22c60dbd929619'
 	print(f'\nGetting new ERA5 data for ERA5_weather_data_{year}_{latitude}_{longitude}.zip')
-	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
+	directory_name = modelDir + "/copernicusData"
+	print("directory_name: ", directory_name)
+	weather_data_dir = os.mkdir(directory_name)
 	asyncio.run( format_request(
 	variable='default',
 	year=str(year),
 	latitude=latitude,
 	longitude=longitude,
-	modelDir=weather_data_dir ) )
+	modelDir=directory_name ) )
 
-	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
 	counter = 0
 	if weather_data_dir.is_dir():
 		for file in weather_data_dir.iterdir():
