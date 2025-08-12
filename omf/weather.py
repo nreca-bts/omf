@@ -126,7 +126,7 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 	if any(i.status_code != 200 for i in data):
 		# message = data[0].json()['error']
 		# raise Exception(message)
-		raise ApiError(data[0].json()['error'], status_code=400)
+		raise Exception(data[0].json()['error'], status_code=400)
 	data = [i.json() for i in data]
 	print(data)
 	# print(data)
@@ -821,7 +821,7 @@ def get_nrsdb_data(data_set, longitude, latitude, year, api_key, utc='true', lea
 
 	if data.status_code != 200:
 		# This means something went wrong.
-		raise ApiError(data.text, status_code=data.status_code)
+		raise Exception(data.text, status_code=data.status_code)
 	csv_lines = [line.decode() for line in data.iter_lines()]
 	reader = csv.reader(csv_lines, delimiter=',')
 	if filename is not None:
@@ -1263,7 +1263,7 @@ def _run_ndfd_request(q):
 	if resp.status_code != 200:
 		# This means something went wrong.
 		print(resp.status_code)
-		raise ApiError(resp.text, resp.status_code)
+		raise Exception(resp.text, resp.status_code)
 	return resp
 
 
@@ -1279,25 +1279,6 @@ def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSqu
 	data = _run_ndfd_request(_subGrid(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit, optional_params))
 	outData = _generalParseXml(data)
 	return outData
-
-
-#Custom ApiError class
-class ApiError(Exception):
-
-	def __init__(self, message, status_code=None, payload=None):
-		Exception.__init__(self)
-		self.message = message
-		if status_code is not None:
-			self.status_code = status_code
-		self.payload = payload
-		print(self.message)
-		raise Exception(self.message + ' ' + str(self.status_code))
-
-	def to_dict(self):
-		rv = dict(self.payload or ())
-		rv['message'] = self.message
-		print(rv['message'])
-		return rv
 	
 ##################### Climate Data Store/Copernicus API #####################
 
