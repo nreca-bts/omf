@@ -30,7 +30,7 @@ def work(modelDir, inputDict):
 		data = weather.pullUscrn(inputDict['year'], station, parameter)
 	elif source == 'darkSky':
 		parameter = inputDict['weatherParameterdarkSky']
-		data = weather.pullDarksky(inputDict['year'], lat, lon, parameter, units='si')
+		data = weather.pullDarksky(inputDict['year'], lat, long, parameter, units='si')
 	elif source == 'NRSDB':
 		nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 		year = inputDict['year']
@@ -56,7 +56,7 @@ def work(modelDir, inputDict):
 	elif source == 'tmy3':
 		param = inputDict['weatherParameterTmy3']
 		year = int(inputDict['year'])
-		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(lon)))
+		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(long)))
 		#Now get data for the year in question
 		data = data.loc[data['year']==year]
 		print(data)
@@ -76,7 +76,7 @@ def work(modelDir, inputDict):
 		#This will just just current date for forecast, as it does not support historical forecasts
 		#and future forcasts are limited
 		param = [inputDict['ndfdParam']]
-		d = weather.get_ndfd_data(lat, lon, param)
+		d = weather.get_ndfd_data(lat, long, param)
 		#data is now an json-like object. Parse it, and get the data ready for presentation
 		#get timestamps, to unix times
 		timestamps = (d['dwml']['data']['time-layout']['start-valid-time'])

@@ -26,7 +26,7 @@ from pathlib import Path
 omfDir = os.path.dirname(os.path.abspath(__file__))
 
 #darksky key
-_key_darksky = os.environ.get('DARKSKY','')
+_key_darksky = "xclxUibBDfg2pVwjHkfDBVVyMrFTTfc0"
 
 def pullAsos(year, station, datatype):
 	'''This model pulls hourly data for a specified year and ASOS station. 
@@ -91,7 +91,7 @@ def pullAsosStations(filePath):
 def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path = None):
 	'''Returns hourly weather data from the DarkSky API as array.
 
-	* For more on the DarkSky API: https://darksky.net/dev/docs#overview
+	* For more on the DarkSky API: https://docs.pirateweather.net/en/latest/API/
 	* List of available datatypes: https://darksky.net/dev/docs#data-point
 	
 	* year, lat, lon: may be numerical or string
@@ -101,7 +101,7 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 	* path: string, must be a path to a folder if provided.
 		* if a path is provided, the data for all datatypes for the given year and location will be cached there as a csv.'''
 	from pandas import date_range
-	print("DARK SKY IS RUNNING")
+	print("Pirate Weather is Running")
 	lat, lon = float(lat), float(lon)
 	int(year) # if year isn't castable... something's up
 	coords = '%0.2f,%0.2f' % (lat, lon) # this gets us 11.1 km unc <https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude>
@@ -121,14 +121,11 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 	# Now we begin the actual scraping. Behold: a convoluted way to get a list of days in a year
 	times = list(date_range('{}-01-01'.format(year), '{}-12-31'.format(year)))
 	#time.isoformat() has no tzinfo in this case, so darksky parses it as local time
-	urls = ['https://api.darksky.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( api_key, coords, time.isoformat(), units ) for time in times]
+	urls = ['https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( api_key, coords, time.isoformat(), units ) for time in times]
 	data = [requests.get(url) for url in urls]
 	if any(i.status_code != 200 for i in data):
-		# message = data[0].json()['error']
-		# raise Exception(message)
-		raise Exception(data[0].json()['error'], status_code=400)
+		raise Exception("Pirate Weather Request Failed")
 	data = [i.json() for i in data]
-	print(data)
 	# print(data)
 	#a fun little annoyance: let's de-unicode those strings
 	#def ascii_me(obj):
@@ -821,7 +818,7 @@ def get_nrsdb_data(data_set, longitude, latitude, year, api_key, utc='true', lea
 
 	if data.status_code != 200:
 		# This means something went wrong.
-		raise Exception(data.text, status_code=data.status_code)
+		raise Exception(f'status code: {data.status_code} ' + data.text)
 	csv_lines = [line.decode() for line in data.iter_lines()]
 	reader = csv.reader(csv_lines, delimiter=',')
 	if filename is not None:
@@ -1263,7 +1260,7 @@ def _run_ndfd_request(q):
 	if resp.status_code != 200:
 		# This means something went wrong.
 		print(resp.status_code)
-		raise Exception(resp.text, resp.status_code)
+		raise Exception(f'status code: {resp.status_code} ' + resp.text)
 	return resp
 
 
