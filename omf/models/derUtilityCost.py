@@ -139,14 +139,14 @@ def work(modelDir, inputDict):
 	if inputDict.get('useWholesaleJSONBool'): ## Checkbox to use the .json file is True by default
 		## Load the Wholesale Energy Rate Structure JSON file
 		try:
-			## Try to normally parse the JSON file
+			## Try to normally parse the JSON file and use it as a Python dictionary
 			response_file = json.loads(inputDict['wholesaleRateStructure'])
 		except json.JSONDecodeError:
-			## Convert single quotes to double quotes for proper JSON formatting
+			## Convert single quotes to double quotes for proper JSON formatting, then parse the JSON and use it as a Python dictionary
 			fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
 			response_file = json.loads(fixed)
 		except TypeError:
-			## If the wholesale_rate_curve is already a dictionary, use it directly
+			## If the wholesale_rate_curve is already a Python dictionary, use it directly
 			if isinstance(inputDict['wholesaleRateStructure'], dict):
 				response_file = inputDict['wholesaleRateStructure']
 		
@@ -166,11 +166,13 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	## Define the monthly peak demand charge array ($/kW per month) the utility pays to the G&T
 	if sum(monthly_demand_charge) == 0:
-		## Use the user-defined flat rate $/kW imput for every month of the year
-		peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
+		## If no monthly demand charge is specified in the JSON response file, use the user-defined CSV input instead
+		#peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
+		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
 	else:
 		## Use the array of $/kW demand charges defined in the input JSON response file, assuming the values are non-zero.
 		peakDemandCharge = np.array(monthly_demand_charge)
+
 	########################################################################################################################
 	## Run REopt.jl solver
 	########################################################################################################################
@@ -288,7 +290,7 @@ def work(modelDir, inputDict):
 		'deadband': '',
 		'unitDeviceCost': '0.0', ## set to zero: assuming utility does not pay for this
 		'unitUpkeepCost':  '0.0', ## set to zero: assuming utility does not pay for this
-		'demandChargeCost': inputDict['demandChargeCost'],
+		'monthlyDemandCharges': inputDict['monthlyDemandCharges'],
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
@@ -1120,6 +1122,8 @@ def new(modelDir):
 		wholesale_rate_structure = json.load(jsonFile)
 	#responseFilename = 'TODrate66a13566e90ecdb7d40581d2.json' ## TOD rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
 	#responseFilename = 'TOUrate5b311c595457a3496d8367be.json' ## TOU rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_monthly_demand_charges.csv')) as f:
+		monthly_demand_charges = f.read()
 
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
@@ -1141,6 +1145,8 @@ def new(modelDir):
 		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'wholesaleRateStructure': wholesale_rate_structure,
+		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
+		'monthlyDemandCharges': monthly_demand_charges,
 
 		## Fossil Fuel Generator Inputs
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
@@ -1159,7 +1165,7 @@ def new(modelDir):
 		'BESS_kwh': '13.5',
 
 		## Financial Inputs
-		'demandChargeCost': '50', ## this input is used by vbatDispatch
+		#'demandChargeCost': '50', ## this input is used by vbatDispatch
 		'projectionLength': '25',
 		'rateCompensation': '0.02', ## unit: $/kWh
 		'discountRate': '2',

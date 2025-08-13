@@ -118,8 +118,13 @@
 				<input type="text" id="unitUpkeepCost" name="unitUpkeepCost" value="{{allInputDataDict.unitUpkeepCost}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Demand Charge Cost ($/kW)<span class="classic">Demand charge utility pays for peak demand events. Assumed to be calculated based on monthly single highest peak.</span></label>
-				<input type="text" id="demandChargeCost" name="demandChargeCost" value="{{allInputDataDict.demandChargeCost}}" pattern="^\d+\.?\d*?$" required="required">
+				<label class="tooltip">Monthly Demand Charges (.csv file)<span class="classic">A CSV file containing the monthly demand charges ($/kW) that the utility pays to the service provider for the full year (total of 12).</span></label>
+				<input id="monthlyDemandChargesFile" type="file" style="display:none" onchange="handle_files(this.files,'monthlyDemandCharges','monthlyDemandChargesFileName')">
+				<input id="monthlyDemandCharges" name="monthlyDemandCharges" value="{{allInputDataDict.monthlyDemandCharges}}" type="hidden">
+				<div>
+					<label for="monthlyDemandChargesFile" class="fileButton">Choose File</label>
+					<input id="monthlyDemandChargesFileName" name="monthlyDemandChargesFileName" value="{{allInputDataDict.monthlyDemandChargesFileName}}" value='' readonly class="uploadFileName">
+				</div>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Financial Projection Length (years)<span class="classic">Number of years to project out estimated savings.</span></label>
