@@ -28,9 +28,9 @@ def work(modelDir, inputDict):
 		station = inputDict['stationUSCRN']
 		parameter = inputDict['weatherParameterUSCRN']
 		data = weather.pullUscrn(inputDict['year'], station, parameter)
-	elif source == 'darkSky':
-		parameter = inputDict['weatherParameterdarkSky']
-		data = weather.pullDarksky(inputDict['year'], lat, long, parameter, units='si')
+	elif source == 'PirateWeather':
+		parameter = inputDict['weatherParameterPirateWeather']
+		data = weather.pullPirateWeather(inputDict['year'], lat, long, parameter, units='si')
 	elif source == 'NRSDB':
 		nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 		year = inputDict['year']
@@ -144,7 +144,7 @@ def new(modelDir):
 	source = [
         'ASOS',
         'USCRN',
-        #'darkSky',
+        'pirateWeather',
         'NRSDB',
         'easySolarGhi',
         'easySolarDhi',
@@ -163,7 +163,7 @@ def new(modelDir):
 		"weatherParameterASOS": "tmpc",
 		'LatInput': '39.828362',
 		'LonInput': '-98.579490',
-		'weatherParameterdarkSky': '',
+		'weatherParameterPirateWeather': '',
 		'weatherParameterNRSDB': 'Pressure',
 		'easySolarStation': 'TX_Austin_33_NW',
 		'weatherParameterTmy3': 'TBD',

@@ -17,7 +17,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = false;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -33,7 +33,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = false;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -42,14 +42,14 @@
 			document.getElementById("ndfdParam").disabled = true;
 
 		}
-		else if (source == 'darkSky'){
+		else if (source == 'PirateWeather'){
 			document.getElementById("stationASOS").disabled = true;
 			document.getElementById("stationUSCRN").disabled = true;
 			document.getElementById("LatInput").disabled = false;
 			document.getElementById("LonInput").disabled = false;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = false;
+			document.getElementById("weatherParameterPirateWeather").disabled = false;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -65,7 +65,7 @@
 			document.getElementById("LonInput").disabled = false;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = false;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -82,7 +82,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
@@ -98,7 +98,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
@@ -114,7 +114,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
@@ -130,7 +130,7 @@
 			document.getElementById("LonInput").disabled = false;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = false;
 			document.getElementById("easySolarStation").disabled = true;
@@ -146,7 +146,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -164,7 +164,7 @@
 			document.getElementById("LonInput").disabled = false;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -179,7 +179,7 @@
 			document.getElementById("LonInput").disabled = true;
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
-			document.getElementById("weatherParameterdarkSky").disabled = true;
+			document.getElementById("weatherParameterPirateWeather").disabled = true;
 			document.getElementById("weatherParameterNRSDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
@@ -236,7 +236,7 @@
 				<select id="source" name="source" onchange="loadWeatherParameters()" >
 					<option value="ASOS" {{ 'selected' if allInputDataDict.source == 'ASOS' }}>ASOS</option>
 					<option value="USCRN" {{ 'selected' if allInputDataDict.source == 'USCRN' }}>USCRN</option>
-					<option value="darkSky" {{ 'selected' if allInputDataDict.source == 'darkSky' }}>darkSky</option>    
+					<option value="PirateWeather" {{ 'selected' if allInputDataDict.source == 'PirateWeather' }}>PirateWeather</option>    
 					<option value="NRSDB" {{ 'selected' if allInputDataDict.source == 'NRSDB' }}>NRSDB</option>
 					<option value="tmy3" {{ 'selected' if allInputDataDict.source == 'tmy3' }}>tmy3</option>
 					<option value="easySolarGhi" {{ 'selected' if allInputDataDict.source == 'easySolarGhi' }}>GHI Estimation</option>
@@ -480,22 +480,22 @@
 			</div>
 			<!-- NEED TO VERIFY UNITS FROM DARKSKY API -->
 			<div class="shortInput">
-				<label class="tooltip">Weather Parameter - darkSky<span class="classic">Data that should be pulled</span></label>
-				<select id="weatherParameterdarkSky" name="weatherParameterdarkSky" value="{{allInputDataDict.weatherParameterdarkSky}}" required="required">
-					<option value="precipIntensity" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'precipIntensity' }}>Precipitation Intensity (mm/hour)</option>
-					<option value="precipProbability" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'precipProbability' }}>Probability of Precipitation</option>
-					<option value="temperature" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'temperature' }}>Temperature (Celsius)</option>
-					<option value="apparentTemperature" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'apparentTemperature' }}>Apparent Temperature (Celsius)</option>
-					<option value="dewPoint" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'dewPoint' }}>Dew Point (Celcius)</option>
-					<option value="humidity" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'humidity' }}>Humidity (%)</option>
-					<option value="pressure" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'pressure' }}>Pressure (Hectopascals)</option>
-					<option value="windSpeed" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'windSpeed' }}>Wind Speed (kph)</option>
-					<option value="windGust" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'windGust' }}>Wind Gust (kph)</option>
-					<option value="windBearing" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'windBearing' }}>Wind Direction (degrees)</option>
-					<option value="cloudCover" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'cloudCover' }}>Cloud Cover (%)</option>
-					<option value="uvIndex" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'uvIndex' }}>UV Index</option>
-					<option value="visibility" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'visibility' }}>Visibility (km)</option>
-					<option value="ozone" {{ 'selected' if allInputDataDict.weatherParameterdarkSky == 'ozone' }}>Ozone (Dobsons)</option>
+				<label class="tooltip">Weather Parameter - PirateWeather<span class="classic">Data that should be pulled</span></label>
+				<select id="weatherParameterPirateWeather" name="weatherParameterPirateWeather" value="{{allInputDataDict.weatherParameterPirateWeather}}" required="required">
+					<option value="precipIntensity" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'precipIntensity' }}>Precipitation Intensity (mm/hour)</option>
+					<option value="precipProbability" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'precipProbability' }}>Probability of Precipitation</option>
+					<option value="temperature" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'temperature' }}>Temperature (Celsius)</option>
+					<option value="apparentTemperature" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'apparentTemperature' }}>Apparent Temperature (Celsius)</option>
+					<option value="dewPoint" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'dewPoint' }}>Dew Point (Celcius)</option>
+					<option value="humidity" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'humidity' }}>Humidity (%)</option>
+					<option value="pressure" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'pressure' }}>Pressure (Hectopascals)</option>
+					<option value="windSpeed" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'windSpeed' }}>Wind Speed (kph)</option>
+					<option value="windGust" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'windGust' }}>Wind Gust (kph)</option>
+					<option value="windBearing" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'windBearing' }}>Wind Direction (degrees)</option>
+					<option value="cloudCover" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'cloudCover' }}>Cloud Cover (%)</option>
+					<option value="uvIndex" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'uvIndex' }}>UV Index</option>
+					<option value="visibility" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'visibility' }}>Visibility (km)</option>
+					<option value="ozone" {{ 'selected' if allInputDataDict.weatherParameterPirateWeather == 'ozone' }}>Ozone (Dobsons)</option>
 
 				</select>
 			</div>
@@ -881,7 +881,7 @@
 		}else if (allInputData.source == "USCRN"){
 			station = allInputData.stationUSCRN
 		}
-		else if (allInputData.source == "darkSky"){
+		else if (allInputData.source == "PirateWeather"){
 			station = "Dark Sky Entry"
 		}
 		if(allOutputData.errorCount !== 0){gebi('errorDisplay').innerHTML = "Your search for " + allInputData.year + " " + station + 

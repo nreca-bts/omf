@@ -25,8 +25,8 @@ from pathlib import Path
 
 omfDir = os.path.dirname(os.path.abspath(__file__))
 
-#darksky key
-_key_darksky = "xclxUibBDfg2pVwjHkfDBVVyMrFTTfc0"
+#pirateweather key
+_key_pirateweather = "xclxUibBDfg2pVwjHkfDBVVyMrFTTfc0"
 
 def pullAsos(year, station, datatype):
 	'''This model pulls hourly data for a specified year and ASOS station. 
@@ -88,11 +88,10 @@ def pullAsosStations(filePath):
 				csvwriter.writerow(currentSite)
 
 
-def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path = None):
-	'''Returns hourly weather data from the DarkSky API as array.
+def pullPirateWeather(year, lat, lon, datatype, units='si', api_key=_key_pirateweather, path = None):
+	'''Returns hourly weather data from the PirateWeather API as array.
 
-	* For more on the DarkSky API: https://docs.pirateweather.net/en/latest/API/
-	* List of available datatypes: https://darksky.net/dev/docs#data-point
+	* For more on the Pirate Weather API: https://docs.pirateweather.net/en/latest/API/
 	
 	* year, lat, lon: may be numerical or string
 	* datatype: string, must be one of the available datatypes (case-sensitive)
@@ -120,11 +119,12 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 			print('Cache not found, data will be fetched from the API')	
 	# Now we begin the actual scraping. Behold: a convoluted way to get a list of days in a year
 	times = list(date_range('{}-01-01'.format(year), '{}-12-31'.format(year)))
-	#time.isoformat() has no tzinfo in this case, so darksky parses it as local time
+	#time.isoformat() has no tzinfo in this case, so it is parsed as local time
 	urls = ['https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( api_key, coords, time.isoformat(), units ) for time in times]
 	data = [requests.get(url) for url in urls]
-	if any(i.status_code != 200 for i in data):
-		raise Exception("Pirate Weather Request Failed")
+	for i in range(len(data)):
+		if data[i].status_code != 200:
+			raise Exception(f"Pirate Weather Request Failed :: Request Code :: {data[i].status_code}")
 	data = [i.json() for i in data]
 	# print(data)
 	#a fun little annoyance: let's de-unicode those strings
@@ -1076,7 +1076,7 @@ def _getUscrnData(year='2018', location='TX_Austin_33_NW', dataType="SOLARAD"):
 	return ghiData
 
 #Standard positional arguments are for TX_Austin
-def _getDarkSkyCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_darksky, units='si'):
+def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_pirateweather, units='si'):
 	cloudCoverByHour = {}
 	pressureByHour = {}
 	coords = '%0.2f,%0.2f' % (lat, lon)
@@ -1084,7 +1084,7 @@ def _getDarkSkyCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key
 	while times:
 		time = times.pop(0)
 		print(time)
-		url = 'https://api.darksky.net/forecast/%s/%s,%s?exclude=daily,alerts,minutely,currently&units=%s' % (key, coords, time.isoformat(), units ) 
+		url = 'https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily,alerts,minutely,currently&units=%s' % (key, coords, time.isoformat(), units ) 
 		res = requests.get(url).json()
 		try:
 			dayData = res['hourly']['data']
@@ -1110,7 +1110,7 @@ def getSolarZenith(lat, lon, datetime, timezone):
 
 
 def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station='TX_Austin_33_NW', timezone='US/Central'):
-    cloudCoverData, pressureData = _getDarkSkyCloudCoverForYear(year, lat, lon)
+    cloudCoverData, pressureData = _getPWCloudCoverForYear(year, lat, lon)
     ghiData = _getUscrnData(year, station, dataType="SOLARAD")
     #for each 8760 hourly time slots, make a timestamp for each slot, look up cloud cover by that slot
     #then append cloud cover and GHI reading together
