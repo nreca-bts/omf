@@ -312,10 +312,11 @@ def getPercentile(loads, columnName, tieBreaker=None):
 	# Sort pairs by primary value, then by tie-breaker
 	pairs.sort(key=lambda p: (p[0], p[1]))
 	# Calculate percentiles
+	# TODO: Implement percentile calculation that ranks things identically if no tie breaker exists (rather than effectively using original order as tie-breaker by default)
 	result = [0 for _ in range(len(loadServedVals))]
 	for rank in range(len(loadServedVals)):
 		original_index = pairs[rank][2]
-		result[original_index] = rank * 100.0 / (len(loadServedVals) - 1)
+		result[original_index] = rank * 100.0 / (len(loadServedVals) - 1) if len(loadServedVals)-1 != 0 else 100
 	# Assign percentiles to the loads dictionary
 	if columnName == "base crit score":
 		new_str = 'base crit index'
@@ -398,14 +399,14 @@ def getPowerMeasures(ob):
 		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
 	return kw, kvar, kva
 
-def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, loadsTypeList, pathToZillowData = None, useZillowData=False):
+def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
 	'''
 	Retrieves downline loads for specific set of equipment and retrieve nri data for each of the equipment, optionally using zillow data.
 	pathToOmd -> path to the omdfile
 	equipmentList -> list of equipment of interest
 	'''
 	# iterate throughout circuit
-	#store census information
+	# store census information
 	omd = json.load(open(pathToOmd))
 	loadsDF = pd.read_csv(pathToLoadsFile)
 	blockgroupDict = {}
@@ -413,7 +414,25 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	valList = []
 	geoms = []
 	obDict = {}
-	bg_outputDict = {}
+	
+	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
+	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
+			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
+			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
+	pctile_list = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
+			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
+			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
+	
+	# Helper function with informative error catching
+	def loadIsResidential(loadsDF,obName):
+		''' Checks if there's a single entry for a load in the Customer Information file and if so, returns whether it's residential or not.'''
+		loadRowsDf = loadsDF[loadsDF["Load Name"] == obName]
+		if len(loadRowsDf) > 1:
+			raise Exception(f"ERROR: Your Customer Information (.csv file) contains more than 1 entry for the load {obName}")
+		elif len(loadRowsDf) == 0:
+			raise Exception(f"ERROR: Your Customer Information (.csv file) contains no entry for the load {obName}")
+		else:
+			return loadRowsDf["Business Type"].iloc[0].lower() == 'residential'
 
 	# Section code
 	sectionsDict, distanceDict, totalSections = runSections(pathToOmd, omd)
@@ -435,24 +454,13 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 		else:
 			obDict[key]['section'] = None
 		if (obType == 'load'):
-			filtered_df = loadsDF[loadsDF["Load Name"] == obName]
-			try:
-				loadIsResidential = filtered_df["Business Type"].iloc[0].lower() in loadsTypeList #== 'residential'
-			except IndexError as ie:
-				raise IndexError(f'{ie}\nNOTE: Your Customer Information (.csv file) likely didn\'t contain an entry for one or more loads')
-			if (loadIsResidential): 
-				loadsDict[key] = {"base crit score":None}
+			if loadIsResidential(loadsDF,obName): 
+				loadsDict[key] = {}
+				loadsDict[key]['section'] = sectionsDict.get(obName)
 				kw, kvar, kva = getPowerMeasures(ob)
 				loadsDict[key]['kva'] = kva
-				loadsDict[key]["base crit score"] = ((math.sqrt((kw * kw) + (kvar * kvar) ))/ float(avgPeakDemand)) * 4
-				if obName in sectionsDict:
-					loadsDict[key]['section'] = sectionsDict[obName]
-				else:
-					loadsDict[key]['section'] = None
-				if obName in distanceDict:
-					loadsDict[key]['distance_from_source'] = int(distanceDict[obName])
-				else:
-					loadsDict[key]['distance_from_source'] = 0
+				loadsDict[key]["base crit score"] = ((math.sqrt(kw**2 + kvar**2))/ float(avgPeakDemand)) * 4
+				loadsDict[key]['distance_from_source'] = int(distanceDict.get(obName, 0))
 				long = float(ob['longitude'])
 				lat = float(ob['latitude'])
 				if blockgroupDict:
@@ -460,27 +468,14 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 					if check:
 						loadsDict[key]['blockgroup'] = check
 						continue
-					else:
-						blockgroup = findCensusBlockGroup(lat,long)
-				else:
-					blockgroup = findCensusBlockGroup(lat,long)
-				# Following replaces a potentially infinite loop. Whether it's necessary at all though should be investigated
 				blockgroup = repeatFindCensusBlockGroup(lat,long)
 				loadsDict[key]['blockgroup'] = blockgroup
 				blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
 				valList.append(list(all_vals(blockgroupDict[blockgroup])))
 				geoms.append(blockgroupDict[blockgroup]['geometry'])
+	
 	# compute SVI
-	#with open('/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/zillowBlock.json', 'w') as json_file:
-	#	json.dump(loadsDict, json_file, indent=4)
-	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
-	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
-	sviDF = createDF(valList,cols, geoms)
-	pctile_list = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
+	sviDF = createDF(valList, cols, geoms)
 	for i in cols:
 		if i not in ['blockgroupFIPS', 'geometry']:
 			new_str = i + '_pct_rank'
@@ -488,42 +483,31 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 			pctile_list.append(new_str)
 	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
 	sviDF['SOVI_SCORE'] = sviDF['SOVI_TOTAL'].rank(pct=True)
-	#sviDF['SOVI_SCORE'] = sviDF[pctile_list].sum(axis=1).rank(pct=True)
 	sviDF['SOVI_RATNG'] = sviDF.apply(buildSVIRating, axis=1)
-	#sviDF.to_csv('outSVI.csv', index=False)
-	#pathToZillowData = '/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/zillowPrices.json'
-	if useZillowData:
-		with open(pathToZillowData, 'r') as file:
-			zillowPrices = json.load(file)
-	else:
-		zillowPrices = None
+	
 	for ob in omd.get('tree', {}).values():
 		obType = ob['object']
 		obName = ob['name']
 		key = obType + '.' + obName
 		if (obType == 'load'):
-			filtered_df = loadsDF[loadsDF["Load Name"] == obName]
-			try:
-				loadIsResidential = filtered_df["Business Type"].iloc[0].lower() in loadsTypeList #== 'residential'
-			except IndexError as ie:
-				raise IndexError(f'{ie}\nNOTE: Your Customer Information (.csv file) likely didn\'t contain an entry for one or more loads')
-			if (loadIsResidential):
+			if loadIsResidential(loadsDF,obName): 
 				currBlockGroup = loadsDict[key]['blockgroup']
 				svi_score = sviDF[sviDF['blockgroupFIPS'] == currBlockGroup]['SOVI_SCORE'].values[0]
+				loadsDict[key]['SOVI_SCORE'] = svi_score
 				if useZillowData:
-					if zillowPrices:
-						avgZillowPrice = zillowPrices[currBlockGroup]['avgPrice']
-						loadsDict[key]["zillow price"] = avgZillowPrice
-					else:
-						avgZillowPrice = 1
-						loadsDict[key]["zillow price"] = avgZillowPrice
+					with open(pathToZillowData, 'r') as file:
+						zillowPrices = json.load(file)
+					avgZillowPrice = zillowPrices[currBlockGroup]['avgPrice']
+					loadsDict[key]['zillow price'] = avgZillowPrice
 					loadsDict[key]["community crit score"] = (loadsDict[key]["base crit score"] * svi_score) / (avgZillowPrice/10000)
 					loadsDict[key]["affluence score"] = avgZillowPrice / 1000
 				else:
 					loadsDict[key]["community crit score"] = (loadsDict[key]["base crit score"] * svi_score)
-				loadsDict[key]['SOVI_SCORE'] = svi_score
+	if not loadsDict:
+		raise Exception('No loads labeled as Residential in Customer Information (.csv file). SVI only applies to residential loads.')
 	getPercentile(loadsDict, "base crit score", 'distance_from_source')
 	getPercentile(loadsDict, 'community crit score', 'distance_from_source')
+	
 	# calculate loads data for blockgroups
 	df_loads = pd.DataFrame(loadsDict).T
 	df_loads.rename(columns={"blockgroup": "blockgroupFIPS"}, inplace=True)
@@ -665,12 +649,9 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 					if elementKey not in ob['downlineLoads'] and elementType == 'load':
 						ob['downlineLoads'].append(elementKey)
 	filteredObDict = {k:v  for k,v in obDict.items() if v.get('object') in equipmentList}
-	# perform weighted avg base criticality for equipment
-	newObsDict = BaseCriticallityWeightedAvg(filteredObDict, loadsDict)
-	# perform weighted avg community criticality for equipment
-	getPercentile(newObsDict, 'base crit score')
-	getPercentile(newObsDict, 'community crit score')
-	return newObsDict,loadsDict, sviGeoDF, newsviDF, section_loads
+	# add metrics to equipment based on downline loads
+	calcEquipmentMetrics(filteredObDict, loadsDict)
+	return filteredObDict,loadsDict, sviGeoDF, newsviDF, section_loads
 
 #UNUSED
 def getDownLineLoadsBlockGroup(pathToOmd, avgPeakDemand):
@@ -772,32 +753,28 @@ def getDownLineLoadsBlockGroup(pathToOmd, avgPeakDemand):
 					ob['downlineLoads'].append(elementKey)
 	return obDict,loadsDict, sviGeoDF
 
-def BaseCriticallityWeightedAvg(obsDict, loadsDict):
+def calcEquipmentMetrics(obsDict, loadsDict):
 	'''
-	Calculates base criticality for pieces of equipment that are not loads. Performs weighted average
-	obsDict -> dict of all circuit objects
-	loadsDict -> dict of loads
-	return newDict -> dict of objects weighted avg criticality values
+	Calculates bcs, ccs, bci, and cci for equipment on the feeder and adds them to the objects in the input dict obsDict
+	
+	Args:
+		Input: obsDict -> dict of all circuit objects
+		Input: loadsDict -> dict of loads
 	'''
-	newDict = {}
 	for k,v in obsDict.items():
 		weights=0
 		comm_crit_sum=0
 		base_crit_sum = 0
-		if(len(v['downlineLoads']) > 0):
-			for j in v['downlineLoads']:
+		for j in v['downlineLoads']:
 				ob = loadsDict.get(j)
-				weights+=ob['SOVI_SCORE']
-				comm_crit_sum+=ob['community crit score'] 
-				base_crit_sum+=ob['base crit score']
-			obsDict[k]['base crit score'] = base_crit_sum
-			obsDict[k]['community crit score'] = comm_crit_sum/weights
-		else:
-			obsDict[k]['base crit score'] = 0
-			obsDict[k]['community crit score'] = 0
-	getPercentile(obsDict, 'community crit score')
+				if ob:
+					weights+=ob['SOVI_SCORE']
+					comm_crit_sum+=ob['community crit score'] 
+					base_crit_sum+=ob['base crit score'] 
+		obsDict[k]['base crit score'] = base_crit_sum
+		obsDict[k]['community crit score'] = comm_crit_sum/weights if (comm_crit_sum != 0 and weights != 0) else 0
 	getPercentile(obsDict, 'base crit score')
-	return obsDict
+	getPercentile(obsDict, 'community crit score')
 
 def addLoadInfoToOmd(loadsDict, omdDict):
 	'''
@@ -811,16 +788,11 @@ def addLoadInfoToOmd(loadsDict, omdDict):
 			obType = ob['object']
 			obName = ob['name']
 			k = obType + '.' + obName
-			section	  = loadsDict[k]['section']
-			bcs_score = loadsDict[k]['base crit score']
-			ccs_score = loadsDict[k]['community crit score']
-			bcs_index = loadsDict[k]['base crit index']
-			ccs_index = loadsDict[k]['community crit index']
-			ob['section'] = section
-			ob['base crit score'] = bcs_score
-			ob['community crit score'] = ccs_score
-			ob['community crit index'] = ccs_index
-			ob['base crit index'] = bcs_index
+			ob['section'] 				= loadsDict.get(k,{}).get('section')
+			ob['base crit score'] 		= loadsDict.get(k,{}).get('base crit score')
+			ob['base crit index'] 		= loadsDict.get(k,{}).get('base crit index')
+			ob['community crit score'] 	= loadsDict.get(k,{}).get('community crit score')
+			ob['community crit index'] 	= loadsDict.get(k,{}).get('community crit index')
 		else:
 			continue
 	return omdDict
@@ -837,16 +809,11 @@ def addEquipmentInfoToOmd(obDict, omdDict, equipList):
 			obType = ob['object']
 			obName = ob['name']
 			k = obType + '.' + obName
-			section   = obDict[k]['section']
-			bcs_score = obDict[k]['base crit score']
-			ccs_score = obDict[k]['community crit score']
-			bcs_index = obDict[k]['base crit score']
-			ccs_index = obDict[k]['community crit index']
-			ob['section'] = section
-			ob['base crit score'] = bcs_score
-			ob['community crit score'] = ccs_score
-			ob['community crit index'] = ccs_index
-			ob['base crit index'] = bcs_index
+			ob['section'] 				= obDict.get(k,{}).get('section')
+			ob['base crit score'] 		= obDict.get(k,{}).get('base crit score')
+			ob['base crit index'] 		= obDict.get(k,{}).get('base crit index')
+			ob['community crit score'] 	= obDict.get(k,{}).get('community crit score')
+			ob['community crit index'] 	= obDict.get(k,{}).get('community crit index')
 		else:
 			continue
 	return omdDict
@@ -994,7 +961,7 @@ def buildSVIRating(row):
 	else:
 		return 'Very High'
 
-def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, loadsTypeList, modelDir, equipmentList):
+def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, modelDir, equipmentList):
 	'''
 	Runs computations on circuit for different loads and equipment
 
@@ -1002,7 +969,7 @@ def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, loadsTypeList, mode
 	modelDir -> modelDirectory to store csv
 	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
 	'''
-	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, loadsTypeList)
+	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList, avgPeakDemand, pathToLoadsFile)
 	cols = ['Object Name', 'Type','Section', 'Base Criticality Score', 'Base Criticality Index',
 			'Community Criticality Score', 'Community Criticality Index']
 	load_names = list(loads.keys())
@@ -1436,21 +1403,10 @@ def work(modelDir, inputDict):
 		equipmentList.append('transformer')
 	if (inputDict['fuses'].lower() == 'yes' ):
 		equipmentList.append('fuse')
-	loads_typeList = []
-	if (inputDict['residential'].lower() == 'yes'):
-		loads_typeList.append('residential')
-	elif (inputDict['retail'].lower() == 'yes'):
-		loads_typeList.append('retail')
-	elif (inputDict['agriculture'].lower() == 'yes'):
-		loads_typeList.append('agriculture')
 
 	# check downline loads
-	#loads_typeList = [item.lower() for item in inputDict['load_type'] ]
 	useZillow = False
-	if useZillow:
-		obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList, zillowPricesPath, True)
-	else:
-		obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, loads_typeList)
+	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, zillowPricesPath, useZillow)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
@@ -1554,7 +1510,7 @@ def test():
 	modelDir = "/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity"
 	pathToLoadsFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv')
 	equipmentList = ['lines', 'transformers', 'fuses']
-	runCalculations(pathToOmd,pathToLoadsFile,1,  ['residential'], modelDir, equipmentList)
+	runCalculations(pathToOmd,pathToLoadsFile,1, modelDir, equipmentList)
 
 def new(modelDir):
 	omdfileName = 'ieee37_LBL_simplified'
