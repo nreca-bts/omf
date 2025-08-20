@@ -1,7 +1,7 @@
 name: OMF Integration Tests
 
-on: push
-        
+on: [push, pull_request]
+
 jobs:
   Ubuntu:
     name: Test OMF on Ubuntu

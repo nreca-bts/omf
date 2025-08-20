@@ -25,8 +25,8 @@ from pathlib import Path
 
 omfDir = os.path.dirname(os.path.abspath(__file__))
 
-#darksky key
-_key_darksky = os.environ.get('DARKSKY','')
+#pirateweather key
+_key_pirateweather = "xclxUibBDfg2pVwjHkfDBVVyMrFTTfc0"
 
 def pullAsos(year, station, datatype):
 	'''This model pulls hourly data for a specified year and ASOS station. 
@@ -88,11 +88,10 @@ def pullAsosStations(filePath):
 				csvwriter.writerow(currentSite)
 
 
-def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path = None):
-	'''Returns hourly weather data from the DarkSky API as array.
+def pullPirateWeather(year, lat, lon, datatype, units='si', api_key=_key_pirateweather, path = None):
+	'''Returns hourly weather data from the PirateWeather API as array.
 
-	* For more on the DarkSky API: https://darksky.net/dev/docs#overview
-	* List of available datatypes: https://darksky.net/dev/docs#data-point
+	* For more on the Pirate Weather API: https://docs.pirateweather.net/en/latest/API/
 	
 	* year, lat, lon: may be numerical or string
 	* datatype: string, must be one of the available datatypes (case-sensitive)
@@ -101,7 +100,7 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 	* path: string, must be a path to a folder if provided.
 		* if a path is provided, the data for all datatypes for the given year and location will be cached there as a csv.'''
 	from pandas import date_range
-	print("DARK SKY IS RUNNING")
+	print("Pirate Weather is Running")
 	lat, lon = float(lat), float(lon)
 	int(year) # if year isn't castable... something's up
 	coords = '%0.2f,%0.2f' % (lat, lon) # this gets us 11.1 km unc <https://gis.stackexchange.com/questions/8650/measuring-accuracy-of-latitude-and-longitude>
@@ -120,15 +119,13 @@ def pullDarksky(year, lat, lon, datatype, units='si', api_key=_key_darksky, path
 			print('Cache not found, data will be fetched from the API')	
 	# Now we begin the actual scraping. Behold: a convoluted way to get a list of days in a year
 	times = list(date_range('{}-01-01'.format(year), '{}-12-31'.format(year)))
-	#time.isoformat() has no tzinfo in this case, so darksky parses it as local time
-	urls = ['https://api.darksky.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( api_key, coords, time.isoformat(), units ) for time in times]
+	#time.isoformat() has no tzinfo in this case, so it is parsed as local time
+	urls = ['https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( api_key, coords, time.isoformat(), units ) for time in times]
 	data = [requests.get(url) for url in urls]
-	if any(i.status_code != 200 for i in data):
-		# message = data[0].json()['error']
-		# raise Exception(message)
-		raise ApiError(data[0].json()['error'], status_code=400)
+	for i in range(len(data)):
+		if data[i].status_code != 200:
+			raise Exception(f"Pirate Weather Request Failed :: Request Code :: {data[i].status_code}")
 	data = [i.json() for i in data]
-	print(data)
 	# print(data)
 	#a fun little annoyance: let's de-unicode those strings
 	#def ascii_me(obj):
@@ -733,69 +730,45 @@ def lat_lon_diff(lat1, lat2, lon1, lon2):
 	dist = sqrt((float(lat1) - float(lat2))**2 + (float(lon1) - float(lon2))**2)
 	return dist
 
-class NSRDB():
-	'''Data pull factory for nsrdb data sets '''
-	def __init__(self, data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None):
-		self.base_url = 'https://developer.nrel.gov'
-		self.data_set = data_set
-		self.params = {}
-		self.params['api_key'] = api_key
-		#wkt will be one point to use csv option - may need another call to get correct wkt value: https://developer.nrel.gov/docs/solar/nsrdb/nsrdb_data_query/
-		self.params['wkt'] = self.latlon_to_wkt(longitude, latitude)
-		#names will be one value to use csv option
-		self.params['names'] = str(year)
-		#note utc must be either 'true' or 'false' as a string, not True or False Boolean value
-		self.params['utc'] = utc
-		self.params['leap_day'] = leap_day
-		self.params['email'] = email
-		self.interval = interval
-
-	def latlon_to_wkt(self, longitude, latitude):
-		if latitude < -90 or latitude > 90:
-			raise('invalid latitude')
-		elif longitude < -180 or longitude > 180:
-			raise('invalid longitude')  
-		return 'POINT({} {})'.format(longitude, latitude)
-
-	def create_url(self, route):
-		return os.path.join(self.base_url, route)
-
-	#physical solar model
-	def psm(self):
-		self.params['interval'] = self.interval
-		route = 'api/solar/nsrdb_psm3_download.csv'
-		self.request_url = self.create_url(route)
-
-	#physical solar model v3 tsm
-	def psm_tmy(self):
-		route = 'api/nsrdb_api/solar/nsrdb_psm3_tmy_download.csv'
-		self.request_url = self.create_url(route)
-
-	#SUNY international
-	def suny(self):
-		route = 'api/solar/suny_india_download.csv'
-		self.request_url = self.create_url(route)
-
-	#spectral tmy
-	def spectral_tmy(self):
-		route = 'api/nsrdb_api/solar/spectral_tmy_india_download.csv'
-		self.request_url = self.create_url(route)
-
-	#makes api request based on inputs and returns the response object
-	def execute_query(self):
-		set_query = getattr(self, self.data_set)
-		set_query()
-		resp = requests.get(self.request_url, params=self.params)
-		return resp
+# NSRDB
+def nsrbd_latlon_to_wkt(longitude, latitude):
+	if latitude < -90 or latitude > 90:
+		raise ValueError('invalid latitude')
+	elif longitude < -180 or longitude > 180:
+		raise ValueError('invalid longitude')  
+	return 'POINT({} {})'.format(longitude, latitude)
 
 def get_nrsdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
 	'''Create nrsdb factory and execute query. Optional output to file or return the response object.'''
 	print("NRSDB found")
-	nrsdb_factory = NSRDB(data_set, longitude, latitude, year, api_key, utc=utc, leap_day=leap_day, email=email, interval=interval)
-	data = nrsdb_factory.execute_query()
+	base_url = 'https://developer.nrel.gov'
+	request_url = ""
+	params = {}
+	params['api_key'] = api_key
+	params['wkt'] = nsrbd_latlon_to_wkt(latitude=latitude, longitude=longitude)
+	params['names'] = str(year)
+	params['utc'] = utc
+	params['leap_day'] = leap_day
+	params['email'] = email
+
+	# Physical Solar Model
+	if data_set == 'psm':
+		params["interval"] = interval
+		request_url = os.path.join( base_url, 'api/solar/nsrdb_psm3_download.csv' )
+	# physical solar model v3 tsm
+	elif data_set == 'psm_tmy':
+		request_url = os.path.join( base_url, 'api/nsrdb_api/solar/nsrdb_psm3_tmy_download.csv' )
+	# SUNY International
+	elif data_set == 'suny':
+		request_url = os.path.join( base_url, 'api/solar/suny_india_download.csv' )
+	# spectral tmy
+	elif data_set == 'spectral_tmy':
+		request_url = os.path.join( base_url,' api/nsrdb_api/solar/spectral_tmy_india_download.csv' )
+	data = requests.get( url=request_url, params=params)
+
 	if data.status_code != 200:
 		# This means something went wrong.
-		raise ApiError(data.text, status_code=data.status_code)
+		raise Exception(f'status code: {data.status_code} ' + data.text)
 	csv_lines = [line.decode() for line in data.iter_lines()]
 	reader = csv.reader(csv_lines, delimiter=',')
 	if filename is not None:
@@ -1053,7 +1026,7 @@ def _getUscrnData(year='2018', location='TX_Austin_33_NW', dataType="SOLARAD"):
 	return ghiData
 
 #Standard positional arguments are for TX_Austin
-def _getDarkSkyCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_darksky, units='si'):
+def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_pirateweather, units='si'):
 	cloudCoverByHour = {}
 	pressureByHour = {}
 	coords = '%0.2f,%0.2f' % (lat, lon)
@@ -1061,7 +1034,7 @@ def _getDarkSkyCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key
 	while times:
 		time = times.pop(0)
 		print(time)
-		url = 'https://api.darksky.net/forecast/%s/%s,%s?exclude=daily,alerts,minutely,currently&units=%s' % (key, coords, time.isoformat(), units ) 
+		url = 'https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily,alerts,minutely,currently&units=%s' % (key, coords, time.isoformat(), units ) 
 		res = requests.get(url).json()
 		try:
 			dayData = res['hourly']['data']
@@ -1087,7 +1060,7 @@ def getSolarZenith(lat, lon, datetime, timezone):
 
 
 def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station='TX_Austin_33_NW', timezone='US/Central'):
-    cloudCoverData, pressureData = _getDarkSkyCloudCoverForYear(year, lat, lon)
+    cloudCoverData, pressureData = _getPWCloudCoverForYear(year, lat, lon)
     ghiData = _getUscrnData(year, station, dataType="SOLARAD")
     #for each 8760 hourly time slots, make a timestamp for each slot, look up cloud cover by that slot
     #then append cloud cover and GHI reading together
@@ -1237,7 +1210,7 @@ def _run_ndfd_request(q):
 	if resp.status_code != 200:
 		# This means something went wrong.
 		print(resp.status_code)
-		raise ApiError(resp.text, resp.status_code)
+		raise Exception(f'status code: {resp.status_code} ' + resp.text)
 	return resp
 
 
@@ -1253,25 +1226,6 @@ def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSqu
 	data = _run_ndfd_request(_subGrid(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit, optional_params))
 	outData = _generalParseXml(data)
 	return outData
-
-
-#Custom ApiError class
-class ApiError(Exception):
-
-	def __init__(self, message, status_code=None, payload=None):
-		Exception.__init__(self)
-		self.message = message
-		if status_code is not None:
-			self.status_code = status_code
-		self.payload = payload
-		print(self.message)
-		raise Exception(self.message + ' ' + str(self.status_code))
-
-	def to_dict(self):
-		rv = dict(self.payload or ())
-		rv['message'] = self.message
-		print(rv['message'])
-		return rv
 	
 ##################### Climate Data Store/Copernicus API #####################
 
@@ -1287,7 +1241,7 @@ async def async_api_request(request, target):
 	await asyncio.to_thread(api_request, request, target)
 
 # Default year if not given is last year
-async def format_request(variable="default", year:str=str(dt.date.today().year - 1), latitude=None, longitude=None, modelDir="./"):
+async def format_request(variable="default", year:str=str(dt.date.today().year - 1), latitude=None, longitude=None, dataDir="./"):
 	import asyncio
 	request_params = { 
 		"data_format": "netcdf",
@@ -1368,7 +1322,7 @@ async def format_request(variable="default", year:str=str(dt.date.today().year -
 		from copy import deepcopy
 		request_copy = deepcopy(request_params)
 		request_copy.update(months[i])
-		file_name = Path(modelDir, fileNameByMonth[i])
+		file_name = dataDir + '/' + fileNameByMonth[i]
 		tasks.append(async_api_request(request=request_copy, target=file_name))
 	await asyncio.gather( *tasks )
 
@@ -1387,21 +1341,19 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 			f'key: {key}' )
 	os.environ['EIA_KEY'] = '431b0c60584d74a1ba22c60dbd929619'
 	print(f'\nGetting new ERA5 data for ERA5_weather_data_{year}_{latitude}_{longitude}.zip')
-	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
-	asyncio.run( format_request(
-	variable='default',
-	year=str(year),
-	latitude=latitude,
-	longitude=longitude,
-	modelDir=weather_data_dir ) )
-
-	weather_data_dir = Path.mkdir(modelDir, "copernicusData")
-	counter = 0
-	if weather_data_dir.is_dir():
-		for file in weather_data_dir.iterdir():
-			if file.suffix == '.zip':
-				counter += 1
-	if counter == 6:
+	directory_name = modelDir + "/copernicusData"
+	os.mkdir(directory_name)
+	files = os.listdir(directory_name)
+	if len(files) == 6:
+		requestSuccess = True
+	else:
+		asyncio.run( format_request(
+			variable='default',
+			year=str(year),
+			latitude=latitude,
+			longitude=longitude,
+			dataDir=directory_name )
+		)
 		requestSuccess = True
 	return requestSuccess
 

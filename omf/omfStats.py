@@ -3,7 +3,7 @@ Run this to generate stats about the OMF user base.
 By david.pinney@nreca.coop and ian.george@nreca.coop in 2017.
 Prereqs: a database file pulled from omf.coop, python, libraries listed below in the import statements (all pip installable).
 Runtime: about 30 seconds.
-OOO Think about what to do with the error log.
+OOO Display the access and error logs as well?
 '''
 
 import os, csv, json, time, collections, zipfile

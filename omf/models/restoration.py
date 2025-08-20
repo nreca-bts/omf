@@ -1052,7 +1052,7 @@ def makeLoadCciDict(modelDir, pathToOmd, customerInfo):
 	ccsDict = {}
 	bcsDict = {}
 	# Uncomment to use resilientCommunity. 
-	'''
+	
 	makeResComOutputCsv(pathToOmd		= pathToOmd, 
 						pathToLoadsFile	= customerInfo, 
 						avgPeakDemand	= 4.25,
@@ -1080,7 +1080,7 @@ def makeLoadCciDict(modelDir, pathToOmd, customerInfo):
 			cciDict[obName] = 50
 			ccsDict[obName] = 50
 			bcsDict[obName] = 50
-	###############################################################
+	###############################################################'''
 
 	return cciDict, ccsDict, bcsDict
 
@@ -1118,9 +1118,14 @@ def combineLoadPriorityWithCCI(modelDir, loadPriorityFilePath, loadCciDict, cciI
 		mergeCciAndWeights = lambda cci,weight : max(1,cci*cciImpact)
 	loadWeightsMerged = {}
 	for loadName, cci in loadCciDict.items():
-		# Loads defaulting to weight 1 is done to reflect that choice within PowerModelsONM 
+		# PowerModelsONM expects a priorities scale of 1=non-critical, 10=sub-critical, 100=critical. 
+		# e^(x0.0460517) is the exponential best fit for (0,1),(50,10),(100,100)
+		# Using that transform, we can force linear cci values into the exponential scale expected by PowerModelsONM 
+		# (Ex: the load with 50 cci would have ~10 expCci, appropriately representing being subcritical)
+		expCci = math.e**(cci*0.0460517)
+		# Loads defaulting to weight 1 is done to reflect that choice within PowerModelsONM and the expected priorities scale discussed above
 		loadWeight = loadWeights.get(loadName,1)
-		loadWeightsMerged[loadName] = mergeCciAndWeights(cci,loadWeight)
+		loadWeightsMerged[loadName] = mergeCciAndWeights(expCci,loadWeight)
 	mergedLoadWeightsFile = pJoin(modelDir, 'loadWeightsMerged.json')
 	with open(mergedLoadWeightsFile, 'w') as outfile:
 		json.dump(loadWeightsMerged, outfile)
