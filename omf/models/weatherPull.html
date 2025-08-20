@@ -18,7 +18,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = false;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -34,7 +34,7 @@
 			document.getElementById("weatherParameterASOS").disabled = false;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -50,7 +50,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = false;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -58,7 +58,7 @@
 			document.getElementById("ndfdParam").disabled = true;
 
 		}
-		else if (source == 'NRSDB'){
+		else if (source == 'NSRDB'){
 			document.getElementById("stationASOS").disabled = true;
 			document.getElementById("stationUSCRN").disabled = true;
 			document.getElementById("LatInput").disabled = false;
@@ -66,7 +66,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = false;
+			document.getElementById("weatherParameterNSRDB").disabled = false;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -83,7 +83,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -99,7 +99,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -115,7 +115,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = false;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -131,7 +131,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = false;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -147,7 +147,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = false;
@@ -165,7 +165,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -180,7 +180,7 @@
 			document.getElementById("weatherParameterASOS").disabled = true;
 			document.getElementById("weatherParameterUSCRN").disabled = true;
 			document.getElementById("weatherParameterPirateWeather").disabled = true;
-			document.getElementById("weatherParameterNRSDB").disabled = true;
+			document.getElementById("weatherParameterNSRDB").disabled = true;
 			document.getElementById("weatherParameterTmy3").disabled = true;
 			document.getElementById("easySolarStation").disabled = true;
 			document.getElementById("weatherParameterSurfrad").disabled = true;
@@ -237,7 +237,7 @@
 					<option value="ASOS" {{ 'selected' if allInputDataDict.source == 'ASOS' }}>ASOS</option>
 					<option value="USCRN" {{ 'selected' if allInputDataDict.source == 'USCRN' }}>USCRN</option>
 					<option value="PirateWeather" {{ 'selected' if allInputDataDict.source == 'PirateWeather' }}>PirateWeather</option>    
-					<option value="NRSDB" {{ 'selected' if allInputDataDict.source == 'NRSDB' }}>NRSDB</option>
+					<option value="NSRDB" {{ 'selected' if allInputDataDict.source == 'NSRDB' }}>NSRDB</option>
 					<option value="tmy3" {{ 'selected' if allInputDataDict.source == 'tmy3' }}>tmy3</option>
 					<option value="easySolarGhi" {{ 'selected' if allInputDataDict.source == 'easySolarGhi' }}>GHI Estimation</option>
 					<option value="easySolarDhi" {{ 'selected' if allInputDataDict.source == 'easySolarDhi' }}>DHI Estimation</option>
@@ -500,25 +500,25 @@
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Weather Parameter - NRSDB<span class="classic">Data that should be pulled</span></label>
-				<select id="weatherParameterNRSDB" name="weatherParameterNRSDB" value="{{allInputDataDict.weatherParameterNRSDB}}" required="required">
-					<option value="Temperature" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Temperature' }}>Temperature (C) </option>
-					<option value="Clearsky DHI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Clearsky DHI' }}>Clearsky DHI (w/m2)</option>
-					<option value="Clearsky DNI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Clearsky DNI' }}>Clearsky DNI (w/m2)</option>
-					<option value="Clearsky GHI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Clearsky GHI' }}>Clearsky GHI (w/m2)</option>
-					<option value="Cloud Type" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Cloud Type' }}>Cloud Type</option>
-					<option value="Dew Point" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Dew Point' }}>Dew Point (C)</option>
-					<option value="DHI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'DHI' }}>DHI (w/m2)</option>
-					<option value="DNI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'DNI' }}>DNI (w/m2)</option>
-					<option value="Fill Flag" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Fill Flag' }}>Fill Flag</option>
-					<option value="GHI" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'GHI' }}>GHI (w/m2)</option>
-					<option value="Relative Humidity" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Relative Humidity' }}>Relative Humidity (%)</option>
-					<option value="Solar Zenith Angle" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Solar Zenith Angle' }}>Solar Zenith Angle (deg)</option>
-					<option value="Surface Albedo Pressure" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Surface Albedo Pressure' }}>Surface Albedo</option>
-					<option value="Precipitable Water" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Precipitable Water' }}>Precipitable Water (cm)</option>
-					<option value="Wind Direction" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Wind Direction' }}>Wind Direction (Deg)</option>
-					<option value="Pressure" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Pressure' }}>Pressure (mbar)</option>
-					<option value="Wind Speed" {{ 'selected' if allInputDataDict.weatherParameterNRSDB == 'Wind Speed' }}>Wind Speed (m/s)</option>
+				<label class="tooltip">Weather Parameter - NSRDB<span class="classic">Data that should be pulled</span></label>
+				<select id="weatherParameterNSRDB" name="weatherParameterNSRDB" value="{{allInputDataDict.weatherParameterNSRDB}}" required="required">
+					<option value="Temperature" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Temperature' }}>Temperature (C) </option>
+					<option value="Clearsky DHI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Clearsky DHI' }}>Clearsky DHI (w/m2)</option>
+					<option value="Clearsky DNI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Clearsky DNI' }}>Clearsky DNI (w/m2)</option>
+					<option value="Clearsky GHI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Clearsky GHI' }}>Clearsky GHI (w/m2)</option>
+					<option value="Cloud Type" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Cloud Type' }}>Cloud Type</option>
+					<option value="Dew Point" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Dew Point' }}>Dew Point (C)</option>
+					<option value="DHI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'DHI' }}>DHI (w/m2)</option>
+					<option value="DNI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'DNI' }}>DNI (w/m2)</option>
+					<option value="Fill Flag" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Fill Flag' }}>Fill Flag</option>
+					<option value="GHI" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'GHI' }}>GHI (w/m2)</option>
+					<option value="Relative Humidity" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Relative Humidity' }}>Relative Humidity (%)</option>
+					<option value="Solar Zenith Angle" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Solar Zenith Angle' }}>Solar Zenith Angle (deg)</option>
+					<option value="Surface Albedo Pressure" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Surface Albedo Pressure' }}>Surface Albedo</option>
+					<option value="Precipitable Water" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Precipitable Water' }}>Precipitable Water (cm)</option>
+					<option value="Wind Direction" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Wind Direction' }}>Wind Direction (Deg)</option>
+					<option value="Pressure" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Pressure' }}>Pressure (mbar)</option>
+					<option value="Wind Speed" {{ 'selected' if allInputDataDict.weatherParameterNSRDB == 'Wind Speed' }}>Wind Speed (m/s)</option>
 				</select>
 			</div>
 			<div class="shortInput">

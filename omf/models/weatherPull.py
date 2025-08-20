@@ -31,11 +31,11 @@ def work(modelDir, inputDict):
 	elif source == 'PirateWeather':
 		parameter = inputDict['weatherParameterPirateWeather']
 		data = weather.pullPirateWeather(inputDict['year'], lat, long, parameter, units='si')
-	elif source == 'NRSDB':
+	elif source == 'nsrdb':
 		nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 		year = inputDict['year']
-		param = inputDict['weatherParameterNRSDB']
-		data = weather.get_nrsdb_data('psm', float(long), float(lat), year, nsrdbkey, interval=60)
+		param = inputDict['weatherParameternsrdb']
+		data = weather.get_nsrdb_data('psm', float(long), float(lat), year, nsrdbkey, interval=60)
 		#Data must be a list. Extract correct column from returned pandas df, return this column as array of int
 		data = list(data[param].values[3:].astype(float))
 		print(data)
@@ -145,7 +145,7 @@ def new(modelDir):
         'ASOS',
         'USCRN',
         'pirateWeather',
-        'NRSDB',
+        'nsrdb',
         'easySolarGhi',
         'easySolarDhi',
         'easySolarDni',
@@ -164,7 +164,7 @@ def new(modelDir):
 		'LatInput': '39.828362',
 		'LonInput': '-98.579490',
 		'weatherParameterPirateWeather': '',
-		'weatherParameterNRSDB': 'Pressure',
+		'weatherParameternsrdb': 'Pressure',
 		'easySolarStation': 'TX_Austin_33_NW',
 		'weatherParameterTmy3': 'TBD',
 		'weatherParameterSurfrad': '',

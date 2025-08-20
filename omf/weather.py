@@ -788,9 +788,9 @@ def nsrbd_latlon_to_wkt(longitude, latitude):
 		raise ValueError('invalid longitude')  
 	return 'POINT({} {})'.format(longitude, latitude)
 
-def get_nrsdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
-	'''Create nrsdb factory and execute query. Optional output to file or return the response object.'''
-	print("NRSDB found")
+def get_nsrdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
+	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
+	print("NSRDB found")
 	base_url = 'https://developer.nrel.gov'
 	request_url = ""
 	params = {}
@@ -1675,7 +1675,7 @@ def _tests():
 	# nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 	# try:
 	# #Test For Austin, TX
-	# 	d=get_nrsdb_data('psm',-90.0,30.00,'2018', nsrdbkey, interval=60)
+	# 	d=get_nsrdb_data('psm',-90.0,30.00,'2018', nsrdbkey, interval=60)
 	# 	print(d)
 	# except:
 	# 	val = traceback.format_exc()
