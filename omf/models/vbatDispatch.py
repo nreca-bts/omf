@@ -18,7 +18,7 @@ tooltip = "Calculate the energy storage capacity for a collection of thermostati
 
 def pyVbat(modelDir, i):
 	vbType = i['load_type']
-	with open(pJoin(modelDir, 'temp.csv'), newline='') as f:
+	with open(pJoin(modelDir, 'temperature.csv'), newline='') as f:
 		ambientList = []
 		for r in csv.reader(f):
 			if r:
@@ -86,9 +86,9 @@ def work(modelDir, inputDict):
 		demand = [float(r[0]) for r in csv.reader(f)]
 		assert len(demand) == 8760
 	
-	with open(pJoin(modelDir, 'temp.csv'), 'w') as f:
-		lines = inputDict['tempCurve'].split('\n')
-		out["tempData"] = [float(x) if x != '999.0' else float(inputDict['setpoint']) for x in lines if x != '']
+	with open(pJoin(modelDir, 'temperature.csv'), 'w') as f:
+		lines = inputDict['temperatureCurve'].split('\n')
+		out["temperatureData"] = [float(x) if x != '999.0' else float(inputDict['setpoint']) for x in lines if x != '']
 		correctData = [x+'\n' if x != '999.0' else inputDict['setpoint']+'\n' for x in lines if x != '']
 		f.write(''.join(correctData))
 	assert len(correctData) == 8760
@@ -178,7 +178,7 @@ def new(modelDir):
 	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","Texas_1yr_Load.csv")) as f:
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","Texas_1yr_Temp.csv")) as f:
-		temp_curve = f.read()
+		temperature_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","TOU_rate_schedule.csv")) as f:
 		energy_rate_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","utility_monthly_demand_charges.csv")) as f:
@@ -200,9 +200,9 @@ def new(modelDir):
 		"unitDeviceCost":"150",
 		"unitUpkeepCost":"5",
 		"demandCurve": demand_curve,
-		"tempCurve": temp_curve,
+		"temperatureCurve": temperature_curve,
 		"fileName": "Texas_1yr_Load.csv",
-		"tempFileName": "Texas_1yr_Temp.csv",
+		"temperatureFileName": "Texas_1yr_Temp.csv",
 		"modelType": modelName,
 		'energyRateFileName': 'TOU_rate_schedule.csv',
 		'energyRateCurve': energy_rate_curve,

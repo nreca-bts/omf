@@ -145,11 +145,11 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Temperature Curve in &degC (.csv file)<span class="classic">Please see the documentation at the help link for the required format and an example temperature file.</span></label>
-				<input id="tempCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'tempCurve','tempFileName')">
-				<input id="tempCurve" name="tempCurve" value="{{allInputDataDict.tempCurve}}" type="hidden">
+				<input id="temperatureCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'temperatureCurve','temperatureFileName')">
+				<input id="temperatureCurve" name="temperatureCurve" value="{{allInputDataDict.temperatureCurve}}" type="hidden">
 				<div>
-					<label for="tempCurveFile" class="fileButton">Choose File</label>
-					<input id="tempFileName" name="tempFileName" value="{{allInputDataDict.tempFileName}}" value='' readonly class="uploadFileName">
+					<label for="temperatureCurveFile" class="fileButton">Choose File</label>
+					<input id="temperatureFileName" name="temperatureFileName" value="{{allInputDataDict.temperatureFileName}}" value='' readonly class="uploadFileName">
 				</div>
 			</div>
 			<div class="shortInput">
@@ -238,7 +238,7 @@
 						{"name":"VBAT state of charge (kWh)","marker":{"enabled":false},"color":"orange","data":allOutputData.VBenergy,"pointPlacement": -0.2},
 						{"name":"Demand (kW)","marker":{"enabled":false},"color":"gray","data":allOutputData.demand},
 						{"name":"Demand after VBAT (kW)","marker":{"enabled":false},"color":"blue","data":allOutputData.demandAdjusted},
-						{"name":"Temperature (°C)","marker":{"enabled":false},"color":"red","data":allOutputData.tempData, yAxis:1},
+						{"name":"Temperature (°C)","marker":{"enabled":false},"color":"red","data":allOutputData.temperatureData, yAxis:1},
 						//{"name":"Day-ahead Prediction","marker":{"enabled":false},"color":"orange","data":allOutputData.predictedLoad},
 					],
 					"chart":{"marginBottom":35,"zoomType":"x","renderTo":"powerChart","type":"line","marginRight":80, "height":500,"width":1000,"panning":{"enabled":true,"type":"xy"},"panKey":"shift"},
