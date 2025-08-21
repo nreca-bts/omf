@@ -206,7 +206,7 @@
 				Plotly.newPlot("taifiHistChart", JSON.parse(allOutputData["taifiHistData"]), JSON.parse(allOutputData["taifiHistLayout"]) || {})
 			</script>
 		</div>
-		<p class="reportTitle"><label class="tooltip">TAIFI vs CCI<span class="classic">Hover over the trendline for its equation.</span></label></p>
+		<p class="reportTitle"><label class="tooltip">TAIFI vs CCI<span class="classic">Hover over the trendline for its equation.<br><br>Only residential loads are represented because CCI only applies to residential loads.</span></label></p>
 		<div id="cciTaifiScatter" class="tightContent">
 			<div id="cciTaifiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
@@ -220,7 +220,7 @@
 				Plotly.newPlot("taidiHistChart", JSON.parse(allOutputData["taidiHistData"]), JSON.parse(allOutputData["taidiHistLayout"]) || {})
 			</script>
 		</div>
-		<p class="reportTitle"><label class="tooltip">TAIDI vs CCI<span class="classic">Hover over the trendline for its equation.</span></label></p>
+		<p class="reportTitle"><label class="tooltip">TAIDI vs CCI<span class="classic">Hover over the trendline for its equation.<br><br>Only residential loads are represented because CCI only applies to residential loads.</span></label></p>
 		<div id="cciTaidiScatter" class="tightContent">
 			<div id="cciTaidiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
@@ -253,11 +253,11 @@
 		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['timelineStatsHtml'] }}
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Simulation-Constrained Metrics by Microgrid</p>
+		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by Microgrid<span class="classic">&quot;Est. Household Residents Served&quot; and CCI related metrics only consider residential loads in each microgrid.</span></label></p>
 		<div id="tradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['tradMetricsHtml'] }}
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Simulation-Constrained Metrics by CCI Quartiles</p>
+		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by CCI Quartiles<span class="classic">All metrics in this table are calculated only considering residential loads.</span></label></p>
 		<div id="cciQuartTradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['cciQuartTradMetricsHtml'] }}
 		</div>
