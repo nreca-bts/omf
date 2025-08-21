@@ -138,6 +138,35 @@ def work(modelDir, inputDict):
 	## Delete output file every run if it exists
 	outData = {}
 
+	########################################################################################################################
+	## Handle and save user input files
+	########################################################################################################################
+	
+	## Remove old input files if necessary
+	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_wholesale_energy_rate_structure.json','input_wholesale_rate_curve.csv','input_monthly_demand_charges.csv']
+	for FileName in inputFileNames:
+		try:
+			os.remove(pJoin(modelDir, FileName))
+		except OSError:
+			pass
+
+	## Save all input files
+	with open(pJoin(modelDir, 'input_demand.csv'), 'w') as f:
+		f.write(inputDict['demandCurve'].replace('\r', ''))
+	with open(pJoin(modelDir, 'input_temperature.csv'), 'w') as f:
+		f.write(inputDict['temperatureCurve'].replace('\r', ''))
+	if inputDict.get('useWholesaleJSONBool'): 
+		with open(pJoin(modelDir, 'input_wholesale_rate_structure.json'), 'w') as jsonFile:
+			json.dump(inputDict['wholesaleRateStructure'], jsonFile)
+	else:
+		with open(pJoin(modelDir, 'input_wholesale_rate_curve.csv'), 'w') as f:
+			f.write(inputDict['wholesaleRateCurve'].replace('\r', ''))
+		with open(pJoin(modelDir, 'input_monthly_demand_charges.csv'), 'w') as f:
+			f.write(inputDict['monthlyDemandCharges'].replace('\r', ''))
+
+	########################################################################################################################
+	## Process input demand, temperature, and other input variables
+	########################################################################################################################
 	## Convert user provided demand and temperature data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
@@ -148,7 +177,7 @@ def work(modelDir, inputDict):
 	if len(demand) != 8760:
 		raise Exception(f"Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
 	if len(temperatures_degF) != 8760:
-		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
+		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure that there are 8760 elements.")
 
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
@@ -181,7 +210,6 @@ def work(modelDir, inputDict):
 	if len(timestamps) != 8760: ## Ensure 8760 elements
 		raise Exception(f"The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.")
 	
-
 	########################################################################################################################################################
 	## Construct the wholesale energy and demand rate arrays using either the Wholesale Tariff JSON response file or user-provided .csv files
 	########################################################################################################################################################
@@ -350,9 +378,9 @@ def work(modelDir, inputDict):
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
-		'tempFileName': inputDict['temperatureFileName'],
+		'temperatureFileName': inputDict['temperatureFileName'],
 		'demandCurve': inputDict['demandCurve'],
-		'tempCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
+		'temperatureCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f"{rate:.2f}" for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 	}
 	
@@ -882,6 +910,7 @@ def work(modelDir, inputDict):
 		peakDemandCharge = monthly_demand_charge
 	else: ## Use the user-provided .csv demand charge file
 		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
+		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
 		outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
 		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
@@ -1191,67 +1220,44 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_2018_kW_load.csv')) as f:
-	#	demand_curve = f.read()
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','open-meteo-denverCO-noheaders.csv')) as f:
-	#	temperature_curve = f.read()
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_2018_kW_load.csv')) as f:
+		demand_curve = f.read()
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','open-meteo-denverCO-noheaders.csv')) as f:
+		temperature_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.csv')) as f:
 		wholesale_rate_curve = f.read()
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
-	#	wholesale_rate_structure = json.load(jsonFile)
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
+		wholesale_rate_structure = json.load(jsonFile)
 	#responseFilename = 'TODrate66a13566e90ecdb7d40581d2.json' ## TOD rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
 	#responseFilename = 'TOUrate5b311c595457a3496d8367be.json' ## TOU rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_monthly_demand_charges.csv')) as f:
 		monthly_demand_charges = f.read()
 
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/8760_Flathead-SystemDemand_kw_1Jan2024-31Dec2024.csv') as f:
-		demand_curve = f.read()
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/8760_Flathead_Temperature_degF_1Jan2024-31Dec2024.csv') as f:
-		temperature_curve = f.read()
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/editedFlatheadWholesaleTariff.json') as jsonFile:
-		wholesale_rate_structure = json.load(jsonFile)
-
-
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
+		
 		## OMF inputs:
 		'user' : 'admin',
 		'modelType': modelName,
 		'created': str(datetime.datetime.now()),
 
 		## REopt inputs:
-		#'latitude' : '39.969753', ## Brighton, CO
-		#'longitude' : '-104.812599', ## Brighton, CO
-		#'year': '2018',
-		#'fileName': 'utility_2018_kW_load.csv',
-		#'demandCurve': demand_curve,
-		#'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
-		#'temperatureCurve': temperature_curve,
-		#'useWholesaleJSONBool': True,
-		#'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
-		#'wholesaleRateCurve': wholesale_rate_curve,
-		#'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
-		#'wholesaleRateStructure': wholesale_rate_structure,
-		#'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
-		#'monthlyDemandCharges': monthly_demand_charges,
-		
-		### FLATHEAD ELECTRIC COOP INPUTS
-		'latitude' : '48.197777',
-		'longitude' : '-114.316109', 
-		'year': '2024', 
-		'fileName': '8760_Flathead-SystemDemand_kw_1Jan2024-31Dec2024.csv',
+		'latitude' : '39.969753', ## Brighton, CO
+		'longitude' : '-104.812599', ## Brighton, CO
+		'year': '2018',
+		'fileName': 'utility_2018_kW_load.csv',
 		'demandCurve': demand_curve,
-		'temperatureFileName': '8760_Flathead_Temperature_degF_1Jan2024-31Dec2024.csv',
+		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'useWholesaleJSONBool': True,
+		'useWholesaleJSONBool': False,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
-		'wholesaleRateStructureFileName': 'editedFlatheadWholesaleTariff.json',
+		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'wholesaleRateStructure': wholesale_rate_structure,
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
-
-		## Fossil Fuel Generator Inputs
+		
+		## Fossil Fuel Generator Inputs (for REopt)
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
 		'fossilGenerator': 'Yes',
 		'number_devices_GEN': '5',
@@ -1260,7 +1266,7 @@ def new(modelDir):
 		'fuel_avail': '95', 
 		'fuel_cost': '3.49', ## $3.49 is based on fuel cost of diesel fuel in March 2025
 
-		## Chemical Battery Inputs
+		## Chemical Battery Inputs (for REopt)
 		## Modeled after residential Tesla Powerwall 3 battery specs
 		'enableBESS': 'Yes',
 		'number_devices_BESS': '20000',
@@ -1268,7 +1274,6 @@ def new(modelDir):
 		'BESS_kwh': '13.5',
 
 		## Financial Inputs
-		#'demandChargeCost': '50', ## this input is used by vbatDispatch
 		'projectionLength': '25',
 		'rateCompensation': '0.02', ## unit: $/kWh
 		'discountRate': '2',
@@ -1321,22 +1326,18 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
-	# Location
-	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
-	# Blow away old test results if necessary.
-	try:
+	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) # Location
+	try: 	
+		# Blow away old test results if necessary.
 		shutil.rmtree(modelLoc)
 	except:
 		# No previous test results.
 		pass
-	# Create New.
-	new(modelLoc)
-	# Pre-run.
-	__neoMetaModel__.renderAndShow(modelLoc) 
-	# Run the model.
-	__neoMetaModel__.runForeground(modelLoc)
-	# Show the output.
-	__neoMetaModel__.renderAndShow(modelLoc) 
+	
+	new(modelLoc) # Create New.
+	__neoMetaModel__.renderAndShow(modelLoc) # Pre-run.
+	__neoMetaModel__.runForeground(modelLoc) # Run the model.
+	__neoMetaModel__.renderAndShow(modelLoc) # Show the output.
 
 if __name__ == '__main__':
 	_tests()
