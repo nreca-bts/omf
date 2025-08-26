@@ -27,7 +27,7 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True ## Keep the model hidden=True during active development
 
 ## NOTE & TODO: This function needs development. The purpose of this function is to handle both the energy rate structure and the demand charge rate structure from the .json response file, whereas the construct_energy_rate_array() function only handles the energy rate structure information.
-def construct_tou_tariff_arrays(response_file, timestamps):
+def construct_energy_rate_array(response_file, timestamps):
 	"""
 	Constructs hourly rate arrays (length 8760) for TOU Energy Charges ($/kWh), TOU Demand Charges ($/kW), and fixed monthly facility demand charges ($/kW/month).
 	Inputs:
@@ -35,10 +35,10 @@ def construct_tou_tariff_arrays(response_file, timestamps):
 	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
 
 	Returns:
-	- energy_rate_array (array, length 8760): The hourly energy rates ($/kWh) for an entire year
-	- TODO: demand_rate_array (not currently implemented)
-	- monthly_demand_rates (array, length 12): The monthly demand charges ($/kW) for an entire year
+	- energy_rate_array (array, length 8760, units: $/kW): The hourly energy rates ($/kWh) for an entire year
+
 	"""
+
 	energy_rate_array = np.zeros(8760)
 	if 'energyratestructure' in response_file:
 		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
@@ -56,39 +56,81 @@ def construct_tou_tariff_arrays(response_file, timestamps):
 			else: ## Weekends - use the weekend rate schedule
 				energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
 
-	## --- Demand Rate Construction ---
-	#demand_rate_array = np.zeros(8760)
-	#if 'demandratestructure' in response_file:
-	#	demand_weekday_schedule = response_file['demandweekdayschedule']
-	#	demand_weekend_schedule = response_file['demandweekendschedule']
-	#	demand_rate_structure_flattened = [item[0] for item in response_file['demandratestructure']]
-	#	demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
+	return energy_rate_array
 
-	#	demand_rate_array = np.zeros(8760)
-	#	for i, date in enumerate(timestamps):
-	#		schedule = demand_weekday_schedule if date.weekday() < 5 else demand_weekend_schedule
-	#		tier = schedule[date.month - 1][date.hour]
-	#		demand_rate_array[i] = demand_rates[tier]
+def construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours):
+	"""
+	Extracts demand charge information contained in the JSON response_file and calculates the total monthly demand charge cost ($). This function accounts for demand rate tiers on an hourly level (e.g. a weekday window of 2-8pm is charged at some $/kW rate, whereas a weekend window could be 5-10pm at a different $/kW rate, and so on).
+
+	Inputs:
+	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
+	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
+	- demand (array, length 8760): The hourly demand curve (kW) of the utility for the entire year.
+	- monthHours: (list of tuples, length 12): A list of tuples defining the beginning hour index number and end hour index number for each month. For example, January would have monthHours=[(0,744)] where January 1 00:00:00 has index number 0 and January 31 23:59:00 has the index number 744. The monthHours is used to define the limits of each month in which to calculate the maximum peak kW.
+
+	Returns:
+	- monthly_demand_charge (array of length 12, units: $/kW): The monthly demand charges ($/kW) for an entire year.
+	- monthly_demand_charge_cost (array of length 12, units: $): The resulting monthly cost ($) from the monthly demand charge ($/kW) x monthly peak demand (kW).
+	- monthly_demand_peak_kw (array of length 12, units: kW): The peak kW for each month.
+	"""
+
+
+	## --- Demand Rate Construction ---
+	## Example weekday schedule: [1,1,1,1,1,1,1,2,2,2,1,1,1,1,1,1,1,2,2,2,1,1,1,1]
+	## Period 1 = $0/kW
+	## Period 2 = $4.04/kW
+	monthly_demand_charge_cost = np.zeros(12) ## Initialize array
+	if 'demandratestructure' in response_file:
+		demand_weekday_schedule = response_file['demandweekdayschedule']
+		demand_weekend_schedule = response_file['demandweekendschedule']
+		demand_rate_structure_flattened = [item[0] for item in response_file['demandratestructure']]
+		monthly_demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
+
+		## Expand the weekday and weekend demand rate schedule into an array of 8760 elements with the tier numbers (e.g. 1,2)
+		hourly_tier_array = np.zeros(8760)
+		for i, date in enumerate(timestamps):
+			## Use the weekday schedule list of tiers if it's a weekday, else use the weekend schedule
+			schedule = demand_weekday_schedule if date.weekday() < 5 else demand_weekend_schedule
+			month_index = date.month - 1 ## Python uses zero indexing (i.e. January = 0)
+			tier = schedule[month_index][date.hour]
+			hourly_tier_array[i] = tier
+
+		## Select out each tier window and take the maximum kW in that window multiplied by the corresponding tier rate
+		start_index = 0 ## Begin the first window at the first index of the array
+		while start_index < len(hourly_tier_array):
+			current_tier = int(hourly_tier_array[start_index])
+			month = timestamps[start_index].month - 1
+			end_index = start_index + 1 ## set the initial end_index to be the following index
+
+			while end_index < len(hourly_tier_array) and hourly_tier_array[end_index] == current_tier:
+				end_index += 1  ## keep extending the end_index window until the tier number is no longer the same or the indices end.
 			
+			kw_window = demand[start_index:end_index] ## Define the window of demand and apply the demand charge rate to the maximum kW demand in that window
+			max_kw = max(kw_window)
+			demand_charge = max_kw * monthly_demand_rates[current_tier] ## demand_charge units: $
+			monthly_demand_charge_cost[month] += demand_charge ## Add the total demand charge to the corresponding month
+			start_index = end_index ## Restart the window using the last index of the previous window
+
+	## Maximum monthly peak kW demand
+	monthly_demand_peak_kw = [demand[np.argmax(demand[s:f])] for s, f in monthHours]
+
 	## --- Facility Demand Charge Construction ---
-	monthly_demand_charge = np.zeros(12)
 	if 'flatdemandmonths' in response_file and len(response_file['flatdemandmonths']) != 0:
 		demand_rate_structure_flattened = [item[0] for item in response_file['flatdemandstructure']]
-		demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
-		del demand_rates[0] ## Drop the first element which is a value of 0 due to zero-indexing structure
-		monthly_demand_charge = np.array(demand_rates)
-
-		##TODO: Add functionality for multi-tiered rates?
-		#for month in range(12):
-		#	period = response_file['flatdemandmonths'][month] ## zero-indexed
-		#	rate = response_file['flatdemandstructure'][period] ## Rate for the corresponding period month
-		#	
-		#	for t, tier in enumerate(rates):
-		#		demand_rates[month,t] = 
+		monthly_demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
+		del monthly_demand_rates[0] ## Drop the first element which is a value of 0 due to zero-indexing structure
+		## TODO: This needs to include the $/kW * kW calculation to add the total $ to the monthly_demand_charge array
+		flat_monthly_peak_demand_cost = np.array(monthly_demand_peak_kw) * np.array(monthly_demand_rates)
+		monthly_demand_charge_cost += flat_monthly_peak_demand_cost
+		monthly_demand_charge = monthly_demand_rates[:]
+	else:
+		warnings.warn("No monthly Facility Demand Charge detected in JSON response file. Setting the monthly peak demand charges ($/kW) to zero.")
+		monthly_demand_charge = np.zeros(12)
 		
+	## TODO: Add fixed charges
 	## --- Fixed charges $/day ---
 
-	return energy_rate_array, monthly_demand_charge#, demand_rate_array
+	return monthly_demand_charge, monthly_demand_charge_cost, np.array(monthly_demand_peak_kw)
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -96,6 +138,35 @@ def work(modelDir, inputDict):
 	## Delete output file every run if it exists
 	outData = {}
 
+	########################################################################################################################
+	## Handle and save user input files
+	########################################################################################################################
+	
+	## Remove old input files if necessary
+	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_wholesale_energy_rate_structure.json','input_wholesale_rate_curve.csv','input_monthly_demand_charges.csv']
+	for FileName in inputFileNames:
+		try:
+			os.remove(pJoin(modelDir, FileName))
+		except OSError:
+			pass
+
+	## Save all input files
+	with open(pJoin(modelDir, 'input_demand.csv'), 'w') as f:
+		f.write(inputDict['demandCurve'].replace('\r', ''))
+	with open(pJoin(modelDir, 'input_temperature.csv'), 'w') as f:
+		f.write(inputDict['temperatureCurve'].replace('\r', ''))
+	if inputDict.get('useWholesaleJSONBool'): 
+		with open(pJoin(modelDir, 'input_wholesale_rate_structure.json'), 'w') as jsonFile:
+			json.dump(inputDict['wholesaleRateStructure'], jsonFile)
+	else:
+		with open(pJoin(modelDir, 'input_wholesale_rate_curve.csv'), 'w') as f:
+			f.write(inputDict['wholesaleRateCurve'].replace('\r', ''))
+		with open(pJoin(modelDir, 'input_monthly_demand_charges.csv'), 'w') as f:
+			f.write(inputDict['monthlyDemandCharges'].replace('\r', ''))
+
+	########################################################################################################################
+	## Process input demand, temperature, and other input variables
+	########################################################################################################################
 	## Convert user provided demand and temperature data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
@@ -106,7 +177,7 @@ def work(modelDir, inputDict):
 	if len(demand) != 8760:
 		raise Exception(f"Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
 	if len(temperatures_degF) != 8760:
-		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
+		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure that there are 8760 elements.")
 
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
@@ -122,19 +193,25 @@ def work(modelDir, inputDict):
 	start_date = pd.Timestamp(f'{year}-01-01')
 	is_leap_year = start_date.is_leap_year
 	if is_leap_year == True:
-		## If it's a leap year, do not use the last day in December
+		## If a leap year, include the 29th day of February but not December 31st.
 		end_date = f'{year}-12-30 23:59'
+		monthHours = [(0, 744), (744, 1440), (1440, 2184), (2184, 2904), 
+				(2904, 3648), (3648, 4368), (4368, 5112), (5112, 5856), 
+				(5856, 6576), (6576, 7320), (7320, 8040), (8040, 8760)]
 	else:
-		## If it's not a leap year, use all of December
+		## If non-leap year, include December 31st
 		end_date = f'{year}-12-31 23:59'
+		monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
+				(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
+				(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
+	
 	timestamps = pd.date_range(start=start_date, end=end_date, freq='h')
 
-	if len(timestamps) != 8760:
+	if len(timestamps) != 8760: ## Ensure 8760 elements
 		raise Exception(f"The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.")
 	
 	########################################################################################################################################################
-	## Construct the wholesale energy rate structure array
-	## Expects a user-provided JSON file or the default static testFile provided in the OMF
+	## Construct the wholesale energy and demand rate arrays using either the Wholesale Tariff JSON response file or user-provided .csv files
 	########################################################################################################################################################
 	if inputDict.get('useWholesaleJSONBool'): ## Checkbox to use the .json file is True by default
 		## Load the Wholesale Energy Rate Structure JSON file
@@ -150,28 +227,35 @@ def work(modelDir, inputDict):
 			if isinstance(inputDict['wholesaleRateStructure'], dict):
 				response_file = inputDict['wholesaleRateStructure']
 		
-		## Construct the energy rate array from the JSON file (used in the financial analysis below)
+		## --- Energy Rate Construction ---
+		## Construct the energy rate array from the REopt JSON response file
 		#energy_rate_array, monthly_demand_charge, demand_rate_array = construct_tou_tariff_arrays(response_file, timestamps)
-		energy_rate_array, monthly_demand_charge = construct_tou_tariff_arrays(response_file, timestamps)
+		#energy_rate_array = construct_energy_rate_array(response_file, timestamps)
+		energy_rate_array = np.zeros(8760) ## Initialize array
+		if 'energyratestructure' in response_file:
+			## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
+			## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
+			## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
+			energy_weekday_schedule = response_file['energyweekdayschedule']
+			energy_weekend_schedule = response_file['energyweekendschedule']
+			energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
+			energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
+			
+			## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+			for hour_index, date in enumerate(timestamps):
+				if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
+					energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
+				else: ## Weekends - use the weekend rate schedule
+					energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
+		else:
+			raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 
-	else: ## Use the Wholesale Energy Rate Curve (.csv) file instead of the Wholesale Energy Rate Structure (.json) file
+	else: ## Use the user-provided Wholesale Energy Rate Curve (.csv) and Monthly Demand Charge (.csv) files instead of the Wholesale Energy Rate Structure (.json) file
 		energy_rate_array = [float(value) for value in inputDict['wholesaleRateCurve'].split('\n') if value.strip()]
-		monthly_demand_charge = np.zeros(12)
 		#demand_rate_array = np.fill(12,inputDict['demandChargeCost'])
 		if len(energy_rate_array) != 8760:
 			raise ValueError(f"Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.")
 		
-	########################################################################################################################
-	## Construct monthly demand charge ($/kW) array
-	########################################################################################################################
-	## Define the monthly peak demand charge array ($/kW per month) the utility pays to the G&T
-	if sum(monthly_demand_charge) == 0:
-		## If no monthly demand charge is specified in the JSON response file, use the user-defined CSV input instead
-		#peakDemandCharge = np.full(12, float(inputDict['demandChargeCost']))
-		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
-	else:
-		## Use the array of $/kW demand charges defined in the input JSON response file, assuming the values are non-zero.
-		peakDemandCharge = np.array(monthly_demand_charge)
 
 	########################################################################################################################
 	## Run REopt.jl solver
@@ -294,9 +378,9 @@ def work(modelDir, inputDict):
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
-		'tempFileName': inputDict['temperatureFileName'],
+		'temperatureFileName': inputDict['temperatureFileName'],
 		'demandCurve': inputDict['demandCurve'],
-		'tempCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
+		'temperatureCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f"{rate:.2f}" for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 	}
 	
@@ -400,9 +484,6 @@ def work(modelDir, inputDict):
 		single_device_subsidy_allyears_array[0] += single_device_subsidy_onetime
 
 		## Calculate the consumer compensation for each thermal DER technology
-		monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
-				(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
-				(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
 		single_device_compensation_year1_array = np.array([sum(single_device_vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
 		single_device_compensation_year1_total = np.sum(single_device_compensation_year1_array)
 		single_device_compensation_allyears_array = np.full(projectionLength, single_device_compensation_year1_total)
@@ -788,32 +869,59 @@ def work(modelDir, inputDict):
 	"""
 
 	#########################################################################################################################################################
-	### Calculate the monthly consumption and peak demand costs and savings
+	### Calculate the monthly consumption (kWh) costs and savings
+	## NOTE: "base" demand curve = no DERs in the demand curve
+	## NOTE: "adjusted" demand curve = DERs included in the demand curve 
 	#########################################################################################################################################################
 
-	## Calculate the monthly peak demand and energy consumption of the base demand curve
-	## NOTE: The base demand = the demand curve without DERs
-	outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## The maximum peak kW for each month
-	outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
-	consumption_cost_array = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
+	## Base demand curve energy consumption cost ($/kWh)
+	consumptionCost = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
 	monthlyEnergyConsumption = [sum(demand[s:f]) for s, f in monthHours] ## The total energy in kWh for each month
-	monthlyEnergyConsumptionCost = [sum(consumption_cost_array[s:f]) for s, f in monthHours] ## The total energy cost in $$ for each month	
+	monthlyEnergyConsumptionCost = [sum(consumptionCost[s:f]) for s, f in monthHours] ## The total energy cost in $$ for each month	
 
-	## Calculate the monthly peak demand and energy consumption of the adjusted demand curve
-	## NOTE: The adjusted demand = the demand curve including DERs
+	## Adjusted demand curve energy consumption cost ($/kWh)
 	adjusted_demand = np.array(demand) - BESS - vbat_discharge_component - generator + grid_charging_BESS + vbat_charge_component
 	outData['adjustedDemand'] = list(adjusted_demand)
 	#monthly_peak_adjusted_demand = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] 
 	monthlyAdjustedEnergyConsumption = [sum(adjusted_demand[s:f]) for s, f in monthHours] ## The total adjusted energy in kWh for each month
-	adjusted_consumption_cost_array = [float(a) * float(b) for a, b in zip(adjusted_demand, energy_rate_array)]
-	monthlyAdjustedEnergyConsumptionCost = [sum(adjusted_consumption_cost_array[s:f]) for s, f in monthHours] ## The total adjusted energy cost in $$ for each month	
+	adjustedConsumptionCost = [float(a) * float(b) for a, b in zip(adjusted_demand, energy_rate_array)]
+	monthlyAdjustedEnergyConsumptionCost = [sum(adjustedConsumptionCost[s:f]) for s, f in monthHours] ## The total adjusted energy cost in $$ for each month	
+	
+	## Energy consumption savings ($) = Base Demand Cost - Adjusted Demand Cost
 	monthlyEnergyConsumptionSavings = np.array(monthlyEnergyConsumptionCost) - np.array(monthlyAdjustedEnergyConsumptionCost)
-	outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
-	outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
-	outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
+
+	########################################################################################################################
+	### Calculate the monthly demand (kW) costs and savings
+	## The JSON response file should contain either "demandratestructure" and/or "facilitydemandcharge" information 
+	########################################################################################################################
+
+	if inputDict.get('useWholesaleJSONBool'): ## Use the user-provided JSON response file
+		## Peak demand charge cost ($) for the base demand curve (w/o DERs)
+		## monthly_demand_charge, monthly_demand_charge_cost, monthly_demand_peak_kw
+		monthly_demand_charge, monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
+		outData['monthlyPeakDemand'] = monthly_demand_peak_kw_withoutDERs.tolist()
+		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
+
+		## Peak demand charge cost ($) for the adjusted demand curve (with DERs)
+		monthly_demand_charge, monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
+		outData['monthlyAdjustedPeakDemand'] = monthly_demand_peak_kw_withDERs.tolist()
+		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
+
+		peakDemandCharge = monthly_demand_charge
+	else: ## Use the user-provided .csv demand charge file
+		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
+		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
+		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
+		outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
+		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
+		outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
+		
+	## Calculate the peak demand savings between the base demand curve and adjusted demand curve
 	outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist() ## total demand charge savings from all DERs
 	
-	## Calculate the combined costs and savings from the adjusted energy and adjusted demand charges
+	########################################################################################################################
+	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
+	########################################################################################################################
 	outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
 	outData['monthlyTotalCostAdjustedService'] = [eca+dca for eca, dca in zip(monthlyAdjustedEnergyConsumptionCost, outData['monthlyAdjustedPeakDemandCost'])] ## total cost of energy and peak demand from including DERs
 	outData['monthlyTotalSavingsAdjustedService'] = [tot-tota for tot, tota in zip(outData['monthlyTotalCostService'], outData['monthlyTotalCostAdjustedService'])] ## total savings from all DERs
@@ -1127,6 +1235,7 @@ def new(modelDir):
 
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
+		
 		## OMF inputs:
 		'user' : 'admin',
 		'modelType': modelName,
@@ -1140,15 +1249,15 @@ def new(modelDir):
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'useWholesaleJSONBool': True,
+		'useWholesaleJSONBool': False,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'wholesaleRateStructure': wholesale_rate_structure,
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
-
-		## Fossil Fuel Generator Inputs
+		
+		## Fossil Fuel Generator Inputs (for REopt)
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
 		'fossilGenerator': 'Yes',
 		'number_devices_GEN': '5',
@@ -1157,7 +1266,7 @@ def new(modelDir):
 		'fuel_avail': '95', 
 		'fuel_cost': '3.49', ## $3.49 is based on fuel cost of diesel fuel in March 2025
 
-		## Chemical Battery Inputs
+		## Chemical Battery Inputs (for REopt)
 		## Modeled after residential Tesla Powerwall 3 battery specs
 		'enableBESS': 'Yes',
 		'number_devices_BESS': '20000',
@@ -1165,7 +1274,6 @@ def new(modelDir):
 		'BESS_kwh': '13.5',
 
 		## Financial Inputs
-		#'demandChargeCost': '50', ## this input is used by vbatDispatch
 		'projectionLength': '25',
 		'rateCompensation': '0.02', ## unit: $/kWh
 		'discountRate': '2',
@@ -1218,22 +1326,18 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
-	# Location
-	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
-	# Blow away old test results if necessary.
-	try:
+	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) # Location
+	try: 	
+		# Blow away old test results if necessary.
 		shutil.rmtree(modelLoc)
 	except:
 		# No previous test results.
 		pass
-	# Create New.
-	new(modelLoc)
-	# Pre-run.
-	__neoMetaModel__.renderAndShow(modelLoc) 
-	# Run the model.
-	__neoMetaModel__.runForeground(modelLoc)
-	# Show the output.
-	__neoMetaModel__.renderAndShow(modelLoc) 
+	
+	new(modelLoc) # Create New.
+	__neoMetaModel__.renderAndShow(modelLoc) # Pre-run.
+	__neoMetaModel__.runForeground(modelLoc) # Run the model.
+	__neoMetaModel__.renderAndShow(modelLoc) # Show the output.
 
 if __name__ == '__main__':
 	_tests()

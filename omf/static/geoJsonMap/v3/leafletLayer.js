@@ -311,23 +311,23 @@ class LeafletLayer {    // implements ObserverInterface
         // - Extension styling
         if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Very High') {
             return {
-                color: 'blue'
+                color: 'yellow'
             }
         } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively High') {
             return {
-                color: 'lightblue'
+                color: '#83d54b'
             }
         } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively Moderate') {
             return {
-                color: 'lightgreen'
+                color: 'mediumspringgreen'
             }
         } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively Low') {
             return {
-                color: 'yellow'
+                color: 'cyan'
             }
         } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Very Low') {
             return {
-                color: 'grey'
+                color: 'blue'
             }
         }
         // - Default OMF editor styling
