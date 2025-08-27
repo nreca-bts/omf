@@ -73,6 +73,8 @@ def work(modelDir, inputDict):
 		#This will just just current date for forecast, as it does not support historical forecasts
 		#and future forcasts are limited
 		param = [inputDict['ndfdParam']]
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
 		d = weather.get_ndfd_data(lat, long, param)
 		#data is now an json-like object. Parse it, and get the data ready for presentation
 		#get timestamps, to unix times
@@ -83,7 +85,7 @@ def work(modelDir, inputDict):
 		#get the values for that parameter
 		values = d['dwml']['data']['parameters'][param]['value']
 		c = zip(timestamps, values)
-		# print(c)
+		# print( f"c: {c}")
 		#Date dictionary creation
 		start_year=(datetime.today().strftime("%Y"))
 		start_year = datetime(int(start_year),1,1,0)
@@ -93,7 +95,7 @@ def work(modelDir, inputDict):
 				tstamp = float(datetime.timestamp(time))
 				# time = time.isoformat()
 				dateAndDataDict[tstamp] = 0
-		#Add in exsisting values
+		#Add in existing values
 		for i, j in c:
 			dateAndDataDict[i] = int(j)
 		#Now for filler
@@ -102,6 +104,7 @@ def work(modelDir, inputDict):
 
 		#get ordered values
 		data = list(dateAndDataDict.values())
+		#print(f"dateAndData: {data}")
 		#set left and right boundaries at right positions
 		left = 0
 		right = len(data)-1
