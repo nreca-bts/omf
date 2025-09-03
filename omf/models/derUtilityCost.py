@@ -60,26 +60,31 @@ def construct_energy_rate_array(response_file, timestamps):
 
 def construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours):
 	"""
-	Extracts demand charge information contained in the JSON response_file and calculates the total monthly demand charge cost ($). This function accounts for demand rate tiers on an hourly level (e.g. a weekday window of 2-8pm is charged at some $/kW rate, whereas a weekend window could be 5-10pm at a different $/kW rate, and so on).
+	Extracts demand charge information contained in the JSON response_file and calculates the total monthly demand charge cost ($) based on the demand rate structure and monthly facility demand charge, if present. 
+	This function accounts for demand rate tiers on an hourly level (e.g. a weekday window of 2-8pm is charged at some $/kW rate, whereas a weekend window could be 5-10pm at a different $/kW rate, and so on).
 
 	Inputs:
 	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
 	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
 	- demand (array, length 8760): The hourly demand curve (kW) of the utility for the entire year.
-	- monthHours: (list of tuples, length 12): A list of tuples defining the beginning hour index number and end hour index number for each month. For example, January would have monthHours=[(0,744)] where January 1 00:00:00 has index number 0 and January 31 23:59:00 has the index number 744. The monthHours is used to define the limits of each month in which to calculate the maximum peak kW.
+	- monthHours (list of tuples, length 12): A list of tuples defining the beginning hour index number and end hour index number for each month. For example, January would have monthHours=[(0,744)] where January 1 00:00:00 has index number 0 and January 31 23:59:00 has the index number 744. The monthHours is used to define the limits of each month in which to calculate the maximum peak kW.
 
 	Returns:
 	- monthly_demand_charge (array of length 12, units: $/kW): The monthly demand charges ($/kW) for an entire year.
 	- monthly_demand_charge_cost (array of length 12, units: $): The resulting monthly cost ($) from the monthly demand charge ($/kW) x monthly peak demand (kW).
 	- monthly_demand_peak_kw (array of length 12, units: kW): The peak kW for each month.
+	- period_max_dollar_indices (list of lists, e.g. [[index of max $ in rate window 1, max $ of rate window 1, rate ($/kW) of window 1],[index of max $ of window 2, max $ of window 2, rate ($/kW) of window 2], etc]). 
+		where 'index of max $' is the index of the max (demand kW * rate $/kW = $ amount) for each window (consecutive 1's or 2's or whatever the rate period is, as defined in the JSON response file demandrateschedule), 
+		the 'max $ of the rate window' is the actual dollar amount corresponding to that index,
+		and the 'rate ($/kW) of the window' is the rate ($/kW) corresponding to that period window from which the maximum $ amount was determined.
 	"""
-
 
 	## --- Demand Rate Construction ---
 	## Example weekday schedule: [1,1,1,1,1,1,1,2,2,2,1,1,1,1,1,1,1,2,2,2,1,1,1,1]
 	## Period 1 = $0/kW
 	## Period 2 = $4.04/kW
 	monthly_demand_charge_cost = np.zeros(12) ## Initialize array
+	period_max_dollar_indices = []
 	if 'demandratestructure' in response_file:
 		demand_weekday_schedule = response_file['demandweekdayschedule']
 		demand_weekend_schedule = response_file['demandweekendschedule']
@@ -97,6 +102,8 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 
 		## Select out each tier window and take the maximum kW in that window multiplied by the corresponding tier rate
 		start_index = 0 ## Begin the first window at the first index of the array
+		#period_max_kw_indices = []
+
 		while start_index < len(hourly_tier_array):
 			current_tier = int(hourly_tier_array[start_index])
 			month = timestamps[start_index].month - 1
@@ -105,10 +112,21 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 			while end_index < len(hourly_tier_array) and hourly_tier_array[end_index] == current_tier:
 				end_index += 1  ## keep extending the end_index window until the tier number is no longer the same or the indices end.
 			
-			kw_window = demand[start_index:end_index] ## Define the window of demand and apply the demand charge rate to the maximum kW demand in that window
-			max_kw = max(kw_window)
-			demand_charge = max_kw * monthly_demand_rates[current_tier] ## demand_charge units: $
-			monthly_demand_charge_cost[month] += demand_charge ## Add the total demand charge to the corresponding month
+			## In each rate period window, calculate the cost $ of each hour based on the rate, and select out the maximum $ amount (instead of max kW).
+			## NOTE: The max $ amount is sought instead of max kW because this is a better comparison between different rate periods with different kW. The goal is to find the maximum $ benefit to the utility.
+			kw_window = demand[start_index:end_index] ## Define the window of demands (kW)
+			dollar_window = kw_window * monthly_demand_rates[current_tier]
+			max_dollar_index = np.argmax(dollar_window) ## index of the max dollar amount within the period window
+			max_dollar = dollar_window[max_dollar_index]
+			max_kw = demand[start_index+max_dollar_index] 
+			period_max_dollar_indices.append([start_index+max_dollar_index, max_dollar, monthly_demand_rates[current_tier]])
+			monthly_demand_charge_cost[month] += max_dollar
+			#max_kw_index = start_index + np.argmax(kw_window) ## Gives the demand curve array index for the maximum kW within the rate period window
+			#max_kw = demand[max_kw_index] ## Gives the associated maximum kW within the rate period window
+			#period_max_kw_indices.append([max_kw_index, max_kw, monthly_demand_rates[current_tier]])
+			#demand_charge = max_kw * monthly_demand_rates[current_tier] ## demand_charge units: $
+			#monthly_demand_charge_cost[month] += demand_charge ## Add the total demand charge to the corresponding month
+
 			start_index = end_index ## Restart the window using the last index of the previous window
 
 	## Maximum monthly peak kW demand
@@ -130,7 +148,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	## TODO: Add fixed charges
 	## --- Fixed charges $/day ---
 
-	return monthly_demand_charge, monthly_demand_charge_cost, np.array(monthly_demand_peak_kw)
+	return monthly_demand_charge, monthly_demand_charge_cost, np.array(monthly_demand_peak_kw), period_max_dollar_indices #period_max_kw_indices
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -289,6 +307,7 @@ def work(modelDir, inputDict):
 	else: 
 		## Use the Wholesale Energy Rate Curve (.csv) file
 		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array#.tolist()
+		## TODO: add monthly demand curve input here too. Will probably need to shift this down and calculate demand cost above this code
 
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
@@ -894,22 +913,90 @@ def work(modelDir, inputDict):
 	### Calculate the monthly demand (kW) costs and savings
 	## The JSON response file should contain either "demandratestructure" and/or "facilitydemandcharge" information 
 	########################################################################################################################
+	BESS_demand = np.array(BESS) - np.array(grid_charging_BESS)
+	TESS_demand = np.array(combined_TESS_vbatPower)
+	GEN_demand = np.array(generator)
+	demand = np.array(demand)
 
-	if inputDict.get('useWholesaleJSONBool'): ## Use the user-provided JSON response file
+	## TODO: Consider adding in a global placeholder parameter for total monthly demand savings for BESS, TESS, and GEN, then in the output section below total up the yearly and projection length total savings.
+	## placeholders for monthly demand savings
+	BESS_monthly_demand_savings = np.zeros(12)
+	TESS_monthly_demand_savings = np.zeros(12)
+	GEN_monthly_demand_savings  = np.zeros(12)
+
+	if inputDict.get('useWholesaleJSONBool'):  ## Use the user-provided JSON response file
 		## Peak demand charge cost ($) for the base demand curve (w/o DERs)
-		## monthly_demand_charge, monthly_demand_charge_cost, monthly_demand_peak_kw
-		monthly_demand_charge, monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
+		monthly_demand_charge, monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs, period_max_dollar_indices_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
 		outData['monthlyPeakDemand'] = monthly_demand_peak_kw_withoutDERs.tolist()
 		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
 
 		## Peak demand charge cost ($) for the adjusted demand curve (with DERs)
-		monthly_demand_charge, monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
+		monthly_demand_charge, monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs, period_max_dollar_indices_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
 		outData['monthlyAdjustedPeakDemand'] = monthly_demand_peak_kw_withDERs.tolist()
 		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
 
 		peakDemandCharge = monthly_demand_charge
+
+		if 'demandratestructure' in response_file:
+			## Re-stack tuples into arrays
+			## max dollar indices for demand curve array, the max dollar amounts, and the demand rates ($/kW)
+			noDERs_restacked = list(zip(*period_max_dollar_indices_withoutDERs)) 
+			withDERs_restacked = list(zip(*period_max_dollar_indices_withDERs))
+
+			index_withDERs = np.array(withDERs_restacked[0])
+			dollar_withDERs = np.array(withDERs_restacked[1]) ##this is the total demand charge cost dollar amount including all DERs for each period window
+			rate_withDERs = np.array(withDERs_restacked[2])
+
+			index_noDERs = np.array(noDERs_restacked[0])
+			dollar_noDERs = np.array(noDERs_restacked[1])
+			rate_noDERs = np.array(noDERs_restacked[2])
+
+			## Stack DERs for compact vectorized math
+			DERs = np.stack([BESS_demand, TESS_demand, GEN_demand])  ## shape = (3, 8760)
+
+			DERs_at_baseP = DERs[:, index_noDERs]
+			DERs_at_adjP = DERs[:, index_withDERs]
+
+			## Fval calculation
+			demand_baseP = np.array(demand[index_noDERs]*rate_noDERs)
+			demand_adjP = np.array(demand[index_withDERs]*rate_withDERs)
+			DERs_at_baseP_dollars = DERs_at_baseP*rate_noDERs
+			DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
+
+			## Fval = (demand at base P - demand at adj P) / DERs at baseP
+			fval_hourly_new = (demand_baseP - demand_adjP) / np.sum(DERs_at_baseP_dollars, axis=0)
+			fval_hourly_cleaned_new = np.nan_to_num(fval_hourly_new, copy=True, nan=1, posinf=1, neginf=1) ## replaces nan, inf values with value=1. This should set the scalar value Fval to 1 so that when it is multiplied by the DER demand charge cost, no change occurs.
+
+			## Apply Fval to costs savings
+			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned_new
+
+			## Monthly demand structure savings 
+			#monthly_savings = np.zeros((3, 12)) ## (3 DERs × 12 months)
+			#for m, (month_first_index, month_last_index) in enumerate(monthHours):
+			#	mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index)
+			#	monthly_savings[:, m] = (DERs[:, index_withDERs[mask]])*rate_withDERs[mask]*fval_hourly_cleaned_new[:, mask].sum(axis=1)
+			#	#monthly_savings[:, m] = DERs_peakDemand_savings_year[index_withDERs]
+
+			#BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
+
+			## TODO: update the code below after new Fval is implemented
+
+			## Yearly demand costs for each DER
+			#yearly_costs = (DERs[:, index_withDERs] * rate_withDERs).sum(axis=1)
+			#BESS_yearly_demand_cost, TESS_yearly_demand_cost, GEN_yearly_demand_cost = yearly_costs
+
+			## Sanity check total cost
+			#total_yearly_demand_cost = np.sum(demand[index_withDERs] * rate_withDERs)
+			#total_yearly_adjusted_demand_cost = np.sum(adjusted_demand[index_withDERs] * rate_withDERs)
+			#total = total_yearly_demand_cost - total_yearly_adjusted_demand_cost
+			#totalDERs = yearly_costs.sum()
+			#print(total, totalDERs)
+
 	else: ## Use the user-provided .csv demand charge file
 		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
+		if np.sum(peakDemandCharge) == 0.0:
+			warnings.warn("The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.")
+		
 		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
 		outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
@@ -918,7 +1005,7 @@ def work(modelDir, inputDict):
 		
 	## Calculate the peak demand savings between the base demand curve and adjusted demand curve
 	outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist() ## total demand charge savings from all DERs
-	
+
 	########################################################################################################################
 	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
 	########################################################################################################################
@@ -929,10 +1016,6 @@ def work(modelDir, inputDict):
 	#########################################################################################################################################################
 	### Calculate the individual (BESS, TESS, and GEN) contributions to the consumption and peak demand savings
 	#########################################################################################################################################################
-	BESS_demand = np.array(BESS)-np.array(grid_charging_BESS)
-	TESS_demand = np.array(combined_TESS_vbatPower) #np.array(vbat_discharge_component)-np.array(vbat_charge_component)
-	GEN_demand = np.array(generator)
-
 	## Calculate the monthly energy consumption savings for BESS, TESS, and GEN technologies
 	BESS_consumption_savings_year1 = [float(a) * float(b) for a, b in zip(BESS_demand, energy_rate_array)]
 	TESS_consumption_savings_year1 = [float(a) * float(b) for a, b in zip(TESS_demand, energy_rate_array)]
@@ -948,19 +1031,12 @@ def work(modelDir, inputDict):
 	#print('total consumption savings monthly (base demand consumption cost - adj demand cost): ', monthlyEnergyConsumptionSavings)
 
 	## Calculate the peak demand savings for BESS, TESS, and GEN technologies
-	demand = np.array(demand)
+	## TODO: below is getting the monthly demand charge cost using the (monthly) Fval method, might still be useable but needs to be updated based on whether an hourly demand rate structure is given in the JSON vs monthly rate structure 
+	## NOTE: These are the monthly peak indices, we need the hourly peak indices of that window method
 	peak_demand_indices = np.array([np.argmax(demand[s:f]) for s, f in monthHours])
 	adjusted_demand_indices = np.array([np.argmax(adjusted_demand[s:f]) for s, f in monthHours])
-
-	peak_demand_at_baseP = demand[peak_demand_indices]
-	peak_demand_at_adjP = demand[adjusted_demand_indices]
-	#adjusted_demand_at_baseP = adjusted_demand[peak_demand_indices]
-	#adjusted_demand_at_adjP = adjusted_demand[adjusted_demand_indices]
-	
-	#peak_demand_at_baseP_cost = peak_demand_at_baseP * peakDemandCharge
-	#peak_demand_at_adjP_cost = peak_demand_at_adjP * peakDemandCharge
-	#adjusted_demand_at_baseP_cost = adjusted_demand_at_baseP * peakDemandCharge
-	#adjusted_demand_at_adjP_cost = adjusted_demand_at_adjP * peakDemandCharge
+	peak_demand_at_baseP = demand[peak_demand_indices] ## baseP = monthly peaks of the baseline demand (without DERs)
+	peak_demand_at_adjP = demand[adjusted_demand_indices] ## adjP = monthly peaks of the adjusted demand curve (with DERs)
 
 	BESS_demand_at_baseP = BESS_demand[peak_demand_indices]
 	BESS_demand_at_adjP = BESS_demand[adjusted_demand_indices]
@@ -995,6 +1071,8 @@ def work(modelDir, inputDict):
 	allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_peakDemand_savings_monthly,TESS_peakDemand_savings_monthly,GEN_peakDemand_savings_monthly)]
 	allDevices_peakDemand_savings_total = sum(allDevices_peakDemand_savings_monthly)
 
+	## Get the yearly consumption and demand savings for all DERs
+	## BESS_monthly_demand_savings is the global variable
 	BESS_peakDemand_savings_allyears = np.full(projectionLength, sum(BESS_peakDemand_savings_monthly))
 	BESS_consumption_savings_allyears = np.full(projectionLength, sum(BESS_consumption_savings_monthly))
 	BESS_savings_allyears = BESS_peakDemand_savings_allyears + BESS_consumption_savings_allyears
@@ -1197,12 +1275,15 @@ def work(modelDir, inputDict):
 	######################################################################################################################################################
 	## Savings Breakdown Per Technology Plot variables
 	######################################################################################################################################################
-	outData['savings_peakDemand_BESS_allyears'] = list(BESS_peakDemand_savings_allyears)
+
 	outData['savings_consumption_BESS_allyears'] = list(BESS_consumption_savings_allyears)
-	outData['savings_peakDemand_TESS_allyears'] = list(TESS_peakDemand_savings_allyears)
 	outData['savings_consumption_TESS_allyears'] = list(TESS_consumption_savings_allyears)
-	outData['savings_peakDemand_GEN_allyears'] = list(GEN_peakDemand_savings_allyears)
 	outData['savings_consumption_GEN_allyears'] = list(GEN_consumption_savings_allyears)
+
+	outData['savings_peakDemand_BESS_allyears'] = list(BESS_peakDemand_savings_allyears)
+	outData['savings_peakDemand_TESS_allyears'] = list(TESS_peakDemand_savings_allyears)
+	outData['savings_peakDemand_GEN_allyears'] = list(GEN_peakDemand_savings_allyears)
+
 	outData['totalCosts_BESS_allyears'] = list(-1.0*totalCosts_BESS_allyears_array) ## Costs are negative for plotting purposes
 	outData['totalCosts_TESS_allyears'] = list(-1.0*totalCosts_TESS_allyears_array) ## Costs are negative for plotting purposes
 	outData['totalCosts_GEN_allyears'] = list(-1.0*totalCosts_GEN_allyears_array) ## Costs are negative for plotting purposes
@@ -1249,7 +1330,7 @@ def new(modelDir):
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'useWholesaleJSONBool': False,
+		'useWholesaleJSONBool': True,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
@@ -1326,7 +1407,7 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
-	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) # Location
+	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) # Model Location
 	try: 	
 		# Blow away old test results if necessary.
 		shutil.rmtree(modelLoc)
