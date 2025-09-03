@@ -87,6 +87,29 @@ def pullAsosStations(filePath):
 				currentSite['Time Zone'] = site['properties']['tzname']
 				csvwriter.writerow(currentSite)
 
+def pirateWeatherForcast(days: int, lat, lon, units="si", api_key=_key_pirateweather):
+	'''
+	days: how many days ahead/behind current date will be looked. Artificially locked @ 10
+	'''
+	from pandas import date_range
+	from datetime import datetime, timedelta
+	lat, lon = float(lat), float(lon)
+
+	base_url = "https://api.pirateweather.net/forecast/"
+	todays_date = datetime.now().date()
+	if days < 0 or days > 10:
+		raise Exception("pirateWeatherForecast: days variable must be within range of 0 and 10")
+	days_past = todays_date - timedelta(days=days)
+	days_ahead = todays_date + timedelta(days=days)
+	coords = '%0.2f,%0.2f' % (lat, lon)
+	times = list(date_range(days_past, days_ahead))
+	urls = ['https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( _key_pirateweather, coords, time.isoformat(), units ) for time in times]
+	data = [requests.get(url) for url in urls]
+	for i in range(len(data)):
+		if data[i].status_code != 200:
+			raise Exception(f"Pirate Weather Request Failed :: Request Code :: {data[i].status_code}")
+	data = [i.json() for i in data]
+
 
 def pullPirateWeather(year, lat, lon, datatype, units='si', api_key=_key_pirateweather, path = None):
 	'''Returns hourly weather data from the PirateWeather API as array.
