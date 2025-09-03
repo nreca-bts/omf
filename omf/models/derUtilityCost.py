@@ -958,16 +958,27 @@ def work(modelDir, inputDict):
 			DERs_at_adjP = DERs[:, index_withDERs]
 
 			## Fval calculation
+			## Fval = (demand at base peak t=1 - demand at adjusted peak t=2) / DERs at base peak t=1
 			demand_baseP = np.array(demand[index_noDERs]*rate_noDERs)
 			demand_adjP = np.array(demand[index_withDERs]*rate_withDERs)
 			DERs_at_baseP_dollars = DERs_at_baseP*rate_noDERs
 			DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
+			totalDER_at_baseP_dollars = np.sum(DERs_at_baseP_dollars, axis=0)
+			numerator   = demand_baseP - demand_adjP
+			denominator = totalDER_at_baseP_dollars
 
-			## Fval = (demand at base P - demand at adj P) / DERs at baseP
-			fval_hourly = (demand_baseP - demand_adjP) / np.sum(DERs_at_baseP_dollars, axis=0)
-			fval_hourly_cleaned = np.nan_to_num(fval_hourly, copy=True, nan=1, posinf=1, neginf=1) ## replaces nan, inf values with value=1. This should set the scalar value Fval to 1 so that when it is multiplied by the DER demand charge cost, no change occurs. TODO: Is this an appropriate implementation for this?
+			## Handle edge cases of Fval equation
+			fval_hourly = np.divide(
+				numerator,
+				denominator,
+				out=np.ones_like(numerator, dtype=float), ## If denomenator=0, set Fval=1
+				where=denominator != 0
+			)
+			fval_hourly_cleaned = np.nan_to_num(fval_hourly, nan=1.0, posinf=1.0, neginf=1.0) ## If nan and +/- inf values, set Fval=1)
+			zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
+			fval_hourly_cleaned[zero_mask] = 0.0
 
-			## Apply Fval to costs savings
+			## Apply Fval for each DER's demand curve
 			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned
 
 			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs
