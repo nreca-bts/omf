@@ -964,33 +964,24 @@ def work(modelDir, inputDict):
 			DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
 
 			## Fval = (demand at base P - demand at adj P) / DERs at baseP
-			fval_hourly_new = (demand_baseP - demand_adjP) / np.sum(DERs_at_baseP_dollars, axis=0)
-			fval_hourly_cleaned_new = np.nan_to_num(fval_hourly_new, copy=True, nan=1, posinf=1, neginf=1) ## replaces nan, inf values with value=1. This should set the scalar value Fval to 1 so that when it is multiplied by the DER demand charge cost, no change occurs.
+			fval_hourly = (demand_baseP - demand_adjP) / np.sum(DERs_at_baseP_dollars, axis=0)
+			fval_hourly_cleaned = np.nan_to_num(fval_hourly, copy=True, nan=1, posinf=1, neginf=1) ## replaces nan, inf values with value=1. This should set the scalar value Fval to 1 so that when it is multiplied by the DER demand charge cost, no change occurs. TODO: Is this an appropriate implementation for this?
 
 			## Apply Fval to costs savings
-			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned_new
+			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned
 
-			## Monthly demand structure savings 
-			#monthly_savings = np.zeros((3, 12)) ## (3 DERs × 12 months)
-			#for m, (month_first_index, month_last_index) in enumerate(monthHours):
-			#	mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index)
-			#	monthly_savings[:, m] = (DERs[:, index_withDERs[mask]])*rate_withDERs[mask]*fval_hourly_cleaned_new[:, mask].sum(axis=1)
-			#	#monthly_savings[:, m] = DERs_peakDemand_savings_year[index_withDERs]
+			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs
+			monthly_savings = np.zeros((3, 12)) ## (3 DERs × 12 months)
+			for m, (month_first_index, month_last_index) in enumerate(monthHours):
+				mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index) 
+				monthly_savings[:, m] = (DERs_peakDemand_savings_year[:, mask]).sum(axis=1)
+			
+			BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
+			totalDERs_monthly_savings = monthly_savings.sum(axis=0)
 
-			#BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
-
-			## TODO: update the code below after new Fval is implemented
-
-			## Yearly demand costs for each DER
-			#yearly_costs = (DERs[:, index_withDERs] * rate_withDERs).sum(axis=1)
-			#BESS_yearly_demand_cost, TESS_yearly_demand_cost, GEN_yearly_demand_cost = yearly_costs
-
-			## Sanity check total cost
-			#total_yearly_demand_cost = np.sum(demand[index_withDERs] * rate_withDERs)
-			#total_yearly_adjusted_demand_cost = np.sum(adjusted_demand[index_withDERs] * rate_withDERs)
-			#total = total_yearly_demand_cost - total_yearly_adjusted_demand_cost
-			#totalDERs = yearly_costs.sum()
-			#print(total, totalDERs)
+			## Assemble the yearly demand savings for each DER using the monthly demand savings arrays
+			BESS_yearly_demand_savings, TESS_yearly_demand_savings, GEN_yearly_demand_savings = monthly_savings.sum(axis=1)
+			totalDERs_yearly_savings = totalDERs_monthly_savings.sum()
 
 	else: ## Use the user-provided .csv demand charge file
 		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
@@ -1314,6 +1305,9 @@ def new(modelDir):
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_monthly_demand_charges.csv')) as f:
 		monthly_demand_charges = f.read()
 
+	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/editedFlatheadWholesaleTariff.json') as jsonFile:
+		wholesale_rate_structure = json.load(jsonFile)
+
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
 		
@@ -1333,7 +1327,10 @@ def new(modelDir):
 		'useWholesaleJSONBool': True,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
-		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
+
+		#'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
+		'wholesaleRateStructureFileName': 'editedFlatheadWholesaleTariff.json',
+		
 		'wholesaleRateStructure': wholesale_rate_structure,
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
