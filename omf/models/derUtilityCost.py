@@ -1327,9 +1327,6 @@ def new(modelDir):
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_monthly_demand_charges.csv')) as f:
 		monthly_demand_charges = f.read()
 
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/editedFlatheadWholesaleTariff.json') as jsonFile:
-		wholesale_rate_structure = json.load(jsonFile)
-
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
 		
@@ -1349,10 +1346,7 @@ def new(modelDir):
 		'useWholesaleJSONBool': True,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
-
-		#'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
-		'wholesaleRateStructureFileName': 'editedFlatheadWholesaleTariff.json',
-		
+		'wholesaleRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'wholesaleRateStructure': wholesale_rate_structure,
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
