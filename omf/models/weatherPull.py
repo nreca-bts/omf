@@ -78,14 +78,15 @@ def work(modelDir, inputDict):
 		d = weather.get_ndfd_data(lat, long, param)
 		#data is now an json-like object. Parse it, and get the data ready for presentation
 		#get timestamps, to unix times
+		# print(f"d: {d}")
 		timestamps = (d['dwml']['data']['time-layout']['start-valid-time'])
 		timestamps = [datetime.fromisoformat(i).timestamp() for i in timestamps]
 		#get the parameter in question
 		param = list(d['dwml']['data']['parameters'].keys())[-1]
 		#get the values for that parameter
 		values = d['dwml']['data']['parameters'][param]['value']
+		# print(f"values: {values}")
 		c = zip(timestamps, values)
-		# print( f"c: {c}")
 		#Date dictionary creation
 		start_year=(datetime.today().strftime("%Y"))
 		start_year = datetime(int(start_year),1,1,0)

@@ -12,7 +12,6 @@ def pirateWeatherForecast(days: int, lat, lon, units="si", api_key=_key_piratewe
 	from pandas import date_range
 	from datetime import datetime, timedelta
 
-
 	# Want to check this better
 	lat, lon = float(lat), float(lon)
 
