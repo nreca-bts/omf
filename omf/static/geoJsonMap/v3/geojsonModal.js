@@ -9,11 +9,11 @@ import { LoadingSpan } from '../v4/ui-components/loading-span/loading-span.js';
 // - Test data can be found at omf/scratch/CIGAR/geoJsonLeaflet
 
 class GeojsonModal { // implements ModalInterface, ObserverInterface
-    #controller;            // - ControllerInterface instance
-    #filenameToLayerGroup;  // - Container for LayerGroups
-    #propTable;             // - PropTable instance
-    #observables;           // - An array of ObservableInterface instances
-    #removed;               // - Whether this ColorModal instance has already been deleted
+    #controller;                        // - ControllerInterface instance
+    #propTable;                         // - PropTable instance
+    #observables;                       // - An array of ObservableInterface instances
+    #removed;                           // - Whether this ColorModal instance has already been deleted
+    static filenameToLayerGroup = {};   // - Container for LayerGroups. This must be static and public because the LeafletLayer.map needs an event listener with an event handler that redraw the layers
 
     /**
      * @param {Array} observables - an array of ObservableInterface instances 
@@ -27,11 +27,12 @@ class GeojsonModal { // implements ModalInterface, ObserverInterface
             throw Error('The "controller" argument must be instanceof FeatureController.');
         }
         this.#controller = controller;
-        this.#filenameToLayerGroup = {};
+        //this.#filenameToLayerGroup = {};
         this.#propTable = null;
         this.#observables = observables;
         this.#observables.forEach(ob => ob.registerObserver(this));
         this.#removed = false;
+        LeafletLayer.map.on('overlayadd', GeojsonModal.forceRedraw);
         this.renderContent();
         this.refreshContent();
     }
@@ -142,12 +143,12 @@ class GeojsonModal { // implements ModalInterface, ObserverInterface
     refreshContent() {
         const fileListTable = new PropTable();
         fileListTable.div.classList.add('fileListTable');
-        if (Object.values(this.#filenameToLayerGroup).length > 0) {
+        if (Object.values(GeojsonModal.filenameToLayerGroup).length > 0) {
             fileListTable.insertTBodyRow({elements: ['Filename', 'Show GeoJSON on page load']});
         }
         const that = this;
         const attachments = this.#controller.observableGraph.getObservable('omd').getProperty('attachments', 'meta');
-        for (const filename of Object.keys(this.#filenameToLayerGroup)) {
+        for (const filename of Object.keys(GeojsonModal.filenameToLayerGroup)) {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.name = 'displayOnLoad';
@@ -173,9 +174,9 @@ class GeojsonModal { // implements ModalInterface, ObserverInterface
             removeButton.button.addEventListener('click', () => {
                 if (attachments.hasOwnProperty('geojsonFiles')) {
                     delete attachments.geojsonFiles[filename];
-                    LeafletLayer.map.removeLayer(that.#filenameToLayerGroup[filename].layerGroup);
-                    LeafletLayer.control.removeLayer(that.#filenameToLayerGroup[filename].layerGroup);
-                    delete that.#filenameToLayerGroup[filename];
+                    LeafletLayer.map.removeLayer(GeojsonModal.filenameToLayerGroup[filename].layerGroup);
+                    LeafletLayer.control.removeLayer(GeojsonModal.filenameToLayerGroup[filename].layerGroup);
+                    delete GeojsonModal.filenameToLayerGroup[filename];
                     if (Object.keys(attachments.geojsonFiles).length === 0) {
                         delete attachments.geojsonFiles;
                     }
@@ -264,6 +265,24 @@ class GeojsonModal { // implements ModalInterface, ObserverInterface
     // ** Public methods **
     // ********************
 
+    /**
+     * - This must be public because the LeafletLayer.map needs an event listener with an event handler that redraw the layers
+     */
+    static forceRedraw() {
+        // - Remove the event listener to prevent infinite recursion
+        LeafletLayer.map.off('overlayadd', GeojsonModal.forceRedraw);
+        let layerGroups = Object.values(GeojsonModal.filenameToLayerGroup).map(obj => {
+            return obj.layerGroup;
+        });
+        layerGroups = [...layerGroups, LeafletLayer.parentChildLineLayers, LeafletLayer.lineLayers, LeafletLayer.nodeLayers, LeafletLayer.nodeClusterLayers];
+        for (const layerGroup of layerGroups) {
+            LeafletLayer.map.removeLayer(layerGroup);
+            LeafletLayer.map.addLayer(layerGroup);
+        }
+        // - Re-add the event listener back to handle future events
+        LeafletLayer.map.on('overlayadd', GeojsonModal.forceRedraw);
+    }
+
     // *********************
     // ** Private methods **
     // *********************
@@ -297,11 +316,11 @@ class GeojsonModal { // implements ModalInterface, ObserverInterface
                     const featureCollection = JSON.parse(obj.json);
                     const layerGroup = L.featureGroup();
                     featureCollection.features.map(f => new Feature(f)).map(f => new LeafletLayer(f, that.#controller)).forEach(ll => layerGroup.addLayer(ll.getLayer()));
-                    if (this.#filenameToLayerGroup.hasOwnProperty(filename)) {
-                        LeafletLayer.map.removeLayer(that.#filenameToLayerGroup[filename].layerGroup);
-                        LeafletLayer.control.removeLayer(that.#filenameToLayerGroup[filename].layerGroup);
+                    if (GeojsonModal.filenameToLayerGroup.hasOwnProperty(filename)) {
+                        LeafletLayer.map.removeLayer(GeojsonModal.filenameToLayerGroup[filename].layerGroup);
+                        LeafletLayer.control.removeLayer(GeojsonModal.filenameToLayerGroup[filename].layerGroup);
                     }
-                    this.#filenameToLayerGroup[filename] = {
+                    GeojsonModal.filenameToLayerGroup[filename] = {
                         layerGroup: layerGroup,
                     };
                     LeafletLayer.control.addOverlay(layerGroup, filename);

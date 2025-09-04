@@ -18,8 +18,6 @@ def work(modelDir, inputDict):
 		'''
 	print(inputDict)
 	source = inputDict['source']
-	lat = inputDict['LatInput']
-	long = inputDict['LonInput']
 	if source =='ASOS':
 		station = inputDict['stationASOS']
 		parameter = inputDict['weatherParameterASOS']
@@ -30,15 +28,20 @@ def work(modelDir, inputDict):
 		data = weather.pullUscrn(inputDict['year'], station, parameter)
 	elif source == 'PirateWeather':
 		parameter = inputDict['weatherParameterPirateWeather']
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
 		data = weather.pullPirateWeather(inputDict['year'], lat, long, parameter, units='si')
-	elif source == 'NRSDB':
+	elif source == 'NSRDB':
+		print("nsrdb")
 		nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 		year = inputDict['year']
-		param = inputDict['weatherParameterNRSDB']
-		data = weather.get_nrsdb_data('psm', float(long), float(lat), year, nsrdbkey, interval=60)
+		param = inputDict['weatherParameterNSRDB']
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
+		data = weather.get_nsrdb_data('psm', float(long), float(lat), year, nsrdbkey, interval=60)
 		#Data must be a list. Extract correct column from returned pandas df, return this column as array of int
 		data = list(data[param].values[3:].astype(float))
-		print(data)
+		print(f"NSRDB: {data}")
 	elif source in ['easySolarGhi', 'easySolarDhi','easySolarDni'] :
 		print("EASYSOLAR FOUND")
 		station = inputDict['easySolarStation']
@@ -56,6 +59,8 @@ def work(modelDir, inputDict):
 	elif source == 'tmy3':
 		param = inputDict['weatherParameterTmy3']
 		year = int(inputDict['year'])
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
 		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(long)))
 		#Now get data for the year in question
 		data = data.loc[data['year']==year]
@@ -64,29 +69,24 @@ def work(modelDir, inputDict):
 			raise Exception("No data for the year and location")
 		#Extract param from data, convert to int, and pass in values not pandas series
 		data = list(data[param].astype(float).values)
-	elif source == 'surfrad':
-		year = int(inputDict['year'])
-		param = inputDict['weatherParameterSurfrad']
-		site = inputDict['surfradSite']
-		print(year, param, site)
-		data = weather.get_radiation_data('surfrad', site, year)
-		data = list(data[param].values.astype(float))
-		print(data)
 	elif source == 'ndfd':
 		#This will just just current date for forecast, as it does not support historical forecasts
 		#and future forcasts are limited
 		param = [inputDict['ndfdParam']]
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
 		d = weather.get_ndfd_data(lat, long, param)
 		#data is now an json-like object. Parse it, and get the data ready for presentation
 		#get timestamps, to unix times
+		# print(f"d: {d}")
 		timestamps = (d['dwml']['data']['time-layout']['start-valid-time'])
 		timestamps = [datetime.fromisoformat(i).timestamp() for i in timestamps]
 		#get the parameter in question
 		param = list(d['dwml']['data']['parameters'].keys())[-1]
 		#get the values for that parameter
 		values = d['dwml']['data']['parameters'][param]['value']
+		# print(f"values: {values}")
 		c = zip(timestamps, values)
-		# print(c)
 		#Date dictionary creation
 		start_year=(datetime.today().strftime("%Y"))
 		start_year = datetime(int(start_year),1,1,0)
@@ -96,7 +96,7 @@ def work(modelDir, inputDict):
 				tstamp = float(datetime.timestamp(time))
 				# time = time.isoformat()
 				dateAndDataDict[tstamp] = 0
-		#Add in exsisting values
+		#Add in existing values
 		for i, j in c:
 			dateAndDataDict[i] = int(j)
 		#Now for filler
@@ -105,6 +105,7 @@ def work(modelDir, inputDict):
 
 		#get ordered values
 		data = list(dateAndDataDict.values())
+		#print(f"dateAndData: {data}")
 		#set left and right boundaries at right positions
 		left = 0
 		right = len(data)-1
@@ -123,6 +124,8 @@ def work(modelDir, inputDict):
 
 	if inputDict["pullCDSCoperData"] == 'on':
 		year = int( inputDict['year'] )
+		lat = inputDict['LatInput']
+		long = inputDict['LonInput']
 		successful = weather.get_cds_coper_data( latitude=float(lat), longitude=float(long), year=year, modelDir=modelDir)
 		if (successful == False):
 			raise Exception("CDS Copernicus Weather Pulling Code Failed")
@@ -145,7 +148,7 @@ def new(modelDir):
         'ASOS',
         'USCRN',
         'pirateWeather',
-        'NRSDB',
+        'nsrdb',
         'easySolarGhi',
         'easySolarDhi',
         'easySolarDni',
@@ -164,11 +167,9 @@ def new(modelDir):
 		'LatInput': '39.828362',
 		'LonInput': '-98.579490',
 		'weatherParameterPirateWeather': '',
-		'weatherParameterNRSDB': 'Pressure',
+		'weatherParameterNSRDB': 'Pressure',
 		'easySolarStation': 'TX_Austin_33_NW',
 		'weatherParameterTmy3': 'TBD',
-		'weatherParameterSurfrad': '',
-		'surfradSite': 'PSU',
 		'ndfdParam': '',
 		'pullCDSCoperData': 'off',
 		"modelType": modelName}
