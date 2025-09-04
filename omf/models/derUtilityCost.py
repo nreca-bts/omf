@@ -84,6 +84,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	## Period 1 = $0/kW
 	## Period 2 = $4.04/kW
 	monthly_demand_charge_cost = np.zeros(12) ## Initialize array
+	monthly_total_kW = np.zeros(12)
 	period_max_dollar_indices = []
 	if 'demandratestructure' in response_file:
 		demand_weekday_schedule = response_file['demandweekdayschedule']
@@ -118,11 +119,14 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 			dollar_window = kw_window * monthly_demand_rates[current_tier]
 			max_dollar_index = np.argmax(dollar_window) ## index of the max dollar amount within the period window
 			max_dollar = dollar_window[max_dollar_index]
-			max_kw = demand[start_index+max_dollar_index] 
+			max_kw_of_max_dollar = demand[start_index+max_dollar_index] 
 			period_max_dollar_indices.append([start_index+max_dollar_index, max_dollar, monthly_demand_rates[current_tier]])
 			monthly_demand_charge_cost[month] += max_dollar
-			#max_kw_index = start_index + np.argmax(kw_window) ## Gives the demand curve array index for the maximum kW within the rate period window
-			#max_kw = demand[max_kw_index] ## Gives the associated maximum kW within the rate period window
+			
+			## In each rate period window, calculate the max kW and add it to the monthly_total_kW output
+			max_kw_index = start_index + np.argmax(kw_window) ## Gives the demand curve array index for the maximum kW within the rate period window
+			max_kw = demand[max_kw_index] ## Gives the associated maximum kW within the rate period window
+			monthly_total_kW[month] += max_kw
 			#period_max_kw_indices.append([max_kw_index, max_kw, monthly_demand_rates[current_tier]])
 			#demand_charge = max_kw * monthly_demand_rates[current_tier] ## demand_charge units: $
 			#monthly_demand_charge_cost[month] += demand_charge ## Add the total demand charge to the corresponding month
@@ -130,7 +134,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 			start_index = end_index ## Restart the window using the last index of the previous window
 
 	## Maximum monthly peak kW demand
-	monthly_demand_peak_kw = [demand[np.argmax(demand[s:f])] for s, f in monthHours]
+	#monthly_demand_peak_kw = [demand[np.argmax(demand[s:f])] for s, f in monthHours]
 
 	## --- Facility Demand Charge Construction ---
 	#if 'flatdemandmonths' in response_file and len(response_file['flatdemandmonths']) != 0:
@@ -147,7 +151,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	## TODO: Add fixed charges
 	## --- Fixed charges $/day ---
 
-	return monthly_demand_charge_cost, np.array(monthly_demand_peak_kw), period_max_dollar_indices #period_max_kw_indices
+	return monthly_demand_charge_cost, monthly_total_kW, period_max_dollar_indices #period_max_kw_indices
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -926,10 +930,10 @@ def work(modelDir, inputDict):
 	if inputDict.get('useWholesaleJSONBool'):  ## Use the user-provided JSON response file
 		## Peak demand charge cost ($) for the base demand curve (w/o DERs). 
 		## NOTE: the monthly demand charge rate ($/kW) is the same for both w/ and w/o DERs; it comes from the response file if flatdemandstructure is defined, else it's all zeros.
-		monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs, period_max_dollar_indices_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
+		monthly_demand_charge_cost_withoutDERs, monthly_total_kw_withoutDERs, period_max_dollar_indices_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
 
 		## Peak demand charge cost ($) for the adjusted demand curve (with DERs)
-		monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs, period_max_dollar_indices_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
+		monthly_demand_charge_cost_withDERs, monthly_total_kw_withDERs, period_max_dollar_indices_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
 
 		peakDemandCharge = np.zeros(12) ## TODO: update this if flatdemandstructure is defined in JSON file. Setting to zero for now until Lisa has looked at the JSON inputs from coops.
 
@@ -991,9 +995,9 @@ def work(modelDir, inputDict):
 			totalDERs_yearly_savings = totalDERs_monthly_savings.sum()
 
 		## Calculate the monthly peak demand costs for the base demand curve (w/o DERs) and adjusted demand curve (w/ DERs)
-		outData['monthlyPeakDemand'] = monthly_demand_peak_kw_withoutDERs.tolist()
+		outData['monthlyPeakDemand'] = monthly_total_kw_withoutDERs.tolist()
 		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
-		outData['monthlyAdjustedPeakDemand'] = monthly_demand_peak_kw_withDERs.tolist()
+		outData['monthlyAdjustedPeakDemand'] = monthly_total_kw_withDERs.tolist()
 		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
 
 	else: ## Use the user-provided .CSV demand charge file
