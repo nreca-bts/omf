@@ -133,22 +133,21 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	monthly_demand_peak_kw = [demand[np.argmax(demand[s:f])] for s, f in monthHours]
 
 	## --- Facility Demand Charge Construction ---
-	if 'flatdemandmonths' in response_file and len(response_file['flatdemandmonths']) != 0:
-		demand_rate_structure_flattened = [item[0] for item in response_file['flatdemandstructure']]
-		monthly_demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
-		del monthly_demand_rates[0] ## Drop the first element which is a value of 0 due to zero-indexing structure
-		## TODO: This needs to include the $/kW * kW calculation to add the total $ to the monthly_demand_charge array
-		flat_monthly_peak_demand_cost = np.array(monthly_demand_peak_kw) * np.array(monthly_demand_rates)
-		monthly_demand_charge_cost += flat_monthly_peak_demand_cost
-		monthly_demand_charge = monthly_demand_rates[:]
-	else:
-		warnings.warn("No monthly Facility Demand Charge detected in JSON response file. Setting the monthly peak demand charges ($/kW) to zero.")
-		monthly_demand_charge = np.zeros(12)
+	#if 'flatdemandmonths' in response_file and len(response_file['flatdemandmonths']) != 0:
+	#	demand_rate_structure_flattened = [item[0] for item in response_file['flatdemandstructure']]
+	#	monthly_demand_rates = [item['rate'] for item in demand_rate_structure_flattened]
+	#	del monthly_demand_rates[0] ## Drop the first element which is a value of 0 due to zero-indexing structure
+	#	flat_monthly_peak_demand_cost = np.array(monthly_demand_peak_kw) * np.array(monthly_demand_rates)
+	#	monthly_demand_charge_cost += flat_monthly_peak_demand_cost ## TODO: Update this to be mutually exclusive with the demandratestructure, not additive
+	#	monthly_demand_charge = monthly_demand_rates[:]
+	#else:
+	#	warnings.warn("No monthly Facility Demand Charge detected in JSON response file. Setting the monthly peak demand charges ($/kW) to zero.")
+	#	monthly_demand_charge = np.zeros(12)
 		
 	## TODO: Add fixed charges
 	## --- Fixed charges $/day ---
 
-	return monthly_demand_charge, monthly_demand_charge_cost, np.array(monthly_demand_peak_kw), period_max_dollar_indices #period_max_kw_indices
+	return monthly_demand_charge_cost, np.array(monthly_demand_peak_kw), period_max_dollar_indices #period_max_kw_indices
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -925,17 +924,14 @@ def work(modelDir, inputDict):
 	GEN_monthly_demand_savings  = np.zeros(12)
 
 	if inputDict.get('useWholesaleJSONBool'):  ## Use the user-provided JSON response file
-		## Peak demand charge cost ($) for the base demand curve (w/o DERs)
-		monthly_demand_charge, monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs, period_max_dollar_indices_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
-		outData['monthlyPeakDemand'] = monthly_demand_peak_kw_withoutDERs.tolist()
-		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
+		## Peak demand charge cost ($) for the base demand curve (w/o DERs). 
+		## NOTE: the monthly demand charge rate ($/kW) is the same for both w/ and w/o DERs; it comes from the response file if flatdemandstructure is defined, else it's all zeros.
+		monthly_demand_charge_cost_withoutDERs, monthly_demand_peak_kw_withoutDERs, period_max_dollar_indices_withoutDERs = construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours)
 
 		## Peak demand charge cost ($) for the adjusted demand curve (with DERs)
-		monthly_demand_charge, monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs, period_max_dollar_indices_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
-		outData['monthlyAdjustedPeakDemand'] = monthly_demand_peak_kw_withDERs.tolist()
-		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
+		monthly_demand_charge_cost_withDERs, monthly_demand_peak_kw_withDERs, period_max_dollar_indices_withDERs = construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
 
-		peakDemandCharge = monthly_demand_charge
+		peakDemandCharge = np.zeros(12) ## TODO: update this if flatdemandstructure is defined in JSON file. Setting to zero for now until Lisa has looked at the JSON inputs from coops.
 
 		if 'demandratestructure' in response_file:
 			## Re-stack tuples into arrays
@@ -994,7 +990,13 @@ def work(modelDir, inputDict):
 			BESS_yearly_demand_savings, TESS_yearly_demand_savings, GEN_yearly_demand_savings = monthly_savings.sum(axis=1)
 			totalDERs_yearly_savings = totalDERs_monthly_savings.sum()
 
-	else: ## Use the user-provided .csv demand charge file
+		## Calculate the monthly peak demand costs for the base demand curve (w/o DERs) and adjusted demand curve (w/ DERs)
+		outData['monthlyPeakDemand'] = monthly_demand_peak_kw_withoutDERs.tolist()
+		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
+		outData['monthlyAdjustedPeakDemand'] = monthly_demand_peak_kw_withDERs.tolist()
+		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
+
+	else: ## Use the user-provided .CSV demand charge file
 		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
 		if np.sum(peakDemandCharge) == 0.0:
 			warnings.warn("The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.")
@@ -1212,7 +1214,7 @@ def work(modelDir, inputDict):
 	## Calculate the financial savings of controlling member-consumer DERs
 	## NOTE: The savings are just from the adjusted energy cost and adjusted demand charge. 
 	######################################################################################################################################################
-	utilitySavings_year1_total = np.sum(outData['monthlyTotalSavingsAdjustedService'])
+	utilitySavings_year1_total = np.sum(outData['monthlyTotalSavingsAdjustedService']) ## TODO: add Fval to the savings calculation
 	utilitySavings_year1_array = np.array(outData['monthlyTotalSavingsAdjustedService'])
 	utilitySavings_allyears_array = np.full(projectionLength, utilitySavings_year1_total)
 	utilitySavings_allyears_total = np.sum(utilitySavings_allyears_array)
@@ -1222,57 +1224,62 @@ def work(modelDir, inputDict):
 	utilityNetSavings_year1_array = utilitySavings_year1_array - utilityCosts_year1_array
 	utilityNetSavings_allyears_total = utilitySavings_allyears_total - utilityCosts_allyears_total
 	utilityNetSavings_allyears_array = utilitySavings_allyears_array - utilityCosts_allyears_array
-
-	## Update financial parameters
-	outData['totalCost_year1'] = list(utilityCosts_year1_array)
-	outData['totalSavings_year1'] = list(utilitySavings_year1_array)
-	outData['totalCost_paidToConsumer'] = list(allDevices_compensation_year1_array + allDevices_subsidy_year1_array)
+	
+	######################################################################################################################################################
+	## Monthly Cost Comparison Plot Variables
+	## TODO: hook in the new fval-corrected demand savings to the relevant variables here
+	######################################################################################################################################################
 	
 	## Calculate Net Present Value (NPV) and Simple Payback Period (SPP)
-	outData['NPV'] = npv(float(inputDict['discountRate'])/100., utilityNetSavings_allyears_array)
 	initialInvestment = startupCosts + operationalCosts_onetime + allDevices_subsidy_onetime
 	utilityCosts_year1_minus_onetime_costs = (operationalCosts_ongoing*12.0) + (allDevices_subsidy_ongoing*12.0) + allDevices_compensation_year1_total
 	utilityNetSavings_year1_total_minus_onetime_costs = utilitySavings_year1_total - utilityCosts_year1_minus_onetime_costs
 	SPP = initialInvestment/utilityNetSavings_year1_total_minus_onetime_costs
 	outData['SPP'] = SPP
-	outData['totalNetSavings_year1'] = list(utilityNetSavings_year1_array) ## (total cost of service - adjusted total cost of service) - (operational costs + subsidies + compensation to consumer + startup costs)
-	outData['totalNetSavings_allyears'] = list(utilityNetSavings_allyears_array)
-	outData['cumulativeCashflow_total'] = list(np.cumsum(utilityNetSavings_allyears_array))
-	outData['savingsAllYears'] = list(utilitySavings_allyears_array)
-	outData['costsAllYears'] = list(utilityCosts_allyears_array*-1.) ## Show as negative for plotting purposes
-	
-	######################################################################################################################################################
-	## Monthly Cost Comparison Plot Variables
-	######################################################################################################################################################
+	outData['NPV'] = npv(float(inputDict['discountRate'])/100., utilityNetSavings_allyears_array)
+
+	## Energy consumption variables ($/kW)
 	outData['monthlyEnergyConsumption'] = list(monthlyEnergyConsumption)
 	outData['monthlyAdjustedEnergyConsumption'] = list(monthlyAdjustedEnergyConsumption)
 	outData['monthlyEnergyConsumptionCost'] = list(monthlyEnergyConsumptionCost)
 	outData['monthlyAdjustedEnergyConsumptionCost'] = list(monthlyAdjustedEnergyConsumptionCost)
-	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings)
+	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings) ## NOTE: this isn't used in the output plots
+
+	## NOTE: The demand variables below are calculated differently depending on the input method for demand rate information (JSON response file vs. CSV file)
+	##allOutputData.monthlyPeakDemand)
+	##allOutputData.monthlyAdjustedPeakDemand)
+	##allOutputData.monthlyPeakDemandCost)
+	##allOutputData.monthlyAdjustedPeakDemandCost)
+	##allOutputData.monthlyTotalCostService)
+	##allOutputData.monthlyTotalCostAdjustedService)
+
+	outData['totalCost_paidToConsumer'] = list(allDevices_compensation_year1_array + allDevices_subsidy_year1_array)
+	startup_and_operational_costs_year1_array = startupCosts_year1_array + operationalCosts_year1_array ## Combine the startup and operational costs for displaying in the Monthly Cost Comparison table
+	outData['startupAndOperationalCosts_year1'] = list(startup_and_operational_costs_year1_array)
+	outData['totalNetSavings_year1'] = list(utilityNetSavings_year1_array) ## (total cost of service - adjusted total cost of service) - (operational costs + subsidies + compensation to consumer + startup costs)
 	
-	#outData['monthly_gen_fuel_cost'] = list(monthly_fuel_cost)
-	#outData['allDevices_subsidy_year1'] = list(allDevices_subsidy_year1_array)
-	#outData['allDevices_compensation_year1'] = list(allDevices_compensation_year1_array)
-	#outData['savings_year1_monthly_array'] = list(savings_year1_monthly_array)
-	#outData['costs_year1_array'] = list(costs_year1_array)
-	#outData['net_savings_year1_array'] = list(net_savings_year1_array)
+	## NOTE: The following are not used in the output HTML plot, but could potentially be useful later
+	#outData['operationalCosts_allyears'] = list(operationalCosts_allyears_array*-1.)
+	#outData['operationalCosts_year1'] = list(operationalCosts_year1_array*-1.)
+	#outData['startupCosts_year1'] = list(startupCosts_year1_array*-1.)
+	#outData['startupCosts_allyears'] = list(startupCosts_allyears_array*-1.)
+	#outData['totalNetSavings_allyears'] = list(utilityNetSavings_allyears_array)
 
 	######################################################################################################################################################
 	## CashFlow Projection Plot variables
 	## NOTE: The utility costs are shown as negative values
 	######################################################################################################################################################
-	outData['subsidies'] = list(allDevices_subsidy_allyears_array*-1.)
-	outData['BESS_compensation_to_consumer_allyears'] = list(BESS_compensation_allyears_array*-1.)
-	outData['TESS_compensation_to_consumer_allyears'] = list(TESS_compensation_allyears_array*-1.)
-	outData['GEN_compensation_to_consumer_allyears'] = list(GEN_compensation_allyears_array*-1.)
-	outData['operationalCosts_allyears'] = list(operationalCosts_allyears_array*-1.)
-	outData['operationalCosts_year1'] = list(operationalCosts_year1_array*-1.)
-	outData['startupCosts_year1'] = list(startupCosts_year1_array*-1.)
-	outData['startupCosts_allyears'] = list(startupCosts_allyears_array*-1.)
+	outData['savingsAllYears'] = list(utilitySavings_allyears_array)
+	outData['costsAllYears'] = list(utilityCosts_allyears_array*-1.) ## Show as negative for plotting purposes
+	outData['cumulativeCashflow_total'] = list(np.cumsum(utilityNetSavings_allyears_array))
 	
-	## Combine the startup and operational costs for displaying in the Monthly Cost Comparison table
-	startup_and_operational_costs_year1_array = startupCosts_year1_array + operationalCosts_year1_array
-	outData['startupAndOperationalCosts_year1'] = list(startup_and_operational_costs_year1_array)
+	## NOTE: The following variables are not used in output HTML plot, but could potentially be useful later
+	#outData['totalCost_year1'] = list(utilityCosts_year1_array)
+	#outData['totalSavings_year1'] = list(utilitySavings_year1_array)
+	#outData['subsidies'] = list(allDevices_subsidy_allyears_array*-1.) 
+	#outData['BESS_compensation_to_consumer_allyears'] = list(BESS_compensation_allyears_array*-1.)
+	#outData['TESS_compensation_to_consumer_allyears'] = list(TESS_compensation_allyears_array*-1.)
+	#outData['GEN_compensation_to_consumer_allyears'] = list(GEN_compensation_allyears_array*-1.)
 	
 	######################################################################################################################################################
 	## Savings Breakdown Per Technology Plot variables
