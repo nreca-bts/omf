@@ -317,6 +317,7 @@ def work(modelDir, inputDict):
 		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array.tolist()
 		scenario['ElectricTariff']['monthly_demand_rates'] = peakDemandCharge.tolist()
 
+
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
 		GENcheck = 'enabled'
@@ -993,7 +994,7 @@ def work(modelDir, inputDict):
 				mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index) 
 				monthly_savings[:, m] = (DERs_peakDemand_savings_year[:, mask]).sum(axis=1)
 			
-			BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
+      BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
 			totalDERs_monthly_savings = monthly_savings.sum(axis=0)
 
 			## Assemble the yearly demand savings for each DER using the monthly demand savings arrays
@@ -1096,7 +1097,6 @@ def work(modelDir, inputDict):
 			device_consumption_savings_allyears = thermal_device_savings[device_result]['consumption_cost_allyears']
 			outData[device_result+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
 			
-		## Calculate the monthly peak demand and total cost 
 		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
 		outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
@@ -1128,7 +1128,7 @@ def work(modelDir, inputDict):
 	allDevices_consumption_savings_monthly = [a+b+c for a,b,c in zip(BESS_consumption_savings_monthly,TESS_consumption_savings_monthly,GEN_consumption_savings_monthly)]
 	allDevices_consumption_savings_total = sum(allDevices_consumption_savings_monthly)
 
-	## Get the yearly consumption and demand savings for all DERs
+  ## Get the yearly consumption and demand savings for all DERs
 	BESS_peakDemand_savings_allyears = np.full(projectionLength, sum(BESS_monthly_demand_savings))
 	BESS_consumption_savings_allyears = np.full(projectionLength, sum(BESS_consumption_savings_monthly))
 	BESS_savings_allyears = BESS_peakDemand_savings_allyears + BESS_consumption_savings_allyears
@@ -1311,7 +1311,7 @@ def work(modelDir, inputDict):
 	#outData['BESS_compensation_to_consumer_allyears'] = list(BESS_compensation_allyears_array*-1.)
 	#outData['TESS_compensation_to_consumer_allyears'] = list(TESS_compensation_allyears_array*-1.)
 	#outData['GEN_compensation_to_consumer_allyears'] = list(GEN_compensation_allyears_array*-1.)
-	
+  
 	######################################################################################################################################################
 	## Savings Breakdown Per Technology Plot variables
 	######################################################################################################################################################
