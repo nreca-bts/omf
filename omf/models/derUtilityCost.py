@@ -272,11 +272,16 @@ def work(modelDir, inputDict):
 			raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 
 	else: ## Use the user-provided Wholesale Energy Rate Curve (.csv) and Monthly Demand Charge (.csv) files instead of the Wholesale Energy Rate Structure (.json) file
-		energy_rate_array = [float(value) for value in inputDict['wholesaleRateCurve'].split('\n') if value.strip()]
+		energy_rate_array = np.array([float(value) for value in inputDict['wholesaleRateCurve'].split('\n') if value.strip()])
 		#demand_rate_array = np.fill(12,inputDict['demandChargeCost'])
 		if len(energy_rate_array) != 8760:
 			raise ValueError(f"Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.")
 		
+		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
+		if np.sum(peakDemandCharge) == 0.0:
+			warnings.warn("The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.")
+		if len(peakDemandCharge) != 12:
+			raise ValueError(f"The Monthly Demand Charges CSV file must have 12 values, but got {len(peakDemandCharge)} instead.")
 
 	########################################################################################################################
 	## Run REopt.jl solver
@@ -309,8 +314,8 @@ def work(modelDir, inputDict):
 		scenario['ElectricTariff']['urdb_response'] = response_file
 	else: 
 		## Use the Wholesale Energy Rate Curve (.csv) file
-		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array#.tolist()
-		## TODO: add monthly demand curve input here too. Will probably need to shift this down and calculate demand cost above this code
+		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array.tolist()
+		scenario['ElectricTariff']['monthly_demand_rates'] = peakDemandCharge.tolist()
 
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
@@ -1025,10 +1030,6 @@ def work(modelDir, inputDict):
 		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
 
 	else: ## Use the user-provided .CSV demand charge file
-		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
-		if np.sum(peakDemandCharge) == 0.0:
-			warnings.warn("The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.")
-		
 		## Calculate the fval-corrected monthly peak demand savings for BESS, TESS, and GEN technologies
 		peak_demand_indices = np.array([np.argmax(demand[s:f]) for s, f in monthHours])
 		adjusted_demand_indices = np.array([np.argmax(adjusted_demand[s:f]) for s, f in monthHours])
