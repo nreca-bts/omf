@@ -317,7 +317,6 @@ def work(modelDir, inputDict):
 		scenario['ElectricTariff']['tou_energy_rates_per_kwh'] = energy_rate_array.tolist()
 		scenario['ElectricTariff']['monthly_demand_rates'] = peakDemandCharge.tolist()
 
-
 	## Add fossil fuel generator to input scenario, if enabled
 	if inputDict['fossilGenerator'] == 'Yes' and float(inputDict['number_devices_GEN']) > 0:
 		GENcheck = 'enabled'
@@ -993,8 +992,8 @@ def work(modelDir, inputDict):
 			for m, (month_first_index, month_last_index) in enumerate(monthHours):
 				mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index) 
 				monthly_savings[:, m] = (DERs_peakDemand_savings_year[:, mask]).sum(axis=1)
-			
-      BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
+
+			BESS_monthly_demand_savings, TESS_monthly_demand_savings, GEN_monthly_demand_savings = monthly_savings
 			totalDERs_monthly_savings = monthly_savings.sum(axis=0)
 
 			## Assemble the yearly demand savings for each DER using the monthly demand savings arrays
