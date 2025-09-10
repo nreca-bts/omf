@@ -1387,30 +1387,38 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 	return requestSuccess
 
 # Processing the zip files into one nice large CSV
-def process_weather_data():
+def cds_process_weather_data(modelDir, dataDirName:str="copernicusData", outputDataFile: str="output_cdsWeatherDataFull.csv") -> list:
+	'''
+	Turning multiple copernicus zip files into one CSV
+	Returns a tuple (dataset, dataframe) of combined data
+	'''
 	from zipfile import ZipFile
 	import xarray as xr
-	modelDir = Path()
 	total_weather_data_ds = xr.Dataset()
 	total_weather_data_df = pd.DataFrame()
 	# For each file we downloaded ( month-1-2-data.zip )
-	for zipfiles in Path(modelDir,"./copernicus_raw_data").iterdir():
-		with ZipFile(zipfiles) as zObject:
+	zip_files = os.listdir(Path(modelDir, dataDirName))
+	for file in zip_files:
+		with ZipFile(Path(modelDir, dataDirName, file)) as zObject:
 			# extract it to unzipped_data
-			zObject.extractall(path="./copernicus_unzipped_data/")
-				#"data_stream-oper_stepType-accum.nc"
-				#"data_stream-oper_stepType-instant.nc"
-			unzippedDir = Path(modelDir, "./copernicus_unzipped_data")
-			for file in unzippedDir.iterdir():
-				file_accum = Path(unzippedDir, "data_stream-oper_stepType-accum.nc")
-				file_instant = Path(unzippedDir, "data_stream-oper_stepType-instant.nc")
-				weather_ds_accum = xr.open_dataset(file_accum, engine="netcdf4")
-				weather_ds_instant = xr.open_dataset(file_instant, engine="netcdf4")
-				month_weather_data = weather_ds_accum.combine_first(weather_ds_instant)
-				total_weather_data_ds.update(month_weather_data)
-				month_weather_data_df = month_weather_data.to_dataframe()
-				total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
-	total_weather_data_df.to_csv(Path(modelDir, "total_weather_data.csv"), index=False)
+			zObject.extractall(path=Path(modelDir,"./copernicus_unzipped_data/", Path(file).with_suffix('')))
+			#"data_stream-oper_stepType-accum.nc"
+			#"data_stream-oper_stepType-instant.nc"
+			# Each in their respective directory
+	unzippedDir = Path(modelDir, "./copernicus_unzipped_data")
+	for unzipped_month_dir in unzippedDir.iterdir():
+		file_accum = Path(unzipped_month_dir, "data_stream-oper_stepType-accum.nc")
+		file_instant = Path(unzipped_month_dir, "data_stream-oper_stepType-instant.nc")
+		weather_ds_accum = xr.open_dataset(file_accum, engine="netcdf4")
+		weather_ds_instant = xr.open_dataset(file_instant, engine="netcdf4")
+		# Combine the accumulated data + the instant data = one dataset for the month
+		month_weather_data = weather_ds_accum.combine_first(weather_ds_instant)
+		total_weather_data_ds.update(month_weather_data)
+		month_weather_data_df = month_weather_data.to_dataframe()
+		# print(month_weather_data_df.head)
+		total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
+	total_weather_data_df.to_csv(Path(modelDir, outputDataFile))
+	print(f"{outputDataFile} created")
 	return [total_weather_data_ds, total_weather_data_df]
 
 # Cool stuff with data
