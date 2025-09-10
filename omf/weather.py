@@ -1421,18 +1421,20 @@ def cds_process_weather_data(modelDir, dataDirName:str="copernicusData", outputD
 	print(f"{outputDataFile} created")
 	return [total_weather_data_ds, total_weather_data_df]
 
-# Cool stuff with data
-def get_solar(copernicus_csv_path):
-
-	import PySAM.Pvwattsv8 as pvwatts
-
-	copernicus_df = pd.read_csv(copernicus_csv_path)
+# Cool stuff with copernicus data
+def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
+	copernicus_df = pd.read_csv(cdsDataFile)
 	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
 	copernicus_df = copernicus_df.set_index("Timestamp")
+
+	copernicus_df.head
+
 	# DNI - Direct Normal
 	# GHI - Global Horizontal
 	# DHI - Diffuse Horizontal
+
 	from pvlib.irradiance import erbs
+
 	copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] = (copernicus_df.ssrd / 3600.0)
 	copernicus_df["dirhi"] = (copernicus_df.fdir / 3600.0)
 	copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"] = (copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] - copernicus_df.dirhi)
@@ -1440,18 +1442,34 @@ def get_solar(copernicus_csv_path):
 	copernicus_df["CDS Direct Normal Irradiance (DNI) (W/m²_irr)"] = dni_data["dni"]
 	copernicus_df["CDS Wind Speed"] = np.sqrt(copernicus_df["u10"] ** 2 + copernicus_df["v10"] ** 2)
 	copernicus_df["CDS Temp"] = copernicus_df.t2m - 273.15
+
+	# lat, long, index, year, month, day, hour, minute, DNI, DHI, GHI, winspeed, dry bulb temperature
+
 	weather_data = np.array([
-    copernicus_df.index.year,
-    copernicus_df.index.month,
-    copernicus_df.index.day,
-    copernicus_df.index.hour,
-    copernicus_df.index.minute,
-    copernicus_df['CDS Direct Normal Irradiance (DNI) (W/m²_irr)'], #5 = dn
-    copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"],
-    copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"],
-    copernicus_df["CDS Wind Speed"],
-    copernicus_df['CDS Temp']
+			copernicus_df.iloc[0][1],
+			copernicus_df.iloc[0][2],
+			copernicus_df.index,
+			copernicus_df.index.year,
+			copernicus_df.index.month,
+			copernicus_df.index.day,
+			copernicus_df.index.hour,
+			copernicus_df.index.minute,
+			copernicus_df['CDS Direct Normal Irradiance (DNI) (W/m²_irr)'], #5 = dn
+			copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"],
+			copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"],
+			copernicus_df["CDS Wind Speed"],
+			copernicus_df['CDS Temp']
 	])
+
+	return weather_data
+
+def get_solar(copernicus_csv_path):
+
+	import PySAM.Pvwattsv8 as pvwatts
+
+	# weather_data[2] is the first index
+	weather_data = cdsCoper_to_pvwatts_solar_csv_modifications(copernicus_csv_path)
+
 	sys_design = {
     "ModelParams": {
         "SystemDesign": {
@@ -1469,8 +1487,8 @@ def get_solar(copernicus_csv_path):
         }
     },
     "Other": {
-        "lat": copernicus_df.iloc[0][1],
-        "lon": copernicus_df.iloc[0][2],
+        "lat": weather_data[0],
+        "lon": weather_data[1],
         "elev": 1829
     }
 	}  
@@ -1478,7 +1496,7 @@ def get_solar(copernicus_csv_path):
 	elev = sys_design['Other']['elev']
 	lat = sys_design['Other']['lat']
 	lon = sys_design['Other']['lon']
-	tz = copernicus_df.index[0].utcoffset().total_seconds()/60/60
+	tz = (weather_data[2])[0].utcoffset().total_seconds()/60/60
 
 	system_model = pvwatts.new()
 	system_model.assign(model_params)
@@ -1487,16 +1505,16 @@ def get_solar(copernicus_csv_path):
 		'elev': elev, # elevation
 		'lat': lat, # latitude
 		'lon': lon, # longitude
-		'year': tuple(weather_data[0]), # year
-		'month': tuple(weather_data[1]), # month
-		'day': tuple(weather_data[2]), # day
-		'hour': tuple(weather_data[3]), # hour
-		'minute': tuple(weather_data[4]), # minute
-		'dn': tuple(weather_data[5]), # direct normal irradiance
-		'df': tuple(weather_data[6]), # diffuse irradiance
-		'gh': tuple(weather_data[7]), # global horizontal irradiance
-		'wspd': tuple(weather_data[8]), # windspeed
-		'tdry': tuple(weather_data[9]) # dry bulb temperature
+		'year': tuple(weather_data[3]), # year
+		'month': tuple(weather_data[4]), # month
+		'day': tuple(weather_data[5]), # day
+		'hour': tuple(weather_data[6]), # hour
+		'minute': tuple(weather_data[7]), # minute
+		'dn': tuple(weather_data[8]), # direct normal irradiance
+		'df': tuple(weather_data[9]), # diffuse irradiance
+		'gh': tuple(weather_data[10]), # global horizontal irradiance
+		'wspd': tuple(weather_data[11]), # windspeed
+		'tdry': tuple(weather_data[12]) # dry bulb temperature
 		}
 	system_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
 	system_model.AdjustmentFactors.assign({'adjust_constant': 0})
@@ -1509,7 +1527,7 @@ def get_solar(copernicus_csv_path):
 	ac = np.array(out['ac']) / 1000
 	dc = np.array(out['dc']) / 1000
 	ac_dc_df = pd.DataFrame({"ac": ac, "dc": dc}, columns = ['ac','dc'])
-	ac_dc_df = ac_dc_df.set_index(copernicus_df.index.copy())
+	ac_dc_df = ac_dc_df.set_index((weather_data[2]).copy())
 	return ac_dc_df
 
 def format_windpowerlib(ds):

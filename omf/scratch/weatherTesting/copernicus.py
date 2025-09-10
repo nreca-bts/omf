@@ -9,6 +9,6 @@ defaultCSVFileName = "output_cdsWeatherDataFull.csv"
 weather_ds_df = weather.cds_process_weather_data(modelDir=modelDir)
 
 ac_dc_df = weather.get_solar(Path(modelDir, defaultCSVFileName))
-# print(ac_dc_df.head)
+print(ac_dc_df.head)
 ds = weather.get_wind(weather_ds_df[0])
 print(ds)
