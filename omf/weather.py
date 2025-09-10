@@ -1426,15 +1426,11 @@ def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeat
 	copernicus_df = pd.read_csv(cdsDataFile)
 	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
 	copernicus_df = copernicus_df.set_index("Timestamp")
-
-	copernicus_df.head
-
 	# DNI - Direct Normal
 	# GHI - Global Horizontal
 	# DHI - Diffuse Horizontal
 
 	from pvlib.irradiance import erbs
-
 	copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] = (copernicus_df.ssrd / 3600.0)
 	copernicus_df["dirhi"] = (copernicus_df.fdir / 3600.0)
 	copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"] = (copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] - copernicus_df.dirhi)
@@ -1442,9 +1438,7 @@ def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeat
 	copernicus_df["CDS Direct Normal Irradiance (DNI) (W/m²_irr)"] = dni_data["dni"]
 	copernicus_df["CDS Wind Speed"] = np.sqrt(copernicus_df["u10"] ** 2 + copernicus_df["v10"] ** 2)
 	copernicus_df["CDS Temp"] = copernicus_df.t2m - 273.15
-
 	# lat, long, index, year, month, day, hour, minute, DNI, DHI, GHI, winspeed, dry bulb temperature
-
 	weather_data = np.array([
 			copernicus_df.iloc[0][1],
 			copernicus_df.iloc[0][2],
@@ -1460,16 +1454,13 @@ def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeat
 			copernicus_df["CDS Wind Speed"],
 			copernicus_df['CDS Temp']
 	])
-
 	return weather_data
 
 def get_solar(copernicus_csv_path):
-
 	import PySAM.Pvwattsv8 as pvwatts
 
 	# weather_data[2] is the first index
 	weather_data = cdsCoper_to_pvwatts_solar_csv_modifications(copernicus_csv_path)
-
 	sys_design = {
     "ModelParams": {
         "SystemDesign": {
@@ -1497,7 +1488,6 @@ def get_solar(copernicus_csv_path):
 	lat = sys_design['Other']['lat']
 	lon = sys_design['Other']['lon']
 	tz = (weather_data[2])[0].utcoffset().total_seconds()/60/60
-
 	system_model = pvwatts.new()
 	system_model.assign(model_params)
 	solar_resource_data = {
@@ -1609,7 +1599,7 @@ def format_windpowerlib(ds):
     df.dropna(inplace=True)
     return df
 
-def get_wind(weather_dataset):
+def _cds_get_wind(weather_dataset):
 	from omf.solvers import feedinlib_custom
 
 	bergey_turbine_data = {
@@ -1629,6 +1619,73 @@ def get_wind(weather_dataset):
 	)
 	wind_output_ds.reset_index(drop=True, inplace=True)
 	return wind_output_ds
+
+def get_nrel_wind_data(modelDir, year: int, longitude: float, latitude: float) -> bool:
+	successFlag = False
+	filesInModelDir = os.listdir(modelDir)
+	for file in filesInModelDir:
+		if file == "output_NREL_wind_data.csv":
+			successFlag = True
+			return successFlag 
+	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
+	email = "admin@omf.coop"
+	base_url = f"https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
+	#longitude, latitude 
+	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
+	response = requests.get(modified_url)
+	if response.status_code == 400:
+		raise Exception(f"get_nrel_wind_data(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	else:
+		text = response.text
+		with open( Path(modelDir,"output_NREL_wind_data.csv"), "w") as text_file:
+			text_file.write(text)
+		successFlag = True
+	return successFlag
+
+def nrel_pysam_wind(modelDir, year: int, longitude: float, latitude: float):
+	'''
+		'windpower-inputs.json' - windpower defaults
+		'wind-turbines.json' - wind turbine data. 
+	'''
+	import PySAM.Windpower as wp
+
+	wind_turbine_model = wp.new()
+	testFileDir = Path(omfDir, "static", "testFiles", "weatherPulling", "nrel_wind_turbine_defaults")
+	# Add try here
+	with open( Path(testFileDir, 'windpower-inputs.json'), 'r') as json_file:
+		windpower_data = json.load(json_file)
+		
+		for k, v in windpower_data.items():
+			if k != 'number_inputs':
+				wind_turbine_model.value(k, v)
+
+	successFlag = get_nrel_wind_data(modelDir, year, longitude, latitude)
+	if successFlag:
+		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_wind_data.csv')
+	else:
+		raise Exception(f"nrel_wind(): API Request Failed")
+	wind_turbine_model.value('wind_resource_shear', 0.14)
+	# load wind turbine parameters from JSON
+	with open( Path(testFileDir, 'wind-turbines.json'), 'r') as file:
+		turbine_data = json.load(file)
+	# set up wind farm for one turbine
+	wind_turbine_model.value('wind_farm_xCoordinates', [ -71.25 ])
+	wind_turbine_model.value('wind_farm_yCoordinates', [ 42.25 ])
+	for turbine in turbine_data:
+		# set wind turbine parameters
+		wind_turbine_model.value('wind_turbine_rotor_diameter', turbine['rotor_diameter'])
+		wind_turbine_model.value('wind_turbine_powercurve_windspeeds', turbine['wind_speeds'])
+		wind_turbine_model.value('wind_turbine_powercurve_powerout',  turbine['turbine_powers'])
+		wind_turbine_model.value('wind_turbine_hub_ht', turbine['hub_height'])
+		# set wind farm capacity
+		number_of_turbines = len(wind_turbine_model.value('wind_farm_xCoordinates'))
+		farm_capacity =  number_of_turbines * turbine['rated_power']
+		wind_turbine_model.value('system_capacity', farm_capacity)
+		# run simulation
+		wind_turbine_model.execute()
+		print(turbine['name'])
+		print('annual energy (kWh) = ', wind_turbine_model.Outputs.annual_energy)
+		print('capacity factor = ', wind_turbine_model.Outputs.capacity_factor)
 
 
 ##################### api.weather.gov Forecast Functions #####################
