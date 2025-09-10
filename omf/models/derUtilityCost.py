@@ -27,36 +27,36 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True ## Keep the model hidden=True during active development
 
 ## NOTE & TODO: This function needs development. The purpose of this function is to handle both the energy rate structure and the demand charge rate structure from the .json response file, whereas the construct_energy_rate_array() function only handles the energy rate structure information.
-def construct_energy_rate_array(response_file, timestamps):
-	"""
-	Constructs hourly rate arrays (length 8760) for TOU Energy Charges ($/kWh), TOU Demand Charges ($/kW), and fixed monthly facility demand charges ($/kW/month).
-	Inputs:
-	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
-	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
-
-	Returns:
-	- energy_rate_array (array, length 8760, units: $/kW): The hourly energy rates ($/kWh) for an entire year
-
-	"""
-
-	energy_rate_array = np.zeros(8760)
-	if 'energyratestructure' in response_file:
-		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
-		## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
-		## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
-		energy_weekday_schedule = response_file['energyweekdayschedule']
-		energy_weekend_schedule = response_file['energyweekendschedule']
-		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
-		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
-		
-		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
-		for hour_index, date in enumerate(timestamps):
-			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
-				energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
-			else: ## Weekends - use the weekend rate schedule
-				energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
-
-	return energy_rate_array
+#def construct_energy_rate_array(response_file, timestamps):
+#	"""
+#	Constructs hourly rate arrays (length 8760) for TOU Energy Charges ($/kWh), TOU Demand Charges ($/kW), and fixed monthly facility demand charges ($/kW/month).
+#	Inputs:
+#	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
+#	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
+#
+#	Returns:
+#	- energy_rate_array (array, length 8760, units: $/kW): The hourly energy rates ($/kWh) for an entire year
+#
+#	"""
+#
+#	energy_rate_array = np.zeros(8760)
+#	if 'energyratestructure' in response_file:
+#		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
+#		## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
+#		## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
+#		energy_weekday_schedule = response_file['energyweekdayschedule']
+#		energy_weekend_schedule = response_file['energyweekendschedule']
+#		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
+#		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
+#		
+#		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+#		for hour_index, date in enumerate(timestamps):
+#			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
+#				energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
+#			else: ## Weekends - use the weekend rate schedule
+#				energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
+#
+#	return energy_rate_array
 
 def construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours):
 	"""
@@ -149,7 +149,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	#	monthly_demand_charge = np.zeros(12)
 		
 	## TODO: Add fixed charges
-	## --- Fixed charges $/day ---
+	## --- Fixed charges $/day/meter ---
 
 	return monthly_demand_charge_cost, monthly_total_kW, period_max_dollar_indices #period_max_kw_indices
 
@@ -261,13 +261,29 @@ def work(modelDir, inputDict):
 			energy_weekend_schedule = response_file['energyweekendschedule']
 			energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
 			energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
-			
+			energy_cumulative_sum = np.cumsum(demand)
+
 			## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+			## TODO: Convert these for loops and if/else statements into a more Pythonic way with list comprehension
 			for hour_index, date in enumerate(timestamps):
 				if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
-					energy_rate_array[hour_index] = energy_rates[energy_weekday_schedule[date.month-1][date.hour]] ## NOTE: date.month is offset by 1 due to 0 indexing
+					rate_data_weekday = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
+					if 'max' in rate_data_weekday:
+						if energy_cumulative_sum[hour_index] <= rate_data_weekday['max']: ## Only apply the rate up to the maximum kWh specified
+							energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] ## NOTE: date.month is offset by 1 due to 0 indexing
+						else:
+							energy_rate_array[hour_index] = 0
+					else:
+						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate']
 				else: ## Weekends - use the weekend rate schedule
-					energy_rate_array[hour_index] = energy_rates[energy_weekend_schedule[date.month-1][date.hour]]
+					rate_data_weekend = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]
+					if 'max' in rate_data_weekend:
+						if energy_cumulative_sum[hour_index] <= rate_data_weekend['max']: ## Only apply the rate up to the maximum kWh specified
+							energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
+						else:
+							energy_rate_array[hour_index] = 0
+					else:
+						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
 		else:
 			raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 

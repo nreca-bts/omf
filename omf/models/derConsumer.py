@@ -140,25 +140,29 @@ def work(modelDir, inputDict):
 		energy_cumulative_sum = np.cumsum(demand)
 
 		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+		## TODO: Convert these for loops and if/else statements into a more Pythonic way with list comprehension
 		for hour_index, date in enumerate(timestamps):
-			rate_data = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
 			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
-				if 'max' in rate_data:
-					if energy_cumulative_sum[hour_index] <= rate_data['max']: ## Only apply the rate up to the maximum kWh specified
+				rate_data_weekday = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
+				if 'max' in rate_data_weekday:
+					if energy_cumulative_sum[hour_index] <= rate_data_weekday['max']: ## Only apply the rate up to the maximum kWh specified
 						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] ## NOTE: date.month is offset by 1 due to 0 indexing
 					else:
 						energy_rate_array[hour_index] = 0
 				else:
-					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] 
+					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate']
 			else: ## Weekends - use the weekend rate schedule
-				if 'max' in rate_data:
-					if energy_cumulative_sum[hour_index] <= rate_data['max']: ## Only apply the rate up to the maximum kWh specified
+				rate_data_weekend = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]
+				if 'max' in rate_data_weekend:
+					if energy_cumulative_sum[hour_index] <= rate_data_weekend['max']: ## Only apply the rate up to the maximum kWh specified
 						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
 					else:
 						energy_rate_array[hour_index] = 0
 				else:
 					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
-	
+	else:
+		raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
+
 	########################################################################################################################
 	## Run REopt.jl solver
 	########################################################################################################################
