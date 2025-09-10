@@ -47,8 +47,32 @@ def work(modelDir, inputDict):
 	longitude = float(inputDict['longitude'])
 	projectionLength = int(inputDict['projectionLength'])
 	year = int(inputDict['year'])
-	timestamps = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31 23:59', freq='h')
 
+	########################################################################################################################################################
+	## Construct the timestamp array
+	## If the input year is a leap year, remove the last day in December and keep the extra day in February as recommended in REopt's documentation:
+	## https://reopt.nrel.gov/tool/reopt-user-manual.pdf#page=37 (Section 7.1 Actual (Custom) Load Profile)
+	########################################################################################################################################################
+	start_date = pd.Timestamp(f'{year}-01-01')
+	is_leap_year = start_date.is_leap_year
+	if is_leap_year == True:
+		## If a leap year, include the 29th day of February but not December 31st.
+		end_date = f'{year}-12-30 23:59'
+		monthHours = [(0, 744), (744, 1440), (1440, 2184), (2184, 2904), 
+				(2904, 3648), (3648, 4368), (4368, 5112), (5112, 5856), 
+				(5856, 6576), (6576, 7320), (7320, 8040), (8040, 8760)]
+	else:
+		## If non-leap year, include December 31st
+		end_date = f'{year}-12-31 23:59'
+		monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
+				(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
+				(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
+	
+	timestamps = pd.date_range(start=start_date, end=end_date, freq='h')
+
+	if len(timestamps) != 8760: ## Ensure 8760 elements
+		raise Exception(f"The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.")
+	
 	## NOTE: the following couple lines are hard-coded temporarily to account for Kenergy's timestamp data being offset
 	#start_time = '2024-5-1'
 	#end_time = '2025-4-30 23:59'
@@ -100,9 +124,41 @@ def work(modelDir, inputDict):
 	## TODO: Add functionality to use the Residential Rate Curve (.csv) file. Probably requires a dropdown menu input to select between (.csv) vs. (.json) vs. urdb label.
 	#energy_rate_array = [float(value) for value in inputDict['energyRateStructureFile'].split('\n') if value.strip()]
 	
-	## Construct the energy rate array with the appropriate response_file
-	energy_rate_array = derUtilityCost.construct_energy_rate_array(response_file, timestamps)
+	## --- Energy Rate Construction ---
+	## Construct the energy rate array from the REopt JSON response file
+	#energy_rate_array, monthly_demand_charge, demand_rate_array = construct_tou_tariff_arrays(response_file, timestamps)
+	#energy_rate_array = construct_energy_rate_array(response_file, timestamps)
+	energy_rate_array = np.zeros(8760) ## Initialize array
+	if 'energyratestructure' in response_file:
+		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
+		## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
+		## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
+		energy_weekday_schedule = response_file['energyweekdayschedule']
+		energy_weekend_schedule = response_file['energyweekendschedule']
+		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
+		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
+		energy_cumulative_sum = np.cumsum(demand)
 
+		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
+		for hour_index, date in enumerate(timestamps):
+			rate_data = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
+			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
+				if 'max' in rate_data:
+					if energy_cumulative_sum[hour_index] <= rate_data['max']: ## Only apply the rate up to the maximum kWh specified
+						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] ## NOTE: date.month is offset by 1 due to 0 indexing
+					else:
+						energy_rate_array[hour_index] = 0
+				else:
+					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] 
+			else: ## Weekends - use the weekend rate schedule
+				if 'max' in rate_data:
+					if energy_cumulative_sum[hour_index] <= rate_data['max']: ## Only apply the rate up to the maximum kWh specified
+						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
+					else:
+						energy_rate_array[hour_index] = 0
+				else:
+					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
+	
 	########################################################################################################################
 	## Run REopt.jl solver
 	########################################################################################################################
@@ -195,7 +251,8 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	## Run vbatDispatch model
 	########################################################################################################################
-
+	## TODO: demand charges are temporarily coded here since vbatDispatch is expecting monthly demand charge array
+	demandCharges_temporary = np.zeros(12)
 	## Set up base input dictionary for vbatDispatch runs
 	inputDict_vbatDispatch = {
 		'load_type': '', ## 1=AirConditioner, 2=HeatPump, 3=Refrigerator, 4=WaterHeater (These conventions are from OMF model vbatDispatch.html)
@@ -208,13 +265,13 @@ def work(modelDir, inputDict):
 		'deadband': '',
 		'unitDeviceCost': '', 
 		'unitUpkeepCost':  '', 
-		'demandChargeCost': '0.0',
+		'monthlyDemandCharges': '\n'.join(f"{dollar:.2f}" for dollar in demandCharges_temporary),
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['demandFileName'],
-		'tempFileName': inputDict['temperatureFileName'],
+		'temperatureFileName': inputDict['temperatureFileName'],
 		'demandCurve': inputDict['demandCurve'],
-		'tempCurve': '\n'.join(f"{temp:.2f}" for temp in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
+		'temperatureCurve': '\n'.join(f"{temp:.2f}" for temp in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f"{rate:.2f}" for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 	}
 	
@@ -971,7 +1028,9 @@ def new(modelDir):
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
+	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
+	#	residential_rate_curve = json.load(jsonFile)
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','exampleWholesaleRateStructure.json')) as jsonFile:
 		residential_rate_curve = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','TOU_rate_schedule.csv')) as f:
 	#	energy_rates_per_kwh = f.read()
@@ -998,8 +1057,11 @@ def new(modelDir):
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'urdbLabelBool': True,
-		'residentialRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
+		'urdbLabelBool': False,
+		
+		#'residentialRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
+		'residentialRateStructureFileName': 'exampleWholesaleRateStructure.json',
+
 		'residentialRateStructureFile': residential_rate_curve,
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
