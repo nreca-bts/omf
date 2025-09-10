@@ -171,7 +171,7 @@ def work(modelDir, inputDict):
 		},
 		'ElectricTariff': {
 			#'urdb_label': urdbLabel,
-			#'add_tou_energy_rates_to_urdb_rate': True
+			'add_tou_energy_rates_to_urdb_rate': True
 		},
 		'ElectricLoad': {
 			'loads_kw': demand,
@@ -333,10 +333,6 @@ def work(modelDir, inputDict):
 		'combinedTESS_subsidy_ongoing': 0,
 		'combinedTESS_subsidy_onetime': 0,
 	}
-
-	monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
-		(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
-		(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
 
 	demandCost = 0.0
 	rateCompensation = float(inputDict['rateCompensation'])
