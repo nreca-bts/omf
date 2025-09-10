@@ -12,6 +12,7 @@ from jinja2 import Template
 import dateutil
 from subprocess import Popen
 import re
+from urllib.parse import urlparse, urljoin
 try:
 	import fcntl
 except:
@@ -169,6 +170,43 @@ def generate_csrf_token():
 app.jinja_env.globals["csrf_token"] = generate_csrf_token
 
 
+def _is_safe_url(target: str) -> bool:
+	"""Return True if the target URL is a local URL we can safely redirect to.
+
+	Rules:
+	- Allow empty -> treated as '/'
+	- Allow relative paths starting with single '/'
+	- Allow same-origin absolute URLs (scheme http/https, netloc matches request.host)
+	- Disallow protocol-relative ('//example.com'), different host, or control chars.
+	"""
+	if not target:
+		return True
+	# Strip surrounding whitespace / control chars
+	target = target.strip()
+	# Reject obvious protocol-relative or backslash escapes
+	if target.startswith('//') or target.startswith('\\'):
+		return False
+	# Simple relative path
+	if target.startswith('/'):
+		return True
+	# For absolute URLs, ensure same host
+	ref = urlparse(request.host_url)
+	test = urlparse(urljoin(request.host_url, target))
+	if test.scheme in ('http', 'https') and ref.netloc == test.netloc:
+		return True
+	return False
+
+
+def safe_redirect(target: str):
+	"""Redirect to target if safe, else fallback to '/'."""
+	if not _is_safe_url(target):
+		target = '/'
+	# Normalize empty
+	if not target:
+		target = '/'
+	return redirect(target)
+
+
 @app.route("/login", methods = ["POST"])
 def login():
 	''' Authenticate a user and send them to the URL they requested. '''
@@ -182,13 +220,15 @@ def login():
 	if userJson and pbkdf2_sha512.verify(password, userJson["password_digest"]):
 		user = User(userJson)
 		flask_login.login_user(user, remember = remember == "on")
-	nextUrl = str(request.form.get("next","/"))
-	return redirect(nextUrl)
+	nextUrl = str(request.form.get("next","/") or "/")
+	return safe_redirect(nextUrl)
 
 
 @app.route("/login_page")
 def login_page():
-	nextUrl = str(request.args.get("next","/"))
+	nextUrl = str(request.args.get("next","/") or "/")
+	if not _is_safe_url(nextUrl):
+		nextUrl = "/"
 	if flask_login.current_user.is_authenticated():
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
@@ -258,8 +298,8 @@ def fastNewUser(email):
 			json.dump(user, f, indent=4)
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
-		nextUrl = str(request.args.get("next","/"))
-		return redirect(nextUrl)
+		nextUrl = str(request.args.get("next","/") or "/")
+		return safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
