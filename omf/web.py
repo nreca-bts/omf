@@ -34,6 +34,7 @@ URL = "http://www.omf.coop"
 # Explicit even if framework defaults cover session, to satisfy security review.
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
 _omfDir = os.path.dirname(os.path.abspath(__file__))
 
 ###################################################
@@ -2148,6 +2149,6 @@ if __name__ == "__main__":
 	template_files = ["templates/"+ x  for x in safeListdir("templates")]
 	model_files = ["models/" + x for x in safeListdir("models")]
 	print('App starting with gunicorn. Errors are going to omf.error.log.')
-	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5000', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
+	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5001', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
 	appProc.wait()
 	# app.run(debug=True, host="0.0.0.0", extra_files=template_files + model_files)
