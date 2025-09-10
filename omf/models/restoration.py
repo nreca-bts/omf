@@ -228,7 +228,7 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 			outageCost = outageCost)
 	except:
 		customerOutageHtml = ''
-		 #HACKCOBB: work aroun.
+		#HACKCOBB: work aroun.
 	with open(pJoin(modelDir, 'customerOutageTable.html'), 'w') as customerOutageFile:
 		customerOutageFile.write(customerOutageHtml)
 	return customerOutageHtml
@@ -458,7 +458,7 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 
 	def calcTradMetrics(outputTimeline, loadList, startTime, numTimeSteps):
 		''' Calculates SAIDI, SAIFI, CAIDI, CAIFI, CI, CMI, CS, and DCI over the course of the simulation for the loads in the given loadList which should have only unique entries.
-			Also calculates average CCI of the loads in loadList by calculating average CCS and ranking it among CCS scores (shouldn't take the average of an index directly)
+			Also calculates average CCI of the residential loads in loadList by calculating average CCS and ranking it among CCS scores (shouldn't take the average of an index directly)
 			CI = # Customer Interruptions
 			CMI = # Customer Minute Interruptions 
 			CS = # Customers Served
@@ -468,26 +468,29 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 			CAIDI = CMI/CI = SAIDI/SAIFI
 			CAIFI = CI/DCI
 			'''
-			
 		dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, [*range(startTime, numTimeSteps+startTime)])
 		# Make sure loadList doesn't contain duplicates
 		loadList = set(loadList)
+		# CS (Customers Served)
 		CS = len(loadList)
-		# CI = How many total load shed actions have occurred over the event
+		# CI (Customer Interruptions) = How many total load shed actions have occurred over the event
 		CI = dfLoadTimeln[dfLoadTimeln['action'] == 'Load Shed'].shape[0]
-		# CMI = The total number of timesteps (hr) each load is offline * 60 min/hr 
+		# CMI (Customer Minutes Interrupted)= The total number of timesteps (hr) each load is offline * 60 min/hr 
 		CMI = float(dfStatus.map(lambda x:1.0-x).to_numpy().sum())*60
-		# DCI = The number of distinct loads that have been offline at some point
+		# DCI (Distinct Customers Interrupted)= The number of distinct loads that have been offline at some point
 		DCI = len(dfStatus.columns[dfStatus.isin([0]).any()])
 		SAIDI = CMI/CS if CS!=0 else 0
 		SAIFI = CI/CS if CS!=0 else 0
 		CAIDI = CMI/CI if CI!=0 else 0
 		CAIFI = CI/DCI if DCI!=0 else 0
-		sumBCS = sum([loadBcsDict[load] for load in loadList])
-		if CS != 0:
-			averageCCS = sum([loadCcsDict[load] for load in loadList])/len(loadList)
+		# loadBcsDict contains values exclusively for all residential loads and loadList contains the subset of loads given to the function
+		residentialLL = set(loadBcsDict.keys()) & loadList
+		sumBCS = sum([loadBcsDict[load] for load in residentialLL])
+		if residentialLL:
+			averageCCS = sum([loadCcsDict[load] for load in residentialLL])/len(residentialLL)
+			# TODO: Consider if percentileofscore is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
 			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS))
-			averageCCIxPriorities = sum([mergedLoadWeights[load] for load in loadList])/len(loadList)
+			averageCCIxPriorities = sum([mergedLoadWeights[load] for load in residentialLL])/len(residentialLL)
 		else:
 			averageCCI = 'n/a'
 			averageCCIxPriorities = 'n/a'
@@ -523,9 +526,9 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 					<th>SC-CAIDI</th>
 					<th>SC-CAIFI</th>
 					<th>Loads Served</th>
-					<th>Est. People Served</th>
-					<th>CCI of Average Customer</th>
-					<th>Ave. CCI merged w/ Load Priorities</th>
+					<th>Est. Household Residents Served</th>
+					<th>CCI of Average Residential Load</th>
+					<th>Avg. CCI merged w/ Load Priorities</th>
 				</tr>
 			</thead>
 			<tbody>"""
@@ -559,7 +562,8 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 		customerOutageFile.write(mg_html_str)
 
 	loadsPerCciQuart = {'Low CCI':[], 'Low-Medium CCI':[], 'High-Medium CCI':[], 'High CCI':[]}
-	quart = np.percentile(list(loadCciDict.values()),[25,50,75])
+	# TODO: Consider if np.percentile is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
+	quart = np.percentile(list(loadCciDict.values()),[25,50,75]) if len(loadCciDict)>0 else [0,0,0]
 	for load,cci in loadCciDict.items():
 		if cci <= quart[0]:
 			loadsPerCciQuart['Low CCI'].append(load)
@@ -584,9 +588,9 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 					<th>SC-CAIDI</th>
 					<th>SC-CAIFI</th>
 					<th>Loads Served</th>
-					<th>Est. People Served</th>
-					<th>CCI of Average Customer</th>
-					<th>Ave. CCI merged w/ Load Priorities</th>
+					<th>Est. Household Residents Served</th>
+					<th>CCI of Average Residential Load</th>
+					<th>Avg. CCI merged w/ Load Priorities</th>
 				</tr>
 			</thead>
 			<tbody>"""
@@ -943,6 +947,7 @@ def makeTaifiAndTaidiHist(outputTimeline, startTime, numTimeSteps, loadList):
 
 def makeCciTaifiTaidiScatter(loadCciDict, TAIFI, TAIDI):
 	''' Returns scatter plots of TAIFI vs CCI and TAIDI vs CCI with accompanying correlation coefficient. 
+		Only includes residential loads because those are the only loads with CCI. 
 	'''
 	# TODO: make docstring
 	# Enforce standard ordering
@@ -1039,37 +1044,53 @@ def getMicrogridInfo(modelDir, pathToOmd, settingsFile, makeCSV = True):
 
 	return {'loadMgDict':loadMgDict, 'busMgDict':busMgDict, 'obMgDict':obMgDict, 'mgIDs':mgIDs}
 
-def makeLoadCciDict(modelDir, pathToOmd, customerInfo):
-	''' Returns 3 dictionaries of loads and their CCI's, CCS's, & BCS's respectively in the following format:
+def getResComInfo(modelDir, pathToOmd, customerInfo):
+	''' Returns a complete list of loads on the circuit and 3 dictionaries of loads and their CCI's, CCS's, & BCS's respectively in the following format:
 		
+		[loadName1, loadName2, loadname3, ...],
+
 		{loadName1:cci1, loadName2:cci2, loadName3:cci3, ...},
 
 		{loadName1:ccs1, loadName2:ccs2, loadName3:ccs3, ...},
 
 		{loadName1:bcs1, loadName2:bcs2, loadName3:bcs3, ...}
+
+		If there are any non-residential loads on the circuit, they won't have entries in the dictionaries, but all loads are represented in the complete load list. 
 	'''
+	completeLoadList = []
 	cciDict = {}
 	ccsDict = {}
 	bcsDict = {}
-	# Uncomment to use resilientCommunity. 
 	
-	makeResComOutputCsv(pathToOmd		= pathToOmd, 
-						pathToLoadsFile	= customerInfo, 
-						avgPeakDemand	= 4.25,
-						loadsTypeList	= ['residential', 'manufacturing', 'mining', 'construction', 'agriculture', 'finance', 'retail', 'services', 'utilities', 'public'],
-						modelDir		= modelDir,		
-						equipmentList	= ['line', 'transformer', 'fuse'])
-	with open(pJoin(modelDir, 'resilientCommunityOutput.csv'), mode='r') as infile:
-		reader = csv.DictReader(infile)
-		for row in reader:
-			obType, obName = row['Object Name'].split('.')
-			obCci = float(row['Community Criticality Index'])
-			obCcs = float(row['Community Criticality Score'])
-			obBcs = float(row['Base Criticality Score'])
-			if obType == 'load':
-				cciDict[obName] = obCci
-				ccsDict[obName] = obCcs
-				bcsDict[obName] = obBcs
+	with open(pathToOmd,'r') as omdFile:
+		omd = json.load(omdFile)
+	for ob in omd.get('tree', {}).values():
+		if ob['object'] == 'load':
+			completeLoadList.append(ob['name'])
+	
+	# Uncomment to use resilientCommunity. 
+	try:
+		makeResComOutputCsv(pathToOmd		= pathToOmd, 
+							pathToLoadsFile	= customerInfo, 
+							avgPeakDemand	= 4.25,
+							modelDir		= modelDir,		
+							equipmentList	= ['line', 'transformer', 'fuse'])
+		with open(pJoin(modelDir, 'resilientCommunityOutput.csv'), mode='r') as infile:
+			reader = csv.DictReader(infile)
+			for row in reader:
+				obType, obName = row['Object Name'].split('.')
+				obCci = float(row['Community Criticality Index'])
+				obCcs = float(row['Community Criticality Score'])
+				obBcs = float(row['Base Criticality Score'])
+				if obType == 'load':
+					cciDict[obName] = obCci
+					ccsDict[obName] = obCcs
+					bcsDict[obName] = obBcs
+	except Exception as e:
+		if str(e) == 'No loads labeled as Residential in Customer Information (.csv file). SVI only applies to residential loads.':
+			pass
+		else:
+			raise e
 	'''
 	# Uncomment to bypass calling resilientCommunity ##############
 	with open(pathToOmd,'r') as omdFile:
@@ -1082,9 +1103,9 @@ def makeLoadCciDict(modelDir, pathToOmd, customerInfo):
 			bcsDict[obName] = 50
 	###############################################################'''
 
-	return cciDict, ccsDict, bcsDict
+	return completeLoadList, cciDict, ccsDict, bcsDict
 
-def combineLoadPriorityWithCCI(modelDir, loadPriorityFilePath, loadCciDict, cciImpact):
+def combineLoadPriorityWithCCI(modelDir, loadList, loadPriorityFilePath, loadCciDict, cciImpact):
 	'''	Creates a JSON file called loadWeightsMerged.json containing user-input load priorities combined with CCI values via RMS and weighted by cciImpact.
 
 		If an empty JSON file is provided for loadPriorityFilePath, just returns a JSON file with max(1,cci*cciImpact) for each load.
@@ -1117,15 +1138,20 @@ def combineLoadPriorityWithCCI(modelDir, loadPriorityFilePath, loadCciDict, cciI
 	else:
 		mergeCciAndWeights = lambda cci,weight : max(1,cci*cciImpact)
 	loadWeightsMerged = {}
-	for loadName, cci in loadCciDict.items():
-		# PowerModelsONM expects a priorities scale of 1=non-critical, 10=sub-critical, 100=critical. 
-		# e^(x0.0460517) is the exponential best fit for (0,1),(50,10),(100,100)
-		# Using that transform, we can force linear cci values into the exponential scale expected by PowerModelsONM 
-		# (Ex: the load with 50 cci would have ~10 expCci, appropriately representing being subcritical)
-		expCci = math.e**(cci*0.0460517)
+	for loadName in loadList:
 		# Loads defaulting to weight 1 is done to reflect that choice within PowerModelsONM and the expected priorities scale discussed above
 		loadWeight = loadWeights.get(loadName,1)
-		loadWeightsMerged[loadName] = mergeCciAndWeights(expCci,loadWeight)
+		cci = loadCciDict.get(loadName)
+		if cci != None:
+			# PowerModelsONM expects a priorities scale of 1=non-critical, 10=sub-critical, 100=critical. 
+			# e^(x0.0460517) is the exponential best fit for (0,1),(50,10),(100,100)
+			# Using that transform, we can force linear cci values into the exponential scale expected by PowerModelsONM 
+			# (Ex: the load with 50 cci would have ~10 expCci, appropriately representing being subcritical)
+			expCci = math.e**(cci*0.0460517)
+			loadWeightsMerged[loadName] = mergeCciAndWeights(expCci,loadWeight)
+		else:
+			# For non-residential loads that don't have a CCI, just use raw loadWeight
+			loadWeightsMerged[loadName] = loadWeight
 	mergedLoadWeightsFile = pJoin(modelDir, 'loadWeightsMerged.json')
 	with open(mergedLoadWeightsFile, 'w') as outfile:
 		json.dump(loadWeightsMerged, outfile)
@@ -1926,13 +1952,14 @@ def work(modelDir, inputDict):
 	
 	pathToLocalFile = copyInputFilesToModelDir(modelDir, inputDict)
 	
-	loadCciDict, loadCcsDict, loadBcsDict = makeLoadCciDict(
+	loadList, loadCciDict, loadCcsDict, loadBcsDict = getResComInfo(
 		modelDir 				= modelDir, 
 		pathToOmd				= omdFilePath,
 		customerInfo			= pathToLocalFile['customerInfo']
 	)
 	pathToMergedPriorities = combineLoadPriorityWithCCI(
 		modelDir				= modelDir,
+		loadList				= loadList,
 		loadPriorityFilePath	= pathToLocalFile['loadPriority'],
 		loadCciDict				= loadCciDict,
 		cciImpact				= inputDict['cciImpact']
@@ -1966,7 +1993,6 @@ def work(modelDir, inputDict):
 		loadCcsDict				= loadCcsDict,
 		loadBcsDict				= loadBcsDict
 	)
-
 	# Textual outputs of outage timeline
 	with open(pJoin(modelDir,'timelineStats.html')) as inFile:
 		outData['timelineStatsHtml'] = inFile.read()

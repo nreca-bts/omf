@@ -119,11 +119,11 @@
 			</div>
 			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
 			<div class="shortInput">
-				<label class="tooltip">Use Wholesale Energy Rate Structure (.json) file?<span class="classic">If checked, the model will use only the (.json) Wholesale Energy Rate Structure file in lieu of the two optional (.csv) inputs: Wholesale Energy Rate Curve and Monthly Demand Charges.</span></label>
+				<label class="tooltip">Use Wholesale Energy & Demand Rate Structure (.json) file?<span class="classic">If checked, the model will use only the (.json) Wholesale Energy Rate Structure file in lieu of the two optional (.csv) inputs: Wholesale Energy Rate Curve and Monthly Demand Charges.</span></label>
 				<input type="checkbox" id="useWholesaleJSONBool" name="useWholesaleJSONBool" {% if allInputDataDict.useWholesaleJSONBool %} checked {% endif %}/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Wholesale Energy Rate Structure (.json file)<span class="classic">Please see the documentation at the help link for the required format and an example wholesale energy rate structure.</span></label>
+				<label class="tooltip">Wholesale Energy & Demand Rate Structure (.json file)<span class="classic">Please see the documentation at the help link for the required format and an example wholesale energy rate structure.</span></label>
 				<input id="wholesaleRateStructureFile" type="file" style="display:none" onchange="handle_files(this.files,'wholesaleRateStructure','wholesaleRateStructureFileName')">
 				<input id="wholesaleRateStructure" name="wholesaleRateStructure" value="{{allInputDataDict.wholesaleRateStructure}}" type="hidden">
 				<div>
@@ -500,8 +500,8 @@
 					}
 				</script>
 				<script>
-					insertMetric("monthlySummaryTable","Peak Demand (kW)", allOutputData.monthlyPeakDemand)
-					insertMetric("monthlySummaryTable","Adjusted Peak Demand (kW)", allOutputData.monthlyAdjustedPeakDemand)
+					insertMetric("monthlySummaryTable","Total Peak Demand (kW)", allOutputData.monthlyPeakDemand)
+					insertMetric("monthlySummaryTable","Total Adjusted Peak Demand (kW)", allOutputData.monthlyAdjustedPeakDemand)
 					insertMetric("monthlySummaryTable","Energy (kWh)", allOutputData.monthlyEnergyConsumption)
 					insertMetric("monthlySummaryTable","Adjusted Energy (kWh)", allOutputData.monthlyAdjustedEnergyConsumption)
 					insertMetric("monthlySummaryTable","Energy Cost ($)", allOutputData.monthlyEnergyConsumptionCost)

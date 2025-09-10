@@ -63,12 +63,13 @@
 				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Loads Coloring By<span class="classic">Select the simulation output value that will be used to color the loads in the circuit.</span></label>
+				<label class="tooltip">Feeder Map Coloring By<span class="classic">Determines coloring of loads and equipment on the circuit.<br><br>To change coloring after running the model, go to the top right of the output map and click &quot;Edit&quot; -> &quot;Color circuit&quot;.</span></label>
 				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
 					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
 					<option value="Community Criticality Score" {% if allInputDataDict.loadCol == "Community Criticality Score" %}selected{% endif %}>Community Criticality Score</option>
 					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
 					<option value="Community Criticality Index" {% if allInputDataDict.loadCol == "Community Criticality Index" %}selected{% endif %}>Community Criticality Index</option>
+					<option value="Feeder Sections" {% if allInputDataDict.loadCol == "Feeder Sections" %}selected{% endif %}>Feeder Sections</option>
 					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
 				</select>
 			</div>
@@ -97,46 +98,13 @@
 					<option value="no" {% if allInputDataDict.fuses | lower != "yes" %}selected{% endif %}>No</option>
 				</select>
 			</div>
-			<div class="shortInput">
-				<label class="tooltip">Residential
-					<span class="classic">Select Yes if you would like to include Residential load in the analysis</span>
-				</label>
-				<select name="residential" id="residential">
-					<option value="yes" {% if allInputDataDict.get('residential', '').lower() == "yes" %}selected{% endif %}>Yes</option>
-					<option value="no" {% if allInputDataDict.get('residential', '').lower() == "no" %}selected{% endif %}>No</option>
-				</select>
-			</div>
-			
-			<div class="shortInput">
-				<label class="tooltip">Retail
-					<span class="classic">Select Yes if you would like to include Retail load in the analysis</span>
-				</label>
-				<select name="retail" id="retail">
-					<option value="yes" {% if allInputDataDict.get('retail', '').lower() == "yes" %}selected{% endif %}>Yes</option>
-					<option value="no" {% if allInputDataDict.get('retail', '').lower() == "no" %}selected{% endif %}>No</option>
-				</select>
-			</div>
-			
-			<div class="shortInput">
-				<label class="tooltip">Agriculture
-					<span class="classic">Select Yes if you would like to include Agriculture load in the analysis</span>
-				</label>
-				<select name="agriculture" id="agriculture">
-					<option value="yes" {% if allInputDataDict.get('agriculture', '').lower() == "yes" %}selected{% endif %}>Yes</option>
-					<option value="no" {% if allInputDataDict.get('agriculture', '').lower() == "no" %}selected{% endif %}>No</option>
-				</select>
-			</div>
-			
-
-			
-						
 			{{ omfModelButtons }}
 		</form>
 	</div>
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
 		<!-- Output tables, graphs, etc -->
-		<p class="reportTitle" style="page-break-before:always">Resilient Community Map</p>
+		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Resilient Community Map<span class="classic">Shapes and circuit elements can be clicked to bring up tooltips with more information about them. <br><br>Shapes can be toggled by clicking the checkbox next to &quot;geoshapes.geojson&quot; <br><br>Feeder map coloring can be changed without rerunning the model by clicking in the top right corner: &quot;Edit&quot; -> &quot;Color circuit&quot;. <br><br>Circuit elements can be searched for by clicking in the top right corner: &quot;Edit&quot; -> &quot;Search objects&quot;. They can be visualized on the map by clicking &quot;Highlight search results&quot; in the top left. <br><br>See the wiki for more details.</span></label></p>
 	<div id="resilienceMap" class="tightContent">
 		<script>
 			var mapContent = allOutputData["resilienceMap"];
@@ -221,31 +189,31 @@
 							<div class="legend-scale">
 								<ul class="legend-labels">
 									<li>
-										<span style="background:#0000FF;"></span>
+										<span style="background:yellow;"></span>
 										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Very High
 										</p>
 									</li>
 									<li>
-										<span style="background:#ADD8E6;"></span>
+										<span style="background:#83d54b;"></span>
 										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. High
 										</p>
 									</li>
 									<li>
-										<span style="background:#90EE90;"></span>
+										<span style="background:mediumspringgreen;"></span>
 										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. Moderate
 										</p>
 									</li>
 									<li>
-										<span style="background:#FFFF00;"></span>
+										<span style="background:cyan;"></span>
 										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Rel. Low
 										</p>
 									</li>
 									<li>
-										<span style="background:#808080;"></span>
+										<span style="background:blue;"></span>
 										<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
 											Very Low
 										</p>
@@ -317,7 +285,7 @@
         </tbody>
     </table>
 </div>
-<p class="reportTitle">Sections Data Table</p>
+<p class="reportTitle"><label class="tooltip">Sections Data Table<span class="classic">Sections are portions of the feeder that can be isolated from each other by opening switches. <br><br>Sections can be easily visualized by changing the feeder map coloring to &quot;Feeder Sections&quot;. <br><br>Metrics in this table are the mean values across loads in each section. The measures &quot;Load Count&quot; and &quot;Load Amount&quot; are total values across loads in each section.</span></label></p>
 <div id="traditionalSectionsTable" class="tightContent" style="height:300px; overflow-y: scroll;">
     <table style="width:100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
         <thead>
