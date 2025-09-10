@@ -29,6 +29,11 @@ from omf.solvers.opendss import dssConvert
 app = Flask("web")
 Compress(app)
 URL = "http://www.omf.coop"
+
+# Ensure HttpOnly flags on cookies (session + Flask-Login remember cookie)
+# Explicit even if framework defaults cover session, to satisfy security review.
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 _omfDir = os.path.dirname(os.path.abspath(__file__))
 
 ###################################################
@@ -100,10 +105,12 @@ class User:
 
 def cryptoRandomString():
 	''' Generate a cryptographically secure random string for signing/encrypting cookies. '''
-	if 'COOKIE_KEY' in globals():
-		return COOKIE_KEY
-	else:
-		return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
+	# Use pre-defined COOKIE_KEY if provided at runtime (e.g., via injection in globals),
+	# otherwise generate a pseudo-random value (note: for stronger randomness consider secrets.token_hex).
+	ck = globals().get('COOKIE_KEY')
+	if ck:
+		return ck
+	return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
 
 
 login_manager = flask_login.LoginManager()
