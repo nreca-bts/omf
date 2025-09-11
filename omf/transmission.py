@@ -159,7 +159,7 @@ def _rawToMat(inputStr, filePath=True):
 		command = 'psse2mpc(\'' + rawfile_name + '\', \'' + matfile_name + '\')'
 		args = [octavePath + '\\bin\\octave-cli', '-p', matPath, '--eval', command]
 		try:
-			mat = subprocess.check_output(args, shell=True)
+			mat = subprocess.check_output(args, shell=False)
 		except subprocess.CalledProcessError as e:
 			raise ValueError('RAW file/string does not contain valid data.')
 		finally:
@@ -169,7 +169,7 @@ def _rawToMat(inputStr, filePath=True):
 		# Run UNIX Octave command.
 		command = 'psse2mpc(\'' + rawfile_name + '\', \'' + matfile_name + '\')'
 		args = 'octave -p ' + matPath + ' --no-gui --eval "' + command + '"'
-		proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+		proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
 		(out, err) = proc.communicate()
 		if not filePath:
 			os.remove(rawfile_name)
