@@ -321,25 +321,23 @@ def getPercentile(loads, columnName, tieBreaker=None):
 	# Ensure consistent lengths
 	if len(loadServedVals) != len(tieBreakerVals):
 		raise ValueError("Mismatch in lengths of primary and tie-breaker values.")
-	# Create pairs of (primary value, tie-breaker, original index)
-	pairs = list(zip(loadServedVals, tieBreakerVals, range(len(loadServedVals))))
-	# Sort pairs by primary value, then by tie-breaker
-	pairs.sort(key=lambda p: (p[0], p[1]))
-	# Calculate percentiles
-	# TODO: Implement percentile calculation that ranks things identically if no tie breaker exists (rather than effectively using original order as tie-breaker by default)
-	result = [0 for _ in range(len(loadServedVals))]
-	for rank in range(len(loadServedVals)):
-		original_index = pairs[rank][2]
-		result[original_index] = rank * 100.0 / (len(loadServedVals) - 1) if len(loadServedVals)-1 != 0 else 100
+	# Rank values with tiebreakers
+	rankingDf = pd.DataFrame({
+		'primaryVals': loadServedVals,
+		'tiebreakerVals': tieBreakerVals
+	})
+	rankingDf['pct_rank'] = rankingDf[['primaryVals', 'tiebreakerVals']].apply(tuple, axis=1).rank(pct=True, method='max')
 	# Assign percentiles to the loads dictionary
-	if columnName == "base crit score":
+	if columnName == 'base crit score':
 		new_str = 'base crit index'
-	else:
+	elif columnName == 'community crit score':
 		new_str = 'community crit index'
+	else:
+		raise ValueError('Variable columnName must be equal to \'base crit score\' or \'community crit score\'')
 	for i, (k, v) in enumerate(loads.items()):
 		if not isinstance(v, dict):
 			raise ValueError(f"Invalid load format for key '{k}'. Expected a dictionary.")
-		loads[k][new_str] = result[i]
+		loads[k][new_str] = rankingDf.loc[i, 'pct_rank']
 
 def coordCheck(long, lat, geoList):
 	"""
@@ -433,9 +431,6 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
 			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
 			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
-	pctile_list = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
 	
 	# Helper function with informative error catching
 	def loadIsResidential(loadsDF,obName):
@@ -490,12 +485,18 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	
 	# compute SVI
 	sviDF = createDF(valList, cols, geoms)
+	pctile_list = []
 	for i in cols:
 		if i not in ['blockgroupFIPS', 'geometry']:
-			new_str = i + '_pct_rank'
-			sviDF[new_str] = sviDF[i].rank(pct=True)
-			pctile_list.append(new_str)
+			i_pct_rank = i + '_pct_rank'
+			# Rank in descending order for employment and income for the sake of social vulnerability so that a higher value correlates to more vulnerable
+			employOrIncome = i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']
+			sviDF[i_pct_rank] = sviDF[i].rank(pct=True, method='max') if not employOrIncome else sviDF[i].rank(pct=True, method='max', ascending=False)
+			pctile_list.append(i_pct_rank)
 	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
+	# Once SOVI_TOTAL is calculated, replace the descending order ranking of employment and income with ascending rankings for user interpretability 
+	for i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']:
+		sviDF[i+'_pct_rank'] = sviDF[i].rank(pct=True, method='max')
 	sviDF['SOVI_SCORE'] = sviDF['SOVI_TOTAL'].rank(pct=True)
 	sviDF['SOVI_RATNG'] = sviDF.apply(buildSVIRating, axis=1)
 	

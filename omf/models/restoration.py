@@ -488,8 +488,8 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 		sumBCS = sum([loadBcsDict[load] for load in residentialLL])
 		if residentialLL:
 			averageCCS = sum([loadCcsDict[load] for load in residentialLL])/len(residentialLL)
-			# TODO: Consider if percentileofscore is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
-			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS))
+			# kind='weak' measures % of values <= current value, which is consistent with resilientCommunity and SVI documentation
+			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS, kind='weak'))
 			averageCCIxPriorities = sum([mergedLoadWeights[load] for load in residentialLL])/len(residentialLL)
 		else:
 			averageCCI = 'n/a'
@@ -984,7 +984,7 @@ def makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI):
 		pd.DataFrame(orderedVals),
 		x='CCI',
 		y='TAODI',
-		trendline="ols",
+		trendline='ols',
 		title = makeCorrReport('CCI','TAODI'),
 		color_discrete_sequence=["red"]
 	)
@@ -992,7 +992,7 @@ def makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI):
 		pd.DataFrame(orderedVals),
 		x='CCI',
 		y='TAOFI',
-		trendline="ols",
+		trendline='ols',
 		title = makeCorrReport('CCI','TAOFI'),
 		)
 	return cciTaofiScatter, cciTaodiScatter
