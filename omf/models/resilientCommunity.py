@@ -71,18 +71,32 @@ def findCensusBlockGroup(lat,lon):
 	Input: lon -> specified longitude value
 	return censusBlockGroup ->  census block group found at location
 	'''
-	try:
-		# Requested for API Key to bypass api load limits
-		request_url = "https://geo.fcc.gov/api/census/block/find?latitude="+str(lat)+"&longitude="+str(lon)+ "&censusYear=2020&format=json&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
+	
+	def getCensusJson(request_url):
+		''' Helper function to get the json from request_url'''
 		opener = urllib.request.build_opener()
 		opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 		resp = opener.open(request_url, timeout=100)
 		censusJson = json.loads(resp.read())
+		return censusJson
+	
+	try:
+		# Requested for API Key to bypass api load limits
+		request_url = f'https://geo.fcc.gov/api/census/block/find?latitude={lat}&longitude={lon}&censusYear=2020&format=json&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b'
+		censusJson = getCensusJson(request_url)
 		censusBlockGroup = censusJson['Block']['FIPS'][:-3]
-		return  censusBlockGroup
-	except Exception as e:
-		print("Error trying to retrieve block group information from Census API")
-		print(e)
+		return censusBlockGroup
+	except Exception as e1:
+		try:
+			# Documentation on geocoding API: https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.pdf
+			request_url = f'https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x={lon}&y={lat}&benchmark=8&vintage=820&format=json'
+			censusJson = getCensusJson(request_url)
+			censusBlockGroup = censusJson['result']['geographies']['Census Blocks'][0]['GEOID'][:-3]
+			return censusBlockGroup
+		except Exception as e2:
+			print('\nErrors trying to retrieve block group information from Census APIs')
+			print(f'Error for geo.fcc.gov:\n{e1}')
+			print(f'Error for geocoding.geo.census.gov:\n{e2}\n')
 
 def repeatFindCensusBlockGroup(lat, long, lim=10, wait=3):
 	''' Repeatedly attempts to retrieve census blockgroup, returning the info as soon as it is successful, and raising an exception after a certain number of attempts.
