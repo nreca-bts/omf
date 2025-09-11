@@ -406,6 +406,7 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	
 	## Set up base input dictionary for vbatDispatch runs
+	## TODO: Add handling for giving vbatDispatch monthlyDemandCharges based on the different user input methods (CSV, JSON flatdemand, None)
 	inputDict_vbatDispatch = {
 		'load_type': '', ## 1=AirConditioner, 2=HeatPump, 3=Refrigerator, 4=WaterHeater (This is from OMF model vbatDispatch.html)
 		'number_devices': '',
@@ -416,8 +417,8 @@ def work(modelDir, inputDict):
 		'setpoint':  '',
 		'deadband': '',
 		'unitDeviceCost': '0.0', ## set to zero: assuming utility does not pay for this
-		'unitUpkeepCost':  '0.0', ## set to zero: assuming utility does not pay for this
-		'monthlyDemandCharges': inputDict['monthlyDemandCharges'],
+		'unitUpkeepCost': '0.0', ## set to zero: assuming utility does not pay for this
+		'monthlyDemandCharges': inputDict['monthlyDemandCharges'], ## NOTE: This is for the CSV input file only, not the JSON response file. vbatDispatch only calculates the peakDeamndCharge and adjustedPeakDemandCharge with this info.
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
