@@ -650,7 +650,6 @@ def work(modelDir, inputDict):
 	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
 	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
 
-	## NOTE: begin copy of derUtilityCost
 	#########################################################################################################################################################
 	### Calculate the monthly consumption (kWh) costs and savings
 	## NOTE: "base" demand curve = no DERs in the demand curve
@@ -658,8 +657,8 @@ def work(modelDir, inputDict):
 	#########################################################################################################################################################
 
 	## Base demand curve energy consumption cost ($/kWh)
-	consumptionCost = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
 	monthlyEnergyConsumption = [sum(demand[s:f]) for s, f in monthHours] ## The total energy in kWh for each month
+	consumptionCost = [float(a) * float(b) for a, b in zip(demand, energy_rate_array)]
 	monthlyEnergyConsumptionCost = [sum(consumptionCost[s:f]) for s, f in monthHours] ## The total energy cost in $$ for each month	
 
 	## Adjusted demand curve energy consumption cost ($/kWh)
@@ -779,7 +778,13 @@ def work(modelDir, inputDict):
 	outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
 	outData['monthlyAdjustedPeakDemand'] = monthly_total_kw_withDERs.tolist()
 	outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
-	## NOTE: end copy of derUtilityCost
+	
+	########################################################################################################################
+	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
+	########################################################################################################################
+	outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
+	outData['monthlyTotalCostAdjustedService'] = [eca+dca for eca, dca in zip(monthlyAdjustedEnergyConsumptionCost, outData['monthlyAdjustedPeakDemandCost'])] ## total cost of energy and peak demand from including DERs
+	outData['monthlyTotalSavingsAdjustedService'] = [tot-tota for tot, tota in zip(outData['monthlyTotalCostService'], outData['monthlyTotalCostAdjustedService'])] ## total savings from all DERs
 
 	#########################################################################################################################################################
 	### Calculate the individual (BESS, TESS, and GEN) contributions to the consumption cost/savings
@@ -884,26 +889,23 @@ def work(modelDir, inputDict):
 		retrofit_cost_total += retrofit_cost_GEN
 
 	## Thermal retrofit costs (TODO: Add replacement costs later?)
-	retrofit_cost_total = 0
-
 	if float(inputDict['load_type_wh']) > 0:  ## Check if water heater is enabled
 		retrofit_cost_wh = float(inputDict['unitDeviceCost_wh'])
 		costs_allyears_wh[0] += retrofit_cost_wh
+		costs_allyears_TESS[0] += retrofit_cost_wh
 		retrofit_cost_total += retrofit_cost_wh
 
 	if float(inputDict['load_type_ac']) > 0:  ## Check if air conditioner is enabled
 		retrofit_cost_ac = float(inputDict['unitDeviceCost_ac'])
 		costs_allyears_ac[0] += retrofit_cost_ac
+		costs_allyears_TESS[0] += retrofit_cost_ac
 		retrofit_cost_total += retrofit_cost_ac
 
 	if float(inputDict['load_type_hp']) > 0:  ## Check if heat pump is enabled
 		retrofit_cost_hp = float(inputDict['unitDeviceCost_hp'])
 		costs_allyears_hp[0] += retrofit_cost_hp
+		costs_allyears_TESS[0] += retrofit_cost_hp
 		retrofit_cost_total += retrofit_cost_hp
-
-	## Calculate total retrofit cost for TESS only if at least one technology is enabled
-	if retrofit_cost_total > 0:
-		costs_allyears_TESS[0] += retrofit_cost_total
 
 	## BESS retrofit and replacement costs
 	if BESScheck == 'enabled':
@@ -940,7 +942,6 @@ def work(modelDir, inputDict):
 	costs_year1_array[0] += initialInvestment
 	costs_year1_total = sum(costs_year1_array)
 	#costs_allyears_total_minus_initial_investment = costs_allyears_total - initialInvestment
-
 
 	######################################################################################################################################################
 	## SAVINGS
@@ -1013,14 +1014,12 @@ def work(modelDir, inputDict):
 	allDevices_compensation_allyears_array = BESS_compensation_allyears_array + GEN_compensation_allyears_array + TESS_compensation_allyears_array
 
 	## Calculate total costs for BESS, TESS, and GEN
-	## TODO: add the total (demand savings - adjusted demand savings) here too
-	## TODO: also need to add the hourly demand charge savings
 	totalSavings_BESS_allyears_array = BESS_subsidy_allyears_array + BESS_compensation_allyears_array
 	totalSavings_TESS_allyears_array = combinedTESS_subsidy_allyears_array + TESS_compensation_allyears_array
 	totalSavings_GEN_allyears_array = GEN_subsidy_allyears_array + GEN_compensation_allyears_array
 
 	## Calculate total savings
-	savings_year1_monthly_array = np.array(monthlyEnergyConsumptionSavings) + allDevices_subsidy_year1_monthly_array + allDevices_compensation_year1_monthly_array
+	savings_year1_monthly_array = allDevices_subsidy_year1_monthly_array + allDevices_compensation_year1_monthly_array + np.array(outData['monthlyTotalSavingsAdjustedService'])
 	savings_year1_total = sum(savings_year1_monthly_array)
 	savings_consumption_allyears_array = np.full(projectionLength, sum(monthlyEnergyConsumptionSavings))
 	savings_allyears_array = savings_consumption_allyears_array + allDevices_subsidy_allyears_array + allDevices_compensation_allyears_array
@@ -1091,48 +1090,40 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load_tenX.csv')) as f:
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load.csv')) as f:
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
-	#	residential_rate_curve = json.load(jsonFile)
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','exampleWholesaleRateStructure.json')) as jsonFile:
 		residential_rate_curve = json.load(jsonFile)
+	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
+	#	residential_rate_curve = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','TOU_rate_schedule.csv')) as f:
 	#	energy_rates_per_kwh = f.read()
 	
 	defaultInputs = {
+		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
+
 		## OMF inputs:
 		'user' : 'admin',
 		'modelType': modelName,
 		'created': str(datetime.datetime.now()),
 
 		## REopt inputs:
-		## NOTE: Variables are strings as dictated by the html input options
-
-		#'latitude':  '38.353673', ## Charleston, WV
-		#'longitude': '-81.640283', ## Charleston, WV
-		# 'urdbLabel': '5a95a9a45457a36540a199a0', ## Charleston, WV - Appalachian Power Co Residential Time of Day https://apps.openei.org/USURDB/rate/view/5a95a9a45457a36540a199a0#3__Energy
-		'urdbLabel' : '66a13566e90ecdb7d40581d2', # Brighton, CO Residential Time of Day residential rate https://apps.openei.org/USURDB/rate/view/66a13566e90ecdb7d40581d2#3__Energy
-		#'urdbLabel' : '612ff9c15457a3ec18a5f7d3', # Brighton, CO standard residential rate https://apps.openei.org/USURDB/rate/view/612ff9c15457a3ec18a5f7d3#3__Energy
-		#'urdbLabel' : '5b311c595457a3496d8367be', # Brighton, CO Residential Time of Use rate https://apps.openei.org/USURDB/rate/view/5b311c595457a3496d8367be#3__Energy
-		'latitude' : '39.969753', ## Brighton, CO
-		'longitude' : '-104.812599', ## Brighton, CO
-		'year' : '2018',
-		'demandFileName': 'residential_PV_load_tenX.csv',
+		'urdbLabel': '66a13566e90ecdb7d40581d2', # Brighton, CO Residential Time of Day residential rate https://apps.openei.org/USURDB/rate/view/66a13566e90ecdb7d40581d2#3__Energy
+		'latitude': '39.969753', ## Brighton, CO
+		'longitude': '-104.812599', ## Brighton, CO
+		'year': '2018',
+		'demandFileName': 'residential_PV_load.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
 		'urdbLabelBool': False,
-		
 		#'residentialRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'residentialRateStructureFileName': 'exampleWholesaleRateStructure.json',
-
 		'residentialRateStructureFile': residential_rate_curve,
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
-
 		## Financial Inputs
 		'projectionLength': '25',
 		'discountRate': '1',

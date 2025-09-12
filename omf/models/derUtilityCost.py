@@ -1115,12 +1115,11 @@ def work(modelDir, inputDict):
 			
 		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
-		outData['monthlyTotalCostService'] = [ec+dcm for ec, dcm in zip(monthlyEnergyConsumptionCost, outData['monthlyPeakDemandCost'])] ## total cost of energy and demand charge prior to DERs
 		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
 		outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
 		
 	## Calculate the peak demand savings between the base demand curve and adjusted demand curve
-	outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist() ## total demand charge savings from all DERs
+	#outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist() ## total demand charge savings from all DERs
 
 	########################################################################################################################
 	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
@@ -1379,8 +1378,8 @@ def new(modelDir):
 		'created': str(datetime.datetime.now()),
 
 		## REopt inputs:
-		'latitude' : '39.969753', ## Brighton, CO
-		'longitude' : '-104.812599', ## Brighton, CO
+		'latitude': '39.969753', ## Brighton, CO
+		'longitude': '-104.812599', ## Brighton, CO
 		'year': '2018',
 		'fileName': 'utility_2018_kW_load.csv',
 		'demandCurve': demand_curve,
