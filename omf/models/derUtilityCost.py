@@ -1144,7 +1144,7 @@ def work(modelDir, inputDict):
 	allDevices_consumption_savings_monthly = [a+b+c for a,b,c in zip(BESS_consumption_savings_monthly,TESS_consumption_savings_monthly,GEN_consumption_savings_monthly)]
 	allDevices_consumption_savings_total = sum(allDevices_consumption_savings_monthly)
 
-  ## Get the yearly consumption and demand savings for all DERs
+  	## Get the yearly consumption and demand savings for all DERs
 	BESS_peakDemand_savings_allyears = np.full(projectionLength, sum(BESS_monthly_demand_savings))
 	BESS_consumption_savings_allyears = np.full(projectionLength, sum(BESS_consumption_savings_monthly))
 	BESS_savings_allyears = BESS_peakDemand_savings_allyears + BESS_consumption_savings_allyears
