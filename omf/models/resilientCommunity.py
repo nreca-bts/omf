@@ -526,60 +526,30 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	# calculate loads data for blockgroups
 	df_loads = pd.DataFrame(loadsDict).T
 	df_loads.rename(columns={"blockgroup": "blockgroupFIPS"}, inplace=True)
+	aggKwargs = {
+		'avg_BCS':('base crit score', 'mean'),
+		'avg_CCS':('community crit score', 'mean'),
+		'avg_BCI':('base crit index', 'mean'),
+		'avg_CCI':('community crit index', 'mean'),
+		'load_count':('base crit score', 'count'),
+		'load_amount':('kva', 'sum') 
+	}
+	colsToMove = 8
 	if useZillowData:
-		# Group by 'blockgroup' and calculate desired metrics
-		newdf_loads = df_loads.groupby('blockgroupFIPS').agg(
-			avg_BCS=('base crit score', 'mean'),
-			avg_CCS=('community crit score', 'mean'),
-			avg_BCI=('base crit index', 'mean'),
-			avg_CCI=('community crit index', 'mean'),
-			avg_zillow_price=('zillow price', 'mean'),
-			load_count=('base crit score', 'count'),
-			load_amount=('kva', 'sum')
-			).reset_index()
-		newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
-		newsviDFcols = newsviDF.columns.tolist()
-		newsviDFcols = newsviDFcols[-9:]+newsviDFcols[0:-9]
-		newsviDF = newsviDF[newsviDFcols]
-		sviGeoDF = createGeoDF(newsviDF)
-		newsviDF = newsviDF.drop(columns=['geometry'])
-		# Group by 'section' and calculate desired metrics
-		section_loads = df_loads.groupby('section').agg(
-			avg_BCS=('base crit score', 'mean'),
-			avg_CCS=('community crit score', 'mean'),
-			avg_BCI=('base crit index', 'mean'),
-			avg_CCI=('community crit index', 'mean'),
-			avg_zillow_price=('zillow price', 'mean'),
-			avg_svi_score=('SOVI_SCORE', 'mean'),
-			load_count=('base crit score', 'count'),
-			load_amount=('kva', 'sum')
-			).reset_index()
-	else:
-		# Group by 'blockgroup' and calculate desired metrics
-		newdf_loads = df_loads.groupby('blockgroupFIPS').agg(
-			avg_BCS=('base crit score', 'mean'),
-			avg_CCS=('community crit score', 'mean'),
-			avg_BCI=('base crit index', 'mean'),
-			avg_CCI=('community crit index', 'mean'),
-			load_count=('base crit score', 'count'),
-			load_amount=('kva', 'sum')
-			).reset_index()
-		newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
-		newsviDFcols = newsviDF.columns.tolist()
-		newsviDFcols = newsviDFcols[-8:]+newsviDFcols[0:-8]
-		newsviDF = newsviDF[newsviDFcols]
-		sviGeoDF = createGeoDF(newsviDF)
-		newsviDF = newsviDF.drop(columns=['geometry'])
-		# Group by 'section' and calculate desired metrics
-		section_loads = df_loads.groupby('section').agg(
-			avg_BCS=('base crit score', 'mean'),
-			avg_CCS=('community crit score', 'mean'),
-			avg_BCI=('base crit index', 'mean'),
-			avg_CCI=('community crit index', 'mean'),
-			avg_svi_score=('SOVI_SCORE', 'mean'),
-			load_count=('base crit score', 'count'),
-			load_amount=('kva', 'sum')
-			).reset_index()
+		aggKwargs['avg_zillow_price'] = ('zillow price', 'mean')
+		colsToMove += 1
+	# Group by 'blockgroup' and calculate desired metrics
+	newdf_loads = df_loads.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
+	newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+	newsviDFcols = newsviDF.columns.tolist()
+	newsviDFcols = newsviDFcols[-1*colsToMove:]+newsviDFcols[0:-1*colsToMove]
+	newsviDF = newsviDF[newsviDFcols]
+	sviGeoDF = createGeoDF(newsviDF)
+	newsviDF = newsviDF.drop(columns=['geometry'])
+	# Group by 'section' and calculate desired metrics
+	aggKwargs['avg_svi_score'] = ('SOVI_SCORE', 'mean')
+	section_loads = df_loads.groupby('section').agg(**aggKwargs).reset_index()
+
 	# Leave 'SOVI_RATING' out of this becasuse it's dealt with elsewhere
 	readableColsDict = {	'pct_Prs_Blw_Pov_Lev_ACS_16_20': '_____________% Individuals Below Poverty Level',
 							'pct_Civ_emp_16p_ACS_16_20': '_____________% Age 16+ Employed',
@@ -1507,10 +1477,10 @@ def work(modelDir, inputDict):
 	outData['loadTableValues2'] = tableRows2
 	
 	# Collect Sections Data Table Info
-	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Affluent Score', 'Load Count', 'Load Amount']
+	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Avg Zillow Price', 'Load Count', 'Load Amount']
 	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_CCS', 'avg_CCI', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
 	if not useZillow:
-		headers3.remove('Affluent Score')
+		headers3.remove('Avg Zillow Price')
 		cols.remove('avg_zillow_price')
 	loadSections[['load_count','load_amount']] = loadSections[['load_count','load_amount']].fillna(0)
 	loadSections[cols[1:]] = loadSections[cols[1:]].fillna('None').map(smartRound)
