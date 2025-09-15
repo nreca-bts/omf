@@ -137,7 +137,11 @@ def work(modelDir, inputDict):
 		energy_weekend_schedule = response_file['energyweekendschedule']
 		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
 		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
-		energy_cumulative_sum = np.cumsum(demand)
+
+		## Calculate the maximum cumulative kWh per month, for rate structures that include a maximum kWh limit for which the $/kWh rate is applied
+		energy_monthly_cumulative_sum = np.zeros_like(demand)
+		for s,f in monthHours:
+			energy_monthly_cumulative_sum[s:f] = np.cumsum(demand[s:f])
 
 		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
 		## TODO: Convert these for loops and if/else statements into a more Pythonic way with list comprehension
@@ -145,7 +149,7 @@ def work(modelDir, inputDict):
 			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
 				rate_data_weekday = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
 				if 'max' in rate_data_weekday:
-					if energy_cumulative_sum[hour_index] <= rate_data_weekday['max']: ## Only apply the rate up to the maximum kWh specified
+					if energy_monthly_cumulative_sum[hour_index] <= rate_data_weekday['max']: ## Only apply the rate up to the maximum kWh specified
 						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] ## NOTE: date.month is offset by 1 due to 0 indexing
 					else:
 						energy_rate_array[hour_index] = 0
@@ -154,7 +158,7 @@ def work(modelDir, inputDict):
 			else: ## Weekends - use the weekend rate schedule
 				rate_data_weekend = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]
 				if 'max' in rate_data_weekend:
-					if energy_cumulative_sum[hour_index] <= rate_data_weekend['max']: ## Only apply the rate up to the maximum kWh specified
+					if energy_monthly_cumulative_sum[hour_index] <= rate_data_weekend['max']: ## Only apply the rate up to the maximum kWh specified
 						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
 					else:
 						energy_rate_array[hour_index] = 0
@@ -233,11 +237,13 @@ def work(modelDir, inputDict):
 		GENcheck = 'disabled'
 
 	## Save the scenario file
-	## NOTE: reopt_jl currently requires a path for the input file, so the file must be saved to a location
-	## preferrably in the modelDir directory
+	## NOTE: reopt_jl currently requires a path for the input file, so the file must be saved to a location - preferrably in the modelDir directory
 	with open(pJoin(modelDir, 'reopt_input_scenario.json'), 'w') as jsonFile:
 		json.dump(scenario, jsonFile)
 	
+	########################################################################################################################
+	## Run REopt.jl
+	########################################################################################################################
 	## Read in a static REopt test file
 	## NOTE: The single commented code below is used temporarily if reopt_jl is not working or for other debugging purposes.
 	## Also NOTE: If this is used, you typically have to add a ['outputs'] key before the variable of interest.
@@ -251,6 +257,21 @@ def work(modelDir, inputDict):
 	with open(pJoin(modelDir, 'results.json')) as jsonFile:
 		reoptResults = json.load(jsonFile)
 	outData.update(reoptResults) ## Update output file outData with REopt results data
+
+	## Check if DER technology is enabled by the user and define relevant variables from REopt
+	if BESScheck == 'enabled':
+		BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
+		outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
+	else:
+		BESS = np.zeros_like(demand)
+		grid_charging_BESS = np.zeros_like(demand)
+		outData['chargeLevelBattery'] = list(np.zeros_like(demand))
+
+	if GENcheck == 'enabled':
+		generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+	else:
+		generator = np.zeros_like(demand)
 
 	########################################################################################################################
 	## Run vbatDispatch model
@@ -421,54 +442,21 @@ def work(modelDir, inputDict):
 	## DER Serving Load Overview plot 
 	########################################################################################################################################################
 
-	## If REopt outputs any Electric Storage (BESS) that also does not contain all zeros:
-	if 'Generator' in reoptResults:
-		generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
-		generator = np.where(generator == -0.0, 0.0, generator) ## convert negative zero values to positive zero values
-		generator_W = generator * 1000. ## convert from kW to W for plotting
-	else:
-		generator = np.zeros_like(demand)
-		generator_W = generator * 1000. ## convert from kW to W for plotting
-	
-	## TODO: Potentially clean up this ElectricStorage code to make it more sensible and flow better
-	if 'ElectricStorage' in reoptResults: 
-		if any(value != 0 for value in reoptResults['ElectricStorage']['storage_to_load_series_kw']):
-			BESS = np.array(reoptResults['ElectricStorage']['storage_to_load_series_kw'])
-			BESS = np.where(BESS == -0.0, 0.0, BESS) ## convert negative zero values to positive zero values
-			BESS_W = BESS * 1000. ## convert from kW to W for plotting
-			grid_charging_BESS = np.array(reoptResults['ElectricUtility']['electric_to_storage_series_kw'])
-			grid_charging_BESS = np.where(grid_charging_BESS == -0.0, 0.0, grid_charging_BESS) ## convert negative zero values to positive zero values
-			grid_charging_BESS_W = grid_charging_BESS * 1000. ## convert from kW to W for plotting
-			outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
-		else:
-			#raise ValueError('The BESS was not built by the REopt model. "storage_to_load_series_kw" contains all zeros.')
-			BESS = np.zeros_like(demand)
-			BESS_W = BESS * 1000. ## convert from kW to W for plotting
-			grid_charging_BESS = np.zeros_like(demand)
-			grid_charging_BESS_W = grid_charging_BESS * 1000. ## convert from kW to W for plotting
-			outData['chargeLevelBattery'] = list(np.zeros_like(demand))
-	else:
-		print('No BESS was specified in REopt. Setting BESS variables to zero for plotting purposes.')
-		BESS = np.zeros_like(demand)
-		BESS_W = BESS * 1000. ## convert from kW to W for plotting
-		grid_charging_BESS = np.zeros_like(demand)
-		grid_charging_BESS_W = grid_charging_BESS * 1000. ## convert from kW to W for plotting
-		outData['chargeLevelBattery'] = list(np.zeros_like(demand))
-
 	## vbatDispatch variables
 	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
 	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
-	vbat_discharge_component = np.where(vbat_discharge_component == -0.0, 0.0, vbat_discharge_component) ## convert negative zero values to positive zero values
-	vbat_charge_component = np.where(vbat_charge_component == -0.0, 0.0, vbat_charge_component) ## convert negative zero values to positive zero values
-	vbat_discharge_component_W = vbat_discharge_component * 1000. ## convert from kW to W for plotting
-	vbat_charge_component_W = vbat_charge_component * 1000. ## convert from kW to W for plotting
-	
-	## Calculate all other plot variables from kW to W for plotting
-	demand_W = np.array(demand) * 1000. ## convert from kW to W for plotting
-	grid_to_load = np.array(reoptResults['ElectricUtility']['electric_to_load_series_kw'])
-	grid_to_load = np.where(grid_to_load == -0.0, 0.0, grid_to_load) ## convert negative zero values to positive zero values
-	grid_to_load_W = grid_to_load * 1000. ## convert from kW to W for plotting
+	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
+
+	## Convert all values from kW to Watts for plotting purposes only
+	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	grid_to_load_W = np.array(grid_to_load) * 1000.
+	BESS_W = np.array(BESS) * 1000.
+	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
+	vbat_discharge_component_W = vbat_discharge_component * 1000.
+	vbat_charge_component_W = vbat_charge_component * 1000.
+	demand_W = np.array(demand) * 1000.
 	grid_serving_new_load_W = grid_to_load_W + grid_charging_BESS_W + vbat_charge_component_W - vbat_discharge_component_W
+	generator_W = generator * 1000.
 
 	## Put all DER plot variables into a dataFrame for plotting
 	df = pd.DataFrame({
