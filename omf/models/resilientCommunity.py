@@ -429,7 +429,7 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	
 	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
 	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
+			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_HH_Limited_Eng_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
 			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
 	
 	# Helper function with informative error catching
@@ -558,6 +558,7 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 							'pct_Pop_65plus_ACS_16_20': '_____________% Age 65+',
 							'pct_u19ACS_16_20': '_____________% Non-Instituionalized Below Age 19',
 							'pct_Pop_Disabled_ACS_16_20': '_____________% Individuals Disabled',
+							'pct_HH_Limited_Eng_ACS_16_20': '_____________% Limited English Speaking Households',
 							'pct_singlefamily_u18': '_____________% Single Parent Families',
 							'pct_MLT_U10p_ACS_16_20': '_____________% Multi-Unit Structure',
 							'pct_Mobile_Homes_ACS_16_20': '_____________% Mobile Home',
@@ -570,6 +571,7 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 							'pct_Pop_65plus_ACS_16_20_pct_rank': '_____________% Age 65+ (%ile)',
 							'pct_u19ACS_16_20_pct_rank': '_____________% Non-Instituionalized Below Age 19 (%ile)',
 							'pct_Pop_Disabled_ACS_16_20_pct_rank': '_____________% Individuals Disabled (%ile)',
+							'pct_HH_Limited_Eng_ACS_16_20_pct_rank': '_____________% Limited English Speaking Households (%ile)',
 							'pct_singlefamily_u18_pct_rank': '_____________% Single Parent Families (%ile)',
 							'pct_MLT_U10p_ACS_16_20_pct_rank': '_____________% Multi-Unit Structure (%ile)',
 							'pct_Mobile_Homes_ACS_16_20_pct_rank': '_____________% Mobile Home (%ile)',
@@ -839,7 +841,10 @@ def buildsviBlockGroup(blockgroupFIPS):
 	# Noninstituionalized People under 19 | under19: Civ_noninst_pop_U19_ACS_16_20
 	# Non Instituionalized People | noninstitution: Civ_Noninst_Pop_ACS_16_20
 	# Percent population under 19 | under19 : Civ_noninst_pop_U19_ACS_16_20 / Civ_Noninst_Pop_ACS_16_20
-	#Percent population disabled | disabled: pct_Pop_Disabled_ACS_16_20
+	# Percent population disabled | disabled: pct_Pop_Disabled_ACS_16_20
+	# Limited English speaking household | limited english: ENG_VW_ACS_16_20
+	# Total occupied housing units | units: Tot_Occp_Units_ACS_16_20
+	# Percent households speaking Limited English | households: ENG_VW_ACS_16_20 / Tot_Occp_Units_ACS_16_20
 	# <------------------> THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET <---------------->
 	# Estimate!!Total:!!6 to 17 years:!!Living with one parent: | singleparent6-17: B23008_021E
 	# Estimate!!Total:!!Under 6 years:!!Living with one parent: | singleparentu6: B23008_008E
@@ -861,7 +866,7 @@ def buildsviBlockGroup(blockgroupFIPS):
 					#Socioeconomic, household composition, housing /transportation variables
 	pdb_svi_vars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
 				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20',
-				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20']
+				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20']
 				# household composition / disability variables
 	acs_svi_vars = ['B23008_021E', 'B23008_008E', 'B23008_001E',
 					'B08014_002E','B01001_001E']
@@ -904,6 +909,7 @@ def buildsviBlockGroup(blockgroupFIPS):
 		'pct_Pop_65plus_ACS_16_20': float(combined_dict['Pop_65plus_ACS_16_20'])/float(combined_dict['Tot_Population_ACS_16_20']),
 		'pct_u19ACS_16_20': float(combined_dict['Civ_noninst_pop_U19_ACS_16_20'])/float(combined_dict['Civ_Noninst_Pop_ACS_16_20']),
 		'pct_Pop_Disabled_ACS_16_20': float(combined_dict['pct_Pop_Disabled_ACS_16_20']),
+		'pct_HH_Limited_Eng_ACS_16_20': float(combined_dict['ENG_VW_ACS_16_20']) / float(combined_dict['Tot_Occp_Units_ACS_16_20']),
 		'pct_singlefamily_u18': (float(combined_dict['B23008_021E']) + float(combined_dict['B23008_008E']))/max(0.0000000000001,float(combined_dict['B23008_001E'])),
 		#housing/transportation
 		'pct_MLT_U10p_ACS_16_20': float(combined_dict['pct_MLT_U10p_ACS_16_20']),
