@@ -12,6 +12,7 @@ from jinja2 import Template
 import dateutil
 from subprocess import Popen
 import re
+from urllib.parse import urlparse, urljoin
 try:
 	import fcntl
 except:
@@ -29,6 +30,12 @@ from omf.solvers.opendss import dssConvert
 app = Flask("web")
 Compress(app)
 URL = "http://www.omf.coop"
+
+# Ensure HttpOnly flags on cookies (session + Flask-Login remember cookie)
+# Explicit even if framework defaults cover session, to satisfy security review.
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
 _omfDir = os.path.dirname(os.path.abspath(__file__))
 
 ###################################################
@@ -100,10 +107,12 @@ class User:
 
 def cryptoRandomString():
 	''' Generate a cryptographically secure random string for signing/encrypting cookies. '''
-	if 'COOKIE_KEY' in globals():
-		return COOKIE_KEY
-	else:
-		return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
+	# Use pre-defined COOKIE_KEY if provided at runtime (e.g., via injection in globals),
+	# otherwise generate a pseudo-random value (note: for stronger randomness consider secrets.token_hex).
+	ck = globals().get('COOKIE_KEY')
+	if ck:
+		return ck
+	return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
 
 
 login_manager = flask_login.LoginManager()
@@ -161,6 +170,43 @@ def generate_csrf_token():
 app.jinja_env.globals["csrf_token"] = generate_csrf_token
 
 
+def _is_safe_url(target: str) -> bool:
+	"""Return True if the target URL is a local URL we can safely redirect to.
+
+	Rules:
+	- Allow empty -> treated as '/'
+	- Allow relative paths starting with single '/'
+	- Allow same-origin absolute URLs (scheme http/https, netloc matches request.host)
+	- Disallow protocol-relative ('//example.com'), different host, or control chars.
+	"""
+	if not target:
+		return True
+	# Strip surrounding whitespace / control chars
+	target = target.strip()
+	# Reject obvious protocol-relative or backslash escapes
+	if target.startswith('//') or target.startswith('\\'):
+		return False
+	# Simple relative path
+	if target.startswith('/'):
+		return True
+	# For absolute URLs, ensure same host
+	ref = urlparse(request.host_url)
+	test = urlparse(urljoin(request.host_url, target))
+	if test.scheme in ('http', 'https') and ref.netloc == test.netloc:
+		return True
+	return False
+
+
+def safe_redirect(target: str):
+	"""Redirect to target if safe, else fallback to '/'."""
+	if not _is_safe_url(target):
+		target = '/'
+	# Normalize empty
+	if not target:
+		target = '/'
+	return redirect(target)
+
+
 @app.route("/login", methods = ["POST"])
 def login():
 	''' Authenticate a user and send them to the URL they requested. '''
@@ -174,13 +220,15 @@ def login():
 	if userJson and pbkdf2_sha512.verify(password, userJson["password_digest"]):
 		user = User(userJson)
 		flask_login.login_user(user, remember = remember == "on")
-	nextUrl = str(request.form.get("next","/"))
-	return redirect(nextUrl)
+	nextUrl = str(request.form.get("next","/") or "/")
+	return safe_redirect(nextUrl)
 
 
 @app.route("/login_page")
 def login_page():
-	nextUrl = str(request.args.get("next","/"))
+	nextUrl = str(request.args.get("next","/") or "/")
+	if not _is_safe_url(nextUrl):
+		nextUrl = "/"
 	if flask_login.current_user.is_authenticated():
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
@@ -250,8 +298,8 @@ def fastNewUser(email):
 			json.dump(user, f, indent=4)
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
-		nextUrl = str(request.args.get("next","/"))
-		return redirect(nextUrl)
+		nextUrl = str(request.args.get("next","/") or "/")
+		return safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
@@ -2141,6 +2189,6 @@ if __name__ == "__main__":
 	template_files = ["templates/"+ x  for x in safeListdir("templates")]
 	model_files = ["models/" + x for x in safeListdir("models")]
 	print('App starting with gunicorn. Errors are going to omf.error.log.')
-	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5000', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
+	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5001', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
 	appProc.wait()
 	# app.run(debug=True, host="0.0.0.0", extra_files=template_files + model_files)
