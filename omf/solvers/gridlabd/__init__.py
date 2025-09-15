@@ -145,7 +145,7 @@ def runInFilesystem(feederTree, attachments=[], keepFiles=False, workDir=None, g
 		# Write attachments and glm.
 		for attach in attachments:
 			with open (pJoin(workDir,attach),'w') as attachFile:
-				attachFile.write(attachments[attach])
+				attachFile.write(str(attachments[attach]))
 		glmString = omf.feeder.sortedWrite(localTree)
 		if not glmName:
 			glmName = "main." + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + ".glm"
