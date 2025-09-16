@@ -753,10 +753,12 @@ def work(modelDir, inputDict):
 				device_peakDemand_savings_monthly[m] = np.sum(device_peakDemand_savings_year[mask])
 			
 			## Demand (kW) savings
+			## NOTE: Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 			device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
 			outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
 			## Consumption (kWh) savings
+			## NOTE: Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_consumption_savings_allyears, vbatResults_wh_consumption_savings_allyears, vbatResults_hp_consumption_savings_allyears
 			device_consumption_savings_monthly = thermal_device_savings[device_name]['consumption_cost_monthly']
 			device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 			outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
@@ -775,29 +777,32 @@ def work(modelDir, inputDict):
 	outData['monthlyTotalSavingsAdjustedService'] = [tot-tota for tot, tota in zip(outData['monthlyTotalCostService'], outData['monthlyTotalCostAdjustedService'])] ## total savings from all DERs
 
 	#########################################################################################################################################################
-	### Calculate the individual (BESS, TESS, and GEN) contributions to the consumption cost/savings
+	### Calculate the individual (BESS, TESS, and GEN) contributions to the consumption and peak demand savings
 	#########################################################################################################################################################
-	BESSdemand = np.array(BESS)-np.array(grid_charging_BESS)
-	TESSdemand = np.array(vbat_discharge_component)-np.array(vbat_charge_component)
-	GENdemand = np.array(generator)
-	monthly_BESS_consumption_total = [sum(BESSdemand[s:f]) for s, f in monthHours]
-	monthly_TESS_consumption_total = [sum(TESSdemand[s:f]) for s, f in monthHours]
-	monthly_GEN_consumption_total = [sum(GENdemand[s:f]) for s, f in monthHours]
+	## Calculate the monthly energy consumption savings for BESS, TESS, and GEN technologies
+	BESS_consumption_savings_year1 = [float(a) * float(b) for a, b in zip(BESS_demand, energy_rate_array)]
+	TESS_consumption_savings_year1 = [float(a) * float(b) for a, b in zip(TESS_demand, energy_rate_array)]
+	GEN_consumption_savings_year1 = [float(a) * float(b) for a, b in zip(GEN_demand, energy_rate_array)]
 
-	## Calculate the consumption cost saved by each DER tech using the input rate structure (hourly data for the whole year)
-	BESS_consumption_cost_year1_array = [float(a) * float(b) for a, b in zip(BESSdemand, energy_rate_array)]
-	TESS_consumption_cost_year1_array = [float(a) * float(b) for a, b in zip(TESSdemand, energy_rate_array)]
-	GEN_consumption_cost_year1_array = [float(a) * float(b) for a, b in zip(GENdemand, energy_rate_array)]
+	BESS_consumption_savings_monthly = [sum(BESS_consumption_savings_year1[s:f]) for s, f in monthHours]
+	TESS_consumption_savings_monthly = [sum(TESS_consumption_savings_year1[s:f]) for s, f in monthHours]
+	GEN_consumption_savings_monthly = [sum(GEN_consumption_savings_year1[s:f]) for s, f in monthHours]
 
-	## Calculate the consumption cost saved by each DER tech using the input rate structure (monthly data for the whole year)
-	BESS_consumption_cost_monthly_array = [sum(BESS_consumption_cost_year1_array[s:f]) for s, f in monthHours]
-	TESS_consumption_cost_monthly_array = [sum(TESS_consumption_cost_year1_array[s:f]) for s, f in monthHours]
-	GEN_consumption_cost_monthly_array = [sum(GEN_consumption_cost_year1_array[s:f]) for s, f in monthHours]
+	allDevices_consumption_savings_monthly = [a+b+c for a,b,c in zip(BESS_consumption_savings_monthly,TESS_consumption_savings_monthly,GEN_consumption_savings_monthly)]
+	allDevices_consumption_savings_total = sum(allDevices_consumption_savings_monthly)
 
-	## Calculate the consumption cost saved by each DER tech using the input rate structure (yearly data for the entire projection length)
-	BESS_consumption_cost_allyears_array = np.full(projectionLength, sum(BESS_consumption_cost_year1_array))
-	TESS_consumption_cost_allyears_array = np.full(projectionLength, sum(TESS_consumption_cost_year1_array))
-	GEN_consumption_cost_allyears_array = np.full(projectionLength, sum(GEN_consumption_cost_year1_array))
+  	## Get the yearly consumption and demand savings for all DERs
+	BESS_peakDemand_savings_allyears = np.full(projectionLength, sum(BESS_monthly_demand_savings))
+	BESS_consumption_savings_allyears = np.full(projectionLength, sum(BESS_consumption_savings_monthly))
+	BESS_savings_allyears = BESS_peakDemand_savings_allyears + BESS_consumption_savings_allyears
+
+	TESS_peakDemand_savings_allyears = np.full(projectionLength, sum(TESS_monthly_demand_savings))
+	TESS_consumption_savings_allyears = np.full(projectionLength, sum(TESS_consumption_savings_monthly))
+	TESS_savings_allyears = TESS_peakDemand_savings_allyears + TESS_consumption_savings_allyears
+	
+	GEN_peakDemand_savings_allyears = np.full(projectionLength, sum(GEN_monthly_demand_savings))
+	GEN_consumption_savings_allyears = np.full(projectionLength, sum(GEN_consumption_savings_monthly))
+	GEN_savings_allyears = GEN_peakDemand_savings_allyears + GEN_consumption_savings_allyears
 
 	######################################################################################################################################################
 	## COSTS
@@ -823,7 +828,7 @@ def work(modelDir, inputDict):
 		gen_fuel_cost = float(inputDict['fuel_cost'])
 		btu_per_kwh = 3412.0 ## constant
 		thermal_efficiency = float(inputDict['thermal_efficiency'])/100.
-		monthly_GEN_consumption_total = np.array(monthly_GEN_consumption_total)
+		monthly_GEN_consumption_total = np.array([sum(GEN_demand[s:f]) for s,f in monthHours])
 		fuel_type = int(inputDict['fuel_type'])
 
 		if fuel_type == 1: ## Natural Gas
@@ -1007,10 +1012,14 @@ def work(modelDir, inputDict):
 	totalSavings_GEN_allyears_array = GEN_subsidy_allyears_array + GEN_compensation_allyears_array
 
 	## Calculate total savings
-	savings_year1_monthly_array = allDevices_subsidy_year1_monthly_array + allDevices_compensation_year1_monthly_array + np.array(outData['monthlyTotalSavingsAdjustedService'])
+	allDevices_peakDemand_savings_year1_monthly = BESS_monthly_demand_savings + TESS_monthly_demand_savings + GEN_monthly_demand_savings
+	#allDevices_consumption_savings_year1_monthly = np.array(BESS_consumption_savings_monthly)+np.array(TESS_consumption_savings_monthly)+np.array(GEN_consumption_savings_monthly)
+	allDevices_totalService_savings_year1_monthly = allDevices_peakDemand_savings_year1_monthly + monthlyEnergyConsumptionSavings
+	savings_year1_monthly_array = allDevices_subsidy_year1_monthly_array + allDevices_compensation_year1_monthly_array + allDevices_totalService_savings_year1_monthly
 	savings_year1_total = sum(savings_year1_monthly_array)
 	savings_consumption_allyears_array = np.full(projectionLength, sum(monthlyEnergyConsumptionSavings))
-	savings_allyears_array = savings_consumption_allyears_array + allDevices_subsidy_allyears_array + allDevices_compensation_allyears_array
+	savings_demand_allyears_array = np.full(projectionLength, sum(allDevices_peakDemand_savings_year1_monthly))
+	savings_allyears_array = savings_consumption_allyears_array + allDevices_subsidy_allyears_array + allDevices_compensation_allyears_array + savings_demand_allyears_array
 	savings_allyears_total = sum(savings_allyears_array)
 
 	## Calculate net savings = savings - costs
@@ -1050,9 +1059,18 @@ def work(modelDir, inputDict):
 	## Savings Breakdown Per Technology Plot variables
 	## NOTE: Costs are converted to a negative value for plotting purposes
 	######################################################################################################################################################
-	outData['savings_allyears_BESS'] = list(totalSavings_BESS_allyears_array)
-	outData['savings_allyears_TESS'] = list(totalSavings_TESS_allyears_array)
-	outData['savings_allyears_GEN'] = list(totalSavings_GEN_allyears_array)
+	#outData['savings_allyears_BESS'] = list(totalSavings_BESS_allyears_array)
+	#outData['savings_allyears_TESS'] = list(totalSavings_TESS_allyears_array)
+	#outData['savings_allyears_GEN'] = list(totalSavings_GEN_allyears_array)
+	##TODO: check against the totals above
+	outData['savings_consumption_BESS_allyears'] = list(BESS_consumption_savings_allyears)
+	outData['savings_consumption_TESS_allyears'] = list(TESS_consumption_savings_allyears)
+	outData['savings_consumption_GEN_allyears'] = list(GEN_consumption_savings_allyears)
+
+	outData['savings_peakDemand_BESS_allyears'] = list(BESS_peakDemand_savings_allyears)
+	outData['savings_peakDemand_TESS_allyears'] = list(TESS_peakDemand_savings_allyears)
+	outData['savings_peakDemand_GEN_allyears'] = list(GEN_peakDemand_savings_allyears)
+
 	outData['costs_allyears_BESS'] = list(-1.0*(costs_allyears_BESS)) 
 	outData['costs_allyears_TESS'] = list(-1.0*(costs_allyears_TESS))
 	outData['costs_allyears_GEN'] = list(-1.0*(costs_allyears_GEN))
@@ -1078,7 +1096,7 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load.csv')) as f:
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load_tenX.csv')) as f:
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
@@ -1102,7 +1120,7 @@ def new(modelDir):
 		'latitude': '39.969753', ## Brighton, CO
 		'longitude': '-104.812599', ## Brighton, CO
 		'year': '2018',
-		'demandFileName': 'residential_PV_load.csv',
+		'demandFileName': 'residential_PV_load_tenX.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,

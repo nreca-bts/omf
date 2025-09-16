@@ -1032,10 +1032,12 @@ def work(modelDir, inputDict):
 					device_peakDemand_savings_monthly[m] = np.sum(device_peakDemand_savings_year[mask])
 				
 				## Demand (kW) savings
+				## NOTE: Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 				device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
 				outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
 				## Consumption (kWh) savings
+				## NOTE: Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_consumption_savings_allyears, vbatResults_wh_consumption_savings_allyears, vbatResults_hp_consumption_savings_allyears
 				device_consumption_savings_monthly = thermal_device_savings[device_name]['consumption_cost_monthly']
 				device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 				outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
