@@ -196,7 +196,7 @@ def work(modelDir, inputDict):
 	if inputDict.get('urdbLabelBool'):
 		scenario['ElectricTariff']['urdb_label'] = inputDict['urdbLabel']
 	else:
-		scenario['ElectricTariff']['urdb_response'] = inputDict['residentialRateStructureFile']
+		scenario['ElectricTariff']['urdb_response'] = response_file #inputDict['residentialRateStructureFile']
 
 	## Add a Battery Energy Storage System (BESS) section if enabled 
 	if inputDict['enableBESS'] == 'Yes':
@@ -259,17 +259,41 @@ def work(modelDir, inputDict):
 	outData.update(reoptResults) ## Update output file outData with REopt results data
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
+	## TODO: check the error handling here, does it make sense to do it this way?
 	if BESScheck == 'enabled':
-		BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
-		grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
-		outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
+		#try: 
+		#	BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		#	grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
+		#	outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
+		#except KeyError:
+		#	raise Exception('Error: No BESS was found in REopt outputs.')
+		## NOTE: temporarily let BESS pass through as an array of zeros, even though reopt did not build any BESS despite the user enabling it. this means reopt may have solved infeasibly, or something is wrong when building the bess.
+		if 'ElectricStorage' in reoptResults:
+			BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+			grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
+			outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
+		else:
+			warnings.warn("No BESS was found in REopt output. Setting BESS output plot variables to zero.")
+			BESS = np.zeros_like(demand)
+			grid_charging_BESS = np.zeros_like(demand)
+			outData['chargeLevelBattery'] = list(np.zeros_like(demand))
+
 	else:
 		BESS = np.zeros_like(demand)
 		grid_charging_BESS = np.zeros_like(demand)
 		outData['chargeLevelBattery'] = list(np.zeros_like(demand))
 
 	if GENcheck == 'enabled':
-		generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		#try:
+		#	generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		#except KeyError:
+		#	raise Exception('Error: No Generator was found in REopt outputs.')
+		## NOTE: temporarily let gen pass through as an array of zeros, even though reopt did not build any gen despite the user enabling it. this means reopt may have solved infeasibly, or something is wrong when building the gen.
+		if 'Generator' in reoptResults:
+			generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		else:
+			warnings.warn("No Generator was found in REopt output. Setting Generator output plot variables to zero.")
+			generator = np.zeros_like(demand)
 	else:
 		generator = np.zeros_like(demand)
 
@@ -448,7 +472,17 @@ def work(modelDir, inputDict):
 	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
 
 	## Convert all values from kW to Watts for plotting purposes only
-	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	#try:
+	#	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	#except KeyError:
+	#	raise Exception('No ElectricUtility found in REopt outputs. Cannot get electric grid to load series.')
+	if 'ElectricUtility' in reoptResults:
+		grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	else:
+		## NOTE: temporarily let the model finish through this error, even though this means that something is wrong with REopt (infeasible model solve, or otherwise)
+		warnings.warn("No ElectricUtility was found in REopt output. Setting Grid Serving Load output series to zero.")
+		grid_to_load = np.zeros_like(demand)
+
 	grid_to_load_W = np.array(grid_to_load) * 1000.
 	BESS_W = np.array(BESS) * 1000.
 	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
@@ -712,9 +746,11 @@ def work(modelDir, inputDict):
 		denominator = totalDER_at_baseP_dollars
 
 		## Handle edge cases of Fval equation
+		## TODO: combine the zero_mask into fval_hourly to set fval to zero in all those cases
 		fval_hourly = np.divide(
 			numerator,
 			denominator,
+			#out=np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
 			out=np.ones_like(numerator, dtype=float), ## If denomenator=0, set Fval=1
 			where=denominator != 0
 		)
@@ -824,7 +860,11 @@ def work(modelDir, inputDict):
 
 	if GENcheck == 'enabled':
 		## GEN fuel cost
-		gen_annual_fuel_consumption_gal = reoptResults['Generator']['annual_fuel_consumption_gal']
+		if 'Generator' in reoptResults:
+			gen_annual_fuel_consumption_gal = reoptResults['Generator']['annual_fuel_consumption_gal']
+		else:
+			
+			gen_annual_fuel_consumption_gal = 0.0
 		gen_fuel_cost = float(inputDict['fuel_cost'])
 		btu_per_kwh = 3412.0 ## constant
 		thermal_efficiency = float(inputDict['thermal_efficiency'])/100.
@@ -1125,11 +1165,11 @@ def new(modelDir):
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
 		'urdbLabelBool': False,
-		#'residentialRateStructureFileName': 'TODrate66a13566e90ecdb7d40581d2.json',
 		'residentialRateStructureFileName': 'exampleWholesaleRateStructure.json',
 		'residentialRateStructureFile': residential_rate_curve,
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
+
 		## Financial Inputs
 		'projectionLength': '25',
 		'discountRate': '1',
