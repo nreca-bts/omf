@@ -77,14 +77,26 @@ def getDataNames():
 				publicFeeders.append({'name': fname[:-4], 'model': dirpath.split('/')[-1]})
 	return {"climates":sorted(climates), "feeders":feeders, "networks":networks, "publicFeeders":publicFeeders, "currentUser":currUser}
 
-# @app.before_request
-# def csrf_protect():
-# 	pass
-	## NOTE: when we fix csrf validation this needs to be uncommented.
-	# if request.method == "POST":
-	#	token = session.get("_csrf_token", None)
-	#	if not token or token != request.form.get("_csrf_token"):
-	#		abort(403)
+ALLOWED_ORIGINS = {
+	"https://omf.coop",
+	"https://www.omf.coop",
+	"http://localhost:5001",
+	"http://127.0.0.1:5001"
+}
+
+def _is_same_origin():
+	origin = request.headers.get("Origin")
+	if origin:
+		return origin in ALLOWED_ORIGINS
+	# Fallback to Referer (some clients may omit Origin)
+	referer = request.headers.get("Referer", "")
+	return any(referer.startswith(o + "/") for o in ALLOWED_ORIGINS)
+
+@app.before_request
+def only_same_origin():
+	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+		if not _is_same_origin():
+			abort(403)
 
 ###################################################
 # AUTHENTICATION AND USER FUNCTIONS
@@ -157,15 +169,6 @@ def load_user(username):
 	with locked_open(os.path.join(_omfDir, 'data', 'User', username + '.json')) as f:
 		data = json.load(f)
 	return User(data)
-
-
-def generate_csrf_token():
-	if "_csrf_token" not in session:
-		session["_csrf_token"] = cryptoRandomString()
-	return session["_csrf_token"]
-
-
-app.jinja_env.globals["csrf_token"] = generate_csrf_token
 
 
 def _is_safe_url(target: str) -> bool:
@@ -2189,4 +2192,4 @@ if __name__ == "__main__":
 	print('App starting with gunicorn. Errors are going to omf.error.log.')
 	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5001', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
 	appProc.wait()
-	# app.run(debug=True, host="0.0.0.0", extra_files=template_files + model_files)
+	# app.run(debug=True, host="0.0.0.0", port=5001, extra_files=template_files + model_files)
