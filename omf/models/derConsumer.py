@@ -121,49 +121,55 @@ def work(modelDir, inputDict):
 			if isinstance(inputDict['residentialRateStructureFile'], dict):
 				response_file = inputDict['residentialRateStructureFile']
 
-	## TODO: Add functionality to use the Residential Rate Curve (.csv) file. Probably requires a dropdown menu input to select between (.csv) vs. (.json) vs. urdb label.
-	#energy_rate_array = [float(value) for value in inputDict['energyRateStructureFile'].split('\n') if value.strip()]
-	
-	## --- Energy Rate Construction ---
-	## Construct the energy rate array from the REopt JSON response file
-	#energy_rate_array, monthly_demand_charge, demand_rate_array = construct_tou_tariff_arrays(response_file, timestamps)
-	#energy_rate_array = construct_energy_rate_array(response_file, timestamps)
-	energy_rate_array = np.zeros(8760) ## Initialize array
+	########################################################################################################################################################
+	## Construct the Energy Rate Array using the JSON response file input
+	########################################################################################################################################################
+	energy_rate_array = np.zeros(8760)
 	if 'energyratestructure' in response_file:
 		## The energy rate structure refers to a nested list of dictionary items with "rate" and "unit" keys
 		## For example: response_file['energyratestructure'] = [[{'rate': 0, 'unit': 'kWh'}], [{'rate': 0.06, 'unit': 'kWh'}], [{'rate': 0.1525, 'unit': 'kWh'}]]
-		## Must first flatten the nested list of dictionary objects and extract the rate information for index-based access
 		energy_weekday_schedule = response_file['energyweekdayschedule']
 		energy_weekend_schedule = response_file['energyweekendschedule']
-		energy_rate_structure_flattened = [item[0] for item in response_file['energyratestructure']]
-		energy_rates = [item['rate'] for item in energy_rate_structure_flattened]
+		energy_rate_periods = response_file['energyratestructure']
 
-		## Calculate the maximum cumulative kWh per month, for rate structures that include a maximum kWh limit for which the $/kWh rate is applied
+		## For each rate period, assemble the maximum kWh threshold and the corresponding energy rate
+		tier_thresholds_by_period = []
+		for period in energy_rate_periods:
+			cumulative_max = 0
+			thresholds = []
+			for tier in period:
+				if 'max' in tier:
+					cumulative_max += tier['max'] ## See Section 6.1 Electric Rate Tariff in the REopt documentation for an explanation of how this max kWh is interpreted: https://reopt.nrel.gov/tool/reopt-user-manual.pdf#page=5
+					thresholds.append((cumulative_max, tier['rate']))
+				else: ## If no max, then the tier rate is applied to all remaining kWh (e.g. No max would be found for the Period 0 rate placeholder, the last tier of a tiered period, or a single tier in a period.)
+					thresholds.append((np.inf, tier['rate']))
+			tier_thresholds_by_period.append(thresholds)
+
+		## Calculate the maximum cumulative kWh for each hour per month. This is for tiered energy rate structures that include a maximum kWh limit for which the $/kWh rate is applied
 		energy_monthly_cumulative_sum = np.zeros_like(demand)
-		for s,f in monthHours:
+		for s, f in monthHours:
 			energy_monthly_cumulative_sum[s:f] = np.cumsum(demand[s:f])
 
-		## Construct an array of 8760 elements representing the hourly energy rates ($/kWh) for the entire year
-		## TODO: Convert these for loops and if/else statements into a more Pythonic way with list comprehension
+		## Fill the energy_rate_array with hourly energy rates ($/kWh) for the entire year, according to the appropriate rate schedule, period, and tier rate.
 		for hour_index, date in enumerate(timestamps):
-			if date.weekday() < 5:  ## Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
-				rate_data_weekday = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]
-				if 'max' in rate_data_weekday:
-					if energy_monthly_cumulative_sum[hour_index] <= rate_data_weekday['max']: ## Only apply the rate up to the maximum kWh specified
-						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate'] ## NOTE: date.month is offset by 1 due to 0 indexing
-					else:
-						energy_rate_array[hour_index] = 0
-				else:
-					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekday_schedule[date.month-1][date.hour]]['rate']
+			month = date.month - 1 ## NOTE: date.month is offset by 1 due to 0 indexing
+			if date.weekday() < 5: ## NOTE: Weekdays (Monday=0, Sunday=7) - use the weekday rate schedule
+				period_number = energy_weekday_schedule[month][date.hour]
 			else: ## Weekends - use the weekend rate schedule
-				rate_data_weekend = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]
-				if 'max' in rate_data_weekend:
-					if energy_monthly_cumulative_sum[hour_index] <= rate_data_weekend['max']: ## Only apply the rate up to the maximum kWh specified
-						energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
-					else:
-						energy_rate_array[hour_index] = 0
-				else:
-					energy_rate_array[hour_index] = energy_rate_structure_flattened[energy_weekend_schedule[date.month-1][date.hour]]['rate'] 
+				period_number = energy_weekend_schedule[month][date.hour]
+
+			## Get the tier thresholds for the current rate period
+			if period_number >= len(tier_thresholds_by_period):
+				raise ValueError(f"Period number {period_number} not found in energyratestructure in the Wholesale Energy Rate Structure (.json) file.")
+
+			thresholds = tier_thresholds_by_period[period_number]
+			monthly_kwh = energy_monthly_cumulative_sum[hour_index]
+
+			## Apply the energy rate within the proper tier thresholds
+			for max_kwh, rate in thresholds:
+				if monthly_kwh <= max_kwh:
+					energy_rate_array[hour_index] = rate
+					break
 	else:
 		raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 
