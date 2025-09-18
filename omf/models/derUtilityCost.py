@@ -1088,9 +1088,9 @@ def work(modelDir, inputDict):
 			numerator,
 			denominator,
 			out = np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-			where = denominator != 0 or (numerator == 0) & (denominator == 0)
+			where = denominator !=0
 		)
-		fval_monthly_cleaned = np.nan_to_num(fval_monthly, nan=1.0, posinf=1.0, neginf=1.0) ## If nan and +/- inf values, set Fval=1)
+		fval_monthly_cleaned = np.nan_to_num(fval_monthly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
 		zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
 		fval_monthly_cleaned[zero_mask] = 0.0
 
