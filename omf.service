@@ -3,10 +3,14 @@ Description=Open Modeling Framework
 After=syslog.target network.target
 
 [Service]
+User=omf
+Group=omf
 WorkingDirectory=/omf/omf/
 ExecStart=/usr/bin/python3 webProd.py
 ExecStop=
 Restart=on-failure
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
