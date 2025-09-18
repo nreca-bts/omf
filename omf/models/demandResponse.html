@@ -4,6 +4,19 @@
 		#firstYearSummaryTable td, th {padding:7 0 5 0; text-align:left; font-size:0.8em;}
 	</style>
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
+	<!--  Macro for direct file upload usage:
+		file_upload('fileInputID', 'userInputVoltage', 'voltageDataFileName')
+		line 1: input for the actual file. There should be no value in inputDict that matches this one.
+		line 2: button for file upload, thats it.
+		line 3: the name of the file the user is using/inputting in. We wanna save this for display. Originally its set as the default.
+		line 4: This is hidden. This is the name of the file we want always = .csv name <- default naming convention
+	-->
+	{% macro file_upload(fileInputID, userFileDisplayNameID, dataFileNameID) -%}
+    <input type="file" id="{{fileInputID}}" name="{{ allInputDataDict[dataFileNameID] }}" accept=".csv" class="fileButton" onchange="updateFileNameDisplay('{{fileInputID}}', '{{userFileDisplayNameID}}', '{{dataFileNameID}}')" style="display:none"><br>
+    <label for="{{fileInputID}}" class="fileButton">Choose File</label>
+    <input id="{{userFileDisplayNameID}}" name="{{userFileDisplayNameID}}" value="{{ allInputDataDict[userFileDisplayNameID] }}" readonly class="uploadFileName">
+    <input id="{{dataFileNameID}}" name= {{dataFileNameID}} type="hidden" value="{{ allInputDataDict[dataFileNameID] }}">
+	{% endmacro %}
 </head>
 <body>
 	{{ omfModelTitle }}
@@ -56,12 +69,7 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Demand Curve (.csv file)<span class="classic">Please see the documentation at the help link for the required format. If this field is blank the OMF will re-use the file from the previous run.</span></label>
-				<input id="demandCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'demandCurve','fileName')">
-				<input id="demandCurve" name="demandCurve" value="{{allInputDataDict.demandCurve}}" type="hidden">
-				<div>
-					<label for="demandCurveFile" class="fileButton">Choose File</label>
-					<input id="fileName" name="fileName" value="{{allInputDataDict.fileName}}" value='' readonly class="uploadFileName">
-				</div>
+				<div>{{ file_upload('demandCurveDataFile', 'demandCurveUserDisplayName', 'demandCurveDataFileName') }}</div>
 			</div>
 			<div class="wideInput">
 				<p class="inputSectionHeader">Demand Response Program Variables</p>
