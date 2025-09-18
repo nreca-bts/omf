@@ -35,6 +35,27 @@ def work(modelDir, inputDict):
 
 	## Delete output file every run if it exists
 	outData = {}
+	
+	########################################################################################################################
+	## Handle and save user input files
+	########################################################################################################################
+	## Remove old input files if necessary
+	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_residential_rate_structure.json','input_urdbLabel_responseFile.json']
+	for FileName in inputFileNames:
+		try:
+			os.remove(pJoin(modelDir, FileName))
+		except OSError:
+			pass
+
+	## Save all input files, except the response file (later)
+	with open(pJoin(modelDir, 'input_demand.csv'), 'w') as f:
+		f.write(inputDict['demandCurve'].replace('\r', ''))
+	with open(pJoin(modelDir, 'input_temperature.csv'), 'w') as f:
+		f.write(inputDict['temperatureCurve'].replace('\r', ''))
+
+	########################################################################################################################
+	## Process input demand, temperature, and other input variables
+	########################################################################################################################
 
 	## Convert user provided demand and temp data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
@@ -108,6 +129,11 @@ def work(modelDir, inputDict):
 				return None
 		else:
 			print(f"Request failed with status code: {response.status_code}")
+		
+		## Save response file to modelDir
+		with open(pJoin(modelDir, 'input_urdbLabel_responseFile.json'), 'w') as jsonFile:
+			json.dump(response_file, jsonFile)
+
 	else: ## If the Residential Response File (.json) is chosen and provided, use the user-provided .json response file
 		try:
 			## Try to normally parse the JSON file
@@ -120,6 +146,10 @@ def work(modelDir, inputDict):
 			## Use the residential_rate_curve if it is already a Python dictionary
 			if isinstance(inputDict['residentialRateStructureFile'], dict):
 				response_file = inputDict['residentialRateStructureFile']
+
+		## Save response file to modelDir
+		with open(pJoin(modelDir, 'input_residential_rate_structure.json'), 'w') as jsonFile:
+			json.dump(response_file, jsonFile)
 
 	########################################################################################################################################################
 	## Construct the Energy Rate Array using the JSON response file input
@@ -757,10 +787,10 @@ def work(modelDir, inputDict):
 			numerator,
 			denominator,
 			#out=np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-			out=np.ones_like(numerator, dtype=float), ## If denomenator=0, set Fval=1
+			out=np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
 			where=denominator != 0
 		)
-		fval_hourly_cleaned = np.nan_to_num(fval_hourly, nan=1.0, posinf=1.0, neginf=1.0) ## If nan and +/- inf values, set Fval=1)
+		fval_hourly_cleaned = np.nan_to_num(fval_hourly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
 		zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
 		fval_hourly_cleaned[zero_mask] = 0.0
 
