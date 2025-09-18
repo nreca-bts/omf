@@ -1387,7 +1387,7 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 	return requestSuccess
 
 # Processing the zip files into one nice large CSV
-def cds_process_weather_data(modelDir, dataDirName:str="copernicusData", outputDataFile: str="output_cdsWeatherDataFull.csv") -> list:
+def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDataFile: str="output_cdsWeatherDataFull.csv") -> list:
 	'''
 	Turning multiple copernicus zip files into one CSV
 	Returns a tuple (dataset, dataframe) of combined data
@@ -1422,7 +1422,10 @@ def cds_process_weather_data(modelDir, dataDirName:str="copernicusData", outputD
 	return [total_weather_data_ds, total_weather_data_df]
 
 # Cool stuff with copernicus data
-def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
+def cds_csvModifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
+	'''
+
+	'''
 	copernicus_df = pd.read_csv(cdsDataFile)
 	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
 	copernicus_df = copernicus_df.set_index("Timestamp")
@@ -1456,11 +1459,11 @@ def cdsCoper_to_pvwatts_solar_csv_modifications(cdsDataFile: str="output_cdsWeat
 	])
 	return weather_data
 
-def get_solar(copernicus_csv_path):
+def cds_getSolar(copernicus_csv_path):
 	import PySAM.Pvwattsv8 as pvwatts
 
 	# weather_data[2] is the first index
-	weather_data = cdsCoper_to_pvwatts_solar_csv_modifications(copernicus_csv_path)
+	weather_data = cds_csvModifications(copernicus_csv_path)
 	sys_design = {
     "ModelParams": {
         "SystemDesign": {
@@ -1599,7 +1602,7 @@ def format_windpowerlib(ds):
     df.dropna(inplace=True)
     return df
 
-def _cds_get_wind(weather_dataset):
+def cds_getWind(weather_dataset):
 	from omf.solvers import feedinlib_custom
 
 	bergey_turbine_data = {
@@ -1620,7 +1623,7 @@ def _cds_get_wind(weather_dataset):
 	wind_output_ds.reset_index(drop=True, inplace=True)
 	return wind_output_ds
 
-def get_nrel_wind_data(modelDir, year: int, longitude: float, latitude: float) -> bool:
+def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
 	successFlag = False
 	filesInModelDir = os.listdir(modelDir)
 	for file in filesInModelDir:
@@ -1634,7 +1637,7 @@ def get_nrel_wind_data(modelDir, year: int, longitude: float, latitude: float) -
 	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
-		raise Exception(f"get_nrel_wind_data(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+		raise Exception(f"nrel_getWindData: API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
 	else:
 		text = response.text
 		with open( Path(modelDir,"output_NREL_wind_data.csv"), "w") as text_file:
@@ -1642,7 +1645,7 @@ def get_nrel_wind_data(modelDir, year: int, longitude: float, latitude: float) -
 		successFlag = True
 	return successFlag
 
-def nrel_pysam_wind(modelDir, year: int, longitude: float, latitude: float):
+def nrel_pysamWind(modelDir, year: int, longitude: float, latitude: float):
 	'''
 		'windpower-inputs.json' - windpower defaults
 		'wind-turbines.json' - wind turbine data. 
@@ -1650,23 +1653,23 @@ def nrel_pysam_wind(modelDir, year: int, longitude: float, latitude: float):
 	import PySAM.Windpower as wp
 
 	wind_turbine_model = wp.new()
-	testFileDir = Path(omfDir, "static", "testFiles", "weatherPulling", "nrel_wind_turbine_defaults")
+	testFileDir = Path(omfDir, "static", "testFiles", "weatherPulling", "nrel_windTurbineDefaults")
 	# Add try here
-	with open( Path(testFileDir, 'windpower-inputs.json'), 'r') as json_file:
+	with open( Path(testFileDir, 'input_windpower.json'), 'r') as json_file:
 		windpower_data = json.load(json_file)
 		
 		for k, v in windpower_data.items():
 			if k != 'number_inputs':
 				wind_turbine_model.value(k, v)
 
-	successFlag = get_nrel_wind_data(modelDir, year, longitude, latitude)
+	successFlag = _nrel_getWindData(modelDir, year, longitude, latitude)
 	if successFlag:
 		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_wind_data.csv')
 	else:
-		raise Exception(f"nrel_wind(): API Request Failed")
+		raise Exception(f"nrel_pysamWin: API Request Failed")
 	wind_turbine_model.value('wind_resource_shear', 0.14)
 	# load wind turbine parameters from JSON
-	with open( Path(testFileDir, 'wind-turbines.json'), 'r') as file:
+	with open( Path(testFileDir, 'input_windTurbines.json'), 'r') as file:
 		turbine_data = json.load(file)
 	# set up wind farm for one turbine
 	wind_turbine_model.value('wind_farm_xCoordinates', [ -71.25 ])
@@ -1686,11 +1689,12 @@ def nrel_pysam_wind(modelDir, year: int, longitude: float, latitude: float):
 		print(turbine['name'])
 		print('annual energy (kWh) = ', wind_turbine_model.Outputs.annual_energy)
 		print('capacity factor = ', wind_turbine_model.Outputs.capacity_factor)
+		return wind_turbine_model.Outputs
 
 
 ##################### api.weather.gov Forecast Functions #####################
 
-def weatherGridpointRequest(latitude: float, longitude: float) -> tuple:
+def weatherGov_GridPointRequest(latitude: float, longitude: float) -> tuple:
 	'''
 
 	Converts Latitude and Longitude to api.weather.gov gridpoint system
@@ -1702,19 +1706,19 @@ def weatherGridpointRequest(latitude: float, longitude: float) -> tuple:
 	request_for_grid = base_url + f"{latitude},{longitude}"
 	grid_data = requests.get(request_for_grid)
 	if grid_data.status_code != 200:
-		raise Exception(f"weatherGridpointRequest(): API request failed :: Request Code: {grid_data.status_code} :: Reason: {grid_data.reason}")
+		raise Exception(f"weatherGov_GridPointRequest(): API request failed :: Request Code: {grid_data.status_code} :: Reason: {grid_data.reason}")
 	grid_data_json = grid_data.json()
 	gridX = grid_data_json["properties"]["gridX"]
 	gridY = grid_data_json["properties"]["gridY"]
 	if gridX == "null" or gridY == "null":
-		print(f"weatherGridpointRequest(): gridX and/or gridY returned null. Lat/Long coordinates inputted are invalid")
+		print(f"weatherGov_GridPointRequest(): gridX and/or gridY returned null. Lat/Long coordinates inputted are invalid")
 		exit(1)
 	gridCoords = (str(gridX), str(gridY))
 	return gridCoords
 
 	# if gridx and gridy are null it wasn't valid lat/long coordinates?
 
-def newsWeatherForecast(latitude: float, longitude: float, interval="", nws_code=""):
+def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code=""):
 	'''
 		Pulls hourly data from the National Weather Service
 		Docs: https://weather-gov.github.io/api/
@@ -1727,19 +1731,19 @@ def newsWeatherForecast(latitude: float, longitude: float, interval="", nws_code
 	import pandas as pd
 
 	base_url = "https://api.weather.gov/gridpoints"
-	gridCoords = weatherGridpointRequest(latitude=latitude, longitude=longitude)
+	gridCoords = weatherGov_GridPointRequest(latitude=latitude, longitude=longitude)
 	if interval.lower() == "hourly":
 		request_url = f"{base_url}/{nws_code}/{gridCoords[0]},{gridCoords[1]}/forecast/hourly"
 	elif interval.lower == "":
 		request_url = f"{base_url}/{nws_code}/{gridCoords[0]},{gridCoords[1]}/forecast"
 	else:
-		print(f"newsWeatherForecast(): interval value inputted is not 'hourly' or '' - the only 2 accepted values")
+		print(f"weatherGov_forecast(): interval value inputted is not 'hourly' or '' - the only 2 accepted values")
 	# print(f"request_url: {request_url}")
 	response = requests.get(request_url)
 	if response.status_code == 404:
-		raise Exception(f"newsWeatherForecast(): API Request Failed. :: Dataset URL does not exist: {response.url}. Hint: Check coords/grid values")
+		raise Exception(f"weatherGov_forecast(): API Request Failed. :: Dataset URL does not exist: {response.url}. Hint: Check coords/grid values")
 	elif response.status_code != 200:
-		raise Exception(f"newsWeatherForecast(): API request failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+		raise Exception(f"weatherGov_forecast(): API request failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
 	else:
 		json_response = json.loads(response.text)
 		dict_list = []
