@@ -169,7 +169,7 @@ def work(modelDir, inputDict):
 			thresholds = []
 			for tier in period:
 				if 'max' in tier:
-					cumulative_max += tier['max'] ## See Section 6.1 Electric Rate Tariff in the REopt documentation for an explanation of how this max kWh is interpreted: https://reopt.nrel.gov/tool/reopt-user-manual.pdf#page=5
+					cumulative_max += tier['max'] ## See Section 6.1 Electric Rate Tariff in the REopt documentation for an explanation of how this max kWh is interpreted: https://reopt.nrel.gov/tool/reopt-user-manual.pdf
 					thresholds.append((cumulative_max, tier['rate']))
 				else: ## If no max, then the tier rate is applied to all remaining kWh (e.g. No max would be found for the Period 0 rate placeholder, the last tier of a tiered period, or a single tier in a period.)
 					thresholds.append((np.inf, tier['rate']))
