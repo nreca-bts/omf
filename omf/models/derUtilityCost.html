@@ -213,32 +213,6 @@
 				<label class="tooltip">Home Generators - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any upfront subsidies).</span></label>
 				<input type="text" id="GEN_subsidy_ongoing" name="GEN_subsidy_ongoing" value="{{allInputDataDict.GEN_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
-			
-
-			<!-- Chemical BESS Inputs -->
-			<div class="wideInput"> 
-				<p class="inputSectionHeader">Home Chemical Battery Energy Storage Device Inputs</p>
-			</div>
-			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
-			<div class="shortInput">
-				<label class="tooltip">Enable Use of Home Chemical BESS?<span class="classic">If yes, model will run with home chemical batteries.</span></label>
-				<select id="enableBESS" name="enableBESS" value="{{allInputDataDict.enableBESS}}">
-					<option value='Yes' {{ 'selected' if allInputDataDict.enableBESS == 'Yes' }}>Yes</option>
-					<option value='No' {{ 'selected' if allInputDataDict.enableBESS == 'No' }}>No</option>
-				</select>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Number of Home Chemical Batteries<span class="classic">Total number of home chemical batteries to model.</span></label>
-				<input type="text" id="number_devices_BESS" name="number_devices_BESS" value="{{allInputDataDict.number_devices_BESS}}" required="required">
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Battery Power Capacity (kW)<span class="classic">Specify the home chemical battery power capacity in kW for each individual battery enrolled by a member-consumer.</span></label>
-				<input type="text" id="BESS_kw" name="BESS_kw" value="{{allInputDataDict.BESS_kw}}" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Battery Energy Capacity (kWh)<span class="classic">Specify the home chemical battery energy capacity in kWh for each individual battery enrolled by a member-consumer.</span></label>
-				<input type="text" id="BESS_kwh" name="BESS_kwh" value="{{allInputDataDict.BESS_kwh}}" required="required"/>
-			</div>
 
 			<!-- Fossil Fuel Generator Inputs -->
 			<div class="wideInput"> 
@@ -294,6 +268,31 @@
 			<div class="shortInput">
 				<label class="tooltip">Fuel Cost<span class="classic">Specify the cost of fuel used for the generator. For natural gas, this input expects units of $/cubic foot. For all other liquid fuels, the expected units are $/gallon.</span></label>
 				<input type="text" id="fuel_cost" name="fuel_cost" value="{{allInputDataDict.fuel_cost}}" required="required"/>
+			</div>
+
+			<!-- Chemical BESS Inputs -->
+			<div class="wideInput"> 
+				<p class="inputSectionHeader">Home Chemical Battery Energy Storage Device Inputs</p>
+			</div>
+			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
+			<div class="shortInput">
+				<label class="tooltip">Enable Use of Home Chemical BESS?<span class="classic">If yes, model will run with home chemical batteries.</span></label>
+				<select id="enableBESS" name="enableBESS" value="{{allInputDataDict.enableBESS}}">
+					<option value='Yes' {{ 'selected' if allInputDataDict.enableBESS == 'Yes' }}>Yes</option>
+					<option value='No' {{ 'selected' if allInputDataDict.enableBESS == 'No' }}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Number of Home Chemical Batteries<span class="classic">Total number of home chemical batteries to model.</span></label>
+				<input type="text" id="number_devices_BESS" name="number_devices_BESS" value="{{allInputDataDict.number_devices_BESS}}" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home Battery Power Capacity (kW)<span class="classic">Specify the home chemical battery power capacity in kW for each individual battery enrolled by a member-consumer.</span></label>
+				<input type="text" id="BESS_kw" name="BESS_kw" value="{{allInputDataDict.BESS_kw}}" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home Battery Energy Capacity (kWh)<span class="classic">Specify the home chemical battery energy capacity in kWh for each individual battery enrolled by a member-consumer.</span></label>
+				<input type="text" id="BESS_kwh" name="BESS_kwh" value="{{allInputDataDict.BESS_kwh}}" required="required"/>
 			</div>
 
 			<!-- Air Conditioner (vbatDispatch) Inputs -->
@@ -419,9 +418,6 @@
 				<label class="tooltip">Temperature Deadband (&degC)<span class="classic">Deadband for each home thermal device. Must be between 0.125 and 3.</span></label>
 				<input type="text" id="deadband_wh" name="deadband_wh" value="{{allInputDataDict.deadband_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
-
-
-
 
 			{{ omfModelButtons }}
 		</form>

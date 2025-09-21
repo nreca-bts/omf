@@ -1157,14 +1157,17 @@ def work(modelDir, inputDict):
   	## Get the yearly consumption and demand savings for all DERs
 	BESS_peakDemand_savings_allyears = np.full(projectionLength, sum(BESS_monthly_demand_savings))
 	BESS_consumption_savings_allyears = np.full(projectionLength, sum(BESS_consumption_savings_monthly))
-	BESS_savings_allyears = BESS_peakDemand_savings_allyears + BESS_consumption_savings_allyears
+	BESS_savings_year1_monthly_array = np.array(BESS_consumption_savings_monthly) + np.array(BESS_monthly_demand_savings)
+	BESS_savings_allyears = BESS_peakDemand_savings_allyears + np.array(BESS_consumption_savings_allyears)
 
 	TESS_peakDemand_savings_allyears = np.full(projectionLength, sum(TESS_monthly_demand_savings))
 	TESS_consumption_savings_allyears = np.full(projectionLength, sum(TESS_consumption_savings_monthly))
+	TESS_savings_year1_monthly_array = np.array(TESS_consumption_savings_monthly) + np.array(TESS_monthly_demand_savings)
 	TESS_savings_allyears = TESS_peakDemand_savings_allyears + TESS_consumption_savings_allyears
 
 	GEN_peakDemand_savings_allyears = np.full(projectionLength, sum(GEN_monthly_demand_savings))
 	GEN_consumption_savings_allyears = np.full(projectionLength, sum(GEN_consumption_savings_monthly))
+	GEN_savings_year1_monthly_array = np.array(GEN_consumption_savings_monthly) + np.array(GEN_monthly_demand_savings)
 	GEN_savings_allyears = GEN_peakDemand_savings_allyears + GEN_consumption_savings_allyears
 
 	######################################################################################################################################################
@@ -1272,7 +1275,7 @@ def work(modelDir, inputDict):
 	## Calculate the financial savings of controlling member-consumer DERs
 	## NOTE: The savings are the sum of the energy consumption savings and peak demand savings
 	######################################################################################################################################################
-	utilitySavings_year1_monthly_array = BESS_savings_allyears[0] + TESS_savings_allyears[0] + GEN_savings_allyears[0]
+	utilitySavings_year1_monthly_array = BESS_savings_year1_monthly_array + TESS_savings_year1_monthly_array + GEN_savings_year1_monthly_array #BESS_savings_allyears[0] + TESS_savings_allyears[0] + GEN_savings_allyears[0]
 	utilitySavings_year1_total = np.sum(utilitySavings_year1_monthly_array)
 	utilitySavings_allyears_array = np.full(projectionLength, utilitySavings_year1_total)
 	utilitySavings_allyears_total = np.sum(utilitySavings_allyears_array)
@@ -1425,16 +1428,16 @@ def new(modelDir):
 		'rateCompensation': '0.02', ## unit: $/kWh
 		'discountRate': '2',
 		'startupCosts': '200000',
-		'TESS_subsidy_onetime_ac': '25.0',
-		'TESS_subsidy_ongoing_ac': '0.0',
-		'TESS_subsidy_onetime_hp': '100.0',
-		'TESS_subsidy_ongoing_hp': '0.0',
-		'TESS_subsidy_onetime_wh': '25.0',
-		'TESS_subsidy_ongoing_wh': '0.0',
 		'BESS_subsidy_onetime': '100.0',
-		'BESS_subsidy_ongoing': '0.0',
+		'BESS_subsidy_ongoing': '55.0',
+		'TESS_subsidy_onetime_ac': '25.0',
+		'TESS_subsidy_ongoing_ac': '5.0',
+		'TESS_subsidy_onetime_hp': '25.0',
+		'TESS_subsidy_ongoing_hp': '5.0',
+		'TESS_subsidy_onetime_wh': '25.0',
+		'TESS_subsidy_ongoing_wh': '5.0',
 		'GEN_subsidy_onetime': '25.0',
-		'GEN_subsidy_ongoing': '0.0',
+		'GEN_subsidy_ongoing': '5.0',
 		'operationalCosts_ongoing': '1000.0',
 		'operationalCosts_onetime': '20000.0',
 

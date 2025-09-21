@@ -1218,35 +1218,35 @@ def new(modelDir):
 		## Financial Inputs
 		'projectionLength': '25',
 		'discountRate': '1',
-		'rateCompensation': '0.1', ## unit: $/kWh
+		'rateCompensation': '0.02', ## unit: $/kWh
 		'subsidyUpfront': '50',
 		'subsidyOngoing': '10',
+		'BESS_subsidy_onetime': '100.0',
+		'BESS_subsidy_ongoing': '55.0',
 		'TESS_subsidy_onetime_ac': '25.0',
 		'TESS_subsidy_ongoing_ac': '5.0',
 		'TESS_subsidy_onetime_hp': '25.0',
 		'TESS_subsidy_ongoing_hp': '5.0',
 		'TESS_subsidy_onetime_wh': '25.0',
 		'TESS_subsidy_ongoing_wh': '5.0',
-		'BESS_subsidy_onetime': '100.0',
-		'BESS_subsidy_ongoing': '55.0',
 		'GEN_subsidy_onetime': '25.0',
 		'GEN_subsidy_ongoing': '5.0',
 
 		## Chemical Battery Inputs
 		## Modeled after residential Tesla Powerwall 3 battery specs
 		'enableBESS': 'Yes',
-		'BESS_kw': '5',
+		'BESS_kw': '5.0',
 		'BESS_kwh': '13.5',
 		'BESS_retrofit_cost': '0.0',
 		'utility_BESS_portion': '20',
 		'total_govt_rebate': '0.0', ## No incentives considered
-		'replace_cost_per_kw': '324.0', 
-		'replace_cost_per_kwh': '351.0', 
+		'replace_cost_per_kw': '0.0', #'324.0', 
+		'replace_cost_per_kwh': '0.0', #'351.0', 
 		'battery_replacement_year': '10',  
 		'BESS_installed_cost': '0.0', 
 		'total_itc_fraction': '0.0', ## No ITC
 		'inverter_replacement_year': '10',
-		'replace_cost_inverter': '2400',
+		'replace_cost_inverter': '0.0', #'2400',
 
 		## Fossil Fuel Generator
 		## NOTE: Generac Guardian models range from 10-26 kW
@@ -1257,13 +1257,13 @@ def new(modelDir):
 		'gen_retrofit_cost': '0.0',
 		'fuel_avail': '1000', 
 		'fuel_cost': '3.80',
-		'replace_cost_generator_per_kw': '450',
+		'replace_cost_generator_per_kw': '0.0', #'450',
 		'generator_replacement_year': '15',
 
 		## Home Air Conditioner inputs (vbatDispatch):
 		'load_type_ac': '1',
 		'unitDeviceCost_ac': '13', #a cheap wifi-enabled smart outlet to plug the AC into is about $13 (see https://www.lowes.com/pd/Enbrighten-125-Volt-1-Outlet-Indoor-Smart-Plug/1003202046)
-		'unitUpkeepCost_ac': '0', ## NOTE: Input is currently hidden in HTML
+		'unitUpkeepCost_ac': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_ac': '0.5', ## In-window air unit power
 		'capacitance_ac': '2',
 		'resistance_ac': '2',
@@ -1274,7 +1274,7 @@ def new(modelDir):
 		## Home Heat Pump inputs (vbatDispatch):
 		'load_type_hp': '2', 
 		'unitDeviceCost_hp': '150',
-		'unitUpkeepCost_hp': '0', ## NOTE: Input is currently hidden in HTML
+		'unitUpkeepCost_hp': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_hp': '5.6',
 		'capacitance_hp': '2',
 		'resistance_hp': '2',
@@ -1285,7 +1285,7 @@ def new(modelDir):
 		## Home Water Heater inputs (vbatDispatch):
 		'load_type_wh': '4', 
 		'unitDeviceCost_wh': '175',
-		'unitUpkeepCost_wh': '0', ## NOTE: Input is currently hidden in HTML
+		'unitUpkeepCost_wh': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_wh': '4.5',
 		'capacitance_wh': '0.4',
 		'resistance_wh': '120',
