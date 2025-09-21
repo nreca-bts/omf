@@ -739,6 +739,7 @@ def work(modelDir, inputDict):
 	GEN_demand = np.array(generator)
 	demand = np.array(demand)
 
+
 	## Convert negative zeros into positive zeros to avoid sign errors
 	demand[demand == -0.0] = 0.0
 	BESS_demand[BESS_demand == -0.0] = 0.0 
@@ -746,7 +747,7 @@ def work(modelDir, inputDict):
 	GEN_demand[GEN_demand == -0.0] = 0.0 
 
 	## Placeholders for total monthly demand savings for BESS, TESS, and GEN
-	BESS_monthly_demand_savings = np.zeros(12) 	
+	BESS_monthly_demand_savings = np.zeros(12)
 	TESS_monthly_demand_savings = np.zeros(12)
 	GEN_monthly_demand_savings  = np.zeros(12)
 	
@@ -766,6 +767,7 @@ def work(modelDir, inputDict):
 		withDERs_restacked = list(zip(*period_max_dollar_indices_withDERs))
 
 		index_withDERs = np.array(withDERs_restacked[0])
+
 		dollar_withDERs = np.array(withDERs_restacked[1]) ##this is the total demand charge cost in dollars per hourly period window for the demand curve with all DERs
 		rate_withDERs = np.array(withDERs_restacked[2])
 
