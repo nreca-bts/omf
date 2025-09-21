@@ -947,7 +947,14 @@ def work(modelDir, inputDict):
 	GEN_demand = np.array(generator)
 	demand = np.array(demand)
 
-	BESS_monthly_demand_savings = np.zeros(12) 	## Placeholders for total monthly demand savings for BESS, TESS, and GEN
+	## Convert negative zeros into positive zeros to avoid sign errors
+	demand[demand == -0.0] = 0.0
+	BESS_demand[BESS_demand == -0.0] = 0.0
+	TESS_demand[TESS_demand == -0.0] = 0.0 
+	GEN_demand[GEN_demand == -0.0] = 0.0 
+
+	## Placeholders for total monthly demand savings for BESS, TESS, and GEN
+	BESS_monthly_demand_savings = np.zeros(12)
 	TESS_monthly_demand_savings = np.zeros(12)
 	GEN_monthly_demand_savings  = np.zeros(12)
 
@@ -1022,6 +1029,7 @@ def work(modelDir, inputDict):
 			for device_name in single_device_results:
 				## Apply Fval to the hourly demand for each thermal device
 				device_demand = thermal_device_savings[device_name]['demand']
+				device_demand[device_demand == -0.0] = 0.0 ## Convert negative zeros into positive zeros to avoid sign errors
 				device_demand_at_baseP = device_demand[index_noDERs]
 				device_demand_at_adjP = device_demand[index_withDERs]
 				device_at_baseP_dollars = device_demand_at_baseP * rate_noDERs
