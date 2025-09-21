@@ -174,6 +174,14 @@
 				<input type="text" id="operationalCosts_onetime" name="operationalCosts_onetime" value="{{allInputDataDict.operationalCosts_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any recurring subsidies).</span></label>
+				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home BESS - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any upfront subsidies).</span></label>
+				<input type="text" id="BESS_subsidy_ongoing" name="BESS_subsidy_ongoing" value="{{allInputDataDict.BESS_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Home Heat Pumps - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home heat pump (not including any recurring subsidies).</span></label>
 				<input type="text" id="TESS_subsidy_onetime_hp" name="TESS_subsidy_onetime_hp" value="{{allInputDataDict.TESS_subsidy_onetime_hp}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
@@ -198,19 +206,11 @@
 				<input type="text" id="TESS_subsidy_ongoing_wh" name="TESS_subsidy_ongoing_wh" value="{{allInputDataDict.TESS_subsidy_ongoing_wh}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any recurring subsidies).</span></label>
-				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home BESS - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any upfront subsidies).</span></label>
-				<input type="text" id="BESS_subsidy_ongoing" name="BESS_subsidy_ongoing" value="{{allInputDataDict.BESS_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Generator - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any recurring subsidies).</span></label>
+				<label class="tooltip">Home Generators - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any recurring subsidies).</span></label>
 				<input type="text" id="GEN_subsidy_onetime" name="GEN_subsidy_onetime" value="{{allInputDataDict.GEN_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Home Generator - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any upfront subsidies).</span></label>
+				<label class="tooltip">Home Generators - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any upfront subsidies).</span></label>
 				<input type="text" id="GEN_subsidy_ongoing" name="GEN_subsidy_ongoing" value="{{allInputDataDict.GEN_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			
