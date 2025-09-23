@@ -1331,7 +1331,7 @@ def work(modelDir, inputDict):
 	outData['monthlyAdjustedEnergyConsumption'] = list(monthlyAdjustedEnergyConsumption)
 	outData['monthlyEnergyConsumptionCost'] = list(monthlyEnergyConsumptionCost)
 	outData['monthlyAdjustedEnergyConsumptionCost'] = list(monthlyAdjustedEnergyConsumptionCost)
-	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings) ## NOTE: this isn't used in the output plots
+	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings)
 
 	## NOTE: The demand variables below are calculated differently depending on the input method for demand rate information (JSON response file vs. CSV file)
 	##allOutputData.monthlyPeakDemand)
