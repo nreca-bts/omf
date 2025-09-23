@@ -1185,7 +1185,7 @@ def new(modelDir):
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','exampleWholesaleRateStructure.json')) as jsonFile:
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
 		residential_rate_curve = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
 	#	residential_rate_curve = json.load(jsonFile)
@@ -1210,7 +1210,7 @@ def new(modelDir):
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
 		'urdbLabelBool': False,
-		'residentialRateStructureFileName': 'exampleWholesaleRateStructure.json',
+		'residentialRateStructureFileName': 'example_residential_tariff.json',
 		'residentialRateStructureFile': residential_rate_curve,
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
