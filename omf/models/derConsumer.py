@@ -190,7 +190,7 @@ def work(modelDir, inputDict):
 
 			## Get the tier thresholds for the current rate period
 			if period_number >= len(tier_thresholds_by_period):
-				raise ValueError(f"Period number {period_number} not found in energyratestructure in the Wholesale Energy Rate Structure (.json) file.")
+				raise ValueError(f"Period number {period_number} not found in energyratestructure in the Residential Rate Structure (.json) file.")
 
 			thresholds = tier_thresholds_by_period[period_number]
 			monthly_kwh = energy_monthly_cumulative_sum[hour_index]
@@ -201,7 +201,7 @@ def work(modelDir, inputDict):
 					energy_rate_array[hour_index] = rate
 					break
 	else:
-		raise Exception('No energy rate structure information was found in the Wholesale Energy Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
+		raise Exception('No energy rate structure information was found in the Residential Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 
 	########################################################################################################################
 	## Run REopt.jl solver
@@ -739,7 +739,6 @@ def work(modelDir, inputDict):
 	GEN_demand = np.array(generator)
 	demand = np.array(demand)
 
-
 	## Convert negative zeros into positive zeros to avoid sign errors
 	demand[demand == -0.0] = 0.0
 	BESS_demand[BESS_demand == -0.0] = 0.0 
@@ -835,6 +834,7 @@ def work(modelDir, inputDict):
 			
 			## Demand (kW) savings
 			## NOTE: Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
+			device_peakDemand_savings_monthly[device_peakDemand_savings_monthly == -0.0] = 0.0 ## avoid sign errors
 			device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
 			outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
