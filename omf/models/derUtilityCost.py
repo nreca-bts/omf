@@ -544,6 +544,7 @@ def work(modelDir, inputDict):
 	## NOTE: This loop must come after the calculation of the combined TESS devices in order to correctly calculate the single_device_vbat_discharge/charge components
 	for device_result in single_device_results:
 		single_device_vbatPower = single_device_results[device_result]['VBpower']
+		single_device_vbatPower[single_device_vbatPower == -0.0] = 0.0 ## Convert negative zeros into positive zeros to avoid sign errors
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
 		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging 
 		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
