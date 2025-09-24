@@ -4,6 +4,7 @@ from logging import raiseExceptions
 import urllib.request
 import shutil, datetime
 from os.path import join as pJoin
+from os.path import isfile
 import requests
 import zipfile
 #import shapefile
@@ -411,7 +412,7 @@ def getPowerMeasures(ob):
 		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
 	return kw, kvar, kva
 
-def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
+def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
 	'''
 	Retrieves downline loads for specific set of equipment and retrieve nri data for each of the equipment, optionally using zillow data.
 	pathToOmd -> path to the omdfile
@@ -422,10 +423,15 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 	omd = json.load(open(pathToOmd))
 	loadsDF = pd.read_csv(pathToLoadsFile)
 	blockgroupDict = {}
+	blockgroupDictFilePath = pJoin(modelDir, 'blockgroupDictData.json')
 	loadsDict = {}
 	valList = []
 	geoms = []
 	obDict = {}
+	webDataUpdated = False
+	if isfile(blockgroupDictFilePath):
+		with open(blockgroupDictFilePath, 'r') as f:
+			blockgroupDict = json.load(f)
 	
 	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
 	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
@@ -454,7 +460,7 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 		from_field = ob.get('from', None)
 		to_field = ob.get('to', None)
 		section_key = str((from_field, to_field))
-		# Check all three rather than just (section_key in sectionsDict) for robustness 
+		# Check all three below rather than just (section_key in sectionsDict) for robustness 
 		# in case, for example, there is a "('bus1',None)" in sectionsDict by some error
 		if section_key in sectionsDict and from_field and to_field:
 			obDict[key]['section'] = sectionsDict[section_key]
@@ -480,8 +486,14 @@ def getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList,avgPeakDemand, 
 				blockgroup = repeatFindCensusBlockGroup(lat,long)
 				loadsDict[key]['blockgroup'] = blockgroup
 				blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
-				valList.append(list(all_vals(blockgroupDict[blockgroup])))
-				geoms.append(blockgroupDict[blockgroup]['geometry'])
+				webDataUpdated = True
+	# valList and geoms calcs moved out from under blockgroup find in above loop so that it works when bg info is loaded from a file
+	for blockgroup in blockgroupDict.keys():
+		valList.append(list(all_vals(blockgroupDict[blockgroup])))
+		geoms.append(blockgroupDict[blockgroup]['geometry'])
+	if webDataUpdated:
+		with open(pJoin(modelDir, 'blockgroupDictData.json'), 'w') as f:
+			json.dump(blockgroupDict, f)
 	
 	# compute SVI
 	sviDF = createDF(valList, cols, geoms)
@@ -960,7 +972,7 @@ def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, modelDir, equipment
 	modelDir -> modelDirectory to store csv
 	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
 	'''
-	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(pathToOmd, equipmentList, avgPeakDemand, pathToLoadsFile)
+	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, pathToLoadsFile)
 	cols = ['Object Name', 'Type','Section', 'Base Criticality Score', 'Base Criticality Index',
 			'Community Criticality Score', 'Community Criticality Index']
 	load_names = list(loads.keys())
@@ -1397,7 +1409,7 @@ def work(modelDir, inputDict):
 
 	# check downline loads
 	useZillow = False
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, zillowPricesPath, useZillow)
+	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, zillowPricesPath, useZillow)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
