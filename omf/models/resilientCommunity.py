@@ -1382,14 +1382,8 @@ def work(modelDir, inputDict):
 	#obs_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'objects3.json')
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
 	sviDF_file = pJoin(modelDir, 'sviDF.csv')
-	# Create a copy of the customer info file in modeldir
 	custInfoPath = pJoin(modelDir, inputDict['customerFileName'])
-	# TODO: Figure out why inputDict['customerData'] is an empty string when work() is run without explicitly uploading something, despite it working when a file is uploaded manually through the gui
-	# only do the following if customerData is empty. Part of a workaround for issue with empty customer data file. 
-	if inputDict['customerData'] != '':
-		with open(custInfoPath, 'w') as ciFile:
-			ciFile.write(inputDict['customerData'])
-	zillowPricesPath= pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
+	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
 	# make sure computer has 8.59 GB Space for download
@@ -1518,14 +1512,14 @@ def test():
 def new(modelDir):
 	omdfileName = 'ieee37_LBL_simplified'
 	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
-	customerFileData = open(pJoin(*customerFileName)).read()
+	customerData = open(pJoin(*customerFileName)).read()
 	#omdfileName = 'iowa240_in_Florida_modified'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	defaultInputs = {
 		"modelType": modelName,
 		"feederName1": omdfileName,
 		"customerFileName": customerFileName[-1],
-		"customerFileData": customerFileData,
+		"customerData": customerData,
 		"averageDemand": 2.0,
 		"lines":'Yes',
 		"transformers":'Yes',
@@ -1542,13 +1536,9 @@ def new(modelDir):
 	try:
 		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "publicFeeders", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
 		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
+		shutil.copyfile(pJoin(*customerFileName), pJoin(modelDir, defaultInputs["customerFileName"]))
 	except:
 		return False
-	# For some reason even though the customer data is being passed correctly from the file into the default inputs, when work is run, the customer data is empty
-	custInfoPath = pJoin(modelDir, customerFileName[-1])
-	with open(custInfoPath, 'w') as ciFile:
-		ciFile.write(customerFileData)
-	
 	return creationCode
 
 @neoMetaModel_test_setup
