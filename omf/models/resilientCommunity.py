@@ -817,6 +817,27 @@ def addEquipmentInfoToOmd(obDict, omdDict, equipList):
 			continue
 	return omdDict
 
+def addEquipLifeData(omdTree, equipLifePath):
+	''' Adds available equipment lifetime data from Equipment Lifetime (.csv file) info to items in omdTree. Directly modifies omdTree. 
+		Args:
+			Input: omdTree -> tree dict representation of omd
+			Input: equipLifePath -> Path to equipment lifetime csv
+	'''
+	equipLifeDF = pd.read_csv(equipLifePath)
+	equipNames2Consider = equipLifeDF['Equipment Name']
+	if not equipNames2Consider.is_unique:
+		raise Exception('ERROR: All entries in the \'Equipment Name\' column of Equipment Lifetime (.csv file) must be unique')
+	
+	equipLifeDF = equipLifeDF.set_index('Equipment Name')
+	for ob in omdTree.get('tree', {}).values():
+		obName = ob['name']
+		if (obName == equipNames2Consider).any():
+			# cols explicitly chosen rather than just looping through existing col names from the file for the sake of controlling what information we display if extraneous cols are included
+			ob['% Through Planned Usable Lifetime'] = equipLifeDF.loc[obName,'% Through Planned Usable Lifetime'].item()
+			ob['Avg Hrs to Restore'] 				= equipLifeDF.loc[obName,'Avg Hrs to Restore'].item()
+		else:
+			continue
+
 def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
 	'''
 	Creates colorby CSV to color loads within the circuit
@@ -1383,6 +1404,7 @@ def work(modelDir, inputDict):
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
 	sviDF_file = pJoin(modelDir, 'sviDF.csv')
 	custInfoPath = pJoin(modelDir, inputDict['customerFileName'])
+	equipLifePath = pJoin(modelDir, inputDict['equipLifeFileName'])
 	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
@@ -1445,6 +1467,7 @@ def work(modelDir, inputDict):
 		init_omdJson = json.load(file1)
 	newOmdJson = addLoadInfoToOmd(loads, init_omdJson)
 	omdJson = addEquipmentInfoToOmd(obDict, newOmdJson, equipmentList)
+	addEquipLifeData(omdJson, equipLifePath)
 	with open(pJoin(modelDir, 'color_by.csv')) as f:
 		data =  f.read()
 	attachment_keys['coloringFiles']['color_by.csv']['csv'] = data
@@ -1515,11 +1538,15 @@ def new(modelDir):
 	customerData = open(pJoin(*customerFileName)).read()
 	#omdfileName = 'iowa240_in_Florida_modified'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
+	equipLifeFileName = [omf.omfDir,'static','testFiles','resilientCommunity','equipLifeExample.csv']
+	equipLifeData = open(pJoin(*equipLifeFileName)).read()
 	defaultInputs = {
 		"modelType": modelName,
 		"feederName1": omdfileName,
 		"customerFileName": customerFileName[-1],
 		"customerData": customerData,
+		"equipLifeFileName": equipLifeFileName[-1],
+		"equipLifeData": equipLifeData,
 		"averageDemand": 2.0,
 		"lines":'Yes',
 		"transformers":'Yes',
@@ -1537,6 +1564,7 @@ def new(modelDir):
 		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "publicFeeders", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
 		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
 		shutil.copyfile(pJoin(*customerFileName), pJoin(modelDir, defaultInputs["customerFileName"]))
+		shutil.copyfile(pJoin(*equipLifeFileName), pJoin(modelDir, defaultInputs["equipLifeFileName"]))
 	except:
 		return False
 	return creationCode
