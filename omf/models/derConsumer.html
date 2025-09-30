@@ -118,7 +118,7 @@
 			</div>
 			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
 			<div class="shortInput">
-				<label class="tooltip">Use URDB Label?<span class="classic">If checked, the model will use the URDB label instead of the Energy Rate Structure (.csv) file to obtain the energy rate structure information.</span></label>
+				<label class="tooltip">Use URDB Label?<span class="classic">If checked, the model will use the URDB label instead of the Residential Rate Structure (.json) file to obtain the energy rate structure information.</span></label>
 				<input type="checkbox" id="urdbLabelBool" name="urdbLabelBool" {% if allInputDataDict.urdbLabelBool %} checked {% endif %}/>
 			</div>
 			<div class="shortInput">
@@ -456,11 +456,10 @@
 
 			{{ omfModelButtons }}
 		</form>
-	
-	
 	</div>
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
+	
 	<!-- Output tables, graphs, etc -->
 	<div id="output">
 		<p class="reportTitle" style="page-break-before:always">DER Serving Load Overview</p>
@@ -531,11 +530,17 @@
 					}
 				</script>
 				<script>
+					insertMetric("monthlySummaryTable","Total Peak Demand (kW)", allOutputData.monthlyPeakDemand)
+					insertMetric("monthlySummaryTable","Total Adjusted Peak Demand (kW)", allOutputData.monthlyAdjustedPeakDemand)
 					insertMetric("monthlySummaryTable","Energy (kWh)", allOutputData.monthlyEnergyConsumption)
 					insertMetric("monthlySummaryTable","Adjusted Energy (kWh)", allOutputData.monthlyAdjustedEnergyConsumption)
 					insertMetric("monthlySummaryTable","Energy Cost ($)", allOutputData.monthlyEnergyConsumptionCost)
 					insertMetric("monthlySummaryTable","Adjusted Energy Cost ($)", allOutputData.monthlyAdjustedEnergyConsumptionCost)
 					insertMetric("monthlySummaryTable","Energy Cost Savings ($)", allOutputData.monthlyEnergyConsumptionSavings)
+					insertMetric("monthlySummaryTable","Demand Charge ($)", allOutputData.monthlyPeakDemandCost)
+					insertMetric("monthlySummaryTable","Adjusted Demand Charge ($)", allOutputData.monthlyAdjustedPeakDemandCost)
+					insertMetric("monthlySummaryTable","Total Cost of Service ($)", allOutputData.monthlyTotalCostService)
+					insertMetric("monthlySummaryTable","Adjusted Total Cost of Service ($)", allOutputData.monthlyTotalCostAdjustedService)
 					insertMetric("monthlySummaryTable","Generator Fuel Cost ($)", allOutputData.monthly_gen_fuel_cost)
 					insertMetric("monthlySummaryTable","Utility Subsidies Paid ($)", allOutputData.allDevices_subsidy_year1)
 					insertMetric("monthlySummaryTable","Per-kWh Compensation ($)", allOutputData.allDevices_compensation_year1)
@@ -580,9 +585,15 @@
 					"xAxis":{"title":{"text":"Year After Installation","style":{"color":"gray"}},"type":"linear","tickColor":"gray","tickInterval":1,"lineColor":"gray","minorTickColor":"gray", "minorTickInterval":5},
 					"title":{"text":"", "verticalAlign":"top", "align":"right", "y":35, "x":-10, "style":{"color":"#333333", "fontSize":"12px"}},
 					"series":[
-						{"name":"BESS Savings", "data": allOutputData.savings_allyears_BESS, "color": "rgba(27,121,57,0.5)"},
-						{"name":"TESS Savings", "data": allOutputData.savings_allyears_TESS, "color": "rgba(92,174,99,0.5)"},
-						{"name":"Generator Savings", "data": allOutputData.savings_allyears_GEN, "color": "rgba(139,195,27,0.5)"},
+						//{"name":"BESS Savings", "data": allOutputData.savings_allyears_BESS, "color": "rgba(27,121,57,0.5)"},
+						//{"name":"TESS Savings", "data": allOutputData.savings_allyears_TESS, "color": "rgba(92,174,99,0.5)"},
+						//{"name":"Generator Savings", "data": allOutputData.savings_allyears_GEN, "color": "rgba(139,195,27,0.5)"},
+						{"name":"BESS Demand Savings", "data": allOutputData.savings_peakDemand_BESS_allyears, "color": "rgba(27,121,57,1)"},
+						{"name":"BESS Consumption Savings", "data": allOutputData.savings_consumption_BESS_allyears, "color": "rgba(27,121,57,0.5)"},
+						{"name":"TESS Demand Savings", "data": allOutputData.savings_peakDemand_TESS_allyears, "color": "rgba(92,174,99,1)"},
+						{"name":"TESS Consumption Savings", "data": allOutputData.savings_consumption_TESS_allyears, "color": "rgba(92,174,99,0.5)"},
+						{"name":"Generator Demand Savings", "data": allOutputData.savings_peakDemand_GEN_allyears, "color": "rgba(139,195,27,1)"},
+						{"name":"Generator Consumption Savings", "data": allOutputData.savings_consumption_GEN_allyears, "color": "rgba(139,195,27,0.5)"},
 						{"name":"BESS Costs", "data": allOutputData.costs_allyears_BESS, "color": "rgb(116,40,129)"},
 						{"name":"TESS Costs", "data": allOutputData.costs_allyears_TESS, "color": "rgb(152,110,172)"},
 						{"name":"Generator Costs", "data": allOutputData.costs_allyears_GEN, "color": "rgb(195,164,207)"},
@@ -610,9 +621,15 @@
 					"xAxis":{"title":{"text":"Year After Installation","style":{"color":"gray"}},"type":"linear","tickColor":"gray","tickInterval":1,"lineColor":"gray","minorTickColor":"gray", "minorTickInterval":5},
 					"title":{"text":"", "verticalAlign":"top", "align":"right", "y":35, "x":-10, "style":{"color":"#333333", "fontSize":"12px"}},
 					"series":[
-						{"name":"Water Heater Savings", "data": allOutputData.vbatResults_wh_savings_allyears, "color": "rgb(16,101,171)"},
-						{"name":"Heat Pump Savings", "data": allOutputData.vbatResults_hp_savings_allyears, "color": "rgb(58,147,195)"},
-						{"name":"Air Conditioner Savings", "data": allOutputData.vbatResults_ac_savings_allyears, "color": "rgb(142,196,222)"},
+						//{"name":"Water Heater Savings", "data": allOutputData.vbatResults_wh_savings_allyears, "color": "rgb(16,101,171)"},
+						//{"name":"Heat Pump Savings", "data": allOutputData.vbatResults_hp_savings_allyears, "color": "rgb(58,147,195)"},
+						//{"name":"Air Conditioner Savings", "data": allOutputData.vbatResults_ac_savings_allyears, "color": "rgb(142,196,222)"},
+						{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
+						{"name":"Water Heater Peak Demand Savings","data":allOutputData.vbatResults_wh_peakDemand_savings_allyears, "color": "rgba(16,101,171,0.5)"},
+						{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
+						{"name":"Heat Pump Peak Demand Savings","data":allOutputData.vbatResults_hp_peakDemand_savings_allyears, "color": "rgba(58,147,195,0.5)"},
+						{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
+						{"name":"Air Conditioner Peak Demand Savings","data":allOutputData.vbatResults_ac_peakDemand_savings_allyears,"color":"rgba(142,196,222,0.5)"},
 						{"name":"Water Heater Costs", "data": allOutputData.costs_allyears_wh, "color": "rgb(179,21,41)"},
 						{"name":"Heat Pump Costs", "data": allOutputData.costs_allyears_hp, "color": "rgb(215,95,76)"},
 						{"name":"Air Conditioner Costs", "data": allOutputData.costs_allyears_ac, "color": "rgb(246,164,130)"},

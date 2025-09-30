@@ -12,6 +12,9 @@ from jinja2 import Template
 import dateutil
 from subprocess import Popen
 import re
+from urllib.parse import urlparse, urljoin
+from werkzeug.utils import secure_filename
+from pathlib import Path
 try:
 	import fcntl
 except:
@@ -29,6 +32,12 @@ from omf.solvers.opendss import dssConvert
 app = Flask("web")
 Compress(app)
 URL = "http://www.omf.coop"
+
+# Ensure HttpOnly flags on cookies (session + Flask-Login remember cookie)
+# Explicit even if framework defaults cover session, to satisfy security review.
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
 _omfDir = os.path.dirname(os.path.abspath(__file__))
 
 ###################################################
@@ -70,14 +79,26 @@ def getDataNames():
 				publicFeeders.append({'name': fname[:-4], 'model': dirpath.split('/')[-1]})
 	return {"climates":sorted(climates), "feeders":feeders, "networks":networks, "publicFeeders":publicFeeders, "currentUser":currUser}
 
-# @app.before_request
-# def csrf_protect():
-# 	pass
-	## NOTE: when we fix csrf validation this needs to be uncommented.
-	# if request.method == "POST":
-	#	token = session.get("_csrf_token", None)
-	#	if not token or token != request.form.get("_csrf_token"):
-	#		abort(403)
+ALLOWED_ORIGINS = {
+	"https://omf.coop",
+	"https://www.omf.coop",
+	"http://localhost:5001",
+	"http://127.0.0.1:5001"
+}
+
+def _is_same_origin():
+	origin = request.headers.get("Origin")
+	if origin:
+		return origin in ALLOWED_ORIGINS
+	# Fallback to Referer (some clients may omit Origin)
+	referer = request.headers.get("Referer", "")
+	return any(referer.startswith(o + "/") for o in ALLOWED_ORIGINS)
+
+@app.before_request
+def only_same_origin():
+	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+		if not _is_same_origin():
+			abort(403)
 
 ###################################################
 # AUTHENTICATION AND USER FUNCTIONS
@@ -100,10 +121,12 @@ class User:
 
 def cryptoRandomString():
 	''' Generate a cryptographically secure random string for signing/encrypting cookies. '''
-	if 'COOKIE_KEY' in globals():
-		return COOKIE_KEY
-	else:
-		return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
+	# Use pre-defined COOKIE_KEY if provided at runtime (e.g., via injection in globals),
+	# otherwise generate a pseudo-random value (note: for stronger randomness consider secrets.token_hex).
+	ck = globals().get('COOKIE_KEY')
+	if ck:
+		return ck
+	return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
 
 
 login_manager = flask_login.LoginManager()
@@ -113,9 +136,7 @@ app.secret_key = cryptoRandomString()
 
 
 def _send_email(recipient, subject, message):
-	with open(os.path.join(_omfDir, 'emailCredentials.key')) as f:
-		key = f.read().strip()
-	c = boto3.client('ses', aws_access_key_id='AKIA34IQDYMM4QKGU3MH', aws_secret_access_key=key, region_name='us-east-1')
+	c = boto3.client('ses', region_name='us-east-1')
 	email_content = {
 		'Source': 'admin@omf.coop',
 		'Destination': {'ToAddresses': [recipient]},
@@ -152,13 +173,41 @@ def load_user(username):
 	return User(data)
 
 
-def generate_csrf_token():
-	if "_csrf_token" not in session:
-		session["_csrf_token"] = cryptoRandomString()
-	return session["_csrf_token"]
+def _is_safe_url(target: str) -> bool:
+	"""Return True if the target URL is a local URL we can safely redirect to.
+
+	Rules:
+	- Allow empty -> treated as '/'
+	- Allow relative paths starting with single '/'
+	- Allow same-origin absolute URLs (scheme http/https, netloc matches request.host)
+	- Disallow protocol-relative ('//example.com'), different host, or control chars.
+	"""
+	if not target:
+		return True
+	# Strip surrounding whitespace / control chars
+	target = target.strip()
+	# Reject obvious protocol-relative or backslash escapes
+	if target.startswith('//') or target.startswith('\\'):
+		return False
+	# Simple relative path
+	if target.startswith('/'):
+		return True
+	# For absolute URLs, ensure same host
+	ref = urlparse(request.host_url)
+	test = urlparse(urljoin(request.host_url, target))
+	if test.scheme in ('http', 'https') and ref.netloc == test.netloc:
+		return True
+	return False
 
 
-app.jinja_env.globals["csrf_token"] = generate_csrf_token
+def safe_redirect(target: str):
+	"""Redirect to target if safe, else fallback to '/'."""
+	if not _is_safe_url(target):
+		target = '/'
+	# Normalize empty
+	if not target:
+		target = '/'
+	return redirect(target)
 
 
 @app.route("/login", methods = ["POST"])
@@ -174,13 +223,15 @@ def login():
 	if userJson and pbkdf2_sha512.verify(password, userJson["password_digest"]):
 		user = User(userJson)
 		flask_login.login_user(user, remember = remember == "on")
-	nextUrl = str(request.form.get("next","/"))
-	return redirect(nextUrl)
+	nextUrl = str(request.form.get("next","/") or "/")
+	return safe_redirect(nextUrl)
 
 
 @app.route("/login_page")
 def login_page():
-	nextUrl = str(request.args.get("next","/"))
+	nextUrl = str(request.args.get("next","/") or "/")
+	if not _is_safe_url(nextUrl):
+		nextUrl = "/"
 	if flask_login.current_user.is_authenticated():
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
@@ -250,8 +301,8 @@ def fastNewUser(email):
 			json.dump(user, f, indent=4)
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
-		nextUrl = str(request.args.get("next","/"))
-		return redirect(nextUrl)
+		nextUrl = str(request.args.get("next","/") or "/")
+		return safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
@@ -458,11 +509,17 @@ def runModel():
 	del pData["modelName"]
 	modelDir = os.path.join(_omfDir, "data", "Model", user, modelName)
 	# File upload handling
-	# print('FILES?', len(request.files), request.files)
+	# print(f"FILES?, length={len(request.files)} and {request.files}")
 	if len( request.files ) > 0:
 		for file_field, file in request.files.items():
-			if file.filename != '':
-				file.save(os.path.join(modelDir, file_field))
+			safeFileName = secure_filename( file.filename )
+			safeFileField = secure_filename( file_field )
+			if safeFileName != '':
+				file_save_path = os.path.join(modelDir, safeFileField)
+				fileSavePathAsPath = Path(file_save_path)
+				if fileSavePathAsPath.resolve().parent != Path(modelDir):
+					raise Exception("runModel() :: FilePathParent != modelDir")
+				file.save(file_save_path)
 			#else:
 			#	print( "File not found: ", file_field, "file info: ", file)
 	# Get existing model viewers and add them to pData if they exist, then write pData to update allInputData.json
@@ -2141,6 +2198,6 @@ if __name__ == "__main__":
 	template_files = ["templates/"+ x  for x in safeListdir("templates")]
 	model_files = ["models/" + x for x in safeListdir("models")]
 	print('App starting with gunicorn. Errors are going to omf.error.log.')
-	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5000', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
+	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5001', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
 	appProc.wait()
-	# app.run(debug=True, host="0.0.0.0", extra_files=template_files + model_files)
+	# app.run(debug=True, host="0.0.0.0", port=5001, extra_files=template_files + model_files)

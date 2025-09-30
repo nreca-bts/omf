@@ -87,6 +87,35 @@ def pullAsosStations(filePath):
 				currentSite['Time Zone'] = site['properties']['tzname']
 				csvwriter.writerow(currentSite)
 
+def pirateWeatherForecast(days: int, lat, lon, units="si", api_key=_key_pirateweather) -> list:
+	'''
+	days: how many days ahead/behind current date will be looked. Artificially locked @ 10
+	'''
+	from pandas import date_range
+	from datetime import datetime, timedelta
+
+	# Want to check this better
+	lat, lon = float(lat), float(lon)
+
+	base_url = "https://api.pirateweather.net/forecast/"
+	todays_date = datetime.now().date()
+	if days < 0 or days > 10:
+		raise Exception("pirateWeatherForecast(): days variable must be within range of 0 and 10")
+	days_past = todays_date - timedelta(days=days)
+	days_ahead = todays_date + timedelta(days=days)
+	coords = '%0.2f,%0.2f' % (lat, lon)
+	times = list(date_range(days_past, days_ahead))
+	urls = ['https://timemachine.pirateweather.net/forecast/%s/%s,%s?exclude=daily&units=%s' % ( _key_pirateweather, coords, time.isoformat(), units ) for time in times]
+	data = [requests.get(url) for url in urls]
+	for i in enumerate(data):
+		if i[1].status_code != 200:
+			raise Exception(f" pirateWeatherForecast(): Pirate Weather Request Failed :: Request Code: {i[1].status_code} :: Reason: {i[1].reason}\n Response Body: {i[1].text}")
+	try:
+		data = [i.json() for i in data]
+	except:
+		raise Exception("pirateWeatherForecast(): The response was not parsed as JSON successfully.")
+	return data
+
 
 def pullPirateWeather(year, lat, lon, datatype, units='si', api_key=_key_pirateweather, path = None):
 	'''Returns hourly weather data from the PirateWeather API as array.
@@ -738,9 +767,9 @@ def nsrbd_latlon_to_wkt(longitude, latitude):
 		raise ValueError('invalid longitude')  
 	return 'POINT({} {})'.format(longitude, latitude)
 
-def get_nrsdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
-	'''Create nrsdb factory and execute query. Optional output to file or return the response object.'''
-	print("NRSDB found")
+def get_nsrdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
+	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
+	print("NSRDB found")
 	base_url = 'https://developer.nrel.gov'
 	request_url = ""
 	params = {}
@@ -1358,43 +1387,52 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 	return requestSuccess
 
 # Processing the zip files into one nice large CSV
-def process_weather_data():
+def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDataFile: str="output_cdsWeatherDataFull.csv") -> list:
+	'''
+	Turning multiple copernicus zip files into one CSV
+	Returns a tuple (dataset, dataframe) of combined data
+	'''
 	from zipfile import ZipFile
 	import xarray as xr
-	modelDir = Path()
 	total_weather_data_ds = xr.Dataset()
 	total_weather_data_df = pd.DataFrame()
 	# For each file we downloaded ( month-1-2-data.zip )
-	for zipfiles in Path(modelDir,"./copernicus_raw_data").iterdir():
-		with ZipFile(zipfiles) as zObject:
+	zip_files = os.listdir(Path(modelDir, dataDirName))
+	for file in zip_files:
+		with ZipFile(Path(modelDir, dataDirName, file)) as zObject:
 			# extract it to unzipped_data
-			zObject.extractall(path="./copernicus_unzipped_data/")
-				#"data_stream-oper_stepType-accum.nc"
-				#"data_stream-oper_stepType-instant.nc"
-			unzippedDir = Path(modelDir, "./copernicus_unzipped_data")
-			for file in unzippedDir.iterdir():
-				file_accum = Path(unzippedDir, "data_stream-oper_stepType-accum.nc")
-				file_instant = Path(unzippedDir, "data_stream-oper_stepType-instant.nc")
-				weather_ds_accum = xr.open_dataset(file_accum, engine="netcdf4")
-				weather_ds_instant = xr.open_dataset(file_instant, engine="netcdf4")
-				month_weather_data = weather_ds_accum.combine_first(weather_ds_instant)
-				total_weather_data_ds.update(month_weather_data)
-				month_weather_data_df = month_weather_data.to_dataframe()
-				total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
-	total_weather_data_df.to_csv(Path(modelDir, "total_weather_data.csv"), index=False)
+			zObject.extractall(path=Path(modelDir,"./copernicus_unzipped_data/", Path(file).with_suffix('')))
+			#"data_stream-oper_stepType-accum.nc"
+			#"data_stream-oper_stepType-instant.nc"
+			# Each in their respective directory
+	unzippedDir = Path(modelDir, "./copernicus_unzipped_data")
+	for unzipped_month_dir in unzippedDir.iterdir():
+		file_accum = Path(unzipped_month_dir, "data_stream-oper_stepType-accum.nc")
+		file_instant = Path(unzipped_month_dir, "data_stream-oper_stepType-instant.nc")
+		weather_ds_accum = xr.open_dataset(file_accum, engine="netcdf4")
+		weather_ds_instant = xr.open_dataset(file_instant, engine="netcdf4")
+		# Combine the accumulated data + the instant data = one dataset for the month
+		month_weather_data = weather_ds_accum.combine_first(weather_ds_instant)
+		total_weather_data_ds.update(month_weather_data)
+		month_weather_data_df = month_weather_data.to_dataframe()
+		# print(month_weather_data_df.head)
+		total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
+	total_weather_data_df.to_csv(Path(modelDir, outputDataFile))
+	print(f"{outputDataFile} created")
 	return [total_weather_data_ds, total_weather_data_df]
 
-# Cool stuff with data
-def get_solar(copernicus_csv_path):
+# Cool stuff with copernicus data
+def cds_csvModifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
+	'''
 
-	import PySAM.Pvwattsv8 as pvwatts
-
-	copernicus_df = pd.read_csv(copernicus_csv_path)
+	'''
+	copernicus_df = pd.read_csv(cdsDataFile)
 	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
 	copernicus_df = copernicus_df.set_index("Timestamp")
 	# DNI - Direct Normal
 	# GHI - Global Horizontal
 	# DHI - Diffuse Horizontal
+
 	from pvlib.irradiance import erbs
 	copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"] = (copernicus_df.ssrd / 3600.0)
 	copernicus_df["dirhi"] = (copernicus_df.fdir / 3600.0)
@@ -1403,18 +1441,29 @@ def get_solar(copernicus_csv_path):
 	copernicus_df["CDS Direct Normal Irradiance (DNI) (W/m²_irr)"] = dni_data["dni"]
 	copernicus_df["CDS Wind Speed"] = np.sqrt(copernicus_df["u10"] ** 2 + copernicus_df["v10"] ** 2)
 	copernicus_df["CDS Temp"] = copernicus_df.t2m - 273.15
+	# lat, long, index, year, month, day, hour, minute, DNI, DHI, GHI, winspeed, dry bulb temperature
 	weather_data = np.array([
-    copernicus_df.index.year,
-    copernicus_df.index.month,
-    copernicus_df.index.day,
-    copernicus_df.index.hour,
-    copernicus_df.index.minute,
-    copernicus_df['CDS Direct Normal Irradiance (DNI) (W/m²_irr)'], #5 = dn
-    copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"],
-    copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"],
-    copernicus_df["CDS Wind Speed"],
-    copernicus_df['CDS Temp']
+			copernicus_df.iloc[0][1],
+			copernicus_df.iloc[0][2],
+			copernicus_df.index,
+			copernicus_df.index.year,
+			copernicus_df.index.month,
+			copernicus_df.index.day,
+			copernicus_df.index.hour,
+			copernicus_df.index.minute,
+			copernicus_df['CDS Direct Normal Irradiance (DNI) (W/m²_irr)'], #5 = dn
+			copernicus_df["CDS Diffusal Horizonal Irradiance (DHI) (W/m²_irr)"],
+			copernicus_df["CDS Global Horizonal Irradiance (GHI) (W/m²_irr)"],
+			copernicus_df["CDS Wind Speed"],
+			copernicus_df['CDS Temp']
 	])
+	return weather_data
+
+def cds_getSolar(copernicus_csv_path):
+	import PySAM.Pvwattsv8 as pvwatts
+
+	# weather_data[2] is the first index
+	weather_data = cds_csvModifications(copernicus_csv_path)
 	sys_design = {
     "ModelParams": {
         "SystemDesign": {
@@ -1432,8 +1481,8 @@ def get_solar(copernicus_csv_path):
         }
     },
     "Other": {
-        "lat": copernicus_df.iloc[0][1],
-        "lon": copernicus_df.iloc[0][2],
+        "lat": weather_data[0],
+        "lon": weather_data[1],
         "elev": 1829
     }
 	}  
@@ -1441,8 +1490,7 @@ def get_solar(copernicus_csv_path):
 	elev = sys_design['Other']['elev']
 	lat = sys_design['Other']['lat']
 	lon = sys_design['Other']['lon']
-	tz = copernicus_df.index[0].utcoffset().total_seconds()/60/60
-
+	tz = (weather_data[2])[0].utcoffset().total_seconds()/60/60
 	system_model = pvwatts.new()
 	system_model.assign(model_params)
 	solar_resource_data = {
@@ -1450,16 +1498,16 @@ def get_solar(copernicus_csv_path):
 		'elev': elev, # elevation
 		'lat': lat, # latitude
 		'lon': lon, # longitude
-		'year': tuple(weather_data[0]), # year
-		'month': tuple(weather_data[1]), # month
-		'day': tuple(weather_data[2]), # day
-		'hour': tuple(weather_data[3]), # hour
-		'minute': tuple(weather_data[4]), # minute
-		'dn': tuple(weather_data[5]), # direct normal irradiance
-		'df': tuple(weather_data[6]), # diffuse irradiance
-		'gh': tuple(weather_data[7]), # global horizontal irradiance
-		'wspd': tuple(weather_data[8]), # windspeed
-		'tdry': tuple(weather_data[9]) # dry bulb temperature
+		'year': tuple(weather_data[3]), # year
+		'month': tuple(weather_data[4]), # month
+		'day': tuple(weather_data[5]), # day
+		'hour': tuple(weather_data[6]), # hour
+		'minute': tuple(weather_data[7]), # minute
+		'dn': tuple(weather_data[8]), # direct normal irradiance
+		'df': tuple(weather_data[9]), # diffuse irradiance
+		'gh': tuple(weather_data[10]), # global horizontal irradiance
+		'wspd': tuple(weather_data[11]), # windspeed
+		'tdry': tuple(weather_data[12]) # dry bulb temperature
 		}
 	system_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
 	system_model.AdjustmentFactors.assign({'adjust_constant': 0})
@@ -1472,7 +1520,7 @@ def get_solar(copernicus_csv_path):
 	ac = np.array(out['ac']) / 1000
 	dc = np.array(out['dc']) / 1000
 	ac_dc_df = pd.DataFrame({"ac": ac, "dc": dc}, columns = ['ac','dc'])
-	ac_dc_df = ac_dc_df.set_index(copernicus_df.index.copy())
+	ac_dc_df = ac_dc_df.set_index((weather_data[2]).copy())
 	return ac_dc_df
 
 def format_windpowerlib(ds):
@@ -1554,7 +1602,7 @@ def format_windpowerlib(ds):
     df.dropna(inplace=True)
     return df
 
-def get_wind(weather_dataset):
+def cds_getWind(weather_dataset):
 	from omf.solvers import feedinlib_custom
 
 	bergey_turbine_data = {
@@ -1574,6 +1622,142 @@ def get_wind(weather_dataset):
 	)
 	wind_output_ds.reset_index(drop=True, inplace=True)
 	return wind_output_ds
+
+def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
+	successFlag = False
+	filesInModelDir = os.listdir(modelDir)
+	for file in filesInModelDir:
+		if file == "output_NREL_wind_data.csv":
+			successFlag = True
+			return successFlag 
+	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
+	email = "admin@omf.coop"
+	base_url = f"https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
+	#longitude, latitude 
+	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
+	response = requests.get(modified_url)
+	if response.status_code == 400:
+		raise Exception(f"nrel_getWindData: API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	else:
+		text = response.text
+		with open( Path(modelDir,"output_NREL_wind_data.csv"), "w") as text_file:
+			text_file.write(text)
+		successFlag = True
+	return successFlag
+
+def nrel_pysamWind(modelDir, year: int, longitude: float, latitude: float):
+	'''
+		'windpower-inputs.json' - windpower defaults
+		'wind-turbines.json' - wind turbine data. 
+	'''
+	import PySAM.Windpower as wp
+
+	wind_turbine_model = wp.new()
+	testFileDir = Path(omfDir, "static", "testFiles", "weatherPulling", "nrel_windTurbineDefaults")
+	# Add try here
+	with open( Path(testFileDir, 'input_windpower.json'), 'r') as json_file:
+		windpower_data = json.load(json_file)
+		
+		for k, v in windpower_data.items():
+			if k != 'number_inputs':
+				wind_turbine_model.value(k, v)
+
+	successFlag = _nrel_getWindData(modelDir, year, longitude, latitude)
+	if successFlag:
+		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_wind_data.csv')
+	else:
+		raise Exception(f"nrel_pysamWin: API Request Failed")
+	wind_turbine_model.value('wind_resource_shear', 0.14)
+	# load wind turbine parameters from JSON
+	with open( Path(testFileDir, 'input_windTurbines.json'), 'r') as file:
+		turbine_data = json.load(file)
+	# set up wind farm for one turbine
+	wind_turbine_model.value('wind_farm_xCoordinates', [ -71.25 ])
+	wind_turbine_model.value('wind_farm_yCoordinates', [ 42.25 ])
+	for turbine in turbine_data:
+		# set wind turbine parameters
+		wind_turbine_model.value('wind_turbine_rotor_diameter', turbine['rotor_diameter'])
+		wind_turbine_model.value('wind_turbine_powercurve_windspeeds', turbine['wind_speeds'])
+		wind_turbine_model.value('wind_turbine_powercurve_powerout',  turbine['turbine_powers'])
+		wind_turbine_model.value('wind_turbine_hub_ht', turbine['hub_height'])
+		# set wind farm capacity
+		number_of_turbines = len(wind_turbine_model.value('wind_farm_xCoordinates'))
+		farm_capacity =  number_of_turbines * turbine['rated_power']
+		wind_turbine_model.value('system_capacity', farm_capacity)
+		# run simulation
+		wind_turbine_model.execute()
+		print(turbine['name'])
+		print('annual energy (kWh) = ', wind_turbine_model.Outputs.annual_energy)
+		print('capacity factor = ', wind_turbine_model.Outputs.capacity_factor)
+		return wind_turbine_model.Outputs
+
+
+##################### api.weather.gov Forecast Functions #####################
+
+def weatherGov_GridPointRequest(latitude: float, longitude: float) -> tuple:
+	'''
+
+	Converts Latitude and Longitude to api.weather.gov gridpoint system
+	Used in newsWeatherForecast function
+	Returns: Tuple of string (gridX, gridY)
+
+	'''
+	base_url = "https://api.weather.gov/points/"
+	request_for_grid = base_url + f"{latitude},{longitude}"
+	grid_data = requests.get(request_for_grid)
+	if grid_data.status_code != 200:
+		raise Exception(f"weatherGov_GridPointRequest(): API request failed :: Request Code: {grid_data.status_code} :: Reason: {grid_data.reason}")
+	grid_data_json = grid_data.json()
+	gridX = grid_data_json["properties"]["gridX"]
+	gridY = grid_data_json["properties"]["gridY"]
+	if gridX == "null" or gridY == "null":
+		print(f"weatherGov_GridPointRequest(): gridX and/or gridY returned null. Lat/Long coordinates inputted are invalid")
+		exit(1)
+	gridCoords = (str(gridX), str(gridY))
+	return gridCoords
+
+	# if gridx and gridy are null it wasn't valid lat/long coordinates?
+
+def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code=""):
+	'''
+		Pulls hourly data from the National Weather Service
+		Docs: https://weather-gov.github.io/api/
+		Forecast Formats: [forecast, forecastHourly, forecastGridData]
+		* 6.5 days of forecast data is provided.
+		* Timezone data is encoded in the response as UTC with offset. We strip it.
+		* Temperature is in Fahrenheit
+	'''
+
+	import pandas as pd
+
+	base_url = "https://api.weather.gov/gridpoints"
+	gridCoords = weatherGov_GridPointRequest(latitude=latitude, longitude=longitude)
+	if interval.lower() == "hourly":
+		request_url = f"{base_url}/{nws_code}/{gridCoords[0]},{gridCoords[1]}/forecast/hourly"
+	elif interval.lower == "":
+		request_url = f"{base_url}/{nws_code}/{gridCoords[0]},{gridCoords[1]}/forecast"
+	else:
+		print(f"weatherGov_forecast(): interval value inputted is not 'hourly' or '' - the only 2 accepted values")
+	# print(f"request_url: {request_url}")
+	response = requests.get(request_url)
+	if response.status_code == 404:
+		raise Exception(f"weatherGov_forecast(): API Request Failed. :: Dataset URL does not exist: {response.url}. Hint: Check coords/grid values")
+	elif response.status_code != 200:
+		raise Exception(f"weatherGov_forecast(): API request failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	else:
+		json_response = json.loads(response.text)
+		dict_list = []
+		for item in json_response["properties"]["periods"]:
+			item = {
+					# Removing tz info from timestamp. This makes the strong assumption
+					#  that NWS will always correctly provide data in the timezone of
+					#  the station we're pulling from.
+					"timestamp": pd.to_datetime(item["startTime"]).replace(tzinfo=None),
+					"tempc": item["temperature"]
+			}
+			dict_list.append(item)
+	df = pd.DataFrame(dict_list)
+	return df
 
 def _tests():
 	# import traceback
@@ -1625,7 +1809,7 @@ def _tests():
 	# nsrdbkey = 'rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56'
 	# try:
 	# #Test For Austin, TX
-	# 	d=get_nrsdb_data('psm',-90.0,30.00,'2018', nsrdbkey, interval=60)
+	# 	d=get_nsrdb_data('psm',-90.0,30.00,'2018', nsrdbkey, interval=60)
 	# 	print(d)
 	# except:
 	# 	val = traceback.format_exc()

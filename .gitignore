@@ -68,3 +68,5 @@ omf/solvers/reopt_jl/julia-1.9.4/*
 instantiated.txt
 omf/solvers/protsetopt/testFiles/
 .vite/
+omf.access.log
+omf.error.log
