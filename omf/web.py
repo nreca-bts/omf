@@ -13,6 +13,8 @@ import dateutil
 from subprocess import Popen
 import re
 from urllib.parse import urlparse, urljoin
+from werkzeug.utils import secure_filename
+from pathlib import Path
 try:
 	import fcntl
 except:
@@ -507,11 +509,17 @@ def runModel():
 	del pData["modelName"]
 	modelDir = os.path.join(_omfDir, "data", "Model", user, modelName)
 	# File upload handling
-	# print('FILES?', len(request.files), request.files)
+	# print(f"FILES?, length={len(request.files)} and {request.files}")
 	if len( request.files ) > 0:
 		for file_field, file in request.files.items():
-			if file.filename != '':
-				file.save(os.path.join(modelDir, file_field))
+			safeFileName = secure_filename( file.filename )
+			safeFileField = secure_filename( file_field )
+			if safeFileName != '':
+				file_save_path = os.path.join(modelDir, safeFileField)
+				fileSavePathAsPath = Path(file_save_path)
+				if fileSavePathAsPath.resolve().parent != Path(modelDir):
+					raise Exception("runModel() :: FilePathParent != modelDir")
+				file.save(file_save_path)
 			#else:
 			#	print( "File not found: ", file_field, "file info: ", file)
 	# Get existing model viewers and add them to pData if they exist, then write pData to update allInputData.json
