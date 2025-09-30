@@ -57,13 +57,30 @@ def retrieveCensusNRI():
 		# create geojson from datafiles
 		with shapefile.Reader(shp=BytesIO(z.read(shpPath)), dbf=BytesIO(z.read(dbfPath)), prj=BytesIO(z.read(prjPath))) as shp:
 			geojson_data = shp.__geo_interface__
-			outfile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database_MAR2023.json')
+			outfile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database.json')
 			with open(outfile, 'w') as f:
 				json.dump(geojson_data, f,indent=4)
 				return outfile
 	except Exception as e:
 		print("Error trying to retrieve FEMA NRI Census Data in GeoJson format")
 		print(e)
+
+def stripDownCensusNRI(properties2Keep):
+	''' Strips down census NRI data from 8.6 GB file, creating a json file with tractFIPS as keys and only the properties for each tract in properties2Keep
+		Data Dictionary for choosing properties: https://hazards.fema.gov/nri/Content/StaticDocuments/DataDownload/NRIDataDictionary.csv
+	'''
+	infile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database.json')
+	outfile = infile.replace('2023','2023_properties_by_tractFIPS')
+	with open(infile) as f:
+		geoJsonData = json.load(f)
+	propsByTractFIPS = {}
+	for feature in geoJsonData['features']:
+		tractFIPS = feature['properties']['TRACTFIPS']
+		propsByTractFIPS[tractFIPS] = {}
+		for prop in properties2Keep:
+			propsByTractFIPS[tractFIPS][prop] = feature['properties'][prop]
+	with open(outfile, 'w') as f:
+		json.dump(propsByTractFIPS,f,indent=4)
 
 def findCensusBlockGroup(lat,lon):
 	'''
@@ -433,11 +450,6 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 		with open(blockgroupDictFilePath, 'r') as f:
 			blockgroupDict = json.load(f)
 	
-	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
-	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_HH_Limited_Eng_ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
-	
 	# Helper function with informative error catching
 	def loadIsResidential(loadsDF,obName):
 		''' Checks if there's a single entry for a load in the Customer Information file and if so, returns whether it's residential or not.'''
@@ -487,24 +499,54 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 				loadsDict[key]['blockgroup'] = blockgroup
 				blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
 				webDataUpdated = True
-	# valList and geoms calcs moved out from under blockgroup find in above loop so that it works when bg info is loaded from a file
-	for blockgroup in blockgroupDict.keys():
-		valList.append(list(all_vals(blockgroupDict[blockgroup])))
-		geoms.append(blockgroupDict[blockgroup]['geometry'])
 	if webDataUpdated:
 		with open(pJoin(modelDir, 'blockgroupDictData.json'), 'w') as f:
 			json.dump(blockgroupDict, f)
 	
+	# Prep data to build sviDF
+	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
+	sviCols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
+			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_HH_Limited_Eng_ACS_16_20','pct_singlefamily_u18',
+			'pct_MLT_U10p_ACS_16_20','pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
+	# Coastal Flooding, Riverine Flooding, Tornado, and Volcanic Activity removed until we can find a good way to estimate them at bg resolution
+	# Unlike most variables, they're not broad enough sized events to span the entire tract and thus all blockgroups (thus bg resolution can be approximated with tract resolution value)
+	# And unlike Avalanche, Landslide, and Lightning, they're not localized enough that their bg resolution value could be estimated by multiplying frequency by bg_area/tract_area
+	weatherCols = ['AVLN_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
+			'LNDS_AFREQ', 'LTNG_AFREQ', 'SWND_AFREQ', 'TSUN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']#+['CFLD_AFREQ', 'RFLD_AFREQ', 'TRND_AFREQ', 'VLCN_AFREQ']
+	# DO NOT CHANGE ORDER OF FIST TWO TERMS IN ADDITION -> matches order of dictionary built in buildSVI(TractFIPS)
+	cols = sviCols+['blockgroupFIPS', 'geometry']+weatherCols
+
+	# Add Weather info to blockgroupDict
+	weatherFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database_properties_by_tractFIPS.json')
+	with open(weatherFile) as f:
+		weatherDict = json.load(f)
+	for bg in blockgroupDict.keys():
+		tractFIPS = bg[:11]
+		tractArea = weatherDict[tractFIPS]['AREA']
+		blockgroupArea = blockgroupDict[bg]['LAND_AREA']
+		del blockgroupDict[bg]['LAND_AREA']
+		for wc in weatherCols:
+			weatherData = weatherDict[tractFIPS].get(wc,'Not Available')
+			if weatherData == -9999.0:
+				weatherData = 'Not Applicable'
+			# Avalanche, Landslide, and Lightning are localized enough hazards that we scale the tract-wide value by the proportion of the tract made up by the blockgroup to estimate blockgroup resolution
+			elif wc in ['AVLN_AFREQ', 'LNDS_AFREQ', 'LTNG_AFREQ']:
+				weatherData = weatherData * blockgroupArea/tractArea
+			blockgroupDict[bg][wc] = weatherData
+
+	for blockgroup in blockgroupDict.keys():
+		valList.append(list(all_vals(blockgroupDict[blockgroup])))
+		geoms.append(blockgroupDict[blockgroup]['geometry'])
+	
 	# compute SVI
 	sviDF = createDF(valList, cols, geoms)
 	pctile_list = []
-	for i in cols:
-		if i not in ['blockgroupFIPS', 'geometry']:
-			i_pct_rank = i + '_pct_rank'
-			# Rank in descending order for employment and income for the sake of social vulnerability so that a higher value correlates to more vulnerable
-			employOrIncome = i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']
-			sviDF[i_pct_rank] = sviDF[i].rank(pct=True, method='max') if not employOrIncome else sviDF[i].rank(pct=True, method='max', ascending=False)
-			pctile_list.append(i_pct_rank)
+	for i in sviCols:
+		i_pct_rank = i + '_pct_rank'
+		# Rank in descending order for employment and income for the sake of social vulnerability so that a higher value correlates to more vulnerable
+		employOrIncome = i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']
+		sviDF[i_pct_rank] = sviDF[i].rank(pct=True, method='max') if not employOrIncome else sviDF[i].rank(pct=True, method='max', ascending=False)
+		pctile_list.append(i_pct_rank)
 	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
 	# Once SOVI_TOTAL is calculated, replace the descending order ranking of employment and income with ascending rankings for user interpretability 
 	for i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']:
@@ -553,9 +595,11 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 	# Group by 'blockgroup' and calculate desired metrics
 	newdf_loads = df_loads.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
 	newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+	# Rearrange col ordering
 	newsviDFcols = newsviDF.columns.tolist()
 	newsviDFcols = newsviDFcols[-1*colsToMove:]+newsviDFcols[0:-1*colsToMove]
 	newsviDF = newsviDF[newsviDFcols]
+	# Create geodf and non-geo df
 	sviGeoDF = createGeoDF(newsviDF)
 	newsviDF = newsviDF.drop(columns=['geometry'])
 	# Group by 'section' and calculate desired metrics
@@ -597,7 +641,25 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 							'avg_BCI': 'Avg BCI',
 							'avg_CCI': 'Avg CCI',
 							'load_count': 'Load Count',
-							'load_amount': 'Load Amount'}
+							'load_amount': 'Load Amount',
+							'AVLN_AFREQ': '_____________ Annual Freq: Avalanche', 
+							'CFLD_AFREQ': '_____________ Annual Freq: Coastal Flooding', 
+							'CWAV_AFREQ': '_____________ Annual Freq: Cold Wave',
+							'DRGT_AFREQ': '_____________ Annual Freq: Drought',
+							'ERQK_AFREQ': '_____________ Annual Freq: Earthquake',
+							'HAIL_AFREQ': '_____________ Annual Freq: Hail',
+							'HWAV_AFREQ': '_____________ Annual Freq: Heat Wave',
+							'HRCN_AFREQ': '_____________ Annual Freq: Hurricane',
+							'ISTM_AFREQ': '_____________ Annual Freq: Ice Storm',
+							'LNDS_AFREQ': '_____________ Annual Freq: Landslide',
+							'LTNG_AFREQ': '_____________ Annual Freq: Lightning',
+							'RFLD_AFREQ': '_____________ Annual Freq: Riverine Flooding',
+							'SWND_AFREQ': '_____________ Annual Freq: Strong Wind',
+							'TRND_AFREQ': '_____________ Annual Freq: Tornado',
+							'TSUN_AFREQ': '_____________ Annual Freq: Tsunami',
+							'VLCN_AFREQ': '_____________ Annual Freq: Volcanic Activity',
+							'WFIR_AFREQ': '_____________ Annual Freq: Wildfire',
+							'WNTW_AFREQ': '_____________ Annual Freq: Winter Weather'}
 	sviGeoDF = sviGeoDF.rename(columns=readableColsDict)
 	# Convert existing sections to a set for quick lookup
 	existing_sections = set(section_loads['section'])
@@ -824,17 +886,17 @@ def addEquipLifeData(omdTree, equipLifePath):
 			Input: equipLifePath -> Path to equipment lifetime csv
 	'''
 	equipLifeDF = pd.read_csv(equipLifePath)
-	equipNames2Consider = equipLifeDF['Equipment Name']
+	equipNames2Consider = equipLifeDF['equipment name']
 	if not equipNames2Consider.is_unique:
-		raise Exception('ERROR: All entries in the \'Equipment Name\' column of Equipment Lifetime (.csv file) must be unique')
+		raise Exception('ERROR: All entries in the \'equipment name\' column of Equipment Lifetime (.csv file) must be unique')
 	
-	equipLifeDF = equipLifeDF.set_index('Equipment Name')
+	equipLifeDF = equipLifeDF.set_index('equipment name')
 	for ob in omdTree.get('tree', {}).values():
 		obName = ob['name']
 		if (obName == equipNames2Consider).any():
 			# cols explicitly chosen rather than just looping through existing col names from the file for the sake of controlling what information we display if extraneous cols are included
-			ob['% Through Planned Usable Lifetime'] = equipLifeDF.loc[obName,'% Through Planned Usable Lifetime'].item()
-			ob['Avg Hrs to Restore'] 				= equipLifeDF.loc[obName,'Avg Hrs to Restore'].item()
+			ob['% through planned usable lifetime'] = equipLifeDF.loc[obName,'% through planned usable lifetime'].item()
+			ob['avg hrs to restore'] 				= equipLifeDF.loc[obName,'avg hrs to restore'].item()
 		else:
 			continue
 
@@ -899,7 +961,7 @@ def buildsviBlockGroup(blockgroupFIPS):
 					#Socioeconomic, household composition, housing /transportation variables
 	pdb_svi_vars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
 				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20',
-				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20']
+				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20', 'LAND_AREA']
 				# household composition / disability variables
 	acs_svi_vars = ['B23008_021E', 'B23008_008E', 'B23008_001E',
 					'B08014_002E','B01001_001E']
@@ -948,7 +1010,9 @@ def buildsviBlockGroup(blockgroupFIPS):
 		'pct_MLT_U10p_ACS_16_20': float(combined_dict['pct_MLT_U10p_ACS_16_20']),
 		'pct_Mobile_Homes_ACS_16_20': float(combined_dict['pct_Mobile_Homes_ACS_16_20']),
 		'pct_Crowd_Occp_U_ACS_16_20': float(combined_dict['pct_Crowd_Occp_U_ACS_16_20']),
-		'pct_noVehicle': float(combined_dict['B08014_002E'])/float(combined_dict['B01001_001E'])
+		'pct_noVehicle': float(combined_dict['B08014_002E'])/float(combined_dict['B01001_001E']),
+		# Land Area in sq.mi. Not used for SVI but needed later for weather data calculations. Deleted after use before SVI calculation. 
+		'LAND_AREA': float(combined_dict['LAND_AREA'])
 	}
 	# Define the base URL for the TIGERweb REST Services
 	tigris_url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_ACS2021/MapServer/8/query"
@@ -1398,13 +1462,20 @@ def work(modelDir, inputDict):
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd') and x != 'color_test.omd'][0][:-4]
 	inputDict['feederName1'] = feederName
 	omd_file_path = pJoin(modelDir, feederName+'.omd')
-	# census_nri_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database_MAR2023.json')
+	census_nri_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database.json')
 	#loads_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'loads2.json')
 	#obs_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'objects3.json')
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
 	sviDF_file = pJoin(modelDir, 'sviDF.csv')
+	# Create local file in dir to handle file uploads
 	custInfoPath = pJoin(modelDir, inputDict['customerFileName'])
+	if inputDict['customerData'] != '':
+		with open(custInfoPath, 'w') as ciFile:
+			ciFile.write(inputDict['customerData'])
 	equipLifePath = pJoin(modelDir, inputDict['equipLifeFileName'])
+	if inputDict['equipLifeData'] != '':
+		with open(equipLifePath, 'w') as elFile:
+			elFile.write(inputDict['equipLifeData'])
 	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
@@ -1589,6 +1660,9 @@ def tests():
 
 if __name__ == '__main__':
 	print("test")
+	#stripDownCensusNRI(['AVLN_AFREQ', 'CFLD_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
+	#		'LNDS_AFREQ', 'LTNG_AFREQ', 'RFLD_AFREQ', 'SWND_AFREQ', 'TRND_AFREQ', 'TSUN_AFREQ', 'VLCN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ', 'AREA'])
+	#print("done")
 	#tests()
 	#getDistributionSection(
 	#sectionExample("/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd")
