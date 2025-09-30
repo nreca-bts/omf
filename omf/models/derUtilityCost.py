@@ -1205,14 +1205,14 @@ def work(modelDir, inputDict):
 	######################################################################################################################################################
 
 	## If the DER tech is disabled or the discharge array is empty, then set all its subsidies equal to zero.
-	if BESScheck == 'enabled' and np.sum(BESS_demand) > 0.0:
+	if BESScheck == 'enabled' and np.sum(BESS) > 0.0:
 		BESS_subsidy_ongoing = float(inputDict['BESS_subsidy_ongoing'])*float(inputDict['number_devices_BESS'])
 		BESS_subsidy_onetime = float(inputDict['BESS_subsidy_onetime'])*float(inputDict['number_devices_BESS'])
 	else:
 		BESS_subsidy_ongoing = 0
 		BESS_subsidy_onetime = 0
 
-	if GENcheck == 'enabled' and np.sum(GEN_demand) > 0.0:
+	if GENcheck == 'enabled' and np.sum(generator) > 0.0:
 		GEN_subsidy_ongoing = float(inputDict['GEN_subsidy_ongoing'])*float(inputDict['number_devices_GEN'])
 		GEN_subsidy_onetime = float(inputDict['GEN_subsidy_onetime'])*float(inputDict['number_devices_GEN'])
 	else:
