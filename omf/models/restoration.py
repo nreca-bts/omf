@@ -448,7 +448,7 @@ def makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList):
 	
 	return dfLoadTimeln, dfStatus
 
-def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, taidiDict, mergedLoadPrioritiesFilePath):
+def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, taodiDict, mergedLoadPrioritiesFilePath):
 	'''
 	Generate table of SAIDI, SAIFI, CAIDI, and CAIFI during the outage simulation period, both for the whole system and broken down by microgrid. 
 	'''
@@ -488,8 +488,8 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 		sumBCS = sum([loadBcsDict[load] for load in residentialLL])
 		if residentialLL:
 			averageCCS = sum([loadCcsDict[load] for load in residentialLL])/len(residentialLL)
-			# TODO: Consider if percentileofscore is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
-			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS))
+			# kind='weak' measures % of values <= current value, which is consistent with resilientCommunity and SVI documentation
+			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS, kind='weak'))
 			averageCCIxPriorities = sum([mergedLoadWeights[load] for load in residentialLL])/len(residentialLL)
 		else:
 			averageCCI = 'n/a'
@@ -879,37 +879,37 @@ def outageIncidenceGraph(customerOutageData, outputTimeline, startTime, numTimeS
 
 	return outageIncidenceFigure, mgOIFigures
 
-def makeTaifiAndTaidiHist(outputTimeline, startTime, numTimeSteps, loadList):
-	''' Generate histogram of TAIFI and TAIDI for each load.
+def makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, loadList):
+	''' Generate histogram of TAOFI and TAODI for each load.
 		
-		Outputs: taifiHist, taidiHist, TAIFI, TAIDI
+		Outputs: taofiHist, taodiHist, TAOFI, TAODI
 
-		TAIFI = 1/Average period length where a period is defined as the time from one load shed to the next load shed. 
+		TAOFI (Time Avg. Outage Frequency Index)= 1/Average period length where a period is defined as the time from one load shed to the next load shed. 
 
-		TAIDI = Number of minutes interrupted for a load over the total duartion of the simulation.  
+		TAODI (Time Avg. Outage Duration Index)= Total duration of outages for a load over the total duartion of the simulation.  
 	'''
 	endTime = numTimeSteps+startTime
 	dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, [*range(startTime, endTime)])
 	dfStatus = dfStatus.map(lambda x:1.0-x)
-	TAIFI = {}
-	TAIDI = {}
+	TAOFI = {}
+	TAODI = {}
 	for loadName in loadList:
 		dfLoadSheds = dfLoadTimeln[(dfLoadTimeln['device'] == loadName)][(dfLoadTimeln['action'] == 'Load Shed')]
 		numLoadSheds = dfLoadSheds.shape[0]
 		timeOfFirstLoadShed = dfLoadSheds['time'].min()
 		timeOfLastLoadShed = dfLoadSheds['time'].max()
-		TAIFI[loadName] = (numLoadSheds-1)/((timeOfLastLoadShed-timeOfFirstLoadShed)*60)
-		TAIDI[loadName] = 100*dfStatus[loadName].sum()/numTimeSteps
+		TAOFI[loadName] = (numLoadSheds-1)/((timeOfLastLoadShed-timeOfFirstLoadShed)*60)
+		TAODI[loadName] = 100*dfStatus[loadName].sum()/numTimeSteps
 		#TODO: Replace 60 with resolution of step size if it's ever possible not to have a resolution of 60 min
-	minVals = (min(list(TAIFI.values())), 0)
-	maxVals = (max(list(TAIFI.values())), 100)
+	minVals = (min(list(TAOFI.values())), 0)
+	maxVals = (max(list(TAOFI.values())), 100)
 	numBins = 45
 	binSizes = ((maxVals[0]-minVals[0])/numBins, (maxVals[1]-minVals[1])/numBins)
 
-	taifiHist = go.Figure()
-	taifiHist.add_trace(go.Histogram(
-		x=list(TAIFI.values()),
-		name='TAIFI', # name used in legend and hover labels
+	taofiHist = go.Figure()
+	taofiHist.add_trace(go.Histogram(
+		x=list(TAOFI.values()),
+		name='TAOFI', # name used in legend and hover labels
 		xbins=dict(
 			start=minVals[0],
 			end=maxVals[0]+binSizes[0],
@@ -918,17 +918,17 @@ def makeTaifiAndTaidiHist(outputTimeline, startTime, numTimeSteps, loadList):
 		bingroup=1,
 		marker_color='#0000ff'
 	))
-	taifiHist.update_layout(
-		xaxis_title_text='TAIFI Values', # xaxis label
+	taofiHist.update_layout(
+		xaxis_title_text='TAOFI Values', # xaxis label
 		yaxis_title_text='Load Count', # yaxis label
 		barmode='overlay',
 		bargap=0.1 # gap between bars of adjacent location coordinates
 	)
 
-	taidiHist = go.Figure()
-	taidiHist.add_trace(go.Histogram(
-		x=list(TAIDI.values()),
-		name='TAIDI', # name used in legend and hover labels
+	taodiHist = go.Figure()
+	taodiHist.add_trace(go.Histogram(
+		x=list(TAODI.values()),
+		name='TAODI', # name used in legend and hover labels
 		xbins=dict(
 			start=minVals[1],
 			end=maxVals[1]+binSizes[1],
@@ -937,26 +937,25 @@ def makeTaifiAndTaidiHist(outputTimeline, startTime, numTimeSteps, loadList):
 		bingroup=1,
 		marker_color='#ff0000'
 	))
-	taidiHist.update_layout(
-		xaxis_title_text='TAIDI Values (%)', # xaxis label
+	taodiHist.update_layout(
+		xaxis_title_text='TAODI Values (%)', # xaxis label
 		yaxis_title_text='Load Count', # yaxis label
 		barmode='overlay',
 		bargap=0.1 # gap between bars of adjacent location coordinates
 	)
-	return taifiHist, taidiHist, TAIFI, TAIDI
+	return taofiHist, taodiHist, TAOFI, TAODI
 
-def makeCciTaifiTaidiScatter(loadCciDict, TAIFI, TAIDI):
-	''' Returns scatter plots of TAIFI vs CCI and TAIDI vs CCI with accompanying correlation coefficient. 
+def makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI):
+	''' Returns scatter plots of TAOFI vs CCI and TAODI vs CCI with accompanying correlation coefficient. 
 		Only includes residential loads because those are the only loads with CCI. 
 	'''
 	# TODO: make docstring
-	# Enforce standard ordering
-	orderedVals = {'CCI':[], 'TAIDI':[], 'TAIFI':[]}
+	# Enforce standard ordering using only loads in cciDict
+	orderedVals = {'CCI':[], 'TAODI':[], 'TAOFI':[]}
 	for load, cci in loadCciDict.items():
 		orderedVals['CCI'].append(cci)
-		orderedVals['TAIDI'].append(TAIDI[load])
-		orderedVals['TAIFI'].append(TAIFI[load])
-	orderedVals['TAIFI'] = np.nan_to_num(orderedVals['TAIFI'])
+		orderedVals['TAODI'].append(TAODI[load])
+		orderedVals['TAOFI'].append(TAOFI[load])
 	dfOrderedVals = pd.DataFrame(orderedVals)
 
 	def makeCorrReport(var1,var2):
@@ -974,27 +973,29 @@ def makeCciTaifiTaidiScatter(loadCciDict, TAIFI, TAIDI):
 			level = 'Moderate'
 		elif absCorr < 0.9:
 			level = 'High'
-		else:
+		elif absCorr >= 0.9:
 			level = 'Very high'
+		else:
+			return 'Correlation is undefined because at least one variable has 0 variance.'
 		# Levels taken from https://www.andrews.edu/~calkins/math/edrm611/edrm05.htm#:~:text=Correlation%20coefficients%20whose%20magnitude%20are%20between%200.7%20and%200.9%20indicate,can%20be%20considered%20moderately%20correlated.
 		return f'R = {corr} ({level}{sign}correlation)'
 	
-	cciTaidiScatter = px.scatter(
+	cciTaodiScatter = px.scatter(
 		pd.DataFrame(orderedVals),
 		x='CCI',
-		y='TAIDI',
-		trendline="ols",
-		title = makeCorrReport('CCI','TAIDI'),
+		y='TAODI',
+		trendline='ols',
+		title = makeCorrReport('CCI','TAODI'),
 		color_discrete_sequence=["red"]
 	)
-	cciTaifiScatter = px.scatter(
+	cciTaofiScatter = px.scatter(
 		pd.DataFrame(orderedVals),
 		x='CCI',
-		y='TAIFI',
-		trendline="ols",
-		title = makeCorrReport('CCI','TAIFI'),
+		y='TAOFI',
+		trendline='ols',
+		title = makeCorrReport('CCI','TAOFI'),
 		)
-	return cciTaifiScatter, cciTaidiScatter
+	return cciTaofiScatter, cciTaodiScatter
 
 def getMicrogridInfo(modelDir, pathToOmd, settingsFile, makeCSV = True):
 	'''	Gathers microgrid info including loads and other circuit objects in each microgrid by finding what microgrid each load's parent bus is designated as having. 
@@ -1724,9 +1725,9 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	)
 
 	outageIncidenceFig, mgOIFigs = outageIncidenceGraph(customerOutageData, outputTimeline, startTime, numTimeSteps, loadPriorityFile, loadMgDict)
-	taifiHist, taidiHist, TAIFI, TAIDI = makeTaifiAndTaidiHist(outputTimeline, startTime, numTimeSteps, list(loadMgDict.keys()))
-	cciTaifiScatter, cciTaidiScatter = makeCciTaifiTaidiScatter(loadCciDict, TAIFI, TAIDI)
-	tradMetricsHtml, cciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, TAIDI, loadPriorityFile)
+	taofiHist, taodiHist, TAOFI, TAODI = makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, list(loadMgDict.keys()))
+	cciTaofiScatter, cciTaodiScatter = makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI)
+	tradMetricsHtml, cciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, TAODI, loadPriorityFile)
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
 	profit_on_energy_sales = float(profit_on_energy_sales)
@@ -1748,15 +1749,15 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			'loads': 				loads, 
 			'volts': 				volts, 
 			'fig': 					fig, 
-			'cciTaidiScatter':		cciTaidiScatter,
-			'cciTaifiScatter':		cciTaifiScatter,
+			'cciTaodiScatter':		cciTaodiScatter,
+			'cciTaofiScatter':		cciTaofiScatter,
 			'customerOutageCost': 	customerOutageCost, 
 			'endTime': 				simTimeSteps[-1], 
 			'stepSize': 			stepSize, 
 			'startTime': 			startTime,
 			'custHist': 			custHist,
-			'taifiHist':			taifiHist,
-			'taidiHist':			taidiHist}
+			'taofiHist':			taofiHist,
+			'taodiHist':			taodiHist}
 
 def __buildCustomEvents(eventsCSV='', feeder='', customEvents='customEvents.json', defaultDispatchable = 'true'):
 	''' Builds an events json file for use by restoration.py based on an events CSV input.'''
@@ -2034,13 +2035,14 @@ def work(modelDir, inputDict):
 	outData['fig6Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['mgOIFigsData'] = json.dumps(plotOuts.get('mgOIFigs',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['mgOIFigsLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['taifiHistData'] = json.dumps(plotOuts.get('taifiHist',{}), cls=py.utils.PlotlyJSONEncoder)
-	outData['taifiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['taidiHistData'] = json.dumps(plotOuts.get('taidiHist',{}), cls=py.utils.PlotlyJSONEncoder)
-	outData['taidiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaidiScatter'] = json.dumps(plotOuts.get('cciTaidiScatter',{}), cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaifiScatter'] = json.dumps(plotOuts.get('cciTaifiScatter',{}), cls=py.utils.PlotlyJSONEncoder)
-
+	outData['taofiHistData'] = json.dumps(plotOuts.get('taofiHist',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['taofiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
+	outData['taodiHistData'] = json.dumps(plotOuts.get('taodiHist',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['taodiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
+	outData['cciTaodiScatterData'] = json.dumps(plotOuts.get('cciTaodiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
+	outData['cciTaodiScatterLayout'] = json.dumps(plotOuts.get('cciTaodiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
+	outData['cciTaofiScatterData'] = json.dumps(plotOuts.get('cciTaofiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
+	outData['cciTaofiScatterLayout'] = json.dumps(plotOuts.get('cciTaofiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
 
 	# Stdout/stderr.
 	outData['stdout'] = 'Success'

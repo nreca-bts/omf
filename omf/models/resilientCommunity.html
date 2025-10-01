@@ -58,6 +58,15 @@
 				</div>
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Equipment Lifetime (.csv file)<span class="classic">Please see the documentation at the help link for the required format. To exclude all equipment lifetime info, upload a csv file with just headers and no column data to this field.</span></label>
+				<input id="equipLifeFile" type="file" style="display:none" onchange="handle_files(this.files,'equipLifeData','equipLifeFileName')">
+				<input id="equipLifeData" name="equipLifeData" value='{{allInputDataDict.equipLifeData}}' type="hidden">
+				<div>
+					<label for="equipLifeFile" class="fileButton">Choose File</label>
+					<input id="equipLifeFileName" name="equipLifeFileName" value="{{allInputDataDict.equipLifeFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household
 						in the area </span></label>
 				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
@@ -104,7 +113,13 @@
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
 		<!-- Output tables, graphs, etc -->
-		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Resilient Community Map<span class="classic">Shapes and circuit elements can be clicked to bring up tooltips with more information about them. <br><br>Shapes can be toggled by clicking the checkbox next to &quot;geoshapes.geojson&quot; <br><br>Feeder map coloring can be changed without rerunning the model by clicking in the top right corner: &quot;Edit&quot; -> &quot;Color circuit&quot;. <br><br>Circuit elements can be searched for by clicking in the top right corner: &quot;Edit&quot; -> &quot;Search objects&quot;. They can be visualized on the map by clicking &quot;Highlight search results&quot; in the top left. <br><br>See the wiki for more details.</span></label></p>
+	
+	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:1px solid #2E8B57">
+		<p class="reportTitle"><em><b>IMPORTANT</b></em></p>
+		Social Vulnerability Rating, SVI, CCS, CCI, BCI, and all other "%ile" values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
+	</div>
+		
+	<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Resilient Community Map<span class="classic">Shapes and circuit elements can be clicked to bring up tooltips with more information about them. <br><br>Shapes can be toggled by clicking the checkbox next to &quot;geoshapes.geojson&quot; <br><br>Feeder map coloring can be changed without rerunning the model by clicking in the top right corner: &quot;Edit&quot; -> &quot;Color circuit&quot;. <br><br>Circuit elements can be searched for by clicking in the top right corner: &quot;Edit&quot; -> &quot;Search objects&quot;. They can be visualized on the map by clicking &quot;Highlight search results&quot; in the top left. <br><br>See the wiki for more details.</span></label></p>
 	<div id="resilienceMap" class="tightContent">
 		<script>
 			var mapContent = allOutputData["resilienceMap"];

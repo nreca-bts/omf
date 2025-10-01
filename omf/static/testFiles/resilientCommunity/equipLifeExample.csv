@@ -1,0 +1,11 @@
+equipment name,% through planned usable lifetime,avg hrs to restore
+source,60,12
+sourcebus,50,2
+subxf,60,3
+799,1,1
+reg1,60,1
+799r,70,1
+l35,1,1
+701,75,1.5
+pvsystem_coop_owned,4,6
+storage_coop_owned,4,8
