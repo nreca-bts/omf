@@ -508,11 +508,13 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 	sviCols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
 			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_HH_Limited_Eng_ACS_16_20','pct_singlefamily_u18',
 			'pct_MLT_U10p_ACS_16_20','pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
-	# Coastal Flooding, Riverine Flooding, Tornado, and Volcanic Activity removed until we can find a good way to estimate them at bg resolution
+	# Coastal Flooding, Riverine Flooding, Tornado, Tsunami, and Volcanic Activity removed until we can find a good way to estimate them at bg resolution
 	# Unlike most variables, they're not broad enough sized events to span the entire tract and thus all blockgroups (thus bg resolution can be approximated with tract resolution value)
 	# And unlike Avalanche, Landslide, and Lightning, they're not localized enough that their bg resolution value could be estimated by multiplying frequency by bg_area/tract_area
+	# weatherCols = ['AVLN_AFREQ', 'CFLD_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
+	# 				'LNDS_AFREQ', 'LTNG_AFREQ', 'RFLD_AFREQ', 'SWND_AFREQ', 'TRND_AFREQ', 'TSUN_AFREQ', 'VLCN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']
 	weatherCols = ['AVLN_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
-			'LNDS_AFREQ', 'LTNG_AFREQ', 'SWND_AFREQ', 'TSUN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']#+['CFLD_AFREQ', 'RFLD_AFREQ', 'TRND_AFREQ', 'VLCN_AFREQ']
+					'LNDS_AFREQ', 'LTNG_AFREQ', 'SWND_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']
 	# DO NOT CHANGE ORDER OF FIST TWO TERMS IN ADDITION -> matches order of dictionary built in buildSVI(TractFIPS)
 	cols = sviCols+['blockgroupFIPS', 'geometry']+weatherCols
 
