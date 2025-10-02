@@ -413,15 +413,15 @@ def getPowerMeasures(ob):
 	kvar = ob.get('kvar',None)
 	kva = ob.get('kva',None)
 	pf = ob.get('pf',None)
-	if kw and kvar:
+	if None not in [kw,kvar]:
 		kw = float(kw)
 		kvar = float(kvar)
 		kva = math.sqrt(kw**2 + kvar**2)
-	elif kw and pf:
+	elif None not in [kw,pf]:
 		kw = float(kw)
 		kva = kw/float(pf)
 		kvar = math.sqrt(kva**2 - kw**2)
-	elif kva and pf:
+	elif None not in [kva,pf]:
 		kw = float(kva)*float(pf)
 		kva = float(kva)
 		kvar = math.sqrt(kva**2 + kw**2)
@@ -486,7 +486,7 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 				loadsDict[key]['section'] = sectionsDict.get(obName)
 				kw, kvar, kva = getPowerMeasures(ob)
 				loadsDict[key]['kva'] = kva
-				loadsDict[key]["base crit score"] = ((math.sqrt(kw**2 + kvar**2))/ float(avgPeakDemand)) * 4
+				loadsDict[key]["base crit score"] = (kva / float(avgPeakDemand)) * 4
 				loadsDict[key]['distance_from_source'] = int(distanceDict.get(obName, 0))
 				long = float(ob['longitude'])
 				lat = float(ob['latitude'])
@@ -856,6 +856,7 @@ def addLoadInfoToOmd(loadsDict, omdDict):
 			ob['base crit index'] 		= loadsDict.get(k,{}).get('base crit index')
 			ob['community crit score'] 	= loadsDict.get(k,{}).get('community crit score')
 			ob['community crit index'] 	= loadsDict.get(k,{}).get('community crit index')
+			ob['kva']					= loadsDict.get(k,{}).get('kva')
 		else:
 			continue
 	return omdDict
@@ -1563,10 +1564,11 @@ def work(modelDir, inputDict):
 			round(v.get('community crit score'),2),
 			round(v.get('community crit index'),2),
 			round(v.get('SOVI_SCORE'),4),
-			smartRound(v.get('affluence score'))
+			smartRound(v.get('affluence score')),
+			round(v.get('kva'),2)
 		)
 		tableRows1.append(row)
-	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Community Criticality Score', 'Community Criticality Index', 'Social Vulnerability', 'Affluence Score']
+	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Community Criticality Score', 'Community Criticality Index', 'Social Vulnerability', 'Affluence Score', 'Load Amount (kva)']
 	outData['loadTableValues'] = tableRows1
 	
 	# Collect Equipment Data Table Info
@@ -1585,7 +1587,7 @@ def work(modelDir, inputDict):
 	outData['loadTableValues2'] = tableRows2
 	
 	# Collect Sections Data Table Info
-	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Avg Zillow Price', 'Load Count', 'Load Amount']
+	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Avg Zillow Price', 'Load Count', 'Load Amount (kva)']
 	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_CCS', 'avg_CCI', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
 	if not useZillow:
 		headers3.remove('Avg Zillow Price')
