@@ -1,7 +1,6 @@
 <head>
 	{{ omfHeaders }}
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
 	{% macro insert_file_upload_block(fileName, dataVariableName) -%}
 		<input id="{{dataVariableName}}Handler" type="file" style="display:none" onchange="handle_files(this.files,'{{dataVariableName}}','{{fileName}}')">
 		<input id="{{dataVariableName}}" name="{{dataVariableName}}" value="{{allInputDataDict[dataVariableName]}}" type="hidden">
