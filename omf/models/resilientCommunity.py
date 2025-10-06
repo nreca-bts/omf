@@ -1458,6 +1458,35 @@ def calculate_distances_to_source(graph, source):
 	# Return the dictionary of distances to the source node.
 	return distance_to_source
 
+def copyInputFilesToModelDir(modelDir, inputDict):
+	''' Creates local copies of input files in the model directory modelDir.
+		
+		Returns a list of paths in the order: 
+		
+		custInfoPath, equipLifePath
+	'''	
+	inDictKeys = [
+		{	
+			'fname':'customerFileName',
+			'data':'customerData'
+		},
+		{
+			'fname':'equipLifeFileName',
+			'data':'equipLifeData'
+		}
+	]
+	localPaths = []
+	for dk in inDictKeys:
+		localPath = pJoin(modelDir, inputDict[dk['fname']])
+		data = inputDict[dk['data']]
+		if data != '':
+			with open(localPath, 'w') as file:
+				file.write(data)
+		else:
+			localPath = None
+		localPaths.append(localPath)	
+	return localPaths
+
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
 	outData = {}
@@ -1470,15 +1499,7 @@ def work(modelDir, inputDict):
 	#obs_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'objects3.json')
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
 	sviDF_file = pJoin(modelDir, 'sviDF.csv')
-	# Create local file in dir to handle file uploads
-	custInfoPath = pJoin(modelDir, inputDict['customerFileName'])
-	if inputDict['customerData'] != '':
-		with open(custInfoPath, 'w') as ciFile:
-			ciFile.write(inputDict['customerData'])
-	equipLifePath = pJoin(modelDir, inputDict['equipLifeFileName'])
-	if inputDict['equipLifeData'] != '':
-		with open(equipLifePath, 'w') as elFile:
-			elFile.write(inputDict['equipLifeData'])
+	custInfoPath, equipLifePath = copyInputFilesToModelDir(modelDir, inputDict)
 	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
