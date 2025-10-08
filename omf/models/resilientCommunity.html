@@ -67,11 +67,6 @@
 				</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household
-						in the area </span></label>
-				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
-			</div>
-			<div class="shortInput">
 				<label class="tooltip">Feeder Map Coloring By<span class="classic">Determines coloring of loads and equipment on the circuit.<br><br>To change coloring after running the model, go to the top right of the output map and click &quot;Edit&quot; -> &quot;Color circuit&quot;.</span></label>
 				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
 					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
@@ -81,6 +76,14 @@
 					<option value="Feeder Sections" {% if allInputDataDict.loadCol == "Feeder Sections" %}selected{% endif %}>Feeder Sections</option>
 					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
 				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household in the area </span></label>
+				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0.01" step="0.01" required>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Average Number of Occupants<span class="classic">Enter the average number of occupants for a household in the area </span></label>
+				<input type="number" name="averageOccupants" id="averageOccupants" value="{{allInputDataDict.averageOccupants}}" min="0.01" step="0.01" required>
 			</div>
 			<hr>
 			<div class="wideInput">

@@ -428,7 +428,7 @@ def getPowerMeasures(ob):
 		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
 	return kw, kvar, kva
 
-def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
+def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
 	'''
 	Retrieves downline loads for specific set of equipment and retrieve nri data for each of the equipment, optionally using zillow data.
 	pathToOmd -> path to the omdfile
@@ -485,7 +485,7 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 				loadsDict[key]['section'] = sectionsDict.get(obName)
 				kw, kvar, kva = getPowerMeasures(ob)
 				loadsDict[key]['kva'] = kva
-				loadsDict[key]["base crit score"] = (kva / float(avgPeakDemand)) * 4
+				loadsDict[key]["base crit score"] = (kva / float(avgPeakDemand)) * float(avgNumOccupants)
 				loadsDict[key]['distance_from_source'] = int(distanceDict.get(obName, 0))
 				long = float(ob['longitude'])
 				lat = float(ob['latitude'])
@@ -951,7 +951,7 @@ def buildSVIRating(row):
 	else:
 		return 'Very High'
 
-def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, modelDir, equipmentList):
+def runCalculations(pathToOmd, pathToLoadsFile, avgPeakDemand, avgNumOccupants, modelDir, equipmentList):
 	'''
 	Runs computations on circuit for different loads and equipment
 
@@ -959,7 +959,7 @@ def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, modelDir, equipment
 	modelDir -> modelDirectory to store csv
 	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
 	'''
-	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, pathToLoadsFile)
+	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile)
 	cols = ['Object Name', 'Type','Section', 'Base Criticality Score', 'Base Criticality Index',
 			'Community Criticality Score', 'Community Criticality Index']
 	load_names = list(loads.keys())
@@ -1419,7 +1419,7 @@ def work(modelDir, inputDict):
 
 	# check downline loads
 	useZillow = False
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, zillowPricesPath, useZillow)
+	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList, inputDict['averageDemand'], inputDict['averageOccupants'], custInfoPath, zillowPricesPath, useZillow)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
@@ -1525,7 +1525,7 @@ def test():
 	modelDir = "/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity"
 	pathToLoadsFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv')
 	equipmentList = ['lines', 'transformers', 'fuses']
-	runCalculations(pathToOmd,pathToLoadsFile,1, modelDir, equipmentList)
+	runCalculations(pathToOmd, pathToLoadsFile, 1, 4, modelDir, equipmentList)
 
 def new(modelDir):
 	omdfileName = 'ieee37_LBL_simplified'
@@ -1543,6 +1543,7 @@ def new(modelDir):
 		"equipLifeFileName": equipLifeFileName[-1],
 		"equipLifeData": equipLifeData,
 		"averageDemand": 2.0,
+		"averageOccupants": 4.0,
 		"lines":'Yes',
 		"transformers":'Yes',
 		"fuses":'Yes',

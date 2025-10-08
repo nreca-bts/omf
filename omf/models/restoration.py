@@ -1074,6 +1074,7 @@ def getResComInfo(modelDir, pathToOmd, customerInfo):
 		makeResComOutputCsv(pathToOmd		= pathToOmd, 
 							pathToLoadsFile	= customerInfo, 
 							avgPeakDemand	= 4.25,
+							avgNumOccupants = 4.0,
 							modelDir		= modelDir,		
 							equipmentList	= ['line', 'transformer', 'fuse'])
 		with open(pJoin(modelDir, 'resilientCommunityOutput.csv'), mode='r') as infile:
