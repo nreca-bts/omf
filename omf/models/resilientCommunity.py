@@ -36,7 +36,6 @@ tooltip = "Determines the most vulnerable areas and pieces of equipment within a
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True
 
-#UNUSED
 def retrieveCensusNRI():
 	'''
 	Retrieves necessary data from ZIP File and exports to geojson
@@ -716,105 +715,6 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPe
 	calcEquipmentMetrics(filteredObDict, loadsDict)
 	return filteredObDict,loadsDict, sviGeoDF, newsviDF, section_loads
 
-#UNUSED
-def getDownLineLoadsBlockGroup(pathToOmd, avgPeakDemand):
-	'''
-	Retrieves downline loads for a circuit and retrieves nri data for each of the loads within the circuit
-	pathToOmd -> path to the omdfile
-	'''
-	omd = json.load(open(pathToOmd))
-	blockgroupDict = {}
-	loadsDict = {}
-	valList = []
-	geoms = []
-	obDict = {}
-	# Retrieve data to compute SVI
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		obDict[key] = ob
-		if (obType == 'load'):
-			loadsDict[key] = {"base crit score":None}
-			kw = float(ob['kw'])
-			kvar = float(ob['kvar']) if ob['kvar'] is not None else kw/avgPeakDemand
-			kv = float(ob['kv'])
-			loadsDict[key]["base crit score"]= ((math.sqrt((kw * kw) + (kvar * kvar) ))/ (avgPeakDemand)) * 4
-			long = float(ob['longitude'])
-			lat = float(ob['latitude'])
-			if blockgroupDict:
-				check = coordCheck(long, lat, blockgroupDict)
-				if check:
-					loadsDict[key]['blockgroup'] = check
-					continue
-				else:
-					blockgroup = findCensusBlockGroup(lat,long)
-			else:
-				blockgroup = findCensusBlockGroup(lat,long)
-			# Following replaces a potentially infinite loop. Whether it's necessary at all though should be investigated
-			blockgroup = repeatFindCensusBlockGroup(lat,long)
-			loadsDict[key]['blockgroup'] = blockgroup
-			blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
-			valList.append(list(all_vals(blockgroupDict[blockgroup])))
-			geoms.append(blockgroupDict[blockgroup]['geometry'])
-	# compute SVI
-	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(blockgroupFIPS)
-	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
-	sviDF = createDF(valList,cols, geoms)
-	pctile_list = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
-	for i in cols:
-		if i not in ['blockgroupFIPS', 'geometry']:
-			new_str = i + '_pct_rank'
-			sviDF[new_str] = sviDF[i].rank(pct=True)
-			pctile_list.append(new_str)
-	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
-	sviDF['SOVI_SCORE'] = sviDF['SOVI_TOTAL'].rank(pct=True)
-	#sviDF['SOVI_SCORE'] = sviDF[pctile_list].sum(axis=1).rank(pct=True)
-	sviDF['SOVI_RATNG'] = sviDF.apply(buildSVIRating, axis=1)
-	#sviDF.to_csv('outSVI.csv', index=False)
-	sviGeoDF = createGeoDF(sviDF)
-	# put all
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		if (obType == 'load'):
-			currBlockGroup = loadsDict[key]['blockgroup']
-			svi_score = sviDF[sviDF['blockgroupFIPS'] == currBlockGroup]['SOVI_SCORE'].values[0]
-			loadsDict[key]["community crit score"] = loadsDict[key]["base crit score"] *  svi_score
-			loadsDict[key]['SOVI_SCORE'] = svi_score
-	getPercentile(loadsDict, "base crit score")
-	getPercentile(loadsDict, 'community crit score')
-	del omd
-	digraph = createGraph(pathToOmd)
-	nodes = digraph.nodes()
-	namesToKeys = {v.get('name'):k for k,v in obDict.items()}
-	for obKey, ob in obDict.items():
-		obType = ob['object']
-		obName = ob['name']
-		obTo = ob.get('to')
-		if obName in nodes:
-			startingPoint = obName
-		elif obTo in nodes:
-			startingPoint = obTo
-		else:
-			continue
-		successors = nx.dfs_successors(digraph, startingPoint).values()
-		ob['downlineObs'] = []
-		ob['downlineLoads'] = []
-		for listofVals in successors:
-			for element in listofVals:
-				elementKey = namesToKeys.get(element)
-				elementType = elementKey.split('.')[0]
-				if elementKey not in ob['downlineObs']:
-					ob['downlineObs'].append(elementKey)
-				if elementKey not in ob['downlineLoads'] and elementType == 'load':
-					ob['downlineLoads'].append(elementKey)
-	return obDict,loadsDict, sviGeoDF
 
 def calcEquipmentMetrics(obsDict, loadsDict):
 	'''
