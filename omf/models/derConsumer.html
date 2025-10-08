@@ -3,14 +3,19 @@
 	<!-- Include Highcharts -->
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
 	<!-- Include Plotly -->
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>		
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 	<script type="text/javascript">
 		$(window).on('pageshow',function(){
-			Plotly.newPlot('derOverviewData', JSON.parse(allOutputData['derOverviewData']),JSON.parse(allOutputData['derOverviewLayout']));
-			Plotly.newPlot('newDemandData', JSON.parse(allOutputData['newDemandData']),JSON.parse(allOutputData['newDemandLayout']));
+			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout']);
+			plotGraph('newDemandData', allOutputData['newDemandData'], allOutputData['newDemandLayout']);
 			});
 	</script>
-
 	<!-- Include the ChargeLevelBattery plot only when BESS exists in the model -->
 	{% if allOutputDataDict.chargeLevelBattery|sum == 0 %}
 		<script type="text/javascript">    
@@ -21,7 +26,7 @@
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				Plotly.newPlot('batteryChargePlotly', JSON.parse(allOutputData['batteryChargeData']), JSON.parse(allOutputData['batteryChargeLayout']));
+				plotGraph('batteryChargePlotly', allOutputData['batteryChargeData'], allOutputData['batteryChargeLayout']);
 			});
 		</script>
 	{% endif %}
@@ -36,7 +41,7 @@
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				Plotly.newPlot('thermalBatPowerPlot', JSON.parse(allOutputData['thermalBatPowerPlot']), JSON.parse(allOutputData['thermalBatPowerPlotLayout']) || {});
+				plotGraph('thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout']);
 			});
 		</script>
 	{% endif %}
@@ -44,8 +49,8 @@
 	<!-- Continue adding Plotly plots -->
 	<script type="text/javascript">	
 		$(window).on('pageshow',function(){
-		Plotly.newPlot('resiliencePlotly', JSON.parse(allOutputData['resilienceData']), JSON.parse(allOutputData['resilienceLayout']) || {});
-		Plotly.newPlot('resilienceProbPlotly', JSON.parse(allOutputData['resilienceProbData']), JSON.parse(allOutputData['resilienceProbLayout']) || {});
+			plotGraph('resiliencePlotly', allOutputData['resilienceData'], allOutputData['resilienceLayout']);
+			plotGraph('resilienceProbPlotly', allOutputData['resilienceProbData'], allOutputData['resilienceProbLayout']);
 	});
 	</script>
 
