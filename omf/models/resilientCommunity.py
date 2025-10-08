@@ -825,17 +825,16 @@ def calcEquipmentMetrics(obsDict, loadsDict):
 		Input: loadsDict -> dict of loads
 	'''
 	for k,v in obsDict.items():
-		weights=0
 		comm_crit_sum=0
 		base_crit_sum = 0
 		for j in v['downlineLoads']:
+				# This check is done in the case that loadsDict is a strict subset of all loads on the feeder. E.g. only residential loads
 				ob = loadsDict.get(j)
 				if ob:
-					weights+=ob['SOVI_SCORE']
 					comm_crit_sum+=ob['community crit score'] 
 					base_crit_sum+=ob['base crit score'] 
 		obsDict[k]['base crit score'] = base_crit_sum
-		obsDict[k]['community crit score'] = comm_crit_sum/weights if (comm_crit_sum != 0 and weights != 0) else 0
+		obsDict[k]['community crit score'] = comm_crit_sum
 	getPercentile(obsDict, 'base crit score')
 	getPercentile(obsDict, 'community crit score')
 
