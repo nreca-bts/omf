@@ -6,8 +6,8 @@
 	<!-- onload function ensures plotly is loaded to display graphs -->
 	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
 	<script>
-		function plotGraph(graphTitle, graphData ) {
-			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		function plotGraph(graphTitle, graphData, graphLayout) {
+			Plotly.newPlot(graphTitle, JSON.parse(graphData), JSON.parse(graphLayout) || {} )
 		}
 	</script>
 	<script type="text/javascript">
