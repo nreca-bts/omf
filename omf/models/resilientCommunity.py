@@ -428,7 +428,70 @@ def getPowerMeasures(ob):
 		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
 	return kw, kvar, kva
 
-def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
+def createOIP(bgDF, oipPropPath, oipAggMethod):
+	''' 
+	'''
+	# Define mathematical operations for later use
+	def minmaxNorm(nums):
+		''' Returns a minmax-normalized version of the input list'''
+		mn = min(nums)
+		mx = max(nums)
+		if mn != mx:
+			mmnList = [(x-mn)/(mx-mn) for x in nums]
+		else:
+			# Reasoning: If all values are the same, they shouldn't contribute to any of the values being summarized. Their weights are captured in the denomenators of those summary functions.
+			mmnList = [0]*len(nums)
+		return mmnList
+	def arithMean(nums, weights):
+		''' Returns the weighted arithmetic mean of numbers in the input list'''
+		weightedNums = [nums[i]*weights[i] for i in range(len(nums))]
+		return sum(weightedNums)/sum(weights)
+	def rms(nums, weights):
+		''' Returns the weighted rms of numbers in the input list'''
+		weightedSquaredNums = [(nums[i]**2)*weights[i] for i in range(len(nums))]
+		return (sum(weightedSquaredNums)/sum(weights))**0.5
+	
+	# Define oipAggFunc() conditionally  based on oipAggMethod input
+	if oipAggMethod == 'Average of Min-Max-Normalized':
+		oipAggFunc = arithMean
+	elif oipAggMethod == 'RMS of Min-Max-Normalized':
+		oipAggFunc = rms
+	else:
+		raise Exception('ERROR: Unexpected value for oip Aggregation Method')
+	
+	
+	# Create a version of bgDF with normalized columns
+	rmCols2NaBgs = {}
+	for colName in bgDF.columns:
+		colNaDF = bgDF[bgDF[colName] == 'Not Applicable']
+		naBgs = colNaDF['blockgroupFIPS'].tolist()
+		if naBgs != []:
+			rmCols2NaBgs[colName] = naBgs
+	# TODO: Add an output that tells the user what cols had to be removed because they had "'Not Applicable' for the following blockgroups: [naBgs]. Have it conditionally just say 'for all blockgroups' if it is all bg
+	# Don't normalize entries in row then combine them, normalize entires in columns, then combine entires in rows. 	
+	normDict = {}
+	for colName in bgDF.drop(list(rmCols2NaBgs.keys()), axis=1).columns:
+		if colName not in ['blockgroupFIPS','geometry', 'SOVI_RATNG']:
+			normDict[colName] = minmaxNorm(list(bgDF[colName].apply(float)))
+		else:
+			normDict[colName] = list(bgDF[colName])
+	normDF = pd.DataFrame(normDict)
+
+	# Read in properties and weights from csv
+	oipDF = pd.read_csv(oipPropPath)
+	if not oipDF['Property'].is_unique:
+		raise Exception('ERROR: All entries in the \'Properties\' column of Properties for oip (.csv file) must be unique')
+	elif oipDF.isnull().any().any():
+		raise Exception('ERROR: Entry missing in Properties for oip (.csv file); all rows must have a value for every column')
+	oipDict = oipDF.to_dict('series')
+
+	filteredNormDF = normDF[oipDict['Property']]
+	oipSeries = filteredNormDF.agg(oipAggFunc,1,oipDict['Weight'])
+	bgDF['OIP'] = oipSeries.values
+	bgDF['OIP (%ile)'] = bgDF['OIP'].rank(pct=True, method='max')
+	return bgDF
+
+def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile, oipPropPath=None, oipAggMethod=None, pathToZillowData = None, useZillowData=False):
 	'''
 	Retrieves downline loads for specific set of equipment and retrieve nri data for each of the equipment, optionally using zillow data.
 	pathToOmd -> path to the omdfile
@@ -596,6 +659,9 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgP
 	# Group by 'blockgroup' and calculate desired metrics
 	newdf_loads = df_loads.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
 	newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+	if oipPropPath and oipAggMethod:
+		newsviDF = createOIP(newsviDF, oipPropPath, oipAggMethod)
+		colsToMove += 2
 	# Rearrange col ordering
 	newsviDFcols = newsviDF.columns.tolist()
 	newsviDFcols = newsviDFcols[-1*colsToMove:]+newsviDFcols[0:-1*colsToMove]
@@ -608,34 +674,34 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgP
 	section_loads = df_loads.groupby('section').agg(**aggKwargs).reset_index()
 
 	# Leave 'SOVI_RATING' out of this becasuse it's dealt with elsewhere
-	readableColsDict = {	'pct_Prs_Blw_Pov_Lev_ACS_16_20': '_____________% Individuals Below Poverty Level',
-							'pct_Civ_emp_16p_ACS_16_20': '_____________% Age 16+ Employed',
-							'avg_Agg_HH_INC_ACS_16_20': '_____________Per Capita Income (USD)',
-							'pct_Not_HS_Grad_ACS_16_20': '_____________% Non-HS Grads',
-							'pct_Pop_65plus_ACS_16_20': '_____________% Age 65+',
-							'pct_u19ACS_16_20': '_____________% Non-Instituionalized Below Age 19',
-							'pct_Pop_Disabled_ACS_16_20': '_____________% Individuals Disabled',
-							'pct_HH_Limited_Eng_ACS_16_20': '_____________% Limited English Speaking Households',
-							'pct_singlefamily_u18': '_____________% Single Parent Families',
-							'pct_MLT_U10p_ACS_16_20': '_____________% Multi-Unit Structure',
-							'pct_Mobile_Homes_ACS_16_20': '_____________% Mobile Home',
-							'pct_Crowd_Occp_U_ACS_16_20': '_____________% Crowding',
-							'pct_noVehicle': '_____________% No Vehicle',
-							'pct_Prs_Blw_Pov_Lev_ACS_16_20_pct_rank': '_____________% Individuals Below Poverty Level (%ile)',
-							'pct_Civ_emp_16p_ACS_16_20_pct_rank': '_____________% Age 16+ Employed (%ile)',
-							'avg_Agg_HH_INC_ACS_16_20_pct_rank': '_____________Per Capita Income (USD) (%ile)',
-							'pct_Not_HS_Grad_ACS_16_20_pct_rank': '_____________% Non-HS Grads (%ile)',
-							'pct_Pop_65plus_ACS_16_20_pct_rank': '_____________% Age 65+ (%ile)',
-							'pct_u19ACS_16_20_pct_rank': '_____________% Non-Instituionalized Below Age 19 (%ile)',
-							'pct_Pop_Disabled_ACS_16_20_pct_rank': '_____________% Individuals Disabled (%ile)',
-							'pct_HH_Limited_Eng_ACS_16_20_pct_rank': '_____________% Limited English Speaking Households (%ile)',
-							'pct_singlefamily_u18_pct_rank': '_____________% Single Parent Families (%ile)',
-							'pct_MLT_U10p_ACS_16_20_pct_rank': '_____________% Multi-Unit Structure (%ile)',
-							'pct_Mobile_Homes_ACS_16_20_pct_rank': '_____________% Mobile Home (%ile)',
-							'pct_Crowd_Occp_U_ACS_16_20_pct_rank': '_____________% Crowding (%ile)',
-							'pct_noVehicle_pct_rank': '_____________% No Vehicle (%ile)',
-							'SOVI_TOTAL': '_____________SVI Total',
-							'blockgroupFIPS': '_____________blockgroupFIPS',
+	readableColsDict = {	'pct_Prs_Blw_Pov_Lev_ACS_16_20': '_____________ % Individuals Below Poverty Level',
+							'pct_Civ_emp_16p_ACS_16_20': '_____________ % Age 16+ Employed',
+							'avg_Agg_HH_INC_ACS_16_20': '_____________ Per Capita Income (USD)',
+							'pct_Not_HS_Grad_ACS_16_20': '_____________ % Non-HS Grads',
+							'pct_Pop_65plus_ACS_16_20': '_____________ % Age 65+',
+							'pct_u19ACS_16_20': '_____________ % Non-Instituionalized Below Age 19',
+							'pct_Pop_Disabled_ACS_16_20': '_____________ % Individuals Disabled',
+							'pct_HH_Limited_Eng_ACS_16_20': '_____________ % Limited English Speaking Households',
+							'pct_singlefamily_u18': '_____________ % Single Parent Families',
+							'pct_MLT_U10p_ACS_16_20': '_____________ % Multi-Unit Structure',
+							'pct_Mobile_Homes_ACS_16_20': '_____________ % Mobile Home',
+							'pct_Crowd_Occp_U_ACS_16_20': '_____________ % Crowding',
+							'pct_noVehicle': '_____________ % No Vehicle',
+							'pct_Prs_Blw_Pov_Lev_ACS_16_20_pct_rank': '_____________ % Individuals Below Poverty Level (%ile)',
+							'pct_Civ_emp_16p_ACS_16_20_pct_rank': '_____________ % Age 16+ Employed (%ile)',
+							'avg_Agg_HH_INC_ACS_16_20_pct_rank': '_____________ Per Capita Income (USD) (%ile)',
+							'pct_Not_HS_Grad_ACS_16_20_pct_rank': '_____________ % Non-HS Grads (%ile)',
+							'pct_Pop_65plus_ACS_16_20_pct_rank': '_____________ % Age 65+ (%ile)',
+							'pct_u19ACS_16_20_pct_rank': '_____________ % Non-Instituionalized Below Age 19 (%ile)',
+							'pct_Pop_Disabled_ACS_16_20_pct_rank': '_____________ % Individuals Disabled (%ile)',
+							'pct_HH_Limited_Eng_ACS_16_20_pct_rank': '_____________ % Limited English Speaking Households (%ile)',
+							'pct_singlefamily_u18_pct_rank': '_____________ % Single Parent Families (%ile)',
+							'pct_MLT_U10p_ACS_16_20_pct_rank': '_____________ % Multi-Unit Structure (%ile)',
+							'pct_Mobile_Homes_ACS_16_20_pct_rank': '_____________ % Mobile Home (%ile)',
+							'pct_Crowd_Occp_U_ACS_16_20_pct_rank': '_____________ % Crowding (%ile)',
+							'pct_noVehicle_pct_rank': '_____________ % No Vehicle (%ile)',
+							'SOVI_TOTAL': '_____________ SVI Total',
+							'blockgroupFIPS': '_____________ blockgroupFIPS',
 							'SOVI_SCORE': 'SVI',
 							'avg_BCS': 'Avg BCS',
 							'avg_CCS': 'Avg CCS',
@@ -1362,7 +1428,7 @@ def copyInputFilesToModelDir(modelDir, inputDict):
 		
 		Returns a list of paths in the order: 
 		
-		custInfoPath, equipLifePath
+		custInfoPath, equipLifePath, oipPropPath
 	'''	
 	inDictKeys = [
 		{	
@@ -1372,6 +1438,10 @@ def copyInputFilesToModelDir(modelDir, inputDict):
 		{
 			'fname':'equipLifeFileName',
 			'data':'equipLifeData'
+		},
+		{
+			'fname':'oipPropFileName',
+			'data':'oipPropData'
 		}
 	]
 	localPaths = []
@@ -1398,7 +1468,7 @@ def work(modelDir, inputDict):
 	#obs_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'objects3.json')
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
 	sviDF_file = pJoin(modelDir, 'sviDF.csv')
-	custInfoPath, equipLifePath = copyInputFilesToModelDir(modelDir, inputDict)
+	custInfoPath, equipLifePath, oipPropPath = copyInputFilesToModelDir(modelDir, inputDict)
 	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
@@ -1419,7 +1489,7 @@ def work(modelDir, inputDict):
 
 	# check downline loads
 	useZillow = False
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList, inputDict['averageDemand'], inputDict['averageOccupants'], custInfoPath, zillowPricesPath, useZillow)
+	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList, inputDict['averageDemand'], inputDict['averageOccupants'], custInfoPath, oipPropPath, inputDict['oipAggMethod'], zillowPricesPath, useZillow)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
@@ -1528,13 +1598,18 @@ def test():
 	runCalculations(pathToOmd, pathToLoadsFile, 1, 4, modelDir, equipmentList)
 
 def new(modelDir):
-	omdfileName = 'ieee37_LBL_simplified'
-	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
-	customerData = open(pJoin(*customerFileName)).read()
 	#omdfileName = 'iowa240_in_Florida_modified'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
+	omdfileName = 'ieee37_LBL_simplified'
+	
+	# Establish Default Files
+	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
+	customerData = open(pJoin(*customerFileName)).read()
 	equipLifeFileName = [omf.omfDir,'static','testFiles','resilientCommunity','equipLifeExample.csv']
 	equipLifeData = open(pJoin(*equipLifeFileName)).read()
+	oipPropFileName = [omf.omfDir,'static','testFiles','resilientCommunity','oipPropExample.csv']
+	oipPropData = open(pJoin(*oipPropFileName)).read()
+
 	defaultInputs = {
 		"modelType": modelName,
 		"feederName1": omdfileName,
@@ -1542,6 +1617,9 @@ def new(modelDir):
 		"customerData": customerData,
 		"equipLifeFileName": equipLifeFileName[-1],
 		"equipLifeData": equipLifeData,
+		"oipPropFileName": oipPropFileName[-1],
+		"oipPropData": oipPropData,
+		"oipAggMethod": "Average of Min-Max-Normalized",
 		"averageDemand": 2.0,
 		"averageOccupants": 4.0,
 		"lines":'Yes',

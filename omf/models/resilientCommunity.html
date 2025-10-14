@@ -87,6 +87,26 @@
 			</div>
 			<hr>
 			<div class="wideInput">
+				<p class="inputSectionHeader">Outage Impact Potential</p>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Properties for OIP (.csv file)<span class="classic">Please see the documentation at the help link for the required format. To exclude all properties, upload a csv file with just headers and no column data to this field.</span></label>
+				<input id="oipPropFile" type="file" style="display:none" onchange="handle_files(this.files,'oipPropData','oipPropFileName')">
+				<input id="oipPropData" name="oipPropData" value='{{allInputDataDict.oipPropData}}' type="hidden">
+				<div>
+					<label for="oipPropFile" class="fileButton">Choose File</label>
+					<input id="oipPropFileName" name="oipPropFileName" value="{{allInputDataDict.oipPropFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties specified in &quot;Properties for oip (.csv file)&quot; are aggregated to create the Custom Impact Metric.</span></label>
+				<select id="oipAggMethod" name="oipAggMethod" value="{{allInputDataDict.oipAggMethod}}">
+					<option value="Average of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "Average of Min-Max-Normalized" %}selected{% endif %}>Average of Min-Max-Normalized</option>
+					<option value="RMS of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "RMS of Min-Max-Normalized" %}selected{% endif %}>RMS of Min-Max-Normalized</option>
+				</select>
+			</div>
+			<hr>
+			<div class="wideInput">
 				<p class="inputSectionHeader">Include In Analysis</p>
 			</div>
 			<div class="shortInput">
