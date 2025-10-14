@@ -1029,7 +1029,7 @@ def work(modelDir, inputDict):
 			zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
 			fval_hourly_cleaned[zero_mask] = 0.0
 
-			## Apply Fval to each DER
+			## Apply Fval to each 
 			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned
 
 			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs
@@ -1077,7 +1077,7 @@ def work(modelDir, inputDict):
 		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
 		outData['monthlyAdjustedPeakDemand'] = monthly_total_kw_withDERs.tolist()
 		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
-		allDevices_peakDemand_savings_monthly = totalDERs_monthly_savings.tolist() #(monthly_demand_charge_cost_withoutDERs - monthly_demand_charge_cost_withDERs).tolist()
+		outData['mmonthlyPeakDemandSavings'] = outData['monthlyPeakDemand'] #(monthly_demand_charge_cost_withoutDERs - monthly_demand_charge_cost_withDERs).tolist()
 
 	else: ## Use the user-provided .CSV demand charge file		
 		## Get the indices of each month's peak demand with respect to the indices of the demand arrays (8760 elements)
@@ -1135,7 +1135,7 @@ def work(modelDir, inputDict):
 		BESS_monthly_demand_savings = BESS_demand_at_baseP_cost*fval_monthly_cleaned
 		TESS_monthly_demand_savings = TESS_demand_at_baseP_cost*fval_monthly_cleaned
 		GEN_monthly_demand_savings = GEN_demand_at_baseP_cost*fval_monthly_cleaned
-		allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_monthly_demand_savings,TESS_monthly_demand_savings,GEN_monthly_demand_savings)]
+		#allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_monthly_demand_savings,TESS_monthly_demand_savings,GEN_monthly_demand_savings)]
 
 		## Calculate the consumption and fval-corrected demand savings
 		for device_name in single_device_results:
@@ -1160,6 +1160,7 @@ def work(modelDir, inputDict):
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
 		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
 		outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
+		outData['monthlyPeakDemandSavings'] = outData['monthlyPeakDemand'] #(np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist()
 		
 	########################################################################################################################
 	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
@@ -1335,13 +1336,13 @@ def work(modelDir, inputDict):
 	outData['monthlyEnergyConsumptionSavings'] = monthlyEnergyConsumptionSavings.tolist()
 
 	## NOTE: The demand variables below are calculated differently depending on the input method for demand rate information (JSON response file vs. CSV file)
-	##allOutputData.monthlyPeakDemand)
-	##allOutputData.monthlyAdjustedPeakDemand)
-	##allOutputData.monthlyPeakDemandCost)
-	##allOutputData.monthlyAdjustedPeakDemandCost)
-	##allOutputData.monthlyTotalCostService)
-	##allOutputData.monthlyTotalCostAdjustedService)
-	outData['monthlyPeakDemandSavings'] = allDevices_peakDemand_savings_monthly
+	##allOutputData.monthlyPeakDemand
+	##allOutputData.monthlyAdjustedPeakDemand
+	##allOutputData.monthlyPeakDemandCost
+	##allOutputData.monthlyAdjustedPeakDemandCost
+	##allOutputData.monthlyTotalCostService
+	##allOutputData.monthlyTotalCostAdjustedService
+	##allOutputData.monthlyPeakDemandSavings
 
 	outData['totalCost_paidToConsumer'] = (allDevices_compensation_year1_monthly_array + allDevices_subsidy_year1_monthly_array).tolist()
 	startup_and_operational_costs_year1_array = startupCosts_year1_monthly_array + operationalCosts_year1_monthly_array ## Combine the startup and operational costs for displaying in the Monthly Cost Comparison table
