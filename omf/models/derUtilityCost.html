@@ -293,6 +293,10 @@
 				<input type="text" id="number_devices_BESS" name="number_devices_BESS" value="{{allInputDataDict.number_devices_BESS}}" required="required">
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Portion of Charge Used by Utility (%)<span class="classic"> The maximum percentage of full charge that the utility will use at any time. </span></label>
+				<input type="text" id="utility_BESS_portion" name="utility_BESS_portion" value="{{allInputDataDict.utility_BESS_portion}}" required="required"/>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Home Battery Power Capacity (kW)<span class="classic">Specify the home chemical battery power capacity in kW for each individual battery enrolled by a member-consumer.</span></label>
 				<input type="text" id="BESS_kw" name="BESS_kw" value="{{allInputDataDict.BESS_kw}}" required="required"/>
 			</div>
