@@ -245,8 +245,11 @@ def work(modelDir, inputDict):
 			response_file = json.loads(inputDict['wholesaleRateStructure'])
 		except json.JSONDecodeError:
 			## Convert single quotes to double quotes for proper JSON formatting, then parse the JSON and use it as a Python dictionary
-			fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
-			response_file = json.loads(fixed)
+			try: 
+				fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
+				response_file = json.loads(fixed)
+			except json.JSONDecodeError:
+				raise Exception("Try re-uploading the JSON file and running the model again.")
 		except TypeError:
 			## If the wholesale_rate_curve is already a Python dictionary, use it directly
 			if isinstance(inputDict['wholesaleRateStructure'], dict):
@@ -370,8 +373,8 @@ def work(modelDir, inputDict):
 		BESScheck = 'enabled'
 		utility_control_percentage = float(inputDict['utility_BESS_portion'])/100.
 		scenario['ElectricStorage'] = {
-			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
-			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
+			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']),
+			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']),
 			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
 			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
 			'can_grid_charge': True,
@@ -404,10 +407,15 @@ def work(modelDir, inputDict):
 	with open(pJoin(modelDir, 'results.json')) as jsonFile:
 		reoptResults = json.load(jsonFile)
 	outData.update(reoptResults) ## Update output file with reopt results
+	reoptErrorMsgs = reoptResults['Messages']['errors']
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
 	if BESScheck == 'enabled':
-		BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		try:
+			BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		except KeyError:
+			raise Exception(f'No BESS found in REopt. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
+		
 		grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
 		outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
 	else:
