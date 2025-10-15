@@ -87,26 +87,6 @@
 			</div>
 			<hr>
 			<div class="wideInput">
-				<p class="inputSectionHeader">Outage Impact Potential</p>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Properties for OIP (.csv file)<span class="classic">Please see the documentation at the help link for the required format. To exclude all properties, upload a csv file with just headers and no column data to this field.</span></label>
-				<input id="oipPropFile" type="file" style="display:none" onchange="handle_files(this.files,'oipPropData','oipPropFileName')">
-				<input id="oipPropData" name="oipPropData" value='{{allInputDataDict.oipPropData}}' type="hidden">
-				<div>
-					<label for="oipPropFile" class="fileButton">Choose File</label>
-					<input id="oipPropFileName" name="oipPropFileName" value="{{allInputDataDict.oipPropFileName}}" value='' readonly class="uploadFileName">
-				</div>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties specified in &quot;Properties for oip (.csv file)&quot; are aggregated to create the Custom Impact Metric.</span></label>
-				<select id="oipAggMethod" name="oipAggMethod" value="{{allInputDataDict.oipAggMethod}}">
-					<option value="Average of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "Average of Min-Max-Normalized" %}selected{% endif %}>Average of Min-Max-Normalized</option>
-					<option value="RMS of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "RMS of Min-Max-Normalized" %}selected{% endif %}>RMS of Min-Max-Normalized</option>
-				</select>
-			</div>
-			<hr>
-			<div class="wideInput">
 				<p class="inputSectionHeader">Include In Analysis</p>
 			</div>
 			<div class="shortInput">
@@ -129,6 +109,236 @@
 					<option value="yes" {% if allInputDataDict.fuses | lower == "yes" %}selected{% endif %}>Yes</option>
 					<option value="no" {% if allInputDataDict.fuses | lower != "yes" %}selected{% endif %}>No</option>
 				</select>
+			</div>
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Outage Impact Potential</p>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties specified in &quot;Properties for oip (.csv file)&quot; are aggregated to create the Custom Impact Metric.</span></label>
+				<select id="oipAggMethod" name="oipAggMethod" value="{{allInputDataDict.oipAggMethod}}">
+					<option value="Average of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "Average of Min-Max-Normalized" %}selected{% endif %}>Average of Min-Max-Normalized</option>
+					<option value="RMS of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "RMS of Min-Max-Normalized" %}selected{% endif %}>RMS of Min-Max-Normalized</option>
+				</select>
+			</div>
+
+			<style>
+			.medInput {
+				width: 60%;
+				display: inline-block;
+				box-sizing: border-box;
+			}
+			</style>
+			
+<!-- ------------------------------------------- Non-Weather Input Start ------------------------------------------- -->
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Outage Impact Potential - Customer Variables</p>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Age 16+ Employed<span class="classic">Percent of people in a blockgroup age 16+ who are employed<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_employed" id="oip_employed" value="{{allInputDataDict.oip_employed}}" min="0" step="1" required>
+			</div>
+			
+			<div class="shortInput">
+				<label class="tooltip">% Age 65+<span class="classic">Percent of people in a blockgroup age 65+</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_age65" id="oip_age65" value="{{allInputDataDict.oip_age65}}" min="0" step="1" required>
+			</div>
+			
+			<div class="shortInput">
+				<label class="tooltip">% Crowding<span class="classic">Percent of housing units in a blockgroup with more than 1.01 people per room</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_crowding" id="oip_crowding" value="{{allInputDataDict.oip_crowding}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Individuals Below Poverty Level<span class="classic">Percent of people in a blockgroup classified as below the poverty level</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_poverty" id="oip_poverty" value="{{allInputDataDict.oip_poverty}}" min="0" step="1" required>
+			</div>
+			
+			<div class="shortInput">
+				<label class="tooltip">% Individuals Disabled<span class="classic">Percent of people in a blockgroup living with a disability</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_disabled" id="oip_disabled" value="{{allInputDataDict.oip_disabled}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Limited English Speaking Households<span class="classic">Percent of limited English speaking households in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_lim_eng" id="oip_lim_eng" value="{{allInputDataDict.oip_lim_eng}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Mobile Home<span class="classic">Percent of housing units in a blockgroup that are mobile homes</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_mobile" id="oip_mobile" value="{{allInputDataDict.oip_mobile}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Multi-Unit Structure<span class="classic">Percent of housing units in a blockgroup that are in structures containing 10 or more housing units</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_multi" id="oip_multi" value="{{allInputDataDict.oip_multi}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% No Vehicle<span class="classic">Percent of people in a blockgroup with no vehicle</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_no_vehicle" id="oip_no_vehicle" value="{{allInputDataDict.oip_no_vehicle}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Non-HS Grads<span class="classic">Percent of people in a blockgroup age 25+ who are not high school graduates</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_nongrad" id="oip_nongrad" value="{{allInputDataDict.oip_nongrad}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">% Non-Institutionalized Below Age 19<span class="classic">Percent of non-institutionalized people in a blockgroup below age 19</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_below19" id="oip_below19" value="{{allInputDataDict.oip_below19}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Avg Aggregate Household Income (USD)<span class="classic">Average aggregate household income (USD) for households in a blockgroup<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_income" id="oip_income" value="{{allInputDataDict.oip_income}}" min="0" step="1" required>
+			</div>
+<!-- ------------------------------------------- Weather Input Start ------------------------------------------- -->
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Outage Impact Potential - Weather Hazards Annualized Frequency</p>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Avalanche<span class="classic">Annualized frequency of avalanche hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_avln" id="oip_af_avln" value="{{allInputDataDict.oip_af_avln}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Cold Wave<span class="classic">Annualized frequency of cold wave hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_cwav" id="oip_af_cwav" value="{{allInputDataDict.oip_af_cwav}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Drought<span class="classic">Annualized frequency of drought hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_drgt" id="oip_af_drgt" value="{{allInputDataDict.oip_af_drgt}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Earthquake<span class="classic">Annualized frequency of earthquake hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_erqk" id="oip_af_erqk" value="{{allInputDataDict.oip_af_erqk}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Hail<span class="classic">Annualized frequency of hail hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_hail" id="oip_af_hail" value="{{allInputDataDict.oip_af_hail}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Heat Wave<span class="classic">Annualized frequency of heat wave hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_hwav" id="oip_af_hwav" value="{{allInputDataDict.oip_af_hwav}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Hurricane<span class="classic">Annualized frequency of hurricane hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_hrcn" id="oip_af_hrcn" value="{{allInputDataDict.oip_af_hrcn}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Ice Storm<span class="classic">Annualized frequency of ice storm hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_istm" id="oip_af_istm" value="{{allInputDataDict.oip_af_istm}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Landslide<span class="classic">Annualized frequency of landslide hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_lnds" id="oip_af_lnds" value="{{allInputDataDict.oip_af_lnds}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Lightning<span class="classic">AnnualiZed frequency of lightning hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_ltng" id="oip_af_ltng" value="{{allInputDataDict.oip_af_ltng}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Strong Wind<span class="classic">Annualized frequency of strong wind hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_swnd" id="oip_af_swnd" value="{{allInputDataDict.oip_af_swnd}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Wildfire<span class="classic">Annualized frequency of wildfire hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_wfir" id="oip_af_wfir" value="{{allInputDataDict.oip_af_wfir}}" min="0" step="1" required>
+			</div>
+
+			<div class="shortInput">
+				<label class="tooltip">Winter Weather<span class="classic">Annualized frequency of winter weather hazards in a blockgroup</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="oip_af_wntw" id="oip_af_wntw" value="{{allInputDataDict.oip_af_wntw}}" min="0" step="1" required>
 			</div>
 			{{ omfModelButtons }}
 		</form>
