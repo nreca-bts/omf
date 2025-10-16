@@ -429,7 +429,7 @@ def getPowerMeasures(ob):
 	return kw, kvar, kva
 
 def createOIP(bgDF, oipInputDict, oipAggMethod):
-	''' Creates Outage Impact Potential (OIP) and returns bgDF with it and a percentile versions tacked onto it (For now. Function planned to change.)
+	''' Creates Outage Impact Potential (OIP) and returns bgDF with it and a percentile versions tacked onto it + list of output messages about columns removed (For now. Function planned to change.)
 	'''
 	# Define mathematical operations for later use
 	def minmaxNorm(nums, doInvert):
@@ -459,15 +459,54 @@ def createOIP(bgDF, oipInputDict, oipAggMethod):
 	else:
 		raise Exception('ERROR: Unexpected value for oip Aggregation Method')
 	
-	# Create a version of bgDF with normalized columns
+	# Create dictionary of vars with 'Not Applicable' mentioned for blockgroups and create output message re: what blockgroups are impacted. 
 	rmCols2NaBgs = {}
 	for colName in bgDF.columns:
 		colNaDF = bgDF[bgDF[colName] == 'Not Applicable']
 		naBgs = colNaDF['blockgroupFIPS'].tolist()
-		if naBgs != []:
+		if len(naBgs) == bgDF.shape[0]:
+			rmCols2NaBgs[colName] = 'all'
+		elif len(naBgs) != 0:
 			rmCols2NaBgs[colName] = naBgs
-	# TODO: Add an output that tells the user what cols had to be removed because they had "'Not Applicable' for the following blockgroups: [naBgs]. Have it conditionally just say 'for all blockgroups' if it is all bg
-	# Don't normalize entries in row then combine them, normalize entires in columns, then combine entires in rows. 	
+	col2Plaintext = {
+		'pct_Civ_emp_16p_ACS_16_20': '% Age 16+ Employed',
+		'pct_Pop_65plus_ACS_16_20': '% Age 65+',
+		'pct_Crowd_Occp_U_ACS_16_20': '% Crowding',
+		'pct_Prs_Blw_Pov_Lev_ACS_16_20': '% Individuals Below Poverty Level',
+		'pct_Pop_Disabled_ACS_16_20': '% Individuals Disabled',
+		'pct_HH_Limited_Eng_ACS_16_20': '% Limited English Speaking Households',
+		'pct_Mobile_Homes_ACS_16_20': '% Mobile Home',
+		'pct_MLT_U10p_ACS_16_20': '% Multi-Unit Structure',
+		'pct_noVehicle': '% No Vehicle',
+		'pct_Not_HS_Grad_ACS_16_20': '% Non-HS Grads',
+		'pct_u19ACS_16_20': '% Non-Institutionalized Below Age 19',
+		'pct_singlefamily_u18': '% Single Parent Families',
+		'avg_Agg_HH_INC_ACS_16_20': 'Aggregate Household Income (USD)',
+		'AVLN_AFREQ': 'Avalanche',
+		'CWAV_AFREQ': 'Cold Wave',
+		'DRGT_AFREQ': 'Drought',
+		'ERQK_AFREQ': 'Earthquake',
+		'HAIL_AFREQ': 'Hail',
+		'HWAV_AFREQ': 'Heat Wave',
+		'HRCN_AFREQ': 'Hurricane',
+		'ISTM_AFREQ': 'Ice Storm',
+		'LNDS_AFREQ': 'Landslide',
+		'LTNG_AFREQ': 'Lightning',
+		'SWND_AFREQ': 'Strong Wind',
+		'WFIR_AFREQ': 'Wildfire',
+		'WNTW_AFREQ': 'Winter Weather'
+	}
+	rmMsgs = []
+	for colName,bgs in rmCols2NaBgs.items():
+		plaintextName = col2Plaintext[colName]
+		msg = f'"{plaintextName}" removed from analysis because it has a value of "Not Applicable" for '
+		if bgs == 'all':
+			msg += 'all blockgroups.'
+		else:
+			msg += f'these blockgroups: {bgs}'
+		rmMsgs.append(msg)
+
+	# Create a version of bgDF with normalized columns, having removed ones with 'Not Applicable' entries
 	normDict = {}
 	for colName in bgDF.drop(list(rmCols2NaBgs.keys()), axis=1).columns:
 		if colName not in ['blockgroupFIPS','geometry', 'SOVI_RATNG']:
@@ -475,6 +514,7 @@ def createOIP(bgDF, oipInputDict, oipAggMethod):
 			normDict[colName] = minmaxNorm(list(bgDF[colName].apply(float)), doInvert)
 	normDF = pd.DataFrame(normDict)
 
+	# Create OIP and add it to bgDF
 	varName2Col = {
 		'oip_employed': 'pct_Civ_emp_16p_ACS_16_20',
 		'oip_age65': 'pct_Pop_65plus_ACS_16_20',
@@ -506,15 +546,14 @@ def createOIP(bgDF, oipInputDict, oipAggMethod):
 	orderedCols = []
 	orderedWeights = []
 	for varName,weight in oipInputDict.items():
-		rmCols = rmCols2NaBgs.keys()
 		col = varName2Col[varName]
-		if col not in rmCols:
+		if col not in rmCols2NaBgs.keys():
 			orderedCols.append(col)
 			orderedWeights.append(weight)
 	oipSeries = normDF[orderedCols].agg(oipAggFunc, 1, orderedWeights)
 	bgDF['OIP'] = oipSeries.fillna(0).values
 	bgDF['OIP (%ile)'] = bgDF['OIP'].rank(pct=True, method='max')
-	return bgDF
+	return bgDF, rmMsgs
 
 def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile, oipInputDict=None, oipAggMethod=None, pathToZillowData = None, useZillowData=False):
 	'''
@@ -684,8 +723,9 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgP
 	# Group by 'blockgroup' and calculate desired metrics
 	newdf_loads = df_loads.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
 	newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
+	rmMsgs = []
 	if oipInputDict and oipAggMethod:
-		newsviDF = createOIP(newsviDF, oipInputDict, oipAggMethod)
+		newsviDF, rmMsgs = createOIP(newsviDF, oipInputDict, oipAggMethod)
 		colsToMove += 2
 	# Rearrange col ordering
 	newsviDFcols = newsviDF.columns.tolist()
@@ -804,7 +844,7 @@ def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgP
 	filteredObDict = {k:v  for k,v in obDict.items() if v.get('object') in equipmentList}
 	# add metrics to equipment based on downline loads
 	calcEquipmentMetrics(filteredObDict, loadsDict)
-	return filteredObDict,loadsDict, sviGeoDF, newsviDF, section_loads
+	return filteredObDict,loadsDict, sviGeoDF, newsviDF, section_loads, rmMsgs
 
 
 def calcEquipmentMetrics(obsDict, loadsDict):
@@ -1051,7 +1091,7 @@ def runCalculations(pathToOmd, pathToLoadsFile, avgPeakDemand, avgNumOccupants, 
 	modelDir -> modelDirectory to store csv
 	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
 	'''
-	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile)
+	obDict,loads, sviGeoDF, newsviDF, section_loads, rmMsgs = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, avgNumOccupants, pathToLoadsFile)
 	cols = ['Object Name', 'Type','Section', 'Base Criticality Score', 'Base Criticality Index',
 			'Community Criticality Score', 'Community Criticality Index']
 	load_names = list(loads.keys())
@@ -1513,7 +1553,7 @@ def work(modelDir, inputDict):
 
 	# check downline loads
 	useZillow = False
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList, inputDict['averageDemand'], inputDict['averageOccupants'], custInfoPath, oipInputDict, inputDict['oipAggMethod'], zillowPricesPath, useZillow)
+	obDict, loads, geoDF, sviDF, loadSections, outData['rmMsgs'] = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList, inputDict['averageDemand'], inputDict['averageOccupants'], custInfoPath, oipInputDict, inputDict['oipAggMethod'], zillowPricesPath, useZillow)
 	# color vals based on selected column
 	createColorCSVBlockGroup(modelDir, loads, obDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):

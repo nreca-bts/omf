@@ -167,7 +167,7 @@
 				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
 				<input type="number" name="oip_poverty" id="oip_poverty" value="{{allInputDataDict.oip_poverty}}" min="0" step="1" required>
 			</div>
-			
+
 			<div class="shortInput">
 				<label class="tooltip">% Individuals Disabled<span class="classic">Percent of people in a blockgroup living with a disability</span></label>
 			</div>
@@ -347,11 +347,20 @@
 	{% if modelStatus == 'finished' %}
 		<!-- Output tables, graphs, etc -->
 	
-	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:1px solid #2E8B57">
+	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid #2E8B57">
 		<p class="reportTitle"><em><b>IMPORTANT</b></em></p>
 		Social Vulnerability Rating, SVI, CCS, CCI, BCI, and all other "%ile" values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
 	</div>
-		
+
+	{% if allOutputDataDict['rmMsgs'] != [] %}
+	<div id="removalMessage" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid #dc143c">
+		<p class="reportTitle"><em><b>NOTICE</b></em></p>
+		{% for msg in allOutputDataDict['rmMsgs'] %}
+		{{ msg }}{% if not loop.last %}<br><br>{% endif %}
+		{% endfor %}
+	</div>
+	{% endif %}
+
 	<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Resilient Community Map<span class="classic">Shapes and circuit elements can be clicked to bring up tooltips with more information about them. <br><br>Shapes can be toggled by clicking the checkbox next to &quot;geoshapes.geojson&quot; <br><br>Feeder map coloring can be changed without rerunning the model by clicking in the top right corner: &quot;Edit&quot; -> &quot;Color circuit&quot;. <br><br>Circuit elements can be searched for by clicking in the top right corner: &quot;Edit&quot; -> &quot;Search objects&quot;. They can be visualized on the map by clicking &quot;Highlight search results&quot; in the top left. <br><br>See the wiki for more details.</span></label></p>
 	<div id="resilienceMap" class="tightContent">
 		<script>
