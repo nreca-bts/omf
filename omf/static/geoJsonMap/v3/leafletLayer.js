@@ -309,23 +309,23 @@ class LeafletLayer {    // implements ObserverInterface
 
     #style() {
         // - Extension styling
-        if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Very High') {
+        if (this.#observable.hasProperty('OIP Rating', 'meta') && this.#observable.getProperty('OIP Rating', 'meta') === 'Very High') {
             return {
                 color: 'yellow'
             }
-        } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively High') {
+        } else if (this.#observable.hasProperty('OIP Rating', 'meta') && this.#observable.getProperty('OIP Rating', 'meta') === 'Relatively High') {
             return {
                 color: '#83d54b'
             }
-        } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively Moderate') {
+        } else if (this.#observable.hasProperty('OIP Rating', 'meta') && this.#observable.getProperty('OIP Rating', 'meta') === 'Relatively Moderate') {
             return {
                 color: 'mediumspringgreen'
             }
-        } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Relatively Low') {
+        } else if (this.#observable.hasProperty('OIP Rating', 'meta') && this.#observable.getProperty('OIP Rating', 'meta') === 'Relatively Low') {
             return {
                 color: 'cyan'
             }
-        } else if (this.#observable.hasProperty('SOVI_RATNG', 'meta') && this.#observable.getProperty('SOVI_RATNG', 'meta') === 'Very Low') {
+        } else if (this.#observable.hasProperty('OIP Rating', 'meta') && this.#observable.getProperty('OIP Rating', 'meta') === 'Very Low') {
             return {
                 color: 'blue'
             }

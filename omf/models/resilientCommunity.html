@@ -70,15 +70,15 @@
 				<label class="tooltip">Feeder Map Coloring By<span class="classic">Determines coloring of loads and equipment on the circuit.<br><br>To change coloring after running the model, go to the top right of the output map and click &quot;Edit&quot; -> &quot;Color circuit&quot;.</span></label>
 				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
 					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
-					<option value="Community Criticality Score" {% if allInputDataDict.loadCol == "Community Criticality Score" %}selected{% endif %}>Community Criticality Score</option>
+					<option value="Location-Based Criticality Score" {% if allInputDataDict.loadCol == "Location-Based Criticality Score" %}selected{% endif %}>Location-Based Criticality Score</option>
 					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
-					<option value="Community Criticality Index" {% if allInputDataDict.loadCol == "Community Criticality Index" %}selected{% endif %}>Community Criticality Index</option>
+					<option value="Location-Based Criticality Index" {% if allInputDataDict.loadCol == "Location-Based Criticality Index" %}selected{% endif %}>Location-Based Criticality Index</option>
 					<option value="Feeder Sections" {% if allInputDataDict.loadCol == "Feeder Sections" %}selected{% endif %}>Feeder Sections</option>
 					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household in the area </span></label>
+				<label class="tooltip">Average Peak Demand (kva)<span class="classic">Enter the average peak demand for a household in the area </span></label>
 				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0.01" step="0.01" required>
 			</div>
 			<div class="shortInput">
@@ -112,7 +112,7 @@
 			</div>
 			<hr>
 			<div class="wideInput">
-				<p class="inputSectionHeader">Outage Impact Potential</p>
+				<p class="inputSectionHeader">Outage Impact Potential (OIP)</p>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties specified in &quot;Properties for oip (.csv file)&quot; are aggregated to create the Custom Impact Metric.</span></label>
@@ -131,7 +131,7 @@
 			</style>
 			<hr>
 			<div class="wideInput">
-				<p class="inputSectionHeader">Outage Impact Potential - Customer Variables</p>
+				<p class="inputSectionHeader"><label class="tooltip">Outage Impact Potential - Customer Variables<span class="classic">These variables only apply to residential loads.<br><br>If any of these variables are given a non-zero weight, the analysis will be restricted to loads labeled residential in the Customer Information (.csv file) upload.</span></label></p>
 			</div>
 			{% set custVarList = [
 				['% Age 16+ Employed', 'Percent of people in a blockgroup age 16+ who are employed<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages', 'oip_employed'],
@@ -148,17 +148,17 @@
 				['Avg Aggregate Household Income (USD)', 'Average aggregate household income (USD) for households in a blockgroup<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages','oip_income']
 			] %}
 			{% for row in custVarList %}
-				<div class="shortInput">
+			<div class="shortInput">
 				<label class="tooltip">{{ row[0] }}<span class="classic">{{ row[1] }}</span></label>
 			</div>
 			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
-				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0.</span></label>
 				<input type="number" name="{{ row[2] }}" id="{{ row[2] }}" value="{{ allInputDataDict[ row[2] ] }}" min="0" step="1" required>
 			</div>
 			{% endfor %}
 			<hr>
 			<div class="wideInput">
-				<p class="inputSectionHeader">Outage Impact Potential - Weather Hazards Annualized Frequency</p>
+				<p class="inputSectionHeader"><label class="tooltip">Outage Impact Potential - Weather Hazards Annualized Frequency<span class="classic">These variables apply to all loads.<br><br>Including these variables will not impact what loads are analyzed.</span></label></p>
 			</div>
 			{% set weatherVarList = [
 				['Avalanche', 'Annualized frequency of avalanche hazards in a blockgroup', 'oip_af_avln'],
@@ -176,7 +176,7 @@
 				['Winter Weather', 'Annualized frequency of winter weather hazards in a blockgroup', 'oip_af_wntw']
 			] %}
 			{% for row in weatherVarList %}
-				<div class="shortInput">
+			<div class="shortInput">
 				<label class="tooltip">{{ row[0] }}<span class="classic">{{ row[1] }}</span></label>
 			</div>
 			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
@@ -194,7 +194,7 @@
 	
 	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid #2E8B57">
 		<p class="reportTitle"><em><b>IMPORTANT</b></em></p>
-		Social Vulnerability Rating, SVI, CCS, CCI, BCI, and all other "%ile" values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
+		OIP Rating, OIP Index, LCS, LCI, and BCI values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
 	</div>
 
 	{% if allOutputDataDict['rmMsgs'] != [] %}
@@ -285,7 +285,7 @@
 						<div class="my-legend">
 							<div class="legend-title">
 								<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
-									Social Vulnerability Legend
+									Outage Impact Potential Legend
 								</p>
 							</div>
 							<div class="legend-scale">
