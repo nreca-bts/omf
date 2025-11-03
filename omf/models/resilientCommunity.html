@@ -198,7 +198,7 @@
 	</div>
 
 	{% if allOutputDataDict['rmMsgs'] != [] %}
-	<div id="removalMessage" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid #dc143c">
+	<div id="removalMessage" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid yellow">
 		<p class="reportTitle"><em><b>NOTICE</b></em></p>
 		{% for msg in allOutputDataDict['rmMsgs'] %}
 		{{ msg }}{% if not loop.last %}<br><br>{% endif %}
