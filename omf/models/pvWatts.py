@@ -68,13 +68,13 @@ def work(modelDir, inputDict):
 		text = response.text
 		lines = text.splitlines()[2:]
 		clean_text = "\n".join(lines)
-		with open( Path(modelDir,"output_NREL_wind_data.csv"), "w") as text_file:
+		with open( Path(modelDir,"output_tmy_wind_data.csv"), "w") as text_file:
 			text_file.write(clean_text)
 			requestSuccess = True
 
 	if requestSuccess:
 		pvwatts_model = pvwatts.new()
-		wind_data = pd.read_csv(Path(modelDir,"output_NREL_wind_data.csv"))
+		wind_data = pd.read_csv(Path(modelDir,"output_tmy_wind_data.csv"))
 
 		datetime_components_dict = {
 			'year': wind_data['Year'],
