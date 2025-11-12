@@ -58,6 +58,29 @@ hidden = True ## Keep the model hidden=True during active development
 #
 #	return energy_rate_array
 
+def calculate_fval(peak_demands, adjusted_peak_demands, DER_contribution):
+	""" 
+	Calculates linear scaling factor, Fval, to quantify the impact of DERs on the total peak demand savings when the peak is shifted by the contribution from DERs.
+	Fval is calculated as follows = (peak_demands - adjusted_peak_demands) / DER_contribution. Fval is set to zero except in cases where the DER_contribution is nonzero.
+	NOTE: See email with Lisa 9/3/2025 with the subject line "F_val validation calcs" for more explanation.
+	
+	Inputs:
+	 - peak_demands (array): The peak demand (kW) or peak demand cost ($) for the demand curve without DERs.
+	 - adjusted_peak_demands (array): The adjusted peak demand (kW) or cost ($) for the demand curve with DERs.
+	 - DER_contribution: The contribution from all DERs at the location of the peak demand for the demand curve without DERs.
+
+	Outputs:
+	 - fval (array): Returns an array of float values representing the scaling factor for each peak to be applied to each DER individually.
+	"""
+
+	numerator = peak_demands - adjusted_peak_demands
+	denominator = DER_contribution
+	fval = np.zeros_like(peak_demands) ## Initialize monthly array for fval as all zeros
+	nonzero_case = denominator != 0 ## If the DER contribution is nonzero, then calculate Fval
+	fval[nonzero_case] = numerator[nonzero_case] / denominator[nonzero_case]
+
+	return fval
+
 def construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours):
 	"""
 	Extracts demand charge information contained in the JSON response_file and calculates the total monthly demand charge cost ($) based on the demand rate structure and monthly facility demand charge, if present. 
@@ -463,14 +486,14 @@ def work(modelDir, inputDict):
 	single_device_results = {} 
 	for suffix in thermal_suffixes:
 		## Include only the thermal devices specified by the user
-		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: If thermal tech is not enabled by the user, the load_type_X variable will be set to 0 in derConsumer.html
+		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: If thermal tech is not enabled by the user, the load_type_X variable will be set to 0
 			all_device_suffixes.append(suffix)
 
-			## Add the appropriate thermal device variables to the inputDict_vbatDispatch
+			## Add the appropriate thermal device variables to the inputDict_vbatDispatch dictionary
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
-			## Create a model subdirectory for each thermal device and store the vbatDispatch results
+			## Create a model subdirectory for each thermal device and store the vbatDispatch results there
 			newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
 			os.makedirs(newDir, exist_ok=True)
 			os.chdir(newDir) ##jump into the newly created subdirectory
@@ -1017,29 +1040,17 @@ def work(modelDir, inputDict):
 			DERs_at_baseP = DERs[:, index_noDERs]
 			DERs_at_adjP = DERs[:, index_withDERs]
 
-			## Fval calculation
-			## Fval = (demand at base peak t=1 - demand at adjusted peak t=2) / DERs at base peak t=1
+			## Calculate linear scaling factor Fval to properly calculate individual DER peak demand savings due to peak shifting
 			demand_baseP = np.array(demand[index_noDERs]*rate_noDERs)
-			demand_adjP = np.array(demand[index_withDERs]*rate_withDERs)
+			demand_adjP = np.array(adjusted_demand[index_withDERs]*rate_withDERs)
 			DERs_at_baseP_dollars = DERs_at_baseP*rate_noDERs
-			DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
+			#DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
 			totalDER_at_baseP_dollars = np.sum(DERs_at_baseP_dollars, axis=0)
-			numerator   = demand_baseP - demand_adjP
-			denominator = totalDER_at_baseP_dollars
 
-			## Handle edge cases of Fval equation
-			fval_hourly = np.divide(
-				numerator,
-				denominator,
-				out=np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-				where=denominator != 0
-			)
-			fval_hourly_cleaned = np.nan_to_num(fval_hourly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
-			zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
-			fval_hourly_cleaned[zero_mask] = 0.0
+			fval_hourly = calculate_fval(demand_baseP, demand_adjP, totalDER_at_baseP_dollars)
 
 			## Apply Fval to each 
-			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned
+			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly
 
 			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs
 			monthly_savings = np.zeros((3, 12)) ## (3 DERs × 12 months) 
@@ -1063,7 +1074,7 @@ def work(modelDir, inputDict):
 				device_demand_at_baseP = device_demand[index_noDERs]
 				device_demand_at_adjP = device_demand[index_withDERs]
 				device_at_baseP_dollars = device_demand_at_baseP * rate_noDERs
-				device_peakDemand_savings_year = device_at_baseP_dollars * fval_hourly_cleaned
+				device_peakDemand_savings_year = device_at_baseP_dollars * fval_hourly
 				device_peakDemand_savings_monthly = np.zeros(12)
 				for m, (month_first_index, month_last_index) in enumerate(monthHours):
 					mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index) 
@@ -1089,20 +1100,21 @@ def work(modelDir, inputDict):
 		outData['monthlyPeakDemandSavings'] = (monthly_demand_charge_cost_withoutDERs - monthly_demand_charge_cost_withDERs).tolist()
 
 	else: ## Use the user-provided .CSV demand charge file
-		## Get the indices of each month's peak demand with respect to the indices of the demand arrays (8760 elements)
-		peak_demand_indices = [0]*12
-		adjusted_demand_indices = [0]*12
+		
+		## Get the indices of each month's peak kW demand with respect to the annual demand curve arrays (8760 elements)
+		peak_demand_indices = [0]*12 ## demand curve w/o DERs
+		adjusted_demand_indices = [0]*12 ## demand curve w/ DERs
 		for month_number, (month_begin_index, month_end_index) in enumerate(monthHours):
-			demand_this_month = demand[month_begin_index:month_end_index]
-			adjusted_demand_this_month = adjusted_demand[month_begin_index:month_end_index]
-			index_of_peak_demand_this_month = np.argmax(demand_this_month)
+			demand_this_month = demand[month_begin_index:month_end_index] ## kW demand for each hour of the month
+			adjusted_demand_this_month = adjusted_demand[month_begin_index:month_end_index] ## adjusted kW demand for each hour of the month
+			index_of_peak_demand_this_month = np.argmax(demand_this_month) 
 			index_of_peak_adjusted_demand_this_month = np.argmax(adjusted_demand_this_month)
-			peak_demand_indices[month_number] = int(month_begin_index) + index_of_peak_demand_this_month
-			adjusted_demand_indices[month_number] = int(month_begin_index) + index_of_peak_adjusted_demand_this_month
+			peak_demand_indices[month_number] = int(month_begin_index) + index_of_peak_demand_this_month ## indices of every monthly peak demand for the demand curve w/o DERs
+			adjusted_demand_indices[month_number] = int(month_begin_index) + index_of_peak_adjusted_demand_this_month ## indices of every monthly peak demand for the demand curve with DERs
 
-		## Calculate the fval-corrected monthly peak demand savings for BESS, TESS, and GEN technologies
+		## Calculate the fval-corrected monthly peak demand savings for individual BESS, TESS, and GEN technologies
 		peak_demand_at_monthly_baseP = demand[peak_demand_indices] ## baseP = monthly peaks of the baseline demand (without DERs)
-		peak_demand_at_monthly_adjP = demand[adjusted_demand_indices] ## adjP = monthly peaks of the adjusted demand curve (with DERs)
+		peak_demand_at_monthly_adjP = adjusted_demand[adjusted_demand_indices] ## adjP = monthly peaks of the adjusted demand curve (with DERs)
 		
 		BESS_demand_at_monthly_baseP = BESS_demand[peak_demand_indices]
 		BESS_demand_at_monthly_adjP = BESS_demand[adjusted_demand_indices]
@@ -1111,39 +1123,23 @@ def work(modelDir, inputDict):
 		GEN_demand_at_monthly_baseP = GEN_demand[peak_demand_indices]
 		GEN_demand_at_monthly_adjP = GEN_demand[adjusted_demand_indices]
 
-		BESS_demand_at_baseP_cost = BESS_demand_at_monthly_baseP * peakDemandCharge
+		BESS_demand_at_baseP_cost = BESS_demand_at_monthly_baseP * peakDemandCharge ## e.g. 1000 kW x $50/kW 
 		TESS_demand_at_baseP_cost = TESS_demand_at_monthly_baseP * peakDemandCharge
 		GEN_demand_at_baseP_cost = GEN_demand_at_monthly_baseP * peakDemandCharge
 
-		allDER_at_baseP = BESS_demand_at_monthly_baseP+TESS_demand_at_monthly_baseP+GEN_demand_at_monthly_baseP
-		allDER_at_adjP = BESS_demand_at_monthly_adjP+TESS_demand_at_monthly_adjP+GEN_demand_at_monthly_adjP
+		allDER_at_baseP = BESS_demand_at_monthly_baseP + TESS_demand_at_monthly_baseP + GEN_demand_at_monthly_baseP
+		allDER_at_adjP = BESS_demand_at_monthly_adjP + TESS_demand_at_monthly_adjP + GEN_demand_at_monthly_adjP
 
-		## Calculate the F_val (the linear scaling factor that quantifies the impact of DERs on peak demand savings) NOTE: See CIDER project plan for doc link to detailed calculation of F_val
-		## TODO: Create a separate function that calculates Fval based on the size of the input demand charge array (monthly or hourly)
-		demand_1 = np.array(peak_demand_at_monthly_baseP) ## monthly peak demand at t=1 (peak w/o DERs)
-		demand_2 = np.array(peak_demand_at_monthly_adjP) ## monthly peak demand at t=2 (peak w/ DERs)
-		D_DER_1 = np.array(allDER_at_baseP) ## DER contribution (kW) at t=1
-		D_DER_2 = np.array(allDER_at_adjP) ## DER contribution (kW) at t=2
-		
-		numerator = demand_1 - demand_2
-		denominator = D_DER_1
-
-		## Handle edge cases of Fval equation
-		## TODO: combine the zero_mask into fval_hourly to set fval to zero in all those cases
-		fval_monthly = np.divide(
-			numerator,
-			denominator,
-			out = np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-			where = denominator !=0
-		)
-		fval_monthly_cleaned = np.nan_to_num(fval_monthly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
-		zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
-		fval_monthly_cleaned[zero_mask] = 0.0
+		## Calculate linear scaling factor Fval to properly calculate individual DER peak demand savings due to peak shifting
+		demand_without_DERs = np.array(peak_demand_at_monthly_baseP) 
+		demand_with_DERs = np.array(peak_demand_at_monthly_adjP) 
+		DERs_at_demand_peak = np.array(allDER_at_baseP)
+		fval_monthly = calculate_fval(demand_without_DERs, demand_with_DERs, DERs_at_demand_peak)
 
 		## Apply the monthly Fval correction to the monthly BESS, TESS, GEN peak demand savings
-		BESS_monthly_demand_savings = BESS_demand_at_baseP_cost*fval_monthly_cleaned
-		TESS_monthly_demand_savings = TESS_demand_at_baseP_cost*fval_monthly_cleaned
-		GEN_monthly_demand_savings = GEN_demand_at_baseP_cost*fval_monthly_cleaned
+		BESS_monthly_demand_savings = BESS_demand_at_baseP_cost*fval_monthly
+		TESS_monthly_demand_savings = TESS_demand_at_baseP_cost*fval_monthly
+		GEN_monthly_demand_savings = GEN_demand_at_baseP_cost*fval_monthly
 		#allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_monthly_demand_savings,TESS_monthly_demand_savings,GEN_monthly_demand_savings)]
 
 		## Calculate the consumption and fval-corrected demand savings
@@ -1152,12 +1148,12 @@ def work(modelDir, inputDict):
 			device_demand[device_demand == -0.0] = 0.0 ## avoid sign errors
 			device_demand_at_baseP = device_demand[peak_demand_indices]
 			device_demand_at_baseP_cost = device_demand_at_baseP * peakDemandCharge
-			device_peakDemand_savings_monthly = device_demand_at_baseP_cost * fval_monthly_cleaned
+			device_peakDemand_savings_monthly = device_demand_at_baseP_cost * fval_monthly
 			device_peakDemand_savings_monthly[device_peakDemand_savings_monthly == -0.0] = 0.0 ## avoid sign errors
 			device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
 			
 			## Demand (kW) savings
-			## NOTE: For CSV file tariff inputs, Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
+			## NOTE: Assigns the following Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 			outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
 			## Consumption (kWh) savings
@@ -1165,12 +1161,13 @@ def work(modelDir, inputDict):
 			device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 			outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
 			
-		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
+		## Output monthly peak demand costs and savings
+		outData['monthlyPeakDemand'] = demand[peak_demand_indices].tolist()
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
-		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
+		outData['monthlyAdjustedPeakDemand'] = adjusted_demand[adjusted_demand_indices].tolist() ## monthly peak demand hours (including DERs)
 		outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
 		outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist()
-		
+
 	########################################################################################################################
 	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
 	########################################################################################################################
@@ -1439,7 +1436,7 @@ def new(modelDir):
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'useWholesaleJSONBool': True,
+		'useWholesaleJSONBool': False,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'exampleWholesaleRateStructure.json',
@@ -1449,7 +1446,7 @@ def new(modelDir):
 		
 		## Fossil Fuel Generator Inputs (for REopt)
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
-		'fossilGenerator': 'Yes',
+		'fossilGenerator': 'No',
 		'number_devices_GEN': '5',
 		'existing_gen_kw': '20',
 		'fuel_type': '3', 
