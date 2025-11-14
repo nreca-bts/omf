@@ -1412,6 +1412,8 @@ def work(modelDir, inputDict):
 	outData['rmMsgs'] = addOipToBlockgroups(blockgroupDict, oipInputDict, inputDict['oipAggMethod'])
 	# Add bg info to loads
 	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict)
+	with open(pJoin(modelDir,'loadData4RestorationModel.json'), 'w') as f:
+		json.dump(loadDict,f,indent=4)
 	# Create DFs for model outputs
 	bgDF, bgGeoDF, sectionDF = organizeInfoIntoDFs(loadDict, blockgroupDict, totalSections)
 	# Create equipmentDict
@@ -1461,7 +1463,7 @@ def work(modelDir, inputDict):
 			}
 		}
 	}
-	outData['oipData'] =  open(oipDF_file, 'r').read()
+	outData['oipData'] = open(oipDF_file, 'r').read()
 	with open(pathToOmd) as file1:
 		init_omdJson = json.load(file1)
 	newOmdJson = addLoadInfoToOmd(loadDict, init_omdJson)
@@ -1522,7 +1524,7 @@ def work(modelDir, inputDict):
 	return outData
 
 def new(modelDir):
-	#omdfileName = 'iowa240_in_Florida_modified'
+	#omdfileName = 'iowa240_in_Florida_copy2'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	omdfileName = 'ieee37_LBL_simplified'
 	

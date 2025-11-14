@@ -1,0 +1,167 @@
+
+
+!!!master.dss
+clear
+new object=circuit.ieee37_lbl
+
+
+! redirect vsource.dss
+! redirect linecode.dss
+! redirect loadshape.dss
+! redirect line.dss
+! redirect load.dss
+! redirect transformer.dss
+! redirect regcontrol.dss
+! makebuslist
+! buscoords buscoords.dss
+! giscoords giscoords.dss
+
+
+!!!loadshape.dss
+new object=loadshape.standard_loadcurve npts=24 interval=1 useactual=yes mult=[0.674,0.69,0.622,0.582,0.69,0.935,0.942,0.646,0.613,0.697,0.807,0.548,0.538,0.516,0.589,0.536,0.48,0.402,0.851,0.762,0.78,0.716,1.000,0.548] qmult=[0.2871,0.1729,0.265,0.2479,0.3342,0.3073,0.2747,0.2943,0.0873,0.253,0.2929,0.2654,0.2606,0.1293,0.1476,0.1088,0.2187,0.1589,0.3625,0.2223,0.3323,0.1454,0.4083,0.2654]
+
+
+!!!vsource.dss
+edit object=vsource.source bus1=sourcebus.1.2.3 basekv=230 pu=1.00 mvasc3=2e5 mvasc1=2.1e5
+
+
+!!!transformer.dss
+new object=transformer.subxf buses=[sourcebus.1.2.3,799.1.2.3] phases=3 xhl=8 conns=[delta,delta] kvs=[230,4.8] kvas=[2500,2500] %rs=[1,1]
+new object=transformer.reg1 buses=[799.1.2.3,799r.1.2.3] phases=3 bank=reg1 xhl=0.01 kvas=[2500,2500] kvs=[2.771281,2.771281] %loadloss=0.01
+
+
+!!!regcontrol.dss
+new object=regcontrol.reg1a transformer=reg1 bus=799r.1 winding=2 tapwinding=2 vreg=138 band=2 ptratio=20
+
+
+!!!linecode.dss
+new object=linecode.721 nphases=3 basefreq=60 rmatrix=[0.05541667,0.01274621,0.00638258|0.01274621,0.05011364,0.01274621|0.00638258,0.01274621,0.05541667] xmatrix=[0.03736742,-0.00696970,-0.00789773|-0.00696970,0.03598485,-0.00696970|-0.00789773,-0.00696970,0.03736742] cmatrix=[80.27484728,0.00000000,0.00000000|0.00000000,80.27484728,0.00000000|0.00000000,0.00000000,80.27484728]
+new object=linecode.722 nphases=3 basefreq=60 rmatrix=[0.08998106,0.03085227,0.02337121|0.03085227,0.08500000,0.03085227|0.02337121,0.03085227,0.08998106] xmatrix=[0.05630682,-0.00617424,-0.01149621|-0.00617424,0.05071970,-0.00617424|-0.01149621,-0.00617424,0.05630682] cmatrix=[64.21841090,0.00000000,0.00000000|0.00000000,64.21841090,0.00000000|0.00000000,0.00000000,64.21841090]
+new object=linecode.723 nphases=3 basefreq=60 rmatrix=[0.24500000,0.09225379,0.08683712|0.09225379,0.24662879,0.09225379|0.08683712,0.09225379,0.24500000] xmatrix=[0.12714015,0.03998106,0.02880682|0.03998106,0.11981061,0.03998106|0.02880682,0.03998106,0.12714015] cmatrix=[37.59771120,0.00000000,0.00000000|0.00000000,37.59771120,0.00000000|0.00000000,0.00000000,37.59771120]
+new object=linecode.724 nphases=3 basefreq=60 rmatrix=[0.39681818,0.09856061,0.09329546|0.09856061,0.39901515,0.09856061|0.09329546,0.09856061,0.39681818] xmatrix=[0.14693182,0.05185606,0.04020833|0.05185606,0.14011364,0.05185606|0.04020833,0.05185606,0.14693182] cmatrix=[30.26701029,0.00000000,0.00000000|0.00000000,30.26701029,0.00000000|0.00000000,0.00000000,30.26701029]
+
+
+
+
+
+
+
+
+!!!line.dss
+new object=line.l1 bus1=701.1.2.3 bus2=702.1.2.3 phases=3 linecode=722 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.001 switch=true
+new object=line.l2 bus1=702.1.2.3 bus2=705.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.4
+new object=line.l3 bus1=702.1.2.3 bus2=713.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.36
+new object=line.l4 bus1=702.1.2.3 bus2=703.1.2.3 phases=3 linecode=722 seasons=1 ratings=[400] normamps=400 emergamps=600 length=1.32
+new object=line.l5 bus1=703.1.2.3 bus2=727.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.24 switch=true
+new object=line.l6 bus1=703.1.2.3 bus2=730.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.6
+new object=line.l7 bus1=704.1.2.3 bus2=714.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.08
+new object=line.l8 bus1=704.1.2.3 bus2=720.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.8
+new object=line.l9 bus1=705.1.2.3 bus2=742.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.32
+new object=line.l10 bus1=705.1.2.3 bus2=712.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.24
+new object=line.l11 bus1=706.1.2.3 bus2=725.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.28
+new object=line.l12 bus1=707.1.2.3 bus2=724.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.76
+new object=line.l13 bus1=707.1.2.3 bus2=722.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.12
+new object=line.l14 bus1=708.1.2.3 bus2=733.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.32
+new object=line.l15 bus1=708.1.2.3 bus2=732.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.32
+new object=line.l16 bus1=709.1.2.3 bus2=731.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.6
+new object=line.l17 bus1=709.1.2.3 bus2=708.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.32
+new object=line.l18 bus1=710.1.2.3 bus2=735.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.2
+new object=line.l19 bus1=710.1.2.3 bus2=736.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=1.28
+new object=line.l20 bus1=711.1.2.3 bus2=741.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.4
+new object=line.l21 bus1=711.1.2.3 bus2=740.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.2
+new object=line.l22 bus1=713.1.2.3 bus2=704.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.52
+new object=line.l23 bus1=714.1.2.3 bus2=718.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.52
+new object=line.l24 bus1=720.1.2.3 bus2=707.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.92
+new object=line.l25 bus1=720.1.2.3 bus2=706.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.6
+new object=line.l26 bus1=727.1.2.3 bus2=744.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.28
+new object=line.l27 bus1=730.1.2.3 bus2=709.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.2
+new object=line.l28 bus1=733.1.2.3 bus2=734.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.56
+new object=line.l29 bus1=734.1.2.3 bus2=737.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.64
+new object=line.l30 bus1=734.1.2.3 bus2=710.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.52 switch=true
+new object=line.l31 bus1=737.1.2.3 bus2=738.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.4 switch=true
+new object=line.l32 bus1=738.1.2.3 bus2=711.1.2.3 phases=3 linecode=723 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.4
+new object=line.l33 bus1=744.1.2.3 bus2=728.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.2
+new object=line.l34 bus1=744.1.2.3 bus2=729.1.2.3 phases=3 linecode=724 seasons=1 ratings=[400] normamps=400 emergamps=600 length=0.28
+new object=line.l35 bus1=799r.1.2.3 bus2=701.1.2.3 phases=3 linecode=721 seasons=1 ratings=[400] normamps=400 emergamps=600 length=1.85
+
+
+!!!load.dss
+new object=load.s701a bus1=701.1.2 phases=1 conn=delta kv=4.8 kw=140 kvar=70 daily=standard_loadcurve
+new object=load.s701b bus1=701.2.3 phases=1 conn=delta kv=4.8 kw=140 kvar=70 daily=standard_loadcurve
+new object=load.s701c bus1=701.3.1 phases=1 conn=delta kv=4.8 kw=350 kvar=175 daily=standard_loadcurve
+new object=load.s712c bus1=712.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s713c bus1=713.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s714a bus1=714.1.2 phases=1 conn=delta kv=4.8 kw=17 kvar=8 daily=standard_loadcurve
+new object=load.s714b bus1=714.2.3 phases=1 conn=delta kv=4.8 kw=21 kvar=10 daily=standard_loadcurve
+new object=load.s718a bus1=718.1.2 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s720c bus1=720.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s722b bus1=722.2.3 phases=1 conn=delta kv=4.8 kw=140 kvar=70 daily=standard_loadcurve
+new object=load.s722c bus1=722.3.1 phases=1 conn=delta kv=4.8 kw=21 kvar=10 daily=standard_loadcurve
+new object=load.s724b bus1=724.2.3 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s725b bus1=725.2.3 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s727c bus1=727.3.1 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s728 bus1=728.1.2.3 phases=3 conn=delta kv=4.8 kw=126 kvar=63 daily=standard_loadcurve
+new object=load.s729a bus1=729.1.2 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s730c bus1=730.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s731b bus1=731.2.3 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s732c bus1=732.3.1 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s733a bus1=733.1.2 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s734c bus1=734.3.1 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s735c bus1=735.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s736b bus1=736.2.3 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s737a bus1=737.1.2 phases=1 conn=delta kv=4.8 kw=140 kvar=70 daily=standard_loadcurve
+new object=load.s738a bus1=738.1.2 phases=1 conn=delta kv=4.8 kw=126 kvar=62 daily=standard_loadcurve
+new object=load.s740c bus1=740.3.1 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s741c bus1=741.3.1 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+new object=load.s742a bus1=742.1.2 phases=1 conn=delta kv=4.8 kw=8 kvar=4 daily=standard_loadcurve
+new object=load.s742b bus1=742.2.3 phases=1 conn=delta kv=4.8 kw=85 kvar=40 daily=standard_loadcurve
+new object=load.s744a bus1=744.1.2 phases=1 conn=delta kv=4.8 kw=42 kvar=21 daily=standard_loadcurve
+
+
+!!!buscoords.dss
+makebuslist
+setbusxy bus=sourcebus x=-94.9551982686874 y=38.9272184300796
+setbusxy bus=799 x=-94.9551982529442 y=38.9272180393485
+setbusxy bus=701 x=-94.9551979723153 y=38.9272126280951
+setbusxy bus=702 x=-94.9551978137619 y=38.9272100632337
+setbusxy bus=705 x=-94.9551991121568 y=38.9272100131323
+setbusxy bus=713 x=-94.9551966105128 y=38.927210069328
+setbusxy bus=703 x=-94.9551976175884 y=38.9272064520914
+setbusxy bus=727 x=-94.9551984317497 y=38.927206484894
+setbusxy bus=730 x=-94.955197530865 y=38.9272048062123
+setbusxy bus=704 x=-94.955194957293 y=38.9272101734569
+setbusxy bus=714 x=-94.9551949448889 y=38.9272099553115
+setbusxy bus=720 x=-94.9551923777742 y=38.9272103306778
+setbusxy bus=742 x=-94.955199857888 y=38.9272099878386
+setbusxy bus=712 x=-94.9551991665114 y=38.9272104441792
+setbusxy bus=706 x=-94.9551922730202 y=38.9272086682941
+setbusxy bus=725 x=-94.9551922730202 y=38.9272079511873
+setbusxy bus=707 x=-94.9551925244299 y=38.9272127916576
+setbusxy bus=724 x=-94.9551926082331 y=38.9272146659136
+setbusxy bus=722 x=-94.9551934918477 y=38.9272127616717
+setbusxy bus=708 x=-94.9551985784053 y=38.9272042031907
+setbusxy bus=733 x=-94.9551985574545 y=38.9272033882966
+setbusxy bus=732 x=-94.9551991440771 y=38.9272041868928
+setbusxy bus=709 x=-94.9551975099141 y=38.9272042683822
+setbusxy bus=731 x=-94.9551957081447 y=38.9272043172759
+setbusxy bus=710 x=-94.9552000868635 y=38.9272018237
+setbusxy bus=735 x=-94.9552000868635 y=38.9272013836572
+setbusxy bus=736 x=-94.9552002754207 y=38.9272049039996
+setbusxy bus=711 x=-94.9551957709971 y=38.9272002428055
+setbusxy bus=741 x=-94.9551945348995 y=38.9272002102097
+setbusxy bus=740 x=-94.9551957919479 y=38.9272006176567
+setbusxy bus=718 x=-94.9551948691215 y=38.9272086179109
+setbusxy bus=744 x=-94.9551993535852 y=38.9272064034046
+setbusxy bus=734 x=-94.9551984736513 y=38.9272018399979
+setbusxy bus=737 x=-94.9551983898481 y=38.9272002428055
+setbusxy bus=738 x=-94.9551969861439 y=38.9272002428055
+setbusxy bus=728 x=-94.9551993116836 y=38.9272059796597
+setbusxy bus=729 x=-94.9552001078143 y=38.927206354511
+setbusxy bus=799r x=-94.9551982440003 y=38.9272176158297
+
+
+
+
+!powerflow code
+set maxiterations=1000
+set maxcontroliter=1000

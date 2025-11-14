@@ -1,0 +1,1310 @@
+clear
+new object=circuit.iowa240_node_test_system_man2_clean
+edit object=vsource.source bus1=eq_source_bus.1.2.3 phases=3 angle=0.00000 pu=1.00000 basekv=69.00000 r1=4.54263687 x1=10.52743053 r0=7.36552668 x0=24.50463867
+new object=transformer.sub_xfmr windings=2 buses=[eq_source_bus.1.2.3,bus_xfmr.1.2.3.0] phases=3 xhl=6.265911 conns=[delta,wye] kvs=[69,13.8] kvas=[10000,10000] taps=[1,1] %rs=[0.6265909,0.6265909]
+new object=transformer.sub_regulator_a windings=2 buses=[bus_xfmr.1,bus1.1] phases=1 bank=reg1 xhl=0.01 conns=[wye,wye] kvs=[7.9677,7.9677] kvas=[3500,3500] taps=[1,1.025] %rs=[0.001,0.001] numtaps=32 maxtap=1.1 mintap=0.9
+new object=transformer.sub_regulator_b windings=2 buses=[bus_xfmr.2,bus1.2] phases=1 bank=reg1 xhl=0.01 conns=[wye,wye] kvs=[7.9677,7.9677] kvas=[3500,3500] taps=[1,1.025] %rs=[0.001,0.001] numtaps=32 maxtap=1.1 mintap=0.9
+new object=transformer.sub_regulator_c windings=2 buses=[bus_xfmr.3,bus1.3] phases=1 bank=reg1 xhl=0.01 conns=[wye,wye] kvs=[7.9677,7.9677] kvas=[3500,3500] taps=[1,1.025] %rs=[0.001,0.001] numtaps=32 maxtap=1.1 mintap=0.9
+new object=transformer.t_3082 windings=2 buses=[bus3082.1.2.3.0,t_bus3082_l.1.2.3] phases=3 xhl=4.98 conns=[wye,delta] kvs=[13.8,0.48] kvas=[750,750] %rs=[0.55,0.55]
+new object=linecode.oh_3p_type1 nphases=3 units=mi rmatrix=(0.615927|0.170927,0.615927|0.170927,0.170927,0.615927) xmatrix=(1.209389|0.433188,1.209389|0.433188,0.433188,1.209389)
+new object=linecode.oh_2p_type2 nphases=2 units=mi rmatrix=(0.589255|0.169495,0.589255) xmatrix=(1.074856|0.387876,1.074856)
+new object=linecode.oh_1p_type2 nphases=1 units=mi rmatrix=(0.592473) xmatrix=(1.065821)
+new object=linecode.oh_3p_type5 nphases=3 units=mi rmatrix=(1.191602|0.234849,1.191602|0.234849,0.234849,1.191602) xmatrix=(1.209452|0.489263,1.209452|0.489263,0.489263,1.209452)
+new object=linecode.oh_1p_type5 nphases=1 units=mi rmatrix=(1.194260) xmatrix=(1.205420)
+new object=linecode.ug_3p_type1 nphases=3 units=mi rmatrix=(1.009423|0.409732,1.009423|0.409732,0.409732,1.009423) xmatrix=(0.493164|0.100849,0.493164|0.100849,0.100849,0.493164) cmatrix=(286.101593|0.000000,286.101593|0.000000,0.000000,286.101593)
+new object=linecode.ug_3p_type2 nphases=3 units=mi rmatrix=(1.692577|0.550087,1.692577|0.550087,0.550087,1.692577) xmatrix=(0.791756|0.344931,0.791756|0.344931,0.344931,0.791756) cmatrix=(207.880539|0.000000,207.880539|0.000000,0.000000,207.880539)
+new object=linecode.ug_1p_type2 nphases=1 units=mi rmatrix=(1.675338) xmatrix=(1.210007) cmatrix=(207.880539)
+new object=linecode.t_type1 nphases=3 units=ft rmatrix=(41.13504|0,41.13504|0,0,41.13504) xmatrix=(65.51136|0,65.51136|0,0,65.51136)
+new object=linecode.t_type2 nphases=3 units=ft rmatrix=(57.63984|0,57.63984|0,0,57.63984) xmatrix=(48.49872|0,48.49872|0,0,48.49872)
+new object=linecode.t_type3 nphases=1 units=ft rmatrix=(25.392) xmatrix=(53.3232)
+new object=linecode.t_type4 nphases=1 units=ft rmatrix=(101.31408) xmatrix=(143.21088)
+new object=linecode.t_type5 nphases=3 units=ft rmatrix=(106.6464|0,106.6464|0,0,106.6464) xmatrix=(73.2136|0,73.2136|0,0,73.2136)
+new object=linecode.t_type6 nphases=1 units=ft rmatrix=(33.773617) xmatrix=(35.805113)
+new object=linecode.t_type7 nphases=1 units=ft rmatrix=(20.145667) xmatrix=(21.965548)
+new object=linecode.t_type8 nphases=1 units=ft rmatrix=(13.966534) xmatrix=(17.140746)
+new object=linecode.t_type9 nphases=3 units=ft rmatrix=(11.4264|0,11.4264|0,0,11.4264) xmatrix=(28.566|0,28.566|0,0,28.566)
+new object=linecode.t_type10 nphases=1 units=ft rmatrix=(70.255896) xmatrix=(40.629916)
+new object=linecode.t_type11 nphases=3 units=ft rmatrix=(18.6208|0,18.6208|0,0,18.6208) xmatrix=(39.3576|0,39.3576|0,0,39.3576)
+new object=linecode.t_type12 nphases=1 units=ft rmatrix=(7.110235) xmatrix=(10.665353)
+new object=linecode.t_type13 nphases=3 units=ft rmatrix=(6.09408|0,6.09408|0,0,6.09408) xmatrix=(22.47192|0,22.47192|0,0,22.47192)
+new object=line.l_1001_1002 bus1=bus1001.1.2.3 bus2=bus1002.1.2.3 phases=3 length=2967 units=ft linecode=ug_3p_type1
+new object=line.l_1002_1003 bus1=bus1002.1.2.3 bus2=bus1003.1.2.3 phases=3 length=372 units=ft linecode=ug_3p_type2
+new object=line.l_1002_1004 bus1=bus1002.1.2.3 bus2=bus1004.1.2.3 phases=3 length=638 units=ft linecode=oh_3p_type1
+new object=line.l_1004_1005 bus1=bus1004.1.2.3 bus2=bus1005.1.2.3 phases=3 length=394 units=ft linecode=oh_3p_type1
+new object=line.l_1005_1006 bus1=bus1005.1.2.3 bus2=bus1006.1.2.3 phases=3 length=1049 units=ft linecode=oh_3p_type1
+new object=line.l_1006_1007 bus1=bus1006.1.2 bus2=bus1007.1.2 phases=2 length=2000 units=ft linecode=oh_2p_type2
+new object=line.l_1006_1008 bus1=bus1006.1.2.3 bus2=bus1008.1.2.3 phases=3 length=454 units=ft linecode=oh_3p_type1
+new object=line.l_1008_1009 bus1=bus1008.1.2.3 bus2=bus1009.1.2.3 phases=3 length=1082 units=ft linecode=oh_3p_type1
+new object=line.l_1009_1010 bus1=bus1009.1.2.3 bus2=bus1010.1.2.3 phases=3 length=169 units=ft linecode=oh_3p_type1
+new object=line.l_1009_1011 bus1=bus1009.1.2.3 bus2=bus1011.1.2.3 phases=3 length=60 units=ft linecode=ug_3p_type2
+new object=line.l_1011_1012 bus1=bus1011.1.2.3 bus2=bus1012.1.2.3 phases=3 length=60 units=ft linecode=ug_3p_type2
+new object=line.l_1012_1013 bus1=bus1012.1.2.3 bus2=bus1013.1.2.3 phases=3 length=306 units=ft linecode=ug_3p_type2
+new object=line.l_1013_1014 bus1=bus1013.2.0 bus2=bus1014.2.0 phases=1 length=208 units=ft linecode=ug_1p_type2
+new object=line.l_1014_1015 bus1=bus1014.2.0 bus2=bus1015.2.0 phases=1 length=126 units=ft linecode=ug_1p_type2
+new object=line.l_1013_1016 bus1=bus1013.3.0 bus2=bus1016.3.0 phases=1 length=468 units=ft linecode=ug_1p_type2
+new object=line.l_1016_1017 bus1=bus1016.3.0 bus2=bus1017.3.0 phases=1 length=71 units=ft linecode=ug_1p_type2
+new object=line.l_1003_1003_l bus1=bus1003.1.2.3.0 bus2=t_bus1003_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type1
+new object=line.l_1004_1004_l bus1=bus1004.1.2.3.0 bus2=t_bus1004_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_1005_1005_l bus1=bus1005.1.2.3.0 bus2=t_bus1005_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_1006_1006_l_1 bus1=bus1006.1.0 bus2=t_bus1006_l.1.0 phases=1 length=1 units=ft linecode=t_type3
+new object=line.l_1006_1006_l_2 bus1=bus1006.2.0 bus2=t_bus1006_l.2.0 phases=1 length=1 units=ft linecode=t_type3
+new object=line.l_1007_1007_l_1 bus1=bus1007.1.0 bus2=t_bus1007_l.1.0 phases=1 length=1 units=ft linecode=t_type4
+new object=line.l_1007_1007_l_2 bus1=bus1007.2.0 bus2=t_bus1007_l.2.0 phases=1 length=1 units=ft linecode=t_type4
+new object=line.l_1008_1008_l bus1=bus1008.1.2.3.0 bus2=t_bus1008_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_1009_1009_l bus1=bus1009.1.2.3.0 bus2=t_bus1009_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_1010_1010_l bus1=bus1010.1.2.3.0 bus2=t_bus1010_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_1011_1011_l bus1=bus1011.1.0 bus2=t_bus1011_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_1012_1012_l bus1=bus1012.2.0 bus2=t_bus1012_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_1013_1013_l bus1=bus1013.1.2.3.0 bus2=t_bus1013_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_1014_1014_l bus1=bus1014.2.0 bus2=t_bus1014_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_1015_1015_l bus1=bus1015.2.0 bus2=t_bus1015_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_1016_1016_l bus1=bus1016.3.0 bus2=t_bus1016_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_1017_1017_l bus1=bus1017.3.0 bus2=t_bus1017_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2001_2002 bus1=bus2001.1.2.3 bus2=bus2002.1.2.3 phases=3 length=1388 units=ft linecode=ug_3p_type1
+new object=line.l_2002_2003 bus1=bus2002.1.2.3 bus2=bus2003.1.2.3 phases=3 length=1281 units=ft linecode=oh_3p_type1
+new object=line.l_2003_2004 bus1=bus2003.1.2.3 bus2=bus2004.1.2.3 phases=3 length=798 units=ft linecode=oh_3p_type1
+new object=line.l_2004_2005 bus1=bus2004.1.2.3 bus2=bus2005.1.2.3 phases=3 length=317 units=ft linecode=oh_3p_type1
+new object=line.l_2005_2006 bus1=bus2005.1.2.3 bus2=bus2006.1.2.3 phases=3 length=145 units=ft linecode=oh_3p_type1
+new object=line.l_2006_2007 bus1=bus2006.1 bus2=bus2007.1 phases=1 length=245 units=ft linecode=oh_1p_type5
+new object=line.l_2007_2008 bus1=bus2007.1 bus2=bus2008.1 phases=1 length=125 units=ft linecode=ug_1p_type2
+new object=line.l_2007_2009 bus1=bus2007.1 bus2=bus2009.1 phases=1 length=161 units=ft linecode=oh_1p_type2
+new object=line.l_2006_2010 bus1=bus2006.1.2.3 bus2=bus2010.1.2.3 phases=3 length=170 units=ft linecode=oh_3p_type1
+new object=line.l_2010_2011 bus1=bus2010.1.2.3 bus2=bus2011.1.2.3 phases=3 length=275 units=ft linecode=oh_3p_type1
+new object=line.l_2011_2012 bus1=bus2011.1.2.3 bus2=bus2012.1.2.3 phases=3 length=503 units=ft linecode=oh_3p_type1
+new object=line.l_2013_2014 bus1=bus2013.1.2.3 bus2=bus2014.1.2.3 phases=3 length=268 units=ft linecode=oh_3p_type1
+new object=line.l_2014_2015 bus1=bus2014.2 bus2=bus2015.2 phases=1 length=120 units=ft linecode=ug_1p_type2
+new object=line.l_2014_2016 bus1=bus2014.1.2.3 bus2=bus2016.1.2.3 phases=3 length=257 units=ft linecode=oh_3p_type1
+new object=line.l_2016_2017 bus1=bus2016.1.2.3 bus2=bus2017.1.2.3 phases=3 length=174 units=ft linecode=ug_3p_type2
+new object=line.l_2017_2018 bus1=bus2017.1.2.3 bus2=bus2018.1.2.3 phases=3 length=447 units=ft linecode=ug_3p_type2
+new object=line.l_2013_2019 bus1=bus2013.1.2.3 bus2=bus2019.1.2.3 phases=3 length=45 units=ft linecode=oh_3p_type1
+new object=line.l_2019_2020 bus1=bus2019.2 bus2=bus2020.2 phases=1 length=642 units=ft linecode=ug_1p_type2
+new object=line.l_2019_2021 bus1=bus2019.1.2.3 bus2=bus2021.1.2.3 phases=3 length=43 units=ft linecode=oh_3p_type1
+new object=line.l_2021_2022 bus1=bus2021.3 bus2=bus2022.3 phases=1 length=205 units=ft linecode=ug_1p_type2
+new object=line.l_2022_2023 bus1=bus2022.3 bus2=bus2023.3 phases=1 length=150 units=ft linecode=ug_1p_type2
+new object=line.l_2023_2024 bus1=bus2023.3 bus2=bus2024.3 phases=1 length=408 units=ft linecode=ug_1p_type2
+new object=line.l_2024_2025 bus1=bus2024.3 bus2=bus2025.3 phases=1 length=331 units=ft linecode=ug_1p_type2
+new object=line.l_2026_2027 bus1=bus2026.1.2.3 bus2=bus2027.1.2.3 phases=3 length=369 units=ft linecode=oh_3p_type1
+new object=line.l_2027_2028 bus1=bus2027.1.2.3 bus2=bus2028.1.2.3 phases=3 length=285 units=ft linecode=ug_3p_type2
+new object=line.l_2028_2029 bus1=bus2028.1.2.3 bus2=bus2029.1.2.3 phases=3 length=131 units=ft linecode=ug_3p_type2
+new object=line.l_2029_2030 bus1=bus2029.1.2.3 bus2=bus2030.1.2.3 phases=3 length=165 units=ft linecode=ug_3p_type2
+new object=line.l_2030_2031 bus1=bus2030.1.2.3 bus2=bus2031.1.2.3 phases=3 length=245 units=ft linecode=ug_3p_type2
+new object=line.l_2027_2032 bus1=bus2027.1.2.3 bus2=bus2032.1.2.3 phases=3 length=149 units=ft linecode=oh_3p_type1
+new object=line.l_2032_2033 bus1=bus2032.1.2.3 bus2=bus2033.1.2.3 phases=3 length=289 units=ft linecode=oh_3p_type1
+new object=line.l_2033_2034 bus1=bus2033.1.2.3 bus2=bus2034.1.2.3 phases=3 length=185 units=ft linecode=oh_3p_type5
+new object=line.l_2033_2035 bus1=bus2033.1.2.3 bus2=bus2035.1.2.3 phases=3 length=160 units=ft linecode=oh_3p_type1
+new object=line.l_2035_2036 bus1=bus2035.1.2.3 bus2=bus2036.1.2.3 phases=3 length=160 units=ft linecode=oh_3p_type1
+new object=line.l_2036_2037 bus1=bus2036.1.2.3 bus2=bus2037.1.2.3 phases=3 length=80 units=ft linecode=oh_3p_type1
+new object=line.l_2037_2038 bus1=bus2037.1.2.3 bus2=bus2038.1.2.3 phases=3 length=192 units=ft linecode=oh_3p_type1
+new object=line.l_2038_2039 bus1=bus2038.1.2.3 bus2=bus2039.1.2.3 phases=3 length=800 units=ft linecode=oh_3p_type1
+new object=line.l_2039_2040 bus1=bus2039.1.2.3 bus2=bus2040.1.2.3 phases=3 length=309 units=ft linecode=oh_3p_type1
+new object=line.l_2040_2041 bus1=bus2040.1.2.3 bus2=bus2041.1.2.3 phases=3 length=383 units=ft linecode=oh_3p_type1
+new object=line.l_2039_2042 bus1=bus2039.1.2.3 bus2=bus2042.1.2.3 phases=3 length=35 units=ft linecode=ug_3p_type2
+new object=line.l_2042_2043 bus1=bus2042.1.2.3 bus2=bus2043.1.2.3 phases=3 length=158 units=ft linecode=ug_3p_type2
+new object=line.l_2043_2044 bus1=bus2043.1.2.3 bus2=bus2044.1.2.3 phases=3 length=342 units=ft linecode=ug_3p_type2
+new object=line.l_2044_2045 bus1=bus2044.2 bus2=bus2045.2 phases=1 length=323 units=ft linecode=ug_1p_type2
+new object=line.l_2045_2046 bus1=bus2045.2 bus2=bus2046.2 phases=1 length=330 units=ft linecode=ug_1p_type2
+new object=line.l_2045_2047 bus1=bus2045.2 bus2=bus2047.2 phases=1 length=189 units=ft linecode=ug_1p_type2
+new object=line.l_2047_2048 bus1=bus2047.2 bus2=bus2048.2 phases=1 length=259 units=ft linecode=ug_1p_type2
+new object=line.l_2044_2049 bus1=bus2044.1.2.3 bus2=bus2049.1.2.3 phases=3 length=130 units=ft linecode=ug_3p_type2
+new object=line.l_2049_2050 bus1=bus2049.1.2.3 bus2=bus2050.1.2.3 phases=3 length=124 units=ft linecode=ug_3p_type2
+new object=line.l_2050_2051 bus1=bus2050.1.2.3 bus2=bus2051.1.2.3 phases=3 length=139 units=ft linecode=ug_3p_type2
+new object=line.l_2051_2052 bus1=bus2051.1.2.3 bus2=bus2052.1.2.3 phases=3 length=134 units=ft linecode=ug_3p_type2
+new object=line.l_2044_2053 bus1=bus2044.1.2.3 bus2=bus2053.1.2.3 phases=3 length=464 units=ft linecode=ug_3p_type2
+new object=line.l_2053_2054 bus1=bus2053.1.2.3 bus2=bus2054.1.2.3 phases=3 length=139 units=ft linecode=ug_3p_type2
+new object=line.l_2054_2055 bus1=bus2054.1.2.3 bus2=bus2055.1.2.3 phases=1 length=156 units=ft linecode=ug_3p_type2
+new object=line.l_2055_2056 bus1=bus2055.1.2.3 bus2=bus2056.1.2.3 phases=1 length=204 units=ft linecode=ug_3p_type2
+new object=line.l_2053_2057 bus1=bus2053.1.2.3 bus2=bus2057.1.2.3 phases=3 length=761 units=ft linecode=ug_3p_type2
+new object=line.l_2057_2058 bus1=bus2057.1.2.3 bus2=bus2058.1.2.3 phases=3 length=407 units=ft linecode=ug_3p_type2
+new object=line.l_2057_2059 bus1=bus2057.1.2.3 bus2=bus2059.1.2.3 phases=3 length=685 units=ft linecode=ug_3p_type2
+new object=line.l_2059_2060 bus1=bus2059.1.2.3 bus2=bus2060.1.2.3 phases=3 length=304 units=ft linecode=ug_3p_type2
+new object=line.l_2002_2002_l bus1=bus2002.1.2.3 bus2=t_bus2002_l.1.2.3 phases=3 length=1 units=ft linecode=t_type9
+new object=line.l_2003_2003_l bus1=bus2003.1.2.3.0 bus2=t_bus2003_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2005_2005_l bus1=bus2005.1.2.3.0 bus2=t_bus2005_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2008_2008_l bus1=bus2008.1.0 bus2=t_bus2008_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2009_2009_l bus1=bus2009.1.0 bus2=t_bus2009_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2010_2010_l bus1=bus2010.1.2.3.0 bus2=t_bus2010_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2011_2011_l bus1=bus2011.1.2.3.0 bus2=t_bus2011_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2014_2014_l bus1=bus2014.2.0 bus2=t_bus2014_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2015_2015_l bus1=bus2015.2.0 bus2=t_bus2015_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2016_2016_l bus1=bus2016.2.0 bus2=t_bus2016_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2017_2017_l bus1=bus2017.2.0 bus2=t_bus2017_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2018_2018_l bus1=bus2018.2.0 bus2=t_bus2018_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2020_2020_l bus1=bus2020.2.0 bus2=t_bus2020_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2022_2022_l bus1=bus2022.3.0 bus2=t_bus2022_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2023_2023_l bus1=bus2023.3.0 bus2=t_bus2023_l.3.0 phases=1 length=1 units=ft linecode=t_type10
+new object=line.l_2024_2024_l bus1=bus2024.3.0 bus2=t_bus2024_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2025_2025_l bus1=bus2025.3.0 bus2=t_bus2025_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2028_2028_l bus1=bus2028.1.0 bus2=t_bus2028_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2029_2029_l bus1=bus2029.1.2.3.0 bus2=t_bus2029_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2030_2030_l bus1=bus2030.1.2.3.0 bus2=t_bus2030_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2031_2031_l bus1=bus2031.1.0 bus2=t_bus2031_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2032_2032_l bus1=bus2032.1.2.3.0 bus2=t_bus2032_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2034_2034_l bus1=bus2034.1.2.3.0 bus2=t_bus2034_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2035_2035_l bus1=bus2035.1.2.3.0 bus2=t_bus2035_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2037_2037_l bus1=bus2037.1.2.3.0 bus2=t_bus2037_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2040_2040_l bus1=bus2040.1.2.3.0 bus2=t_bus2040_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type9
+new object=line.l_2041_2041_l bus1=bus2041.1.2.3.0 bus2=t_bus2041_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_2042_2042_l bus1=bus2042.1.2.3.0 bus2=t_bus2042_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2043_2043_l bus1=bus2043.1.2.3.0 bus2=t_bus2043_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_2045_2045_l bus1=bus2045.2.0 bus2=t_bus2045_l.2.0 phases=1 length=1 units=ft linecode=t_type10
+new object=line.l_2046_2046_l bus1=bus2046.2.0 bus2=t_bus2046_l.2.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_2047_2047_l bus1=bus2047.2.0 bus2=t_bus2047_l.2.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_2048_2048_l bus1=bus2048.2.0 bus2=t_bus2048_l.2.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_2049_2049_l bus1=bus2049.3.0 bus2=t_bus2049_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2050_2050_l bus1=bus2050.3.0 bus2=t_bus2050_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2051_2051_l bus1=bus2051.3.0 bus2=t_bus2051_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2052_2052_l bus1=bus2052.1.2.3.0 bus2=t_bus2052_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type11
+new object=line.l_2053_2053_l bus1=bus2053.1.2.3.0 bus2=t_bus2053_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type11
+new object=line.l_2054_2054_l bus1=bus2054.1.0 bus2=t_bus2054_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_2055_2055_l bus1=bus2055.1.0 bus2=t_bus2055_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_2056_2056_l bus1=bus2056.1.0 bus2=t_bus2056_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2058_2058_l bus1=bus2058.1.2.3.0 bus2=t_bus2058_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type9
+new object=line.l_2059_2059_l bus1=bus2059.2.0 bus2=t_bus2059_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_2060_2060_l bus1=bus2060.2.0 bus2=t_bus2060_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3001_3003 bus1=bus3001.1.2.3 bus2=bus3003.1.2.3 phases=3 length=2307 units=ft linecode=ug_3p_type1
+new object=line.l_3003_3002 bus1=bus3003.1.2.3 bus2=bus3002.1.2.3 phases=3 length=85 units=ft linecode=ug_3p_type2
+new object=line.l_3003_3004 bus1=bus3003.1.2.3 bus2=bus3004.1.2.3 phases=3 length=81 units=ft linecode=ug_3p_type2
+new object=line.l_3003_3005 bus1=bus3003.1.2.3 bus2=bus3005.1.2.3 phases=3 length=1997 units=ft linecode=ug_3p_type1
+new object=line.l_3005_3006 bus1=bus3005.1.2.3 bus2=bus3006.1.2.3 phases=3 length=311 units=ft linecode=oh_3p_type1
+new object=line.l_3006_3007 bus1=bus3006.1.2.3 bus2=bus3007.1.2.3 phases=3 length=370 units=ft linecode=oh_3p_type1
+new object=line.l_3005_3008 bus1=bus3005.1.2.3 bus2=bus3008.1.2.3 phases=3 length=136 units=ft linecode=oh_3p_type1
+new object=line.l_3008_3009 bus1=bus3008.1 bus2=bus3009.1 phases=1 length=161 units=ft linecode=oh_1p_type5
+new object=line.l_3009_3010 bus1=bus3009.1 bus2=bus3010.1 phases=1 length=347 units=ft linecode=oh_1p_type5
+new object=line.l_3010_3011 bus1=bus3010.1 bus2=bus3011.1 phases=1 length=265 units=ft linecode=oh_1p_type5
+new object=line.l_3011_3012 bus1=bus3011.1 bus2=bus3012.1 phases=1 length=312 units=ft linecode=oh_1p_type5
+new object=line.l_3008_3013 bus1=bus3008.2 bus2=bus3013.2 phases=1 length=170 units=ft linecode=oh_1p_type5
+new object=line.l_3013_3014 bus1=bus3013.2 bus2=bus3014.2 phases=1 length=295 units=ft linecode=oh_1p_type5
+new object=line.l_3008_3015 bus1=bus3008.1.2.3 bus2=bus3015.1.2.3 phases=3 length=322 units=ft linecode=oh_3p_type1
+new object=line.l_3015_3016 bus1=bus3015.2 bus2=bus3016.2 phases=1 length=210 units=ft linecode=oh_1p_type5
+new object=line.l_3016_3017 bus1=bus3016.2 bus2=bus3017.2 phases=1 length=259 units=ft linecode=oh_1p_type5
+new object=line.l_3015_3018 bus1=bus3015.3 bus2=bus3018.3 phases=1 length=181 units=ft linecode=oh_1p_type5
+new object=line.l_3018_3019 bus1=bus3018.3 bus2=bus3019.3 phases=1 length=281 units=ft linecode=oh_1p_type5
+new object=line.l_3019_3020 bus1=bus3019.3 bus2=bus3020.3 phases=1 length=307 units=ft linecode=oh_1p_type5
+new object=line.l_3020_3021 bus1=bus3020.3 bus2=bus3021.3 phases=1 length=303 units=ft linecode=oh_1p_type5
+new object=line.l_3015_3022 bus1=bus3015.1.2.3 bus2=bus3022.1.2.3 phases=3 length=289 units=ft linecode=oh_3p_type1
+new object=line.l_3022_3023 bus1=bus3022.1 bus2=bus3023.1 phases=1 length=181 units=ft linecode=oh_1p_type5
+new object=line.l_3023_3024 bus1=bus3023.1 bus2=bus3024.1 phases=1 length=320 units=ft linecode=oh_1p_type5
+new object=line.l_3024_3025 bus1=bus3024.1 bus2=bus3025.1 phases=1 length=331 units=ft linecode=oh_1p_type5
+new object=line.l_3022_3026 bus1=bus3022.1 bus2=bus3026.1 phases=1 length=164 units=ft linecode=oh_1p_type5
+new object=line.l_3026_3027 bus1=bus3026.1 bus2=bus3027.1 phases=1 length=368 units=ft linecode=oh_1p_type5
+new object=line.l_3027_3028 bus1=bus3027.1 bus2=bus3028.1 phases=1 length=241 units=ft linecode=oh_1p_type5
+new object=line.l_3028_3029 bus1=bus3028.1 bus2=bus3029.1 phases=1 length=317 units=ft linecode=oh_1p_type5
+new object=line.l_3022_3030 bus1=bus3022.1.2.3 bus2=bus3030.1.2.3 phases=3 length=304 units=ft linecode=oh_3p_type1
+new object=line.l_3030_3035 bus1=bus3030.1.2.3 bus2=bus3035.1.2.3 phases=3 length=103 units=ft linecode=oh_3p_type1
+new object=line.l_3035_3036 bus1=bus3035.1.2.3 bus2=bus3036.1.2.3 phases=3 length=271 units=ft linecode=oh_3p_type1
+new object=line.l_3036_3037 bus1=bus3036.1.2.3 bus2=bus3037.1.2.3 phases=3 length=136 units=ft linecode=oh_3p_type1
+new object=line.l_3037_3038 bus1=bus3037.1.2.3 bus2=bus3038.1.2.3 phases=3 length=252 units=ft linecode=oh_3p_type1
+new object=line.l_3038_3039 bus1=bus3038.1.2.3 bus2=bus3039.1.2.3 phases=3 length=235 units=ft linecode=oh_3p_type1
+new object=line.l_3039_3053 bus1=bus3039.1.2.3 bus2=bus3053.1.2.3 phases=3 length=263 units=ft linecode=oh_3p_type1
+new object=line.l_3053_3054 bus1=bus3053.1.2.3 bus2=bus3054.1.2.3 phases=3 length=280 units=ft linecode=ug_3p_type2
+new object=line.l_3053_3055 bus1=bus3053.2 bus2=bus3055.2 phases=1 length=1335 units=ft linecode=ug_1p_type2
+new object=line.l_3055_3056 bus1=bus3055.2 bus2=bus3056.2 phases=1 length=128 units=ft linecode=ug_1p_type2
+new object=line.l_3056_3057 bus1=bus3056.2 bus2=bus3057.2 phases=1 length=178 units=ft linecode=ug_1p_type2
+new object=line.l_3057_3058 bus1=bus3057.2 bus2=bus3058.2 phases=1 length=178 units=ft linecode=ug_1p_type2
+new object=line.l_3058_3059 bus1=bus3058.2 bus2=bus3059.2 phases=1 length=274 units=ft linecode=ug_1p_type2
+new object=line.l_3059_3060 bus1=bus3059.2 bus2=bus3060.2 phases=1 length=77 units=ft linecode=ug_1p_type2
+new object=line.l_3060_3061 bus1=bus3060.2 bus2=bus3061.2 phases=1 length=184 units=ft linecode=ug_1p_type2
+new object=line.l_3055_3062 bus1=bus3055.2 bus2=bus3062.2 phases=1 length=443 units=ft linecode=ug_1p_type2
+new object=line.l_3062_3063 bus1=bus3062.2 bus2=bus3063.2 phases=1 length=198 units=ft linecode=ug_1p_type2
+new object=line.l_3063_3064 bus1=bus3063.2 bus2=bus3064.2 phases=1 length=157 units=ft linecode=ug_1p_type2
+new object=line.l_3064_3065 bus1=bus3064.2 bus2=bus3065.2 phases=1 length=205 units=ft linecode=ug_1p_type2
+new object=line.l_3065_3066 bus1=bus3065.2 bus2=bus3066.2 phases=1 length=123 units=ft linecode=ug_1p_type2
+new object=line.l_3066_3067 bus1=bus3066.2 bus2=bus3067.2 phases=1 length=274 units=ft linecode=ug_1p_type2
+new object=line.l_3030_3040 bus1=bus3030.1.2.3 bus2=bus3040.1.2.3 phases=3 length=332 units=ft linecode=oh_3p_type1
+new object=line.l_3040_3044 bus1=bus3040.3 bus2=bus3044.3 phases=1 length=144 units=ft linecode=oh_1p_type5
+new object=line.l_3044_3045 bus1=bus3044.3 bus2=bus3045.3 phases=1 length=393 units=ft linecode=oh_1p_type5
+new object=line.l_3040_3041 bus1=bus3040.3 bus2=bus3041.3 phases=1 length=121 units=ft linecode=oh_1p_type5
+new object=line.l_3041_3042 bus1=bus3041.3 bus2=bus3042.3 phases=1 length=328 units=ft linecode=oh_1p_type5
+new object=line.l_3042_3043 bus1=bus3042.3 bus2=bus3043.3 phases=1 length=418 units=ft linecode=oh_1p_type5
+new object=line.l_3040_3046 bus1=bus3040.1.2.3 bus2=bus3046.1.2.3 phases=3 length=329 units=ft linecode=oh_3p_type1
+new object=line.l_3046_3047 bus1=bus3046.1.2.3 bus2=bus3047.1.2.3 phases=3 length=219 units=ft linecode=oh_3p_type1
+new object=line.l_3046_3048 bus1=bus3046.1.2.3 bus2=bus3048.1.2.3 phases=3 length=130 units=ft linecode=oh_3p_type1
+new object=line.l_3048_3049 bus1=bus3048.1.2.3 bus2=bus3049.1.2.3 phases=3 length=226 units=ft linecode=oh_3p_type1
+new object=line.l_3049_3050 bus1=bus3049.1.2.3 bus2=bus3050.1.2.3 phases=3 length=167 units=ft linecode=oh_3p_type1
+new object=line.l_3050_3051 bus1=bus3050.1.2.3 bus2=bus3051.1.2.3 phases=3 length=360 units=ft linecode=oh_3p_type1
+new object=line.l_3051_3052 bus1=bus3051.1.2.3 bus2=bus3052.1.2.3 phases=3 length=292 units=ft linecode=oh_3p_type1
+new object=line.l_3030_3031 bus1=bus3030.1.2.3 bus2=bus3031.1.2.3 phases=3 length=243 units=ft linecode=oh_3p_type1
+new object=line.l_3031_3032 bus1=bus3031.1.2.3 bus2=bus3032.1.2.3 phases=3 length=251 units=ft linecode=oh_3p_type1
+new object=line.l_3032_3033 bus1=bus3032.1.2.3 bus2=bus3033.1.2.3 phases=3 length=388 units=ft linecode=oh_3p_type1
+new object=line.l_3033_3034 bus1=bus3033.1.2.3 bus2=bus3034.1.2.3 phases=3 length=257 units=ft linecode=oh_3p_type1
+new object=line.l_3034_3068 bus1=bus3034.1.2.3 bus2=bus3068.1.2.3 phases=3 length=164 units=ft linecode=oh_3p_type1
+new object=line.l_3068_3069 bus1=bus3068.1.2.3 bus2=bus3069.1.2.3 phases=3 length=329 units=ft linecode=oh_3p_type1
+new object=line.l_3069_3070 bus1=bus3069.1.2.3 bus2=bus3070.1.2.3 phases=3 length=107 units=ft linecode=ug_3p_type2
+new object=line.l_3070_3071 bus1=bus3070.1.2.3 bus2=bus3071.1.2.3 phases=3 length=141 units=ft linecode=ug_3p_type2
+new object=line.l_3071_3072 bus1=bus3071.1.2.3 bus2=bus3072.1.2.3 phases=3 length=90 units=ft linecode=ug_3p_type2
+new object=line.l_3069_3073 bus1=bus3069.1.2.3 bus2=bus3073.1.2.3 phases=3 length=20 units=ft linecode=oh_3p_type1
+new object=line.l_3073_3074 bus1=bus3073.1.2.3 bus2=bus3074.1.2.3 phases=3 length=340 units=ft linecode=oh_3p_type1
+new object=line.l_3068_3075 bus1=bus3068.1.2.3 bus2=bus3075.1.2.3 phases=3 length=188 units=ft linecode=oh_3p_type1
+new object=line.l_3076_3077 bus1=bus3076.1.2.3 bus2=bus3077.1.2.3 phases=3 length=877 units=ft linecode=oh_3p_type1
+new object=line.l_3077_3078 bus1=bus3077.1.2.3 bus2=bus3078.1.2.3 phases=3 length=80 units=ft linecode=oh_3p_type1
+new object=line.l_3076_3079 bus1=bus3076.1.2.3 bus2=bus3079.1.2.3 phases=3 length=191 units=ft linecode=oh_3p_type1
+new object=line.l_3079_3080 bus1=bus3079.1.2.3 bus2=bus3080.1.2.3 phases=3 length=604 units=ft linecode=oh_3p_type1
+new object=line.l_3080_3081 bus1=bus3080.1.2.3 bus2=bus3081.1.2.3 phases=3 length=195 units=ft linecode=oh_3p_type1
+new object=line.l_3080_3082 bus1=bus3080.1.2.3 bus2=bus3082.1.2.3 phases=3 length=540 units=ft linecode=oh_3p_type1
+new object=line.l_3082_3083 bus1=bus3082.1 bus2=bus3083.1 phases=1 length=125 units=ft linecode=ug_1p_type2
+new object=line.l_3083_3084 bus1=bus3083.1 bus2=bus3084.1 phases=1 length=196 units=ft linecode=ug_1p_type2
+new object=line.l_3084_3085 bus1=bus3084.1 bus2=bus3085.1 phases=1 length=515 units=ft linecode=ug_1p_type2
+new object=line.l_3085_3086 bus1=bus3085.1 bus2=bus3086.1 phases=1 length=338 units=ft linecode=ug_1p_type2
+new object=line.l_3086_3087 bus1=bus3086.1 bus2=bus3087.1 phases=1 length=239 units=ft linecode=ug_1p_type2
+new object=line.l_3087_3088 bus1=bus3087.1 bus2=bus3088.1 phases=1 length=420 units=ft linecode=ug_1p_type2
+new object=line.l_3088_3089 bus1=bus3088.1 bus2=bus3089.1 phases=1 length=112 units=ft linecode=ug_1p_type2
+new object=line.l_3089_3090 bus1=bus3089.1 bus2=bus3090.1 phases=1 length=565 units=ft linecode=ug_1p_type2
+new object=line.l_3090_3091 bus1=bus3090.1 bus2=bus3091.1 phases=1 length=222 units=ft linecode=ug_1p_type2
+new object=line.l_3082_3092 bus1=bus3082.1.2.3 bus2=bus3092.1.2.3 phases=3 length=185 units=ft linecode=ug_3p_type2
+new object=line.l_3092_3093 bus1=bus3092.1 bus2=bus3093.1 phases=1 length=230 units=ft linecode=ug_1p_type2
+new object=line.l_3093_3094 bus1=bus3093.1 bus2=bus3094.1 phases=1 length=125 units=ft linecode=ug_1p_type2
+new object=line.l_3094_3095 bus1=bus3094.1 bus2=bus3095.1 phases=1 length=65 units=ft linecode=ug_1p_type2
+new object=line.l_3095_3096 bus1=bus3095.1 bus2=bus3096.1 phases=1 length=296 units=ft linecode=ug_1p_type2
+new object=line.l_3096_3097 bus1=bus3096.1 bus2=bus3097.1 phases=1 length=117 units=ft linecode=ug_1p_type2
+new object=line.l_3092_3098 bus1=bus3092.2 bus2=bus3098.2 phases=1 length=284 units=ft linecode=ug_1p_type2
+new object=line.l_3098_3099 bus1=bus3098.2 bus2=bus3099.2 phases=1 length=368 units=ft linecode=ug_1p_type2
+new object=line.l_3092_3100 bus1=bus3092.1.2.3 bus2=bus3100.1.2.3 phases=3 length=91 units=ft linecode=ug_3p_type2
+new object=line.l_3100_3101 bus1=bus3100.3 bus2=bus3101.3 phases=1 length=157 units=ft linecode=ug_1p_type2
+new object=line.l_3101_3102 bus1=bus3101.3 bus2=bus3102.3 phases=1 length=225 units=ft linecode=ug_1p_type2
+new object=line.l_3102_3103 bus1=bus3102.3 bus2=bus3103.3 phases=1 length=134 units=ft linecode=ug_1p_type2
+new object=line.l_3100_3104 bus1=bus3100.3 bus2=bus3104.3 phases=1 length=223 units=ft linecode=ug_1p_type2
+new object=line.l_3104_3105 bus1=bus3104.3 bus2=bus3105.3 phases=1 length=120 units=ft linecode=ug_1p_type2
+new object=line.l_3105_3106 bus1=bus3105.3 bus2=bus3106.3 phases=1 length=181 units=ft linecode=ug_1p_type2
+new object=line.l_3082_3107 bus1=bus3082.1.2.3 bus2=bus3107.1.2.3 phases=3 length=1461 units=ft linecode=ug_3p_type1
+new object=line.l_3107_3108 bus1=bus3107.1 bus2=bus3108.1 phases=1 length=466 units=ft linecode=ug_1p_type2
+new object=line.l_3108_3109 bus1=bus3108.1 bus2=bus3109.1 phases=1 length=136 units=ft linecode=ug_1p_type2
+new object=line.l_3109_3110 bus1=bus3109.1 bus2=bus3110.1 phases=1 length=152 units=ft linecode=ug_1p_type2
+new object=line.l_3110_3111 bus1=bus3110.1 bus2=bus3111.1 phases=1 length=276 units=ft linecode=ug_1p_type2
+new object=line.l_3111_3112 bus1=bus3111.1 bus2=bus3112.1 phases=1 length=328 units=ft linecode=ug_1p_type2
+new object=line.l_3107_3113 bus1=bus3107.2 bus2=bus3113.2 phases=1 length=245 units=ft linecode=ug_1p_type2
+new object=line.l_3113_3114 bus1=bus3113.2 bus2=bus3114.2 phases=1 length=149 units=ft linecode=ug_1p_type2
+new object=line.l_3114_3115 bus1=bus3114.2 bus2=bus3115.2 phases=1 length=331 units=ft linecode=ug_1p_type2
+new object=line.l_3113_3116 bus1=bus3113.2 bus2=bus3116.2 phases=1 length=456 units=ft linecode=ug_1p_type2
+new object=line.l_3116_3117 bus1=bus3116.2 bus2=bus3117.2 phases=1 length=112 units=ft linecode=ug_1p_type2
+new object=line.l_3107_3118 bus1=bus3107.1.2.3 bus2=bus3118.1.2.3 phases=3 length=2267 units=ft linecode=ug_3p_type1
+new object=line.l_3118_3119 bus1=bus3118.2 bus2=bus3119.2 phases=1 length=464 units=ft linecode=ug_1p_type2
+new object=line.l_3119_3120 bus1=bus3119.2 bus2=bus3120.2 phases=1 length=350 units=ft linecode=ug_1p_type2
+new object=line.l_3120_3121 bus1=bus3120.2 bus2=bus3121.2 phases=1 length=206 units=ft linecode=ug_1p_type2
+new object=line.l_3121_3122 bus1=bus3121.2 bus2=bus3122.2 phases=1 length=177 units=ft linecode=ug_1p_type2
+new object=line.l_3119_3123 bus1=bus3119.2 bus2=bus3123.2 phases=1 length=91 units=ft linecode=ug_1p_type2
+new object=line.l_3123_3124 bus1=bus3123.2 bus2=bus3124.2 phases=1 length=67 units=ft linecode=ug_1p_type2
+new object=line.l_3124_3125 bus1=bus3124.2 bus2=bus3125.2 phases=1 length=151 units=ft linecode=ug_1p_type2
+new object=line.l_3125_3126 bus1=bus3125.2 bus2=bus3126.2 phases=1 length=343 units=ft linecode=ug_1p_type2
+new object=line.l_3126_3127 bus1=bus3126.2 bus2=bus3127.2 phases=1 length=234 units=ft linecode=ug_1p_type2
+new object=line.l_3127_3128 bus1=bus3127.2 bus2=bus3128.2 phases=1 length=238 units=ft linecode=ug_1p_type2
+new object=line.l_3128_3129 bus1=bus3128.2 bus2=bus3129.2 phases=1 length=243 units=ft linecode=ug_1p_type2
+new object=line.l_3129_3130 bus1=bus3129.2 bus2=bus3130.2 phases=1 length=230 units=ft linecode=ug_1p_type2
+new object=line.l_3130_3131 bus1=bus3130.2 bus2=bus3131.2 phases=1 length=194 units=ft linecode=ug_1p_type2
+new object=line.l_3118_3132 bus1=bus3118.1 bus2=bus3132.1 phases=1 length=501 units=ft linecode=ug_1p_type2
+new object=line.l_3132_3133 bus1=bus3132.1 bus2=bus3133.1 phases=1 length=145 units=ft linecode=ug_1p_type2
+new object=line.l_3133_3134 bus1=bus3133.1 bus2=bus3134.1 phases=1 length=281 units=ft linecode=ug_1p_type2
+new object=line.l_3134_3135 bus1=bus3134.1 bus2=bus3135.1 phases=1 length=240 units=ft linecode=ug_1p_type2
+new object=line.l_3135_3136 bus1=bus3135.1 bus2=bus3136.1 phases=1 length=367 units=ft linecode=ug_1p_type2
+new object=line.l_3133_3137 bus1=bus3133.1 bus2=bus3137.1 phases=1 length=252 units=ft linecode=ug_1p_type2
+new object=line.l_3137_3138 bus1=bus3137.1 bus2=bus3138.1 phases=1 length=351 units=ft linecode=ug_1p_type2
+new object=line.l_3138_3139 bus1=bus3138.1 bus2=bus3139.1 phases=1 length=289 units=ft linecode=ug_1p_type2
+new object=line.l_3107_3140 bus1=bus3107.3 bus2=bus3140.3 phases=1 length=255 units=ft linecode=ug_1p_type2
+new object=line.l_3140_3141 bus1=bus3140.3 bus2=bus3141.3 phases=1 length=134 units=ft linecode=ug_1p_type2
+new object=line.l_3141_3142 bus1=bus3141.3 bus2=bus3142.3 phases=1 length=193 units=ft linecode=ug_1p_type2
+new object=line.l_3142_3143 bus1=bus3142.3 bus2=bus3143.3 phases=1 length=202 units=ft linecode=ug_1p_type2
+new object=line.l_3140_3148 bus1=bus3140.3 bus2=bus3148.3 phases=1 length=147 units=ft linecode=ug_1p_type2
+new object=line.l_3148_3149 bus1=bus3148.3 bus2=bus3149.3 phases=1 length=253 units=ft linecode=ug_1p_type2
+new object=line.l_3149_3150 bus1=bus3149.3 bus2=bus3150.3 phases=1 length=139 units=ft linecode=ug_1p_type2
+new object=line.l_3150_3151 bus1=bus3150.3 bus2=bus3151.3 phases=1 length=156 units=ft linecode=ug_1p_type2
+new object=line.l_3151_3152 bus1=bus3151.3 bus2=bus3152.3 phases=1 length=260 units=ft linecode=ug_1p_type2
+new object=line.l_3152_3153 bus1=bus3152.3 bus2=bus3153.3 phases=1 length=139 units=ft linecode=ug_1p_type2
+new object=line.l_3153_3154 bus1=bus3153.3 bus2=bus3154.3 phases=1 length=119 units=ft linecode=ug_1p_type2
+new object=line.l_3154_3155 bus1=bus3154.3 bus2=bus3155.3 phases=1 length=505 units=ft linecode=ug_1p_type2
+new object=line.l_3140_3156 bus1=bus3140.3 bus2=bus3156.3 phases=1 length=319 units=ft linecode=ug_1p_type2
+new object=line.l_3156_3144 bus1=bus3156.3 bus2=bus3144.3 phases=1 length=122 units=ft linecode=ug_1p_type2
+new object=line.l_3144_3145 bus1=bus3144.3 bus2=bus3145.3 phases=1 length=178 units=ft linecode=ug_1p_type2
+new object=line.l_3145_3146 bus1=bus3145.3 bus2=bus3146.3 phases=1 length=178 units=ft linecode=ug_1p_type2
+new object=line.l_3146_3147 bus1=bus3146.3 bus2=bus3147.3 phases=1 length=178 units=ft linecode=ug_1p_type2
+new object=line.l_3156_3157 bus1=bus3156.3 bus2=bus3157.3 phases=1 length=153 units=ft linecode=ug_1p_type2
+new object=line.l_3157_3158 bus1=bus3157.3 bus2=bus3158.3 phases=1 length=295 units=ft linecode=ug_1p_type2
+new object=line.l_3158_3159 bus1=bus3158.3 bus2=bus3159.3 phases=1 length=257 units=ft linecode=ug_1p_type2
+new object=line.l_3159_3160 bus1=bus3159.3 bus2=bus3160.3 phases=1 length=243 units=ft linecode=ug_1p_type2
+new object=line.l_3160_3161 bus1=bus3160.3 bus2=bus3161.3 phases=1 length=237 units=ft linecode=ug_1p_type2
+new object=line.l_3161_3162 bus1=bus3161.3 bus2=bus3162.3 phases=1 length=176 units=ft linecode=ug_1p_type2
+new object=line.l_3002_3002_l bus1=bus3002.1.2.3.0 bus2=t_bus3002_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3004_3004_l bus1=bus3004.1.2.3.0 bus2=t_bus3004_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3006_3006_l bus1=bus3006.1.2.3.0 bus2=t_bus3006_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3007_3007_l bus1=bus3007.1.2.3.0 bus2=t_bus3007_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type2
+new object=line.l_3009_3009_l bus1=bus3009.1.0 bus2=t_bus3009_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3010_3010_l bus1=bus3010.1.0 bus2=t_bus3010_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3011_3011_l bus1=bus3011.1.0 bus2=t_bus3011_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3012_3012_l bus1=bus3012.1.0 bus2=t_bus3012_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3013_3013_l bus1=bus3013.2.0 bus2=t_bus3013_l.2.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3014_3014_l bus1=bus3014.2.0 bus2=t_bus3014_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3016_3016_l bus1=bus3016.2.0 bus2=t_bus3016_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3017_3017_l bus1=bus3017.2.0 bus2=t_bus3017_l.2.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3018_3018_l bus1=bus3018.3.0 bus2=t_bus3018_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3019_3019_l bus1=bus3019.3.0 bus2=t_bus3019_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3020_3020_l bus1=bus3020.3.0 bus2=t_bus3020_l.3.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3021_3021_l bus1=bus3021.3.0 bus2=t_bus3021_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3023_3023_l bus1=bus3023.1.0 bus2=t_bus3023_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3024_3024_l bus1=bus3024.1.0 bus2=t_bus3024_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3025_3025_l bus1=bus3025.1.0 bus2=t_bus3025_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3026_3026_l bus1=bus3026.1.0 bus2=t_bus3026_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3027_3027_l bus1=bus3027.1.0 bus2=t_bus3027_l.1.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3028_3028_l bus1=bus3028.1.0 bus2=t_bus3028_l.1.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3029_3029_l bus1=bus3029.1.0 bus2=t_bus3029_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3031_3031_l bus1=bus3031.1.2.3.0 bus2=t_bus3031_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3032_3032_l bus1=bus3032.1.2.3.0 bus2=t_bus3032_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3033_3033_l bus1=bus3033.1.2.3.0 bus2=t_bus3033_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3034_3034_l bus1=bus3034.1.2.3.0 bus2=t_bus3034_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3035_3035_l bus1=bus3035.1.2.3.0 bus2=t_bus3035_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3036_3036_l bus1=bus3036.1.2.3.0 bus2=t_bus3036_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3037_3037_l bus1=bus3037.1.2.3.0 bus2=t_bus3037_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3038_3038_l bus1=bus3038.1.2.3.0 bus2=t_bus3038_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3039_3039_l bus1=bus3039.1.2.3.0 bus2=t_bus3039_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3041_3041_l bus1=bus3041.3.0 bus2=t_bus3041_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3042_3042_l bus1=bus3042.3.0 bus2=t_bus3042_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3043_3043_l bus1=bus3043.3.0 bus2=t_bus3043_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3044_3044_l bus1=bus3044.3.0 bus2=t_bus3044_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3045_3045_l bus1=bus3045.3.0 bus2=t_bus3045_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3047_3047_l bus1=bus3047.1.2.3.0 bus2=t_bus3047_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3048_3048_l bus1=bus3048.1.2.3.0 bus2=t_bus3048_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3049_3049_l bus1=bus3049.1.2.3.0 bus2=t_bus3049_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3050_3050_l bus1=bus3050.1.2.3.0 bus2=t_bus3050_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3051_3051_l bus1=bus3051.1.2.3.0 bus2=t_bus3051_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3052_3052_l bus1=bus3052.1.2.3.0 bus2=t_bus3052_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3054_3054_l bus1=bus3054.1.2.3.0 bus2=t_bus3054_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3056_3056_l bus1=bus3056.2.0 bus2=t_bus3056_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3057_3057_l bus1=bus3057.2.0 bus2=t_bus3057_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3058_3058_l bus1=bus3058.2.0 bus2=t_bus3058_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3059_3059_l bus1=bus3059.2.0 bus2=t_bus3059_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3060_3060_l bus1=bus3060.2.0 bus2=t_bus3060_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3061_3061_l bus1=bus3061.2.0 bus2=t_bus3061_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3062_3062_l bus1=bus3062.2.0 bus2=t_bus3062_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3063_3063_l bus1=bus3063.2.0 bus2=t_bus3063_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3064_3064_l bus1=bus3064.2.0 bus2=t_bus3064_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3065_3065_l bus1=bus3065.2.0 bus2=t_bus3065_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3066_3066_l bus1=bus3066.2.0 bus2=t_bus3066_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3067_3067_l bus1=bus3067.2.0 bus2=t_bus3067_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3070_3070_l bus1=bus3070.1.2.3.0 bus2=t_bus3070_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3071_3071_l bus1=bus3071.1.2.3.0 bus2=t_bus3071_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3072_3072_l bus1=bus3072.1.2.3.0 bus2=t_bus3072_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3073_3073_l bus1=bus3073.1.2.3.0 bus2=t_bus3073_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3074_3074_l bus1=bus3074.1.2.3.0 bus2=t_bus3074_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3077_3077_l bus1=bus3077.1.2.3.0 bus2=t_bus3077_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type13
+new object=line.l_3078_3078_l bus1=bus3078.1.2.3.0 bus2=t_bus3078_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3081_3081_l bus1=bus3081.1.2.3.0 bus2=t_bus3081_l.1.2.3.0 phases=3 length=1 units=ft linecode=t_type5
+new object=line.l_3083_3083_l bus1=bus3083.1.0 bus2=t_bus3083_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3084_3084_l bus1=bus3084.1.0 bus2=t_bus3084_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3085_3085_l bus1=bus3085.1.0 bus2=t_bus3085_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3086_3086_l bus1=bus3086.1.0 bus2=t_bus3086_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3087_3087_l bus1=bus3087.1.0 bus2=t_bus3087_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3088_3088_l bus1=bus3088.1.0 bus2=t_bus3088_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3089_3089_l bus1=bus3089.1.0 bus2=t_bus3089_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3090_3090_l bus1=bus3090.1.0 bus2=t_bus3090_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3091_3091_l bus1=bus3091.1.0 bus2=t_bus3091_l.1.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3093_3093_l bus1=bus3093.1.0 bus2=t_bus3093_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3094_3094_l bus1=bus3094.1.0 bus2=t_bus3094_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3095_3095_l bus1=bus3095.1.0 bus2=t_bus3095_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3096_3096_l bus1=bus3096.1.0 bus2=t_bus3096_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3097_3097_l bus1=bus3097.1.0 bus2=t_bus3097_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3098_3098_l bus1=bus3098.2.0 bus2=t_bus3098_l.2.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3099_3099_l bus1=bus3099.2.0 bus2=t_bus3099_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3101_3101_l bus1=bus3101.3.0 bus2=t_bus3101_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3102_3102_l bus1=bus3102.3.0 bus2=t_bus3102_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3103_3103_l bus1=bus3103.3.0 bus2=t_bus3103_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3104_3104_l bus1=bus3104.3.0 bus2=t_bus3104_l.3.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3105_3105_l bus1=bus3105.3.0 bus2=t_bus3105_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3106_3106_l bus1=bus3106.3.0 bus2=t_bus3106_l.3.0 phases=1 length=1 units=ft linecode=t_type12
+new object=line.l_3108_3108_l bus1=bus3108.1.0 bus2=t_bus3108_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3109_3109_l bus1=bus3109.1.0 bus2=t_bus3109_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3110_3110_l bus1=bus3110.1.0 bus2=t_bus3110_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3111_3111_l bus1=bus3111.1.0 bus2=t_bus3111_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3112_3112_l bus1=bus3112.1.0 bus2=t_bus3112_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3114_3114_l bus1=bus3114.2.0 bus2=t_bus3114_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3115_3115_l bus1=bus3115.2.0 bus2=t_bus3115_l.2.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3116_3116_l bus1=bus3116.2.0 bus2=t_bus3116_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3117_3117_l bus1=bus3117.2.0 bus2=t_bus3117_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3120_3120_l bus1=bus3120.2.0 bus2=t_bus3120_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3121_3121_l bus1=bus3121.2.0 bus2=t_bus3121_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3122_3122_l bus1=bus3122.2.0 bus2=t_bus3122_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3123_3123_l bus1=bus3123.2.0 bus2=t_bus3123_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3124_3124_l bus1=bus3124.2.0 bus2=t_bus3124_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3125_3125_l bus1=bus3125.2.0 bus2=t_bus3125_l.2.0 phases=1 length=1 units=ft linecode=t_type10
+new object=line.l_3126_3126_l bus1=bus3126.2.0 bus2=t_bus3126_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3127_3127_l bus1=bus3127.2.0 bus2=t_bus3127_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3128_3128_l bus1=bus3128.2.0 bus2=t_bus3128_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3129_3129_l bus1=bus3129.2.0 bus2=t_bus3129_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3130_3130_l bus1=bus3130.2.0 bus2=t_bus3130_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3131_3131_l bus1=bus3131.2.0 bus2=t_bus3131_l.2.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3132_3132_l bus1=bus3132.1.0 bus2=t_bus3132_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3134_3134_l bus1=bus3134.1.0 bus2=t_bus3134_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3135_3135_l bus1=bus3135.1.0 bus2=t_bus3135_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3136_3136_l bus1=bus3136.1.0 bus2=t_bus3136_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3137_3137_l bus1=bus3137.1.0 bus2=t_bus3137_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3138_3138_l bus1=bus3138.1.0 bus2=t_bus3138_l.1.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3139_3139_l bus1=bus3139.1.0 bus2=t_bus3139_l.1.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3141_3141_l bus1=bus3141.3.0 bus2=t_bus3141_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3142_3142_l bus1=bus3142.3.0 bus2=t_bus3142_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3143_3143_l bus1=bus3143.3.0 bus2=t_bus3143_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3144_3144_l bus1=bus3144.3.0 bus2=t_bus3144_l.3.0 phases=1 length=1 units=ft linecode=t_type10
+new object=line.l_3145_3145_l bus1=bus3145.3.0 bus2=t_bus3145_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3146_3146_l bus1=bus3146.3.0 bus2=t_bus3146_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3147_3147_l bus1=bus3147.3.0 bus2=t_bus3147_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3148_3148_l bus1=bus3148.3.0 bus2=t_bus3148_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3149_3149_l bus1=bus3149.3.0 bus2=t_bus3149_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3150_3150_l bus1=bus3150.3.0 bus2=t_bus3150_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3151_3151_l bus1=bus3151.3.0 bus2=t_bus3151_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3152_3152_l bus1=bus3152.3.0 bus2=t_bus3152_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3153_3153_l bus1=bus3153.3.0 bus2=t_bus3153_l.3.0 phases=1 length=1 units=ft linecode=t_type7
+new object=line.l_3154_3154_l bus1=bus3154.3.0 bus2=t_bus3154_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3155_3155_l bus1=bus3155.3.0 bus2=t_bus3155_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3157_3157_l bus1=bus3157.3.0 bus2=t_bus3157_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3158_3158_l bus1=bus3158.3.0 bus2=t_bus3158_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3159_3159_l bus1=bus3159.3.0 bus2=t_bus3159_l.3.0 phases=1 length=1 units=ft linecode=t_type8
+new object=line.l_3160_3160_l bus1=bus3160.3.0 bus2=t_bus3160_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3161_3161_l bus1=bus3161.3.0 bus2=t_bus3161_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.l_3162_3162_l bus1=bus3162.3.0 bus2=t_bus3162_l.3.0 phases=1 length=1 units=ft linecode=t_type6
+new object=line.cb_101 bus1=bus1.1.2.3 bus2=bus1001.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_102 bus1=bus1010.1.2.3 bus2=bus2057.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0 enabled=n
+new object=line.cb_201 bus1=bus1.1.2.3 bus2=bus2001.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_202 bus1=bus2012.1.2.3 bus2=bus2013.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_203 bus1=bus2021.1.2.3 bus2=bus2026.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_204 bus1=bus2013.1.2.3 bus2=bus3005.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0 enabled=n
+new object=line.cb_301 bus1=bus1.1.2.3 bus2=bus3001.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_302 bus1=bus3075.1.2.3 bus2=bus3076.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0
+new object=line.cb_303 bus1=bus3081.1.2.3 bus2=bus2016.1.2.3 phases=3 switch=y r1=1e-4 r0=1e-4 x1=0 x0=0 c1=0 c0=0 enabled=n
+new object=loadshape.1003_loadcurve interval=1 npts=24 useactual=yes mult=(15.434,14.526,15.054,14.667,13.87,13.516,12.884,13.43,11.331,11.749,11.511,11.72,11.063,14.099,12.124,11.395,11.945,12.189,12.612,13.385,13.923,14.158,13.13,14.626) qmult=(3.8681,4.2367,7.291,6.6825,5.9086,5.3419,5.8701,5.7212,3.7243,5.6903,4.5494,1.67,2.2464,4.1122,4.7917,4.8542,2.4255,5.5535,4.1454,3.3546,5.5027,6.857,5.1893,6.6638)
+new object=loadshape.1004_loadcurve interval=1 npts=24 useactual=yes mult=(6.913,6.73,6.833,6.941,6.915,6.691,7.306,11.51,14.474,19.695,19.69,18.02,17.975,12.407,9.221,10.019,8.176,6.436,6.496,6.618,6.564,6.52,6.101,7.343) qmult=(2.9449,2.6599,3.3094,3.3617,2.2729,3.0485,2.1309,2.3372,7.0101,3.9992,3.9982,2.5677,8.1897,4.5031,3.0308,1.4276,2.0491,0.9171,3.1462,1.6586,1.6451,2.9706,1.5291,2.4135)
+new object=loadshape.1005_loadcurve interval=1 npts=24 useactual=yes mult=(5.05,4.978,5.072,5.092,5.583,4.963,5.876,4.692,4.326,5.434,11.284,9.336,9.978,9.331,7.307,7.011,8.049,11.693,6.849,3.564,5.272,3.493,3.516,3.482) qmult=(1.8329,2.268,1.2712,1.6737,0.7955,1.4475,2.5032,1.3685,0.8784,1.7861,2.2913,3.0686,2.5007,3.975,1.4837,2.0449,3.4289,1.6662,2.7069,1.4086,1.0705,1.3805,1.6019,1.1445)
+new object=loadshape.1006_1_loadcurve interval=1 npts=24 useactual=yes mult=(2.16,2.02,2.34,2.36,2.14,2.28,2.38,1.94,1.88,1.94,1.94,4.52,4.64,4.94,4.58,4.32,4.76,2.32,1.28,1.84,1.58,1.9,1.64,1.58) qmult=(1.0461,0.4102,0.4752,0.4792,0.5363,1.1043,0.6942,0.3939,0.3818,0.7667,0.2764,2.0594,1.6841,2.1044,1.6623,1.568,1.3883,0.9883,0.3733,0.4611,0.396,0.9202,0.6482,0.7199)
+new object=loadshape.1006_2_loadcurve interval=1 npts=24 useactual=yes mult=(2.16,2.02,2.34,2.36,2.14,2.28,2.38,1.94,1.88,1.94,1.94,4.52,4.64,4.94,4.58,4.32,4.76,2.32,1.28,1.84,1.58,1.9,1.64,1.58) qmult=(1.0461,0.4102,0.4752,0.4792,0.5363,1.1043,0.6942,0.3939,0.3818,0.7667,0.2764,2.0594,1.6841,2.1044,1.6623,1.568,1.3883,0.9883,0.3733,0.4611,0.396,0.9202,0.6482,0.7199)
+new object=loadshape.1007_1_loadcurve interval=1 npts=24 useactual=yes mult=(1.7515,1.667,1.783,1.7275,1.6745,1.522,1.6725,1.4865,1.823,1.71,1.649,1.646,1.235,1.5585,1.5745,1.3375,1.366,1.5355,1.814,2.031,1.9885,2.0965,2.066,1.929) qmult=(0.6357,0.3385,0.2541,0.5678,0.4197,0.5003,0.2383,0.5395,0.8829,0.4286,0.7025,0.541,0.176,0.2221,0.7174,0.5286,0.6616,0.5047,0.7728,0.5924,0.2833,0.5254,0.7499,0.7624)
+new object=loadshape.1007_2_loadcurve interval=1 npts=24 useactual=yes mult=(1.7515,1.667,1.783,1.7275,1.6745,1.522,1.6725,1.4865,1.823,1.71,1.649,1.646,1.235,1.5585,1.5745,1.3375,1.366,1.5355,1.814,2.031,1.9885,2.0965,2.066,1.929) qmult=(0.6357,0.3385,0.2541,0.5678,0.4197,0.5003,0.2383,0.5395,0.8829,0.4286,0.7025,0.541,0.176,0.2221,0.7174,0.5286,0.6616,0.5047,0.7728,0.5924,0.2833,0.5254,0.7499,0.7624)
+new object=loadshape.1008_loadcurve interval=1 npts=24 useactual=yes mult=(7.414,10.375,10.849,10.888,10.972,6.517,5.961,6.422,6.202,5.826,5.318,5.196,4.9,5.031,5.474,9.587,7.917,7.374,5.887,6.998,5.096,4.812,5.246,5.471) qmult=(1.8581,5.0248,2.203,3.9518,2.7498,2.3654,1.9593,2.3309,1.8089,0.8302,1.5511,1.0551,1.6106,1.9884,2.6512,3.789,1.6076,1.4974,1.4754,1.421,2.1709,1.7465,1.5301,2.1623)
+new object=loadshape.1009_loadcurve interval=1 npts=24 useactual=yes mult=(9.511,9.424,7.976,8.809,8.649,7.727,8.443,7.314,7.274,8.197,8.16,8.034,8.275,7.608,7.424,8.185,7.635,7.961,8.53,8.102,6.843,8.927,9.1,8.888) qmult=(4.3333,4.5643,1.1365,4.2664,2.1676,3.7424,3.3369,2.404,2.6401,3.4919,1.657,2.0135,2.7199,3.6847,3.3825,3.9642,1.9135,1.6165,2.1378,3.924,2.2492,4.0673,1.8478,3.2259)
+new object=loadshape.1010_loadcurve interval=1 npts=24 useactual=yes mult=(4.569,5.298,4.967,3.913,4.019,3.212,4.119,4.021,3.513,4.024,6.047,5.522,5.826,6.059,7.094,4.426,7.176,6.127,7.391,6.652,7.048,5.819,10.921,6.803) qmult=(1.6583,0.7549,1.9631,0.5576,0.8161,0.6522,1.7547,1.832,0.7133,0.5734,2.9287,1.6106,2.6544,2.1991,1.0108,1.4548,1.4571,2.0138,2.6826,3.2217,3.0024,0.8292,4.9758,3.2948)
+new object=loadshape.1011_loadcurve interval=1 npts=24 useactual=yes mult=(2.954,2.76,3.025,2.891,2.842,3.99,2.718,2.389,5.452,3.722,4.3,3.023,2.732,3.269,6.523,5.537,4.506,3.557,3.671,5.234,4.744,3.411,6.21,3.275) qmult=(1.2584,0.805,1.4651,0.7246,0.7123,1.1638,0.7928,1.0885,1.9788,1.6958,1.8318,0.8817,0.3893,1.0745,2.7788,2.5227,1.1293,0.7223,1.3324,2.3847,1.7218,1.4531,1.8113,0.8208)
+new object=loadshape.1012_loadcurve interval=1 npts=24 useactual=yes mult=(3.035,1.38,1.609,1.299,1.789,1.44,1.207,1.209,2.026,3.172,7.231,10.1,5.458,8.783,10.162,4.741,5.273,4.223,5.406,9.523,12.443,8.275,1.668,1.473) qmult=(1.4699,0.5454,0.7331,0.427,0.588,0.6134,0.3967,0.4778,0.9231,0.6441,2.109,4.8917,1.981,2.8868,4.0163,1.1882,1.3215,1.799,1.9621,2.7775,5.3007,3.0034,0.4865,0.3692)
+new object=loadshape.1013_loadcurve interval=1 npts=24 useactual=yes mult=(2.289,2.302,2.71,2.294,2.308,2.328,2.446,2.665,1.973,2.113,1.972,2.673,2.226,1.648,1.686,1.839,1.723,2.22,5.32,3.268,2.775,2.394,2.411,2.251) qmult=(0.9047,0.8355,1.3125,0.5749,0.7586,0.3317,0.613,0.9673,0.8989,0.7669,0.9551,0.5428,0.5579,0.7509,0.4918,0.262,0.8345,0.8774,1.0803,1.4889,1.1821,0.3411,0.4896,1.0256)
+new object=loadshape.1014_loadcurve interval=1 npts=24 useactual=yes mult=(0.751,0.547,0.484,0.371,0.32,0.423,0.302,0.327,0.859,0.491,0.404,0.971,0.479,0.364,0.408,0.446,0.509,3.195,1.209,2.715,1.44,0.633,0.432,0.36) qmult=(0.1525,0.2162,0.069,0.0753,0.065,0.139,0.0613,0.1584,0.3395,0.1941,0.1957,0.2434,0.2182,0.1439,0.1341,0.2032,0.2012,1.5474,0.5855,1.3149,0.5691,0.1586,0.126,0.1744)
+new object=loadshape.1015_loadcurve interval=1 npts=24 useactual=yes mult=(0.614,0.522,0.437,0.401,0.42,0.417,0.415,0.43,0.469,0.748,0.611,0.761,0.929,0.899,0.924,2.758,5.948,2.36,2.035,4.46,3.457,1.93,0.718,0.697) qmult=(0.1539,0.0744,0.0623,0.1318,0.138,0.0847,0.104,0.1254,0.0952,0.2715,0.2415,0.222,0.2328,0.2955,0.2695,0.9065,0.8475,0.4792,0.9272,1.9,0.4926,0.8222,0.236,0.1415)
+new object=loadshape.1016_loadcurve interval=1 npts=24 useactual=yes mult=(3.035,1.38,1.609,1.299,1.789,1.44,1.207,1.209,2.026,3.172,7.231,10.1,5.458,8.783,10.162,4.741,5.273,4.223,5.406,9.523,12.443,8.275,1.668,1.473) qmult=(1.1995,0.1966,0.584,0.5918,0.8151,0.6974,0.4381,0.303,0.7353,1.2537,3.2945,2.5313,2.1571,2.8868,4.9217,1.5583,1.9138,1.669,2.1366,1.357,5.3007,3.2705,0.7106,0.2099)
+new object=loadshape.1017_loadcurve interval=1 npts=24 useactual=yes mult=(2.19,2.974,1.703,2.508,4.918,5.823,3.388,3.551,3.073,2.822,5.599,6.715,1.606,4.118,4.7,3.963,3.628,2.472,4.302,6.445,4.099,6.125,3.972,1.983) qmult=(0.6388,0.8674,0.4967,0.6286,1.785,2.4806,1.6409,1.5127,0.8963,1.2022,2.7117,2.6539,0.2288,1.0321,1.5448,0.5647,0.9093,0.721,1.0782,2.3392,1.8676,1.2437,1.8097,0.4027)
+new object=loadshape.2002_loadcurve interval=1 npts=24 useactual=yes mult=(30.42,30.68,31.68,32.44,30.64,31.08,30.66,29.96,28.84,30.8,40.02,40.12,37.72,38.2,39.78,39.44,38.44,43.76,42.02,40.66,42.68,40.8,41.08,41.2) qmult=(9.9986,12.1255,9.24,8.1302,14.8396,9.065,8.9425,11.8409,9.4792,14.9171,19.3826,10.055,14.9079,16.2731,18.1243,14.3148,13.9519,19.9376,16.6074,17.3211,16.8682,16.1252,13.5023,18.7713)
+new object=loadshape.2003_loadcurve interval=1 npts=24 useactual=yes mult=(11.792,12.049,12.591,11.48,10.414,10.625,10.478,11.106,5.995,5.524,7.608,6.459,4.886,8.799,4.529,3.552,4.438,5.294,6.489,9.4,10.233,10.399,10.899,11.508) qmult=(1.6803,2.4467,2.5567,2.8772,4.1159,4.8409,3.444,5.06,2.5539,1.6112,3.241,1.6188,1.2245,2.8921,1.79,1.1675,1.754,1.5441,2.5646,3.4117,3.7141,1.4818,4.643,4.9024)
+new object=loadshape.2005_loadcurve interval=1 npts=24 useactual=yes mult=(6.964,7.121,6.764,6.402,6.464,7.083,6.523,6.485,5.335,5.539,8.839,9.933,10.373,8.631,8.181,7.418,4.55,6.26,6.162,4.745,9.947,7.603,9.27,9.147) qmult=(0.9923,2.3406,3.0818,2.7272,2.5547,3.2271,2.5781,2.1315,0.7602,2.1892,4.2809,3.6052,4.0997,3.9324,2.9693,2.9318,0.9239,2.6667,2.8075,2.2981,1.4174,1.5439,3.6637,1.8574)
+new object=loadshape.2008_loadcurve interval=1 npts=24 useactual=yes mult=(2.015,1.875,1.722,1.845,1.586,1.727,1.569,1.572,1.816,2.039,1.456,1.227,1.154,1.286,1.326,1.409,1.235,1.243,2.184,2.423,2.656,2.193,1.751,2.008) qmult=(0.4092,0.7987,0.834,0.8406,0.5213,0.5037,0.3932,0.394,0.2588,0.2905,0.6634,0.5943,0.4561,0.3751,0.3867,0.2008,0.2508,0.1771,1.0578,0.7067,0.7747,0.7208,0.5755,0.7936)
+new object=loadshape.2009_loadcurve interval=1 npts=24 useactual=yes mult=(0.674,0.69,0.622,0.582,0.69,0.935,0.942,0.646,0.613,0.697,0.807,0.548,0.538,0.516,0.589,0.536,0.48,0.402,0.851,0.762,0.78,0.716,1.125,0.548) qmult=(0.2871,0.1729,0.265,0.2479,0.3342,0.3073,0.2747,0.2943,0.0873,0.253,0.2929,0.2654,0.2606,0.1293,0.1476,0.1088,0.2187,0.1589,0.3625,0.2223,0.3323,0.1454,0.4083,0.2654)
+new object=loadshape.2010_loadcurve interval=1 npts=24 useactual=yes mult=(1.729,1.289,1.495,1.288,1.198,1.324,1.357,1.451,1.47,1.071,2.254,1.151,0.989,1.19,3.29,3.322,6.231,3.407,1.341,0.992,1.303,2.585,1.424,1.564) qmult=(0.2464,0.1837,0.213,0.5487,0.4348,0.4805,0.6183,0.3637,0.2095,0.1526,1.027,0.4903,0.2479,0.4319,0.6681,1.2057,2.6544,0.9937,0.1911,0.2893,0.5551,1.0217,0.6488,0.6663)
+new object=loadshape.2011_loadcurve interval=1 npts=24 useactual=yes mult=(7.185,5.959,5.84,6.165,5.868,5.937,5.982,6.176,5.983,6.044,6.59,4.745,4.885,5.084,4.463,4.127,6.293,7.177,5.994,5.011,5.999,5.396,5.054,4.825) qmult=(2.0956,1.21,1.4636,1.7981,2.6735,2.1548,0.8524,2.03,1.2149,2.3887,1.6516,1.7222,1.2243,2.1658,1.4669,1.8803,1.2778,1.7987,2.7309,1.4615,2.371,2.1326,1.8344,0.6875)
+new object=loadshape.2014_loadcurve interval=1 npts=24 useactual=yes mult=(2.191,2.225,2.695,2.251,2.778,3.527,2.65,1.968,1.919,2.316,2.696,1.992,2.043,6.732,2.831,2.968,1.834,2.832,2.207,4.618,5.855,6.553,2.343,2.647) qmult=(0.7952,0.649,0.9782,0.817,1.0083,1.6069,1.2835,0.2804,0.8743,0.7612,1.3057,0.4045,0.9308,2.8678,1.3711,1.173,0.8356,1.0279,0.6437,2.2366,1.7077,0.9338,1.1348,0.87)
+new object=loadshape.2015_loadcurve interval=1 npts=24 useactual=yes mult=(1.588,1.618,1.187,1.425,1.442,1.341,1.4,1.231,1.439,1.231,1.261,1.411,1.254,1.485,1.323,1.922,3.226,3.329,1.71,1.462,1.365,1.79,1.55,1.644) qmult=(0.7235,0.3285,0.5749,0.6902,0.2928,0.2723,0.4083,0.5244,0.473,0.5609,0.2561,0.2865,0.3143,0.6326,0.5229,0.6317,1.5624,1.0942,0.3472,0.6661,0.3981,0.7075,0.3885,0.412)
+new object=loadshape.2016_loadcurve interval=1 npts=24 useactual=yes mult=(1.787,1.707,1.677,1.634,1.688,2.193,3.665,2.425,2.407,2.948,2.05,1.859,2.273,2.293,2.144,2.204,2.216,3.451,2.508,2.034,2.316,2.576,2.732,2.928) qmult=(0.7063,0.3466,0.7641,0.4766,0.4923,0.8667,1.3302,0.6078,0.4888,0.969,0.8102,0.4659,0.9683,0.9063,0.9133,0.7999,1.0096,0.4917,0.7315,0.5098,0.9866,0.7513,1.3232,1.2473)
+new object=loadshape.2017_loadcurve interval=1 npts=24 useactual=yes mult=(6.123,3.861,4.369,3.721,4.445,3.931,3.629,4.274,4.363,3.741,4.214,5.689,7.311,7.18,4.823,8.008,8.954,6.215,5.467,7.184,7.733,3.047,3.282,3.023) qmult=(2.9655,0.5502,1.2743,1.3505,1.8936,0.5601,1.3172,1.0712,1.0935,1.0911,0.8557,1.6593,2.6535,2.0942,1.9062,1.1411,3.2499,2.0428,1.3702,1.0237,3.5233,1.1059,1.4953,0.9936)
+new object=loadshape.2018_loadcurve interval=1 npts=24 useactual=yes mult=(3.065,3.668,3.857,3.434,3.556,3.29,3.914,4.904,7.337,5.92,4.872,3.938,3.198,3.336,3.242,3.217,3.805,4.348,5.426,4.3,3.409,3.183,3.403,3.178) qmult=(1.4844,1.4497,0.5496,1.1287,1.1688,1.0814,0.9809,1.6119,2.8998,1.9458,0.9893,1.2944,1.5489,1.6157,1.1767,0.9383,1.6209,1.5781,2.1445,1.6995,0.8544,1.1553,0.9925,1.1535)
+new object=loadshape.2020_loadcurve interval=1 npts=24 useactual=yes mult=(5.17,4.525,4.506,4.676,4.431,4.975,4.729,4.638,4.22,4.316,3.808,4.237,3.681,4.049,5.919,6.875,6.435,10.226,9.56,9.785,8.512,4.707,3.756,3.7) qmult=(2.3555,1.9276,2.1824,0.6663,1.2924,1.0102,1.1852,2.1131,0.6013,2.0903,1.3821,1.2358,0.9225,1.0148,1.9455,2.0052,1.8769,4.9527,3.4698,3.2162,2.7978,2.1446,0.5352,1.3429)
+new object=loadshape.2022_loadcurve interval=1 npts=24 useactual=yes mult=(1.658,1.453,1.453,1.457,1.418,1.162,1.769,1.343,1.253,2.535,1.842,1.986,3.298,2.912,4.481,1.68,1.71,1.298,1.21,1.505,3.772,3.511,5.697,2.15) qmult=(0.545,0.619,0.207,0.2076,0.5147,0.5628,0.8568,0.4414,0.3655,1.155,0.8921,0.6528,1.3035,1.3267,0.9099,0.49,0.8282,0.3786,0.5513,0.7289,1.7186,1.3876,2.0677,0.5388)
+new object=loadshape.2023_loadcurve interval=1 npts=24 useactual=yes mult=(0.703,0.694,0.661,0.756,0.655,0.71,0.663,0.599,0.32,0.355,0.284,0.336,0.29,0.362,0.293,0.447,0.306,0.312,1.947,2.476,2.736,3.125,2.222,0.683) qmult=(0.2311,0.2743,0.3012,0.2988,0.1642,0.1779,0.2179,0.1747,0.1458,0.1403,0.1294,0.0842,0.1405,0.119,0.1419,0.1304,0.0767,0.1329,0.488,0.7222,1.2466,0.4453,1.0124,0.2245)
+new object=loadshape.2024_loadcurve interval=1 npts=24 useactual=yes mult=(2.242,2.222,2.098,1.99,2.107,2.123,2.709,3.071,2.278,2.849,1.695,2.133,1.646,1.46,1.63,1.605,1.658,1.669,2.28,2.249,2.338,2.312,2.508,2.6) qmult=(0.3195,0.8065,0.9559,0.7865,0.3002,0.4311,0.9832,0.7697,0.8268,0.5785,0.6152,0.843,0.5974,0.6652,0.2323,0.5825,0.3367,0.5486,0.463,1.0247,0.6819,1.1198,1.2147,0.7583)
+new object=loadshape.2025_loadcurve interval=1 npts=24 useactual=yes mult=(4.584,1.913,2.143,1.89,1.67,1.587,2.09,1.587,1.767,1.856,4.193,2.431,2.249,2.076,2.381,2.575,2.524,1.91,2.47,4.428,4.553,3.362,6.952,3.931) qmult=(1.337,0.9265,0.7778,0.747,0.5489,0.3977,0.7586,0.7231,0.5808,0.5413,2.0308,0.6093,0.9581,0.4215,0.6945,0.6454,1.0752,0.7549,0.7204,2.1446,0.9245,0.4791,1.4117,1.4268)
+new object=loadshape.2028_loadcurve interval=1 npts=24 useactual=yes mult=(0.932,0.983,0.991,1.034,1.003,0.897,1.023,1.042,0.949,0.901,0.909,0.929,1.337,1.46,3.268,4.8,3.638,1.493,1.086,0.977,0.921,0.889,0.962,0.942) qmult=(0.3383,0.3231,0.48,0.4087,0.4273,0.4087,0.3713,0.1485,0.1927,0.2258,0.2651,0.1324,0.39,0.6652,0.819,0.9747,1.3204,0.7231,0.357,0.3861,0.2686,0.3227,0.4383,0.3723)
+new object=loadshape.2029_loadcurve interval=1 npts=24 useactual=yes mult=(9.016,8.392,8.192,8.336,8.803,8.344,9.06,8.449,4.962,4.497,4.316,4.006,3.817,3.61,3.947,4.015,3.942,4.063,4.575,7.339,8.554,8.426,8.724,8.588) qmult=(3.5634,2.7583,3.2377,3.798,3.1951,1.6943,2.6425,2.4643,1.801,1.3116,2.0903,1.5833,0.9566,1.3103,1.7983,0.8153,1.9092,1.8512,2.2158,1.8393,4.1429,2.1118,2.5445,3.3942)
+new object=loadshape.2030_loadcurve interval=1 npts=24 useactual=yes mult=(5.527,5.21,4.925,4.891,5.193,5.048,5.071,4.727,3.721,3.63,8.883,8.299,4.223,3.747,5.233,5.068,3.949,4.565,9.57,9.892,5.277,4.085,4.199,3.977) qmult=(2.006,1.3057,0.7018,0.9932,0.74,1.4723,0.7226,0.9599,1.8022,1.1931,2.2263,2.4205,1.9241,1.8148,2.0682,2.309,1.4333,0.927,3.7823,2.4792,2.0856,0.8295,1.3801,1.812)
+new object=loadshape.2031_loadcurve interval=1 npts=24 useactual=yes mult=(4.09,3.609,4.334,3.519,3.536,3.849,3.454,3.942,4.104,2.956,3.018,3.165,2.806,3.776,3.454,4.706,3.222,2.546,2.944,2.684,3.267,3.065,2.845,2.754) qmult=(1.6165,0.7328,1.2641,1.7043,1.2834,1.397,0.8657,1.6793,1.9877,0.9716,0.6128,1.0403,1.359,0.7667,1.1353,1.1794,1.468,0.3628,0.7378,1.2999,0.4655,1.3057,0.5777,1.0885)
+new object=loadshape.2032_loadcurve interval=1 npts=24 useactual=yes mult=(1.224,1.188,1.094,1.177,1.069,0.952,1.026,0.716,0.586,0.925,0.692,0.963,2.351,2.415,0.78,1.443,0.55,0.455,0.526,1.042,1.416,1.905,1.499,1.068) qmult=(0.357,0.5754,0.2221,0.3869,0.1523,0.2777,0.3372,0.283,0.2496,0.448,0.2735,0.4664,0.8533,0.9545,0.1111,0.6147,0.2174,0.0924,0.2241,0.4747,0.2018,0.3868,0.683,0.4221)
+new object=loadshape.2034_loadcurve interval=1 npts=24 useactual=yes mult=(2.926,2.07,2.964,1.728,1.8,1.738,1.955,2.083,1.652,1.455,1.866,1.421,1.968,2.935,2.192,1.22,1.28,1.079,1.798,2.349,6.219,5.25,1.79,1.83) qmult=(1.3331,0.9431,0.6019,0.8369,0.5916,0.7919,0.2786,0.423,0.7037,0.5281,0.7949,0.5158,0.7143,0.596,0.8663,0.3558,0.1824,0.1537,0.5244,1.1377,2.0441,2.2365,0.8155,0.8338)
+new object=loadshape.2035_loadcurve interval=1 npts=24 useactual=yes mult=(4.579,4.133,4.238,3.57,4.072,3.806,3.782,3.697,3.133,7.225,15.162,21.6,19.459,12.721,13.654,12.281,11.652,7.733,2.721,3.188,7.187,4.106,2.533,2.773) qmult=(0.9298,1.7607,1.0621,1.729,1.0205,1.1101,1.8317,0.9266,0.4464,1.8108,5.9924,9.8413,5.6755,3.1882,5.8166,4.0366,3.3985,3.7453,0.8943,1.1571,2.6085,1.1976,0.6348,0.695)
+new object=loadshape.2037_loadcurve interval=1 npts=24 useactual=yes mult=(4.25,4.275,4.763,4.247,4.315,4.187,4.172,4.195,4.001,7.896,3.528,2.153,2.228,3.307,4.054,3.044,2.02,2.04,2.051,2.24,2.546,3.189,2.588,2.529) qmult=(0.6056,1.6896,1.1937,0.8624,1.7054,1.5197,1.3713,1.5226,1.8229,3.8242,1.5029,1.0427,1.0791,0.4712,0.5777,1.1048,0.9783,0.7404,0.7444,0.813,1.2331,1.0482,0.3688,0.9179)
+new object=loadshape.2040_loadcurve interval=1 npts=24 useactual=yes mult=(61.52,61.52,60.92,63.72,72.64,76.44,83.64,83.52,70.36,68.6,62.2,61.4,61.32,62.04,62.6,60.6,57.64,67.92,72.96,72.16,68.84,72.84,65.2,63.88) qmult=(20.2206,22.3288,20.0234,25.1838,30.9445,32.5633,11.9181,35.5794,32.057,33.2245,12.6302,27.9747,29.6986,26.4289,30.3186,17.675,26.2616,24.6517,33.2416,34.9487,29.3257,21.245,13.2394,27.2128)
+new object=loadshape.2041_loadcurve interval=1 npts=24 useactual=yes mult=(1.752,1.711,1.796,2.045,1.648,1.683,1.809,1.892,1.672,1.674,1.564,1.742,2.168,1.709,3.006,1.816,1.673,1.55,1.607,1.572,1.656,1.659,2.095,1.942) qmult=(0.511,0.4288,0.8698,0.7422,0.4807,0.6108,0.7706,0.862,0.3395,0.6616,0.5677,0.6323,0.9878,0.8277,1.3696,0.3688,0.8103,0.3885,0.3263,0.5167,0.802,0.5453,0.6886,0.5664)
+new object=loadshape.2042_loadcurve interval=1 npts=24 useactual=yes mult=(4.753,5.298,5.118,5.164,5.082,4.992,4.99,4.946,3.994,4.242,4.024,3.789,3.19,2.851,3.494,2.756,3.476,2.502,2.482,3.472,3.336,3.7,3.712,4.013) qmult=(2.0248,2.2569,2.0228,1.6973,1.4823,2.2744,1.4554,2.107,1.7014,1.5396,1.4605,1.2454,1.2608,0.8315,0.7095,1.0003,1.0138,1.0658,0.3537,1.6816,1.3185,0.7513,0.9303,0.8149)
+new object=loadshape.2043_loadcurve interval=1 npts=24 useactual=yes mult=(6.001,7.342,5.729,5.441,5.446,5.371,5.48,5.319,4.739,6.502,7.176,6.907,6.81,7.468,7.376,7.965,7.358,4.707,5.567,5.298,4.947,5.002,4.934,4.889) qmult=(1.9724,2.9017,2.2642,2.479,2.6376,1.3461,2.3345,2.1022,2.1592,2.9624,1.0225,1.4025,2.4717,3.1814,2.9152,3.629,3.5636,1.5471,2.6962,0.7549,0.7049,2.4226,1.95,2.0827)
+new object=loadshape.2045_loadcurve interval=1 npts=24 useactual=yes mult=(2.049,2.121,2.213,2.167,2.124,2.452,2.143,2.256,2.543,4.376,2.616,2.133,2.168,2.548,2.181,2.204,2.512,2.204,2.15,2.128,2.216,2.522,2.248,2.204) qmult=(0.8098,0.9035,0.9427,0.5431,0.6195,0.8059,0.7044,0.8188,1.2316,0.8886,0.763,0.9087,0.7869,1.1609,0.862,0.8711,0.6296,1.0042,0.5388,0.5333,1.0096,0.8289,0.3203,0.5524)
+new object=loadshape.2046_loadcurve interval=1 npts=24 useactual=yes mult=(5.341,4.558,4.602,4.417,4.387,4.325,4.81,5.65,6.502,8.958,6.408,7.27,6.045,5.187,4.59,4.147,3.703,3.904,6.096,8.72,8.404,6.576,5.056,4.448) qmult=(1.5578,1.4981,1.8188,1.2883,0.6251,0.6163,1.4029,2.0507,2.7698,2.9444,2.9196,2.1204,0.8614,1.7049,0.932,0.5909,1.6871,0.7927,2.4093,3.9729,1.7065,2.8014,2.4487,1.2973)
+new object=loadshape.2047_loadcurve interval=1 npts=24 useactual=yes mult=(7.303,5.282,5.162,5.148,5.492,5.107,4.839,6.906,7.542,15.827,10.136,12.416,12.382,15.768,13.501,9.214,8.689,9.621,9.39,9.192,11.758,8.832,9.146,10.137) qmult=(2.13,2.0876,1.5056,2.193,1.6018,1.8536,1.2128,3.1465,1.0747,6.2552,4.6181,3.6213,5.6414,7.1841,4.9002,1.871,3.1537,1.9536,1.9067,1.8665,3.8647,1.7934,1.8572,4.0064)
+new object=loadshape.2048_loadcurve interval=1 npts=24 useactual=yes mult=(4.626,3.732,3.277,3.238,3.194,4.379,4.25,3.821,4.301,4.161,4.451,4.301,3.736,4.432,7.144,6.503,5.659,7.671,8.157,8.418,7.325,7.015,6.033,4.275) qmult=(1.1594,1.475,0.9558,1.3794,0.6486,1.7307,1.2396,1.5102,1.0779,1.8958,1.8961,1.9596,0.7586,0.6315,3.0433,2.7703,2.4107,1.5577,2.0443,2.1097,3.3374,3.3975,1.512,1.4051)
+new object=loadshape.2049_loadcurve interval=1 npts=24 useactual=yes mult=(3.561,3.441,3.301,3.449,3.518,3.451,3.242,3.33,4.923,3.622,4.633,4.711,7.066,7.806,3.538,5.533,6.527,3.674,5.562,4.041,4.877,4.336,5.609,3.743) qmult=(1.6224,0.4903,1.5987,1.1336,1.6028,1.1343,1.1767,0.9712,2.3843,1.4315,2.2439,0.6713,3.0101,3.7806,1.5072,2.0082,1.9037,1.2076,2.5341,1.5971,2.222,0.6178,1.4057,1.8128)
+new object=loadshape.2050_loadcurve interval=1 npts=24 useactual=yes mult=(3.361,2.464,2.189,2.465,1.957,2.465,3.084,2.383,2.945,2.542,3.26,2.494,4.274,8.187,5.109,9.108,3.594,3.048,3.299,5.214,3.664,4.702,4.939,3.449) qmult=(1.1047,0.8099,0.9325,0.8947,0.4905,1.1939,0.7729,1.1541,0.598,0.6371,1.5789,0.7274,1.0712,2.9715,1.6792,3.3058,1.1813,0.7639,1.1974,1.0587,0.744,2.2773,0.7038,0.4915)
+new object=loadshape.2051_loadcurve interval=1 npts=24 useactual=yes mult=(6.696,4.355,4.928,4.166,4.888,4.144,3.975,5.499,6.985,6.976,9.857,4.887,5.031,6.984,10.728,5.416,4.401,8.892,9.465,8.534,10.188,8.414,5.838,4.626) qmult=(0.9541,1.4314,1.2351,1.5121,1.7741,1.2087,1.8111,1.9959,1.7506,1.4165,2.875,1.7737,1.4674,0.9952,4.5701,1.9657,1.4465,4.3066,4.0321,2.805,2.9715,2.7655,2.3073,0.9393)
+new object=loadshape.2052_loadcurve interval=1 npts=24 useactual=yes mult=(68.824,70.224,69.281,69.103,70.239,72.921,69.195,65.686,64.872,66.182,65.069,64.628,56.635,61.086,61.671,68.402,68.326,69.977,76.615,76.063,69.559,69.083,68.703,67.405) qmult=(33.333,23.0815,14.0681,27.3113,23.0864,23.968,33.5127,9.3597,21.3224,28.1934,18.9785,31.3008,18.615,27.8316,29.8686,27.0342,24.799,33.8914,30.2802,15.4453,31.692,31.4751,31.302,32.6457)
+new object=loadshape.2053_loadcurve interval=1 npts=24 useactual=yes mult=(5.28,5.28,5.6,5.28,5.68,5.28,5.56,5.52,5.24,5.16,7.84,4.32,4.2,4.84,4.48,4.2,4.24,4.24,5.16,5.36,5.4,5.52,5.48,5.64) qmult=(1.54,2.5572,1.8406,2.5572,1.6567,1.0721,1.3935,1.8143,2.5378,2.4991,3.7971,1.8403,1.0526,1.213,1.7706,1.6599,1.2367,0.6042,2.351,2.2834,2.1342,1.3834,1.5983,1.645)
+new object=loadshape.2054_loadcurve interval=1 npts=24 useactual=yes mult=(4.809,4.314,3.998,4.199,4.238,4.49,4.684,4.214,8.109,4.918,4.638,6.301,8.077,6.923,7.808,5.975,7.745,6.827,9.619,7.518,8.799,6.521,5.392,4.152) qmult=(0.6852,2.0894,0.8118,0.5983,0.8606,1.6297,1.9954,1.3851,3.6946,2.3819,1.5244,2.071,3.4408,2.2755,2.8339,2.3615,1.5727,0.9728,1.3706,2.7287,2.5664,3.1583,1.957,1.7687)
+new object=loadshape.2055_loadcurve interval=1 npts=24 useactual=yes mult=(3.377,3.166,2.99,3.568,2.817,3.104,3.021,3.994,6.471,5.685,5.713,3.968,8.388,8.377,9.447,6.211,5.247,12.519,10.186,9.132,12.675,6.664,3.875,4.998) qmult=(0.4812,1.3487,0.8721,1.4102,1.3643,1.0202,0.993,1.9344,2.7566,2.5902,1.6663,1.9218,2.757,4.0572,2.7554,0.885,1.0654,1.7839,4.9333,2.6635,5.0095,2.8389,0.5522,1.6428)
+new object=loadshape.2056_loadcurve interval=1 npts=24 useactual=yes mult=(4.521,3.585,4.362,3.635,4.152,4.183,3.495,4.859,4.676,8.323,9.67,7.371,7.773,4.346,5.317,4.724,3.805,3.396,4.467,5.047,3.952,3.827,4.089,3.595) qmult=(0.6442,1.7363,0.8857,1.4366,1.7687,0.8494,1.4889,1.5971,1.8481,3.5456,4.1194,3.5699,3.5415,1.7176,2.265,2.1523,0.9536,1.1162,2.0352,2.2995,1.914,1.7436,0.5827,0.73)
+new object=loadshape.2058_loadcurve interval=1 npts=24 useactual=yes mult=(33.52,33.56,31.76,30.48,32.32,31.36,30.76,30.88,27.04,32.4,35.44,42.2,39.64,41.72,39.04,38.16,39.48,37.08,38.56,44.0,42.16,38.52,37.16,33.48) qmult=(6.8065,11.0306,4.5256,12.9844,9.4267,14.288,12.1571,12.2046,12.3198,14.7619,8.8821,17.9771,13.029,15.1423,18.9079,5.4375,14.3293,14.655,11.2467,15.9699,19.2087,17.5502,13.4873,9.765)
+new object=loadshape.2059_loadcurve interval=1 npts=24 useactual=yes mult=(3.149,2.433,2.269,2.241,2.506,2.306,2.359,2.224,1.912,2.776,5.739,5.93,4.246,3.045,3.63,4.364,4.125,4.239,3.951,3.039,3.054,1.993,3.587,2.507) qmult=(0.4487,0.9616,0.8235,0.7366,0.7309,0.9114,0.688,0.3169,0.2724,0.5637,2.4448,2.7018,1.5411,1.0008,1.0588,1.5839,1.7572,1.5386,0.8023,0.6171,0.8908,0.7877,1.7373,1.2142)
+new object=loadshape.2060_loadcurve interval=1 npts=24 useactual=yes mult=(0.53,0.413,0.438,0.5,1.063,0.484,0.431,0.43,0.402,1.321,2.344,4.364,4.213,1.77,1.6,4.533,2.855,2.749,4.655,4.696,0.826,0.335,0.219,0.576) qmult=(0.1742,0.1759,0.1731,0.1253,0.4843,0.1757,0.1836,0.2083,0.0573,0.4795,0.9985,1.4344,1.7947,0.4436,0.6324,2.1954,1.2162,0.3917,2.2545,2.1396,0.4001,0.0977,0.0866,0.2454)
+new object=loadshape.3002_loadcurve interval=1 npts=24 useactual=yes mult=(2.533,2.697,2.179,2.832,1.871,2.583,5.346,5.946,7.203,8.879,5.712,5.496,3.147,4.089,6.617,5.623,4.45,5.091,4.565,3.598,2.777,4.636,5.402,5.663) qmult=(0.6348,0.9789,0.5461,1.0279,0.6791,1.1768,1.0856,2.8798,1.8052,4.0454,0.8139,1.3774,1.1422,1.344,0.9429,1.64,0.9036,1.8478,1.1441,1.422,0.81,1.5238,1.0969,2.2382)
+new object=loadshape.3004_loadcurve interval=1 npts=24 useactual=yes mult=(4.452,4.878,3.634,2.424,2.795,3.397,2.747,1.906,2.02,4.094,2.717,3.287,3.242,3.98,2.65,2.306,2.395,4.711,4.671,5.088,3.69,6.302,4.857,2.491) qmult=(1.4633,2.3625,0.9108,1.1044,1.1907,0.484,1.3304,0.812,0.9203,1.8653,1.3159,1.4003,1.3811,1.6955,0.3776,0.7579,1.0912,2.1464,2.1282,1.0332,1.7871,2.6846,2.3524,0.9845)
+new object=loadshape.3006_loadcurve interval=1 npts=24 useactual=yes mult=(5.555,5.829,5.516,5.518,5.473,5.533,5.777,5.417,4.961,5.069,6.429,10.767,10.405,7.678,6.22,6.301,7.39,7.588,4.74,6.541,6.534,3.524,3.567,3.58) qmult=(2.3664,1.7001,2.5132,2.1809,1.9864,2.5209,2.7979,1.7805,1.447,1.0293,1.6113,3.9079,3.7765,3.7186,2.4583,2.287,3.5791,2.999,0.6754,0.932,0.931,0.7156,0.894,1.0442)
+new object=loadshape.3007_loadcurve interval=1 npts=24 useactual=yes mult=(10.358,8.431,7.719,7.578,10.663,7.391,8.709,6.033,11.105,7.838,6.719,8.111,10.144,10.102,9.651,9.705,8.467,7.589,7.79,13.135,14.435,10.091,8.799,7.968) qmult=(4.7192,1.2014,3.5169,3.4526,4.8582,3.1486,2.1827,2.7487,1.5824,1.9644,2.2084,3.9283,4.3213,1.4395,2.4188,4.7003,3.0731,2.7544,3.3185,6.3616,3.6178,3.9882,1.2538,3.1492)
+new object=loadshape.3009_loadcurve interval=1 npts=24 useactual=yes mult=(2.906,2.678,2.508,2.753,2.415,3.888,3.08,4.223,4.939,7.572,7.401,3.992,2.473,6.512,8.371,7.208,9.853,8.651,4.877,6.594,6.818,9.77,6.569,3.615) qmult=(1.0547,1.297,0.5093,1.0881,0.7938,1.4112,0.8983,1.799,1.4405,2.7483,3.5845,1.5777,0.8128,2.967,3.566,3.491,1.404,1.7567,1.4225,2.1673,3.1064,4.4513,2.3842,0.906)
+new object=loadshape.3010_loadcurve interval=1 npts=24 useactual=yes mult=(3.778,3.997,3.853,3.76,4.057,3.666,3.88,5.063,4.429,4.259,4.516,8.516,6.345,3.823,3.461,4.472,4.331,13.578,5.508,6.705,8.788,4.708,8.786,4.274) qmult=(1.4932,0.5695,1.7555,1.0967,1.4725,1.5617,0.7879,2.1568,1.7505,1.0674,2.0576,3.3657,2.0855,1.3876,0.4932,2.0375,0.8794,5.7842,1.9991,2.65,2.5632,0.956,3.7428,1.5513)
+new object=loadshape.3011_loadcurve interval=1 npts=24 useactual=yes mult=(4.592,7.947,4.154,6.896,4.563,6.813,5.005,6.648,3.629,5.765,3.952,13.157,13.636,8.973,7.492,6.029,8.208,4.056,6.159,5.82,5.301,4.494,4.454,3.009) qmult=(1.5093,3.3854,1.8926,2.5029,1.3309,2.2393,1.2544,3.2198,1.1928,2.0924,1.6835,2.6716,6.2127,3.2568,2.4625,1.511,3.244,0.5779,2.4342,2.1124,1.0764,1.1263,1.464,1.0921)
+new object=loadshape.3012_loadcurve interval=1 npts=24 useactual=yes mult=(4.1,4.234,4.142,4.066,3.732,3.796,3.648,3.793,5.67,4.866,5.468,6.285,6.283,4.8,6.502,4.809,5.932,3.271,3.085,5.698,4.715,6.495,5.269,5.094) qmult=(0.8325,1.8037,1.5033,0.8256,1.2266,1.1072,0.5198,1.1063,2.4154,2.0729,2.3294,1.8331,1.2758,1.8971,1.3203,1.2052,2.527,1.5842,1.1197,1.4281,0.6719,2.7669,1.7318,2.17)
+new object=loadshape.3013_loadcurve interval=1 npts=24 useactual=yes mult=(2.854,1.777,1.468,1.469,1.429,1.28,1.255,1.416,1.535,1.657,2.656,2.031,2.466,1.714,2.176,2.253,2.459,2.554,4.043,4.668,6.08,5.584,8.635,7.205) qmult=(0.8324,0.2532,0.5802,0.2093,0.5648,0.5453,0.5346,0.6858,0.5571,0.7059,1.2864,0.509,1.1235,0.4296,0.3101,0.4575,0.3504,1.0094,1.0133,1.9886,1.7733,2.2069,1.7534,2.3682)
+new object=loadshape.3014_loadcurve interval=1 npts=24 useactual=yes mult=(2.879,2.719,2.634,2.662,2.643,2.675,3.02,2.914,2.494,3.766,3.316,4.814,4.283,3.158,2.128,2.199,2.314,2.566,2.472,2.942,4.957,2.66,2.897,4.749) qmult=(1.1379,0.9869,0.5349,0.3793,0.5367,0.7802,0.8808,0.9578,1.0624,1.824,0.4725,0.686,1.0734,1.2481,0.7724,1.0019,0.5799,0.6431,0.502,1.0678,1.7992,0.8743,1.145,1.7237)
+new object=loadshape.3016_loadcurve interval=1 npts=24 useactual=yes mult=(6.502,5.736,5.486,6.15,5.883,5.284,5.271,6.248,7.897,7.608,5.334,10.46,7.128,7.539,5.951,5.557,6.547,7.097,8.839,12.49,8.914,7.261,5.782,6.466) qmult=(2.5698,2.6134,1.114,1.7937,2.3251,1.5412,0.7511,2.6616,1.6036,1.0841,1.5557,2.124,3.4522,2.4779,2.352,2.1963,2.9829,1.7787,3.4934,1.7797,3.7973,1.8198,2.0986,1.6205)
+new object=loadshape.3017_loadcurve interval=1 npts=24 useactual=yes mult=(10.486,8.122,5.581,5.279,5.782,5.039,5.752,7.81,12.7,12.081,8.696,12.34,9.745,14.473,14.134,10.159,10.442,13.524,14.652,11.83,13.365,13.033,9.637,5.778) qmult=(3.8059,1.6492,1.3987,1.323,2.0986,2.2958,0.8196,2.2779,5.4102,5.5043,2.1794,4.8771,4.7197,6.5941,6.0211,4.6286,3.0456,4.9086,4.2735,2.4022,4.8508,6.3122,3.1675,1.8991)
+new object=loadshape.3018_loadcurve interval=1 npts=24 useactual=yes mult=(5.185,6.264,3.893,3.831,4.034,3.868,4.652,4.768,7.326,6.236,9.283,12.537,14.142,6.025,8.881,15.582,11.969,11.229,7.668,9.203,8.139,10.672,6.73,5.611) qmult=(1.2995,1.827,1.8855,1.8554,1.9538,0.9694,1.1659,1.8844,3.3378,2.2634,1.3228,3.1421,2.0151,0.8585,2.919,4.5447,4.7305,3.6908,3.0306,3.0249,1.6527,3.1127,2.4427,2.5564)
+new object=loadshape.3019_loadcurve interval=1 npts=24 useactual=yes mult=(4.37,4.971,5.636,4.175,5.818,4.898,5.434,6.448,7.023,8.14,10.702,11.57,9.579,11.501,9.799,8.77,10.908,16.102,12.568,9.436,11.728,12.471,8.392,10.38) qmult=(0.8874,1.4499,1.6438,1.5153,2.4785,2.2316,2.1477,1.616,3.4014,1.1599,3.5176,5.2714,4.0806,4.1743,3.2208,4.2475,1.5543,2.2944,5.3539,2.7522,3.8548,5.682,1.7041,3.4117)
+new object=loadshape.3020_loadcurve interval=1 npts=24 useactual=yes mult=(6.358,3.793,3.752,3.476,4.326,3.682,4.37,4.674,7.086,21.318,16.491,12.914,21.301,22.166,13.636,11.422,15.068,16.618,20.116,19.759,13.694,8.537,9.359,6.672) qmult=(1.8544,1.6158,1.2332,1.1425,1.4219,1.4552,1.0952,1.6964,1.0097,6.2177,7.987,5.5013,6.2128,4.501,1.943,5.5319,7.2978,3.3744,6.6118,9.5697,6.6323,1.7335,3.0762,1.6722)
+new object=loadshape.3021_loadcurve interval=1 npts=24 useactual=yes mult=(9.359,5.182,5.35,5.509,3.709,3.479,3.584,7.0,5.263,7.252,5.616,12.708,8.891,5.979,6.205,11.714,7.356,7.544,14.262,14.683,12.067,11.37,7.549,6.925) qmult=(2.3456,1.2987,1.3408,1.1187,1.7964,1.5851,1.5268,2.7666,1.0687,2.8662,2.0383,2.5805,3.227,1.9652,2.8271,5.6733,2.6699,2.9816,3.5744,5.3292,5.1405,3.3163,2.9836,2.2761)
+new object=loadshape.3023_loadcurve interval=1 npts=24 useactual=yes mult=(5.404,4.84,4.811,5.74,5.023,5.416,6.093,7.438,10.815,6.966,8.994,13.297,11.225,13.087,9.714,11.371,9.249,11.278,12.818,15.239,12.089,14.89,14.205,6.714) qmult=(2.4621,2.3441,2.3301,2.4452,1.9852,2.4676,2.7761,2.9397,4.6072,0.9926,3.2644,1.8947,2.2793,3.817,4.4258,4.1271,3.04,3.2894,1.8265,4.4447,5.1499,2.1217,6.472,3.2517)
+new object=loadshape.3024_loadcurve interval=1 npts=24 useactual=yes mult=(5.2097,4.9583,4.7033,5.1239,4.6916,5.147,5.419,6.8546,7.3001,7.3281,7.3075,7.1265,8.6071,10.2336,7.9699,5.7444,10.3797,12.9372,19.0315,14.6447,12.3972,10.8583,8.5515,6.8569) qmult=(1.3057,1.4462,1.1788,2.3345,2.2722,0.7334,2.469,3.123,1.0402,2.6597,3.3294,3.4515,2.5104,1.4582,3.1499,1.8881,4.7291,3.2424,4.7697,6.6723,4.8997,2.2049,1.2185,1.9999)
+new object=loadshape.3025_loadcurve interval=1 npts=24 useactual=yes mult=(8.539,6.51,4.492,4.62,4.325,4.397,3.982,4.831,5.704,9.406,7.184,7.214,11.387,13.534,13.568,8.059,9.948,6.783,9.058,10.621,13.386,14.788,8.579,5.63) qmult=(2.4905,1.8987,1.1258,0.6583,1.5698,2.0033,1.3088,2.2011,2.7626,3.0916,2.8393,3.0732,3.3212,2.7482,1.9333,1.6364,2.9015,2.6808,1.2907,3.491,5.7024,2.1072,1.742,0.8022)
+new object=loadshape.3026_loadcurve interval=1 npts=24 useactual=yes mult=(5.364,4.066,3.763,4.429,3.558,3.747,6.43,7.294,7.774,7.533,9.169,7.652,9.036,9.825,5.931,10.816,7.227,7.833,8.63,10.824,9.918,7.121,5.509,6.681) qmult=(1.7631,1.9693,0.9431,0.6311,1.2914,0.5339,3.1142,2.3974,1.1077,2.7341,1.3065,3.4864,2.6355,1.9951,2.1527,3.555,1.8113,2.843,3.9319,3.157,3.2599,2.5846,1.1187,3.2358)
+new object=loadshape.3027_loadcurve interval=1 npts=24 useactual=yes mult=(6.082,5.214,5.6,5.465,6.15,6.387,6.192,6.544,7.228,9.474,18.272,13.191,10.066,10.396,8.624,7.6,6.614,10.767,10.479,9.438,11.759,7.118,6.855,9.63) qmult=(1.7739,1.5208,0.798,1.7963,2.4306,1.6007,2.2474,2.5864,2.1082,2.3744,7.2216,3.306,4.5862,4.4287,1.7512,2.7584,2.4006,1.5342,3.0564,3.7301,3.865,2.0761,0.9768,3.806)
+new object=loadshape.3028_loadcurve interval=1 npts=24 useactual=yes mult=(6.972,5.969,5.926,5.431,4.636,6.011,5.132,5.854,8.976,6.813,9.016,5.61,14.944,7.92,9.758,7.938,7.971,6.509,7.851,7.781,16.888,10.602,9.659,6.779) qmult=(2.5305,2.5428,2.5245,2.6304,1.6826,2.3757,0.7313,1.7074,1.8227,1.3834,2.9634,1.406,6.3661,3.3739,4.4459,3.3816,2.8931,2.7728,3.8024,3.3147,8.1792,4.1902,4.6781,3.2832)
+new object=loadshape.3029_loadcurve interval=1 npts=24 useactual=yes mult=(2.775,2.544,2.343,2.265,2.118,2.851,2.211,4.431,2.503,5.699,6.531,6.783,3.414,4.19,6.052,8.843,6.595,5.566,8.326,5.296,6.577,6.488,7.294,2.725) qmult=(0.5635,0.6376,1.1348,0.8221,0.6962,1.299,0.8025,0.8998,0.9085,2.0685,3.1631,1.3773,0.9958,0.597,2.9311,2.2163,2.6065,1.1302,1.1864,2.565,3.1854,2.7639,2.1274,1.1608)
+new object=loadshape.3031_loadcurve interval=1 npts=24 useactual=yes mult=(3.75,3.617,3.401,3.129,3.119,3.271,4.602,3.995,3.289,3.532,4.047,3.784,5.191,6.013,6.903,7.089,7.58,6.006,8.434,8.136,6.327,7.304,4.684,2.732) qmult=(1.5975,1.1889,1.3442,0.6354,1.0252,1.0751,1.9604,0.5693,1.5929,1.3959,1.3302,1.2437,2.0516,1.221,2.0134,3.0199,2.9958,1.2196,1.2018,3.9404,1.8454,2.4007,1.1739,0.7968)
+new object=loadshape.3032_loadcurve interval=1 npts=24 useactual=yes mult=(4.39,3.602,3.765,4.057,3.817,4.316,4.468,7.115,9.374,9.381,6.521,7.008,11.505,7.188,10.418,7.502,6.777,13.185,12.19,8.666,6.52,6.246,5.655,4.841) qmult=(0.6255,1.1839,1.3665,0.8238,0.5439,1.7058,1.3032,2.3386,4.2709,4.2741,2.7779,2.044,4.1758,3.0621,4.7466,3.1958,2.887,4.7855,4.4244,1.2348,3.1578,2.4686,2.0525,1.5912)
+new object=loadshape.3033_loadcurve interval=1 npts=24 useactual=yes mult=(7.356,6.227,6.458,6.66,9.811,11.733,6.648,8.366,8.973,8.548,9.766,4.068,7.475,7.574,6.525,4.919,4.672,8.952,12.563,10.083,11.014,11.492,7.991,5.023) qmult=(2.6699,1.8162,3.1278,2.4173,3.5609,3.4221,2.4129,2.0967,3.5464,3.8946,3.8598,0.5797,3.4057,2.2091,1.9031,0.9988,1.9903,2.611,2.551,4.2953,4.6919,2.8802,2.9003,1.02)
+new object=loadshape.3034_loadcurve interval=1 npts=24 useactual=yes mult=(7.72,4.706,4.854,4.617,4.966,4.763,4.867,4.786,4.295,5.443,4.661,9.39,10.531,8.359,10.264,9.998,4.944,5.988,10.774,10.882,10.623,14.991,10.406,4.515) qmult=(1.1,1.708,1.5954,1.3466,1.4484,2.029,1.5997,1.1995,1.5589,1.9755,2.2574,3.0863,4.7981,3.3037,3.7253,2.9161,1.954,1.9682,1.5352,3.5767,2.1571,6.8301,4.7411,1.7844)
+new object=loadshape.3035_loadcurve interval=1 npts=24 useactual=yes mult=(6.348,5.972,5.442,5.794,5.71,5.901,6.502,6.278,6.644,10.333,8.596,7.192,11.851,12.049,10.891,8.97,7.088,6.905,11.736,15.406,12.648,7.018,6.876,6.942) qmult=(0.9045,1.2127,2.3183,1.6899,2.6016,1.4789,2.5698,3.0406,2.6259,4.4018,3.6619,2.3639,1.6887,4.7621,4.3044,3.8212,2.8014,1.7306,3.423,6.0888,4.1572,2.9897,0.9798,2.9573)
+new object=loadshape.3036_loadcurve interval=1 npts=24 useactual=yes mult=(2.66,2.359,3.076,2.73,2.348,2.902,2.372,2.746,2.98,4.158,2.107,4.132,1.7,2.372,2.58,6.864,4.732,3.546,3.161,4.347,2.8,4.975,5.713,3.317) qmult=(0.8743,0.8562,1.4015,1.2438,0.3346,0.5893,1.0105,0.9026,0.8692,1.2127,0.4278,1.3581,0.3452,0.8609,0.3676,2.4913,1.186,1.4015,1.2493,0.8827,0.7017,1.2469,2.2579,0.6735)
+new object=loadshape.3037_loadcurve interval=1 npts=24 useactual=yes mult=(4.47,3.784,3.981,3.65,3.653,3.476,3.719,4.551,4.379,5.449,5.004,9.643,10.664,12.185,10.998,11.179,6.951,8.923,8.727,7.459,8.51,10.925,7.828,4.497) qmult=(1.1203,1.4955,1.3085,1.3248,1.2007,1.3738,1.5843,0.9241,1.4393,1.9777,1.9777,3.4999,4.8587,2.4743,5.3266,4.0574,0.9905,2.2363,4.2267,2.1755,1.728,2.2184,3.5665,1.1271)
+new object=loadshape.3038_loadcurve interval=1 npts=24 useactual=yes mult=(5.453,4.977,4.91,4.571,4.39,3.151,3.65,4.516,5.167,7.814,4.643,4.258,5.269,10.338,7.341,6.287,3.649,3.748,5.601,5.365,9.277,8.755,6.155,5.203) qmult=(1.7923,1.6359,2.2371,1.1456,1.8701,0.7897,1.1997,2.0576,0.7363,1.9584,1.1636,1.5454,1.5368,5.0069,1.4907,3.0449,0.741,1.4813,1.1373,1.7634,3.952,1.2475,1.7952,2.5199)
+new object=loadshape.3039_loadcurve interval=1 npts=24 useactual=yes mult=(8.078,3.4,4.218,2.726,3.294,3.061,2.869,3.439,4.135,6.611,6.71,7.38,7.067,10.188,7.829,9.312,10.445,9.394,7.887,11.663,9.638,8.463,9.028,6.631) qmult=(2.6551,1.3438,1.2303,1.3203,0.6689,0.6216,0.719,1.5669,1.7615,1.3424,0.9561,2.9168,2.3228,4.6418,3.3351,3.3798,2.1209,1.3386,1.6015,1.6619,3.1679,1.7185,3.5681,0.9449)
+new object=loadshape.3041_loadcurve interval=1 npts=24 useactual=yes mult=(5.689,4.792,4.84,4.962,4.594,4.638,5.233,5.663,9.469,8.009,9.119,7.753,12.689,8.829,7.776,6.181,6.968,7.357,7.611,12.272,7.263,7.297,6.465,5.406) qmult=(1.6593,1.201,2.3441,1.6309,2.0931,1.6834,1.72,2.5801,1.9228,3.649,3.6041,2.5483,5.7813,2.5751,3.0733,0.8807,2.7539,2.1458,3.6862,5.5913,1.4748,2.884,3.1311,1.9621)
+new object=loadshape.3042_loadcurve interval=1 npts=24 useactual=yes mult=(5.359,5.537,4.478,6.186,4.375,5.081,5.242,5.151,6.445,10.872,7.79,6.879,5.15,7.129,5.368,6.683,6.132,8.659,6.619,14.595,11.315,11.687,8.219,8.114) qmult=(1.0882,1.1243,0.9093,0.8815,2.1189,0.724,0.7469,0.734,3.1215,2.7248,2.5604,2.4967,2.4943,2.8176,2.4457,0.9523,2.6122,3.6887,3.2057,3.6579,5.4801,2.929,2.3972,3.6968)
+new object=loadshape.3043_loadcurve interval=1 npts=24 useactual=yes mult=(6.051,5.405,4.946,5.678,5.179,5.065,5.306,6.227,6.476,5.59,5.321,7.761,4.841,3.492,6.69,6.13,6.728,7.459,7.924,7.137,8.869,6.863,6.718,6.458) qmult=(0.8622,2.4626,1.4426,2.4188,1.0516,1.8383,2.4175,1.2644,2.3505,1.1351,0.7582,3.0673,1.9133,1.2674,3.2401,2.4227,3.2585,1.8694,2.3112,1.017,1.8009,2.4909,1.9594,2.1226)
+new object=loadshape.3044_loadcurve interval=1 npts=24 useactual=yes mult=(3.866,3.806,2.949,3.322,2.976,3.288,3.432,4.539,4.705,3.408,3.96,5.289,4.352,6.103,8.661,4.203,6.362,5.064,9.921,9.305,8.898,4.78,5.454,3.966) qmult=(1.6469,0.5423,0.5988,1.5135,0.7459,1.5925,1.5637,2.1983,2.0043,0.692,1.5651,1.9197,1.8539,0.8696,3.6896,2.0356,0.9065,1.477,4.5201,4.2395,1.2679,1.5711,1.5908,1.3036)
+new object=loadshape.3045_loadcurve interval=1 npts=24 useactual=yes mult=(4.334,3.84,4.275,3.444,3.431,3.477,3.67,3.693,4.213,5.037,5.622,6.103,7.465,6.138,5.865,4.583,5.328,6.614,6.279,5.703,7.898,5.957,9.306,8.726) qmult=(2.0991,1.8598,0.8681,0.6993,1.356,1.0141,1.332,1.5732,1.3847,0.7177,1.409,1.5296,1.0637,2.9728,1.7106,0.9306,1.554,1.343,3.0411,2.5984,3.3645,1.493,3.0587,3.7173)
+new object=loadshape.3047_loadcurve interval=1 npts=24 useactual=yes mult=(8.965,8.764,8.67,8.707,8.758,9.705,8.681,10.277,10.731,9.291,16.478,17.521,17.454,10.891,10.013,9.762,9.297,9.078,10.064,12.857,9.798,9.773,10.169,9.045) qmult=(4.3419,3.993,2.1729,3.4412,1.2479,3.1899,1.7628,2.0868,3.8948,4.4998,4.1298,7.4639,5.0907,4.6395,4.8495,3.8582,1.8878,2.9838,2.5223,4.2259,4.4641,3.2122,4.9251,3.8532)
+new object=loadshape.3048_loadcurve interval=1 npts=24 useactual=yes mult=(2.666,2.173,1.61,1.662,1.626,1.723,1.381,1.838,1.975,3.47,6.317,4.37,3.985,6.121,7.39,5.604,3.53,2.867,2.224,2.58,2.886,2.794,4.032,3.695) qmult=(1.2147,0.7142,0.4035,0.8049,0.7408,0.3499,0.4028,0.8374,0.7806,0.8697,3.0595,1.2746,1.8156,1.7853,3.1481,1.6345,1.3951,1.2213,0.731,1.1755,0.9486,0.3981,1.5935,0.5265)
+new object=loadshape.3049_loadcurve interval=1 npts=24 useactual=yes mult=(2.4628,1.734,2.272,1.817,1.7485,2.095,1.676,2.1605,2.3468,2.5099,3.6044,9.0397,7.7484,6.5772,3.3891,3.0815,3.2523,4.6696,8.5718,9.7029,9.174,10.754,3.315,2.511) qmult=(0.8939,0.7387,0.898,0.7181,0.6346,0.828,0.6624,0.6301,0.3344,0.992,0.5136,3.281,1.9419,0.9372,1.1139,0.4391,1.3855,1.362,1.2214,2.83,3.0153,4.8997,1.6055,0.8253)
+new object=loadshape.3050_loadcurve interval=1 npts=24 useactual=yes mult=(2.229,2.317,2.571,1.856,1.839,1.879,2.248,2.604,3.209,3.204,2.458,2.046,1.918,2.39,3.374,2.432,2.53,2.82,4.111,2.976,2.838,5.606,2.342,4.092) qmult=(0.5586,0.9157,0.845,0.61,0.4609,0.6176,1.0242,1.1864,0.8043,1.1629,1.1905,0.4155,0.8739,1.1575,1.2246,0.3465,0.7379,1.1145,1.873,0.9782,0.5763,2.7151,0.85,0.5831)
+new object=loadshape.3051_loadcurve interval=1 npts=24 useactual=yes mult=(2.773,2.329,1.813,2.123,2.026,2.128,2.903,4.034,3.909,3.612,3.669,4.849,3.989,3.297,4.012,3.356,5.09,4.404,4.862,3.536,2.708,1.725,2.141,1.662) qmult=(0.8088,0.5837,0.826,0.5321,0.4114,1.0306,0.7276,1.7185,1.6652,1.5387,1.3317,1.9164,0.5684,1.3031,1.5856,1.4297,2.1683,0.8943,2.2152,1.2834,0.6787,0.6818,0.5366,0.3375)
+new object=loadshape.3052_loadcurve interval=1 npts=24 useactual=yes mult=(2.227,2.181,1.952,1.875,2.078,2.024,1.892,1.985,2.177,1.83,2.128,1.957,2.173,3.121,3.262,2.163,2.262,3.378,3.62,2.132,10.371,6.137,2.236,2.175) qmult=(0.8802,0.6361,0.8315,0.7987,0.7542,0.7999,0.4742,0.8456,0.8604,0.6015,0.9695,0.8337,0.7142,0.4447,0.4648,0.5421,0.5669,1.439,1.3139,0.7738,2.1059,2.9723,1.0188,0.8596)
+new object=loadshape.3054_loadcurve interval=1 npts=24 useactual=yes mult=(0.672,0.771,0.814,0.49,0.717,1.565,0.527,0.856,0.753,0.579,0.657,0.617,0.612,0.553,0.461,0.64,1.3,0.612,0.561,0.587,0.745,0.583,0.654,0.614) qmult=(0.3255,0.3513,0.2374,0.1228,0.2834,0.3922,0.107,0.2814,0.3431,0.1176,0.2993,0.2239,0.0872,0.2007,0.21,0.0912,0.4273,0.1785,0.239,0.1192,0.3394,0.1461,0.215,0.2229)
+new object=loadshape.3056_loadcurve interval=1 npts=24 useactual=yes mult=(3.229,3.005,3.136,3.104,3.033,2.397,2.508,3.473,3.486,3.456,4.795,2.732,2.628,4.186,2.708,2.515,6.096,7.525,6.735,4.592,4.094,6.079,3.504,5.526) qmult=(1.4712,1.3691,1.5188,1.4142,0.8846,1.1609,0.9912,0.8704,1.1458,0.7018,0.9737,1.1638,1.1974,1.5193,1.1536,0.9128,1.2378,2.1948,2.6618,1.6667,1.744,0.8662,0.4993,2.3541)
+new object=loadshape.3057_loadcurve interval=1 npts=24 useactual=yes mult=(2.984,2.554,2.247,2.302,2.513,2.205,4.476,7.434,6.979,2.281,2.054,2.698,4.094,5.623,3.725,3.612,2.724,4.259,5.424,6.635,5.48,3.876,2.627,2.622) qmult=(1.4452,0.3639,1.0238,0.9098,0.9932,0.7247,2.0393,3.6005,1.7491,0.5717,0.9948,0.8868,1.1941,1.1418,0.7564,1.0535,0.6827,1.0674,2.627,3.2135,1.1128,1.1305,0.7662,0.8618)
+new object=loadshape.3058_loadcurve interval=1 npts=24 useactual=yes mult=(2.714,1.88,1.903,2.565,2.052,2.256,2.618,5.621,3.938,3.298,4.824,5.175,5.353,5.888,3.385,4.466,6.148,5.512,5.767,4.423,5.879,5.411,5.096,3.337) qmult=(1.2365,0.8009,0.6907,0.931,0.811,0.4581,1.1928,2.2216,1.5564,0.9619,1.209,2.2045,2.1156,1.9353,0.4823,1.7651,1.7932,2.0006,1.8955,1.1085,1.4734,2.4653,1.4863,1.0968)
+new object=loadshape.3059_loadcurve interval=1 npts=24 useactual=yes mult=(2.991,3.036,2.916,2.831,2.471,2.564,3.184,3.341,4.019,4.442,3.434,4.433,3.369,3.421,3.571,3.338,2.374,2.241,4.031,3.547,3.235,4.019,2.16,1.736) qmult=(1.4486,0.9979,1.2422,1.206,0.8122,0.3654,1.3564,1.4233,1.7121,0.902,1.1287,1.609,1.4352,1.4573,1.4113,0.9736,1.0113,1.0854,1.1757,0.5054,0.8108,1.0073,0.71,0.8408)
+new object=loadshape.3060_loadcurve interval=1 npts=24 useactual=yes mult=(2.877,2.151,2.236,2.124,2.041,1.988,1.908,2.624,2.824,2.905,3.286,2.662,2.932,2.457,3.142,2.997,3.129,2.316,2.631,3.287,2.84,2.906,2.632,2.659) qmult=(0.41,0.98,1.0188,0.9677,0.5953,0.5798,0.8693,0.5328,1.2867,0.5899,1.2987,1.0521,1.249,0.4989,1.1404,1.0878,0.9126,0.7612,0.9549,1.0804,1.3755,0.7283,0.375,1.2878)
+new object=loadshape.3061_loadcurve interval=1 npts=24 useactual=yes mult=(0.977,1.125,1.552,1.19,1.277,3.368,4.726,1.457,5.058,1.504,5.018,4.128,3.83,1.673,3.633,1.86,2.251,3.432,2.518,2.169,2.18,2.687,1.707,1.847) qmult=(0.2449,0.2284,0.4527,0.5763,0.5047,0.4799,0.9597,0.5758,1.8358,0.6852,2.1377,1.0346,1.5137,0.5499,1.6552,0.6114,0.9589,0.6969,1.1472,0.8572,1.0558,0.3829,0.7777,0.8945)
+new object=loadshape.3062_loadcurve interval=1 npts=24 useactual=yes mult=(0.866,0.77,0.836,0.816,0.804,0.965,0.914,0.814,1.716,2.154,2.655,2.91,5.387,1.823,1.822,2.212,1.856,1.977,2.643,2.536,2.594,2.579,1.78,1.248) qmult=(0.2526,0.2795,0.3034,0.238,0.2345,0.4674,0.3612,0.2954,0.8311,0.3069,0.6654,0.5909,2.2949,0.5992,0.7201,0.6452,0.4652,0.2817,1.2801,0.9204,0.6501,1.2491,0.5851,0.5686)
+new object=loadshape.3063_loadcurve interval=1 npts=24 useactual=yes mult=(4.921,4.214,3.858,4.503,4.54,4.343,5.161,5.839,6.302,7.191,4.397,3.642,3.213,3.192,3.77,4.256,4.187,4.365,4.754,7.995,6.475,6.532,5.639,7.421) qmult=(0.7012,1.6655,1.1253,1.4801,1.1378,1.2667,1.8732,1.1857,2.8713,1.0247,1.8731,0.519,0.6524,1.546,1.3683,1.9391,1.9077,0.622,2.166,3.4059,2.9501,1.9052,1.6447,2.6935)
+new object=loadshape.3064_loadcurve interval=1 npts=24 useactual=yes mult=(3.396,3.431,2.582,2.828,2.763,2.877,2.881,5.331,6.123,5.67,5.751,5.744,4.766,4.594,4.881,5.882,7.299,8.549,7.883,8.479,11.062,13.941,7.108,3.888) qmult=(1.4467,1.2453,1.2505,0.9295,1.2589,0.721,0.9469,1.9349,1.7859,1.8636,1.1678,1.6753,0.6791,2.0931,1.2233,1.4742,3.5351,3.6419,1.1233,1.7217,5.04,4.0661,3.4426,1.134)
+new object=loadshape.3065_loadcurve interval=1 npts=24 useactual=yes mult=(6.499,3.427,3.08,2.547,2.882,2.906,4.753,5.597,3.645,2.889,5.716,7.331,6.773,7.798,4.694,4.312,4.245,6.472,5.472,9.427,9.742,9.037,4.086,4.085) qmult=(2.5686,1.5614,1.0123,0.8372,0.4107,1.238,0.9651,2.0314,1.5528,0.5866,2.7684,2.6608,3.0859,1.1112,1.1764,0.6144,0.6049,2.9487,2.4931,4.5657,1.3882,2.2649,0.5822,1.3427)
+new object=loadshape.3066_loadcurve interval=1 npts=24 useactual=yes mult=(2.739,2.417,4.937,1.92,1.824,1.951,1.87,1.94,2.207,3.299,2.911,1.813,1.701,1.438,1.882,4.318,2.102,1.978,3.161,3.751,4.472,3.363,5.503,4.158) qmult=(0.6865,0.8773,1.44,0.9299,0.662,0.9449,0.6146,0.8264,0.8723,1.1974,0.5911,0.5288,0.4263,0.5219,0.3822,1.4193,0.7629,0.6501,0.7922,1.4825,2.1659,0.8428,2.1749,0.8443)
+new object=loadshape.3067_loadcurve interval=1 npts=24 useactual=yes mult=(7.904,9.615,7.432,7.395,6.094,6.205,5.917,7.193,8.332,9.094,10.884,9.216,6.577,13.915,11.932,11.958,8.884,6.161,7.136,7.427,10.058,9.403,12.987,6.986) qmult=(3.3671,2.4097,1.5091,1.0537,2.7765,0.8842,2.6959,2.098,2.7386,4.4044,4.6366,1.3132,2.9966,5.4996,4.3307,4.3402,4.0477,1.797,3.0399,1.5081,3.9752,4.2841,5.1328,2.0376)
+new object=loadshape.3070_loadcurve interval=1 npts=24 useactual=yes mult=(0.696,0.7,0.507,1.327,1.146,0.618,0.559,0.65,0.515,1.396,1.959,1.316,0.643,1.371,0.776,1.037,1.204,1.393,1.639,0.79,2.159,1.36,0.898,1.041) qmult=(0.0992,0.2541,0.0722,0.5245,0.5221,0.1802,0.1837,0.2569,0.1502,0.4072,0.3978,0.5606,0.1875,0.4976,0.2817,0.3764,0.4759,0.6747,0.6982,0.1126,0.3076,0.6587,0.4091,0.3422)
+new object=loadshape.3071_loadcurve interval=1 npts=24 useactual=yes mult=(3.532,2.1925,2.0753,2.1171,2.1581,2.1005,2.5253,2.1791,2.5866,3.5518,4.6199,6.1729,7.403,4.631,5.989,5.23,3.711,4.121,4.946,4.164,4.1,3.754,2.529,3.278) qmult=(1.6092,0.7206,0.5201,0.9019,1.0452,0.8948,0.3598,0.7162,0.6483,0.8902,1.1579,2.4397,2.6869,2.2429,1.501,1.062,0.5288,0.8368,1.0043,1.2145,1.868,1.5992,1.1522,1.1898)
+new object=loadshape.3072_loadcurve interval=1 npts=24 useactual=yes mult=(2.645,2.531,2.258,1.784,1.937,1.923,1.724,1.917,1.959,3.55,4.504,4.137,4.617,8.685,2.833,2.745,2.053,3.788,8.685,6.841,4.728,4.051,2.549,2.26) qmult=(1.0454,0.7382,1.0288,0.5203,0.4855,0.3905,0.2457,0.8166,0.8925,1.5123,1.6347,1.0368,1.6757,1.7636,1.0282,1.1694,0.4169,0.5398,3.957,2.7037,2.1541,1.1815,0.5176,0.6592)
+new object=loadshape.3073_loadcurve interval=1 npts=24 useactual=yes mult=(2.27,2.628,2.781,2.556,2.336,3.111,2.365,2.207,2.341,2.374,1.906,1.783,1.779,2.267,2.486,2.01,1.862,1.793,2.927,2.387,2.712,2.442,2.44,2.752) qmult=(0.4609,0.6586,0.5647,1.0889,0.9951,0.4433,0.8584,0.4482,0.7694,1.1498,0.8684,0.2541,0.8616,0.9657,0.5048,0.7295,0.4667,0.2555,0.4171,1.0875,0.5507,1.0403,0.7117,0.6897)
+new object=loadshape.3074_loadcurve interval=1 npts=24 useactual=yes mult=(5.119,4.701,3.984,4.21,3.799,4.162,4.375,4.376,3.749,4.032,4.787,6.306,4.858,3.108,2.909,2.851,3.06,6.712,3.996,4.6,3.063,4.732,4.54,6.321) qmult=(2.0232,2.1418,1.5746,1.3838,0.5413,1.8963,0.8884,0.8886,0.7613,1.0105,0.972,1.8393,1.92,0.4429,0.5907,1.3808,1.1106,3.0581,1.3134,1.9596,1.4835,2.156,1.6478,1.5842)
+new object=loadshape.3077_loadcurve interval=1 npts=24 useactual=yes mult=(36.218,33.626,33.454,32.871,32.658,34.201,34.427,32.614,31.335,31.991,33.803,28.733,28.508,27.119,26.727,26.419,23.358,23.482,24.62,25.04,23.459,24.785,27.565,26.718) qmult=(17.5412,14.3246,14.2513,6.6747,13.9122,8.5716,8.6282,6.6226,11.3731,11.6112,6.864,4.0942,12.1444,8.9136,12.9445,12.0369,6.8128,9.2807,6.1704,6.2756,9.2716,9.7957,12.559,7.7927)
+new object=loadshape.3078_loadcurve interval=1 npts=24 useactual=yes mult=(3.652,3.666,3.691,3.754,4.071,3.75,3.696,3.601,3.745,3.21,3.156,3.168,3.226,3.12,3.562,4.04,3.787,3.234,3.244,3.681,3.899,3.683,4.011,3.542) qmult=(0.7416,1.3306,1.4588,1.4837,0.5801,0.9398,1.3415,0.7312,0.5336,0.9363,0.791,0.924,0.4597,1.0255,1.4078,1.721,1.7254,1.2782,0.813,1.336,0.7917,1.4556,0.8145,0.5047)
+new object=loadshape.3081_loadcurve interval=1 npts=24 useactual=yes mult=(1.923,2.062,1.95,1.808,1.919,1.892,2.064,1.927,1.772,1.693,1.6,1.611,1.838,1.526,1.635,1.512,1.707,1.508,1.897,1.661,1.865,1.68,1.844,1.85) qmult=(0.6321,0.5168,0.8884,0.5943,0.5597,0.862,0.9404,0.6334,0.8582,0.7714,0.401,0.5847,0.7264,0.6501,0.5934,0.6889,0.7272,0.4957,0.4754,0.2367,0.9033,0.5522,0.3744,0.7881)
+new object=loadshape.3083_loadcurve interval=1 npts=24 useactual=yes mult=(3.449,4.094,4.46,3.162,3.57,3.456,3.633,3.719,6.132,4.652,6.568,6.108,6.417,6.464,4.168,4.954,7.222,3.75,5.956,4.294,5.314,6.069,4.602,3.298) qmult=(1.1336,1.8653,1.3008,1.5314,0.5087,1.008,1.4359,0.7552,2.0155,1.529,2.3839,1.2403,2.9237,2.7537,1.7756,1.7981,2.3738,0.7615,2.7136,1.9564,1.0791,2.3986,1.8188,1.084)
+new object=loadshape.3084_loadcurve interval=1 npts=24 useactual=yes mult=(2.304,1.72,1.543,1.268,1.193,1.215,1.527,1.407,2.358,2.144,2.646,2.119,2.857,2.282,3.202,2.317,2.581,2.171,2.17,2.821,2.956,3.334,2.439,2.232) qmult=(0.4678,0.6798,0.7473,0.3178,0.433,0.2467,0.6957,0.5107,0.4788,0.7047,1.1272,0.6965,1.3017,1.0397,1.1622,0.987,0.7528,1.0515,0.5439,1.0239,0.8622,0.677,0.6113,1.081)
+new object=loadshape.3085_loadcurve interval=1 npts=24 useactual=yes mult=(6.726,7.026,6.976,7.119,6.861,7.024,7.275,7.787,7.978,7.844,9.374,12.154,12.777,12.347,10.338,8.923,9.231,11.37,14.521,12.307,9.765,8.194,7.869,7.285) qmult=(2.2107,2.5501,2.9718,3.2435,3.3229,2.7761,2.6405,3.7714,2.8956,3.5738,3.4023,5.8865,5.0498,4.4814,4.0858,2.9328,4.4708,2.3088,3.6393,5.9606,3.8594,2.974,1.9722,2.8792)
+new object=loadshape.3086_loadcurve interval=1 npts=24 useactual=yes mult=(4.484,1.758,1.707,1.993,1.856,2.208,2.322,5.06,5.201,6.41,7.325,3.78,4.658,3.858,1.757,1.533,2.119,3.583,6.898,5.11,3.796,4.328,2.455,3.216) qmult=(1.6275,0.2505,0.3466,0.5813,0.7907,1.006,0.7632,1.0275,2.519,2.3265,1.0438,1.494,1.841,1.4003,0.5775,0.4471,0.5311,1.3005,2.9385,2.4749,1.6171,1.2623,0.9703,1.4653)
+new object=loadshape.3087_loadcurve interval=1 npts=24 useactual=yes mult=(3.583,4.268,3.057,3.13,3.222,2.985,3.542,3.991,5.564,8.977,7.38,9.94,8.656,6.669,4.205,6.077,3.35,3.416,5.964,12.081,12.306,7.519,3.601,6.409) qmult=(0.5105,2.0671,1.4806,1.5159,0.9397,0.7481,1.1642,1.0002,2.3703,2.6183,3.5743,3.9285,3.1417,2.6358,0.5992,1.9974,1.6225,1.4552,1.211,3.5236,4.4665,3.2031,0.7312,1.8693)
+new object=loadshape.3088_loadcurve interval=1 npts=24 useactual=yes mult=(5.729,4.94,4.16,3.992,4.343,3.91,4.223,8.019,5.776,4.99,9.858,8.34,9.149,7.56,4.731,7.249,6.577,4.737,6.765,10.94,10.212,5.865,5.26,6.6) qmult=(2.7747,1.4408,2.0148,1.8188,2.1034,1.4191,1.799,2.0098,2.2828,1.4554,2.8752,1.1884,4.1684,1.8947,2.0154,2.865,2.9966,1.3816,2.2235,2.2215,2.9785,1.9277,1.9091,2.1693)
+new object=loadshape.3089_loadcurve interval=1 npts=24 useactual=yes mult=(0.817,1.198,0.681,0.722,0.752,0.707,1.178,0.868,1.066,6.85,7.254,2.628,8.189,7.282,3.428,3.144,1.869,1.763,5.132,4.387,3.096,1.898,1.596,1.31) qmult=(0.348,0.1707,0.2238,0.3076,0.2472,0.1772,0.5705,0.1237,0.4541,2.4862,1.473,0.5336,2.0524,3.1021,0.4885,1.2426,0.6143,0.5795,0.7313,1.9988,0.6287,0.3854,0.2274,0.3283)
+new object=loadshape.3090_loadcurve interval=1 npts=24 useactual=yes mult=(2.599,2.964,3.747,3.144,2.507,2.493,3.478,5.891,4.769,2.961,2.753,2.563,3.988,5.696,11.249,5.868,5.03,5.134,6.604,3.883,4.038,3.13,3.077,2.577) qmult=(1.0272,0.6019,0.5339,1.0334,0.9099,0.9853,1.0144,1.1962,2.3097,1.4341,0.9049,0.5204,1.3108,0.8116,4.4459,2.6735,2.2917,1.6875,1.9262,1.4093,0.82,1.3334,1.0114,0.5233)
+new object=loadshape.3091_loadcurve interval=1 npts=24 useactual=yes mult=(2.052,2.516,1.983,2.037,2.12,2.14,1.985,1.939,5.013,5.327,7.061,2.674,1.934,4.15,2.395,1.92,2.124,4.153,5.096,5.792,4.074,2.789,3.785,1.577) qmult=(0.7448,0.7338,0.4027,0.6695,0.9031,0.9116,0.579,0.826,1.4621,1.9334,1.0061,1.2951,0.7644,0.5913,0.4863,0.6311,0.4313,1.6414,0.7261,1.1761,0.5805,1.1881,1.6124,0.5183)
+new object=loadshape.3093_loadcurve interval=1 npts=24 useactual=yes mult=(2.854,3.091,2.841,4.131,4.144,5.005,5.032,5.731,7.918,8.794,14.558,7.017,3.532,5.572,6.492,5.396,6.83,11.207,6.232,12.378,12.282,5.067,6.196,4.932) qmult=(1.2158,0.9015,0.712,0.8388,1.0386,2.424,1.8264,1.1637,3.1294,1.2531,6.2017,1.7586,1.3959,0.794,2.9578,2.1326,1.7118,4.7742,2.463,3.6103,2.494,0.722,0.8829,2.3887)
+new object=loadshape.3094_loadcurve interval=1 npts=24 useactual=yes mult=(3.893,2.803,1.92,1.649,2.719,3.475,5.537,4.25,4.942,3.48,5.185,6.363,15.582,12.289,10.86,6.726,11.283,8.81,4.409,5.144,7.493,6.32,5.03,4.363) qmult=(1.1355,0.8175,0.7588,0.7025,1.1583,1.683,2.0097,1.5425,2.3935,0.8722,1.7042,1.5947,2.2203,2.4954,1.5475,1.6857,2.8278,3.4819,1.105,2.1913,3.629,1.5839,2.2917,2.1131)
+new object=loadshape.3095_loadcurve interval=1 npts=24 useactual=yes mult=(4.144,3.516,3.877,2.834,3.545,4.111,4.952,5.115,6.16,5.571,5.042,6.466,8.528,18.199,9.444,9.509,6.108,7.308,9.942,16.376,15.282,10.962,9.192,6.413) qmult=(1.7653,1.2761,1.5323,1.2912,1.1652,1.991,2.2562,2.0216,2.9834,2.6982,1.4706,2.1253,1.2152,3.6955,4.0231,1.9309,2.2169,3.5394,4.5297,7.9313,6.9627,3.1972,4.188,3.106)
+new object=loadshape.3096_loadcurve interval=1 npts=24 useactual=yes mult=(2.877,3.37,3.933,3.739,3.945,4.449,4.132,4.957,5.867,4.508,6.807,7.069,14.015,13.352,5.454,5.721,5.339,5.431,5.216,4.548,5.878,5.231,9.006,2.96) qmult=(1.3934,0.4802,1.7919,1.8109,0.9887,2.027,0.839,1.4458,2.6731,1.9204,3.2968,3.4237,2.8459,3.8943,2.6415,0.8152,1.0841,2.6304,1.7144,1.1398,1.1936,2.0674,3.2687,1.1699)
+new object=loadshape.3097_loadcurve interval=1 npts=24 useactual=yes mult=(5.053,5.127,4.75,4.828,4.586,5.006,4.288,5.114,10.417,9.789,3.789,4.39,5.965,8.665,8.364,7.361,8.051,7.657,6.765,11.568,10.916,10.948,5.159,4.896) qmult=(1.0261,2.0263,1.1905,1.9081,1.3376,2.1325,1.6947,0.7287,4.4376,3.8689,0.7694,2.1262,0.85,4.1967,2.0962,1.4947,3.182,2.5167,3.2764,4.9279,2.2166,4.3269,1.8725,1.428)
+new object=loadshape.3098_loadcurve interval=1 npts=24 useactual=yes mult=(8.393,8.921,7.064,7.904,7.883,7.784,7.556,7.733,7.915,9.937,11.307,8.548,5.681,12.247,12.954,12.562,9.058,9.952,13.161,14.962,16.502,15.602,9.319,6.984) qmult=(2.7586,2.9322,2.7919,2.5979,2.2992,1.1092,2.2038,2.8067,3.8334,2.8983,4.4688,2.4932,2.0619,2.4869,5.5184,1.79,3.2876,3.6121,4.3258,3.0382,7.0298,7.5564,2.3356,2.7603)
+new object=loadshape.3099_loadcurve interval=1 npts=24 useactual=yes mult=(2.779,2.774,2.556,2.939,2.525,2.459,2.541,2.694,2.52,4.656,5.243,3.379,7.072,4.896,2.928,5.009,2.813,2.372,9.427,9.713,9.778,5.042,3.713,3.554) qmult=(0.5643,0.8091,0.6406,1.0667,0.9979,0.4993,0.516,0.3839,1.1481,1.358,1.5292,0.8469,3.0127,0.9942,0.9624,2.1338,0.9246,1.0105,2.3626,3.5253,4.7357,1.83,1.2204,1.0366)
+new object=loadshape.3101_loadcurve interval=1 npts=24 useactual=yes mult=(2.599,4.535,3.769,1.334,1.38,1.646,1.504,1.44,2.34,1.793,1.719,7.04,4.045,3.79,3.609,6.787,7.614,6.39,5.166,5.901,10.001,7.983,4.517,3.492) qmult=(1.1841,1.7923,0.7653,0.3891,0.1966,0.5974,0.5459,0.3609,0.9248,0.8684,0.565,2.5552,1.3295,1.1054,1.6443,2.6824,1.5461,2.9114,1.049,1.9396,2.5065,3.8663,1.9242,1.6913)
+new object=loadshape.3102_loadcurve interval=1 npts=24 useactual=yes mult=(3.855,3.301,3.225,3.142,3.843,3.083,3.248,3.466,6.143,3.694,9.318,10.914,15.834,13.026,9.046,10.825,11.405,7.975,7.037,8.407,11.62,5.893,5.354,4.214) qmult=(1.7564,0.4704,1.4694,1.5217,1.1209,1.4047,0.6595,0.4939,1.7917,0.7501,4.5129,2.7353,5.747,1.8561,3.8536,2.713,4.8585,3.3973,3.4082,3.3227,3.8193,1.1966,2.2808,1.5295)
+new object=loadshape.3103_loadcurve interval=1 npts=24 useactual=yes mult=(8.311,6.517,5.876,6.206,6.273,5.502,5.859,10.121,8.505,11.626,8.146,8.901,8.047,6.508,6.331,12.347,13.563,17.691,10.503,13.608,13.628,7.093,9.651,13.38) qmult=(2.0829,1.9008,1.1932,1.8101,1.2738,1.3789,2.4959,1.4422,3.875,2.9138,3.2195,2.9256,2.9207,2.7724,1.5867,4.4814,4.4579,3.5923,1.4966,3.4105,4.4793,3.4353,4.6742,1.9065)
+new object=loadshape.3104_loadcurve interval=1 npts=24 useactual=yes mult=(6.27,5.456,6.341,8.829,9.393,9.807,13.163,19.839,41.034,45.508,37.493,38.877,32.718,25.44,13.056,6.039,6.191,4.76,4.138,6.337,5.669,10.078,9.537,6.089) qmult=(2.671,1.5913,2.7013,2.902,3.0873,3.876,4.3265,7.8409,8.3323,9.2408,14.8182,17.7129,10.7539,11.5908,2.6511,2.1919,2.6374,1.5645,1.8853,1.8483,2.2405,3.6578,3.7693,2.0014)
+new object=loadshape.3105_loadcurve interval=1 npts=24 useactual=yes mult=(2.366,5.37,3.906,2.513,2.114,2.581,3.429,3.728,4.646,5.499,5.162,2.659,8.206,7.767,8.772,5.3,7.983,6.153,3.167,2.932,5.493,3.327,3.838,3.262) qmult=(1.0079,2.2876,0.9789,0.9121,0.6166,0.5241,1.4607,0.757,1.6863,1.9959,1.0482,0.6664,2.6972,1.9466,3.4669,0.7552,3.4007,2.98,1.5338,1.42,1.6021,0.9704,1.2615,0.6624)
+new object=loadshape.3106_loadcurve interval=1 npts=24 useactual=yes mult=(11.687,10.477,9.863,10.764,9.883,10.205,11.304,18.183,27.886,23.676,16.394,26.757,28.892,13.111,8.798,12.318,10.24,8.414,10.188,11.471,10.346,15.197,16.713,12.063) qmult=(2.3731,4.1408,4.4937,1.5338,3.5871,1.4541,2.833,5.3034,11.0213,6.9055,7.94,11.3984,13.993,5.1818,3.1932,5.9659,3.3657,1.1989,4.6418,5.5557,2.1008,4.4325,3.3937,3.5184)
+new object=loadshape.3108_loadcurve interval=1 npts=24 useactual=yes mult=(1.82,2.243,1.499,1.582,1.637,1.645,2.071,3.043,3.802,3.041,2.275,2.549,2.795,6.461,3.105,4.274,2.558,2.351,2.614,2.62,2.406,2.193,3.544,2.049) qmult=(0.8292,0.5621,0.6386,0.6739,0.7458,0.334,0.4205,0.6179,1.8414,0.7621,0.9691,1.2345,1.1907,1.8845,1.0206,1.9473,1.011,0.8533,1.1136,1.1161,0.7017,0.9992,0.7196,0.5976)
+new object=loadshape.3109_loadcurve interval=1 npts=24 useactual=yes mult=(13.575,10.564,11.001,7.403,7.651,7.63,7.258,7.799,8.425,10.354,11.011,7.668,6.298,4.11,3.9,5.052,3.356,8.003,4.341,8.538,5.449,3.197,6.307,5.826) qmult=(6.5747,4.5002,2.7571,3.3729,3.2593,3.4763,2.8685,1.9546,1.7108,5.0147,2.7596,3.4936,2.4891,1.7509,1.1375,1.9967,0.4782,3.876,1.4268,3.89,1.9777,0.4555,2.2891,2.3026)
+new object=loadshape.3110_loadcurve interval=1 npts=24 useactual=yes mult=(12.451,9.719,7.732,6.231,4.94,6.531,6.061,8.126,8.34,9.77,12.224,8.436,14.791,20.798,24.844,15.26,12.329,11.619,13.974,12.13,17.557,10.06,8.496,7.909) qmult=(4.921,4.4281,1.57,2.2616,0.7039,0.9306,1.519,2.9493,3.2962,3.546,3.5653,2.4605,3.0034,7.5487,8.1658,6.5007,3.596,2.912,4.593,5.8748,5.7707,4.5835,2.7925,3.1258)
+new object=loadshape.3111_loadcurve interval=1 npts=24 useactual=yes mult=(8.563,6.936,6.42,7.607,5.709,6.568,9.403,8.69,8.118,10.7,8.579,12.811,17.428,12.971,12.061,11.43,11.91,11.193,15.807,13.463,18.208,19.761,19.226,11.706) qmult=(1.2202,3.3593,1.609,1.5447,2.432,2.9925,1.3399,1.7646,1.1568,2.1727,2.5022,4.2108,3.5389,2.6339,2.4491,4.5174,4.3228,4.0625,7.2019,5.3209,7.7566,6.4951,7.5986,3.8476)
+new object=loadshape.3112_loadcurve interval=1 npts=24 useactual=yes mult=(6.961,6.209,5.565,5.147,5.334,5.492,5.891,5.661,5.216,5.598,5.221,5.291,8.025,5.658,6.386,6.249,4.395,4.969,5.802,12.009,10.449,8.584,7.075,7.692) qmult=(3.1715,2.645,1.6231,2.4928,0.7601,2.3396,1.9363,1.8607,2.0615,1.84,1.895,2.0911,2.6377,1.6502,0.91,2.8471,1.2819,0.708,2.2931,3.9472,2.6188,1.7431,2.0635,2.5282)
+new object=loadshape.3114_loadcurve interval=1 npts=24 useactual=yes mult=(9.259,9.385,5.514,5.143,4.722,5.048,5.38,5.223,5.552,5.593,6.963,7.96,5.91,5.071,10.208,6.163,6.439,6.598,6.466,6.412,6.706,8.714,6.995,6.398) qmult=(4.4843,3.998,2.349,1.5,2.1514,1.8322,0.7666,0.7442,2.689,1.6313,2.752,3.8552,2.8623,1.479,2.0728,1.5446,2.743,3.1956,1.8859,2.9214,1.9559,2.5416,2.7646,1.2992)
+new object=loadshape.3115_loadcurve interval=1 npts=24 useactual=yes mult=(5.495,5.733,4.538,4.586,5.704,5.358,5.41,5.244,4.195,6.714,8.66,7.146,7.955,9.17,7.311,4.943,6.069,8.711,12.864,8.518,11.889,7.843,9.897,9.026) qmult=(0.783,1.8843,1.6471,0.9312,1.4296,1.5628,2.1382,1.9033,1.3788,0.9567,2.5258,2.0842,3.6244,3.9064,2.8895,1.9536,2.7651,2.5407,5.0842,2.4844,4.6988,3.5734,4.7933,1.8328)
+new object=loadshape.3116_loadcurve interval=1 npts=24 useactual=yes mult=(6.008,5.842,5.272,5.608,5.496,6.46,5.497,5.679,6.026,5.334,12.52,5.517,5.334,7.095,7.378,8.713,10.632,8.291,8.05,10.923,9.514,11.238,8.271,6.472) qmult=(2.5594,1.9202,2.5533,2.389,2.6618,2.5532,2.6623,1.6564,1.5103,2.1081,4.5442,1.8134,1.3368,2.5751,2.1519,3.9698,3.4946,3.7775,3.8988,5.2903,1.3557,1.6013,3.7684,1.8877)
+new object=loadshape.3117_loadcurve interval=1 npts=24 useactual=yes mult=(1.928,1.917,2.702,2.426,2.045,2.601,2.35,2.809,2.672,3.663,6.128,8.222,2.388,2.732,4.973,7.342,3.161,1.875,4.355,5.379,3.36,4.078,1.936,2.484) qmult=(0.6998,0.6301,0.5487,0.608,0.8082,0.8549,1.0707,0.5704,1.056,0.5219,2.0142,1.6695,0.5985,0.7968,1.4505,1.0462,1.5309,0.6163,1.2702,1.0923,1.5309,1.4801,0.9376,1.0582)
+new object=loadshape.3120_loadcurve interval=1 npts=24 useactual=yes mult=(1.381,1.486,1.424,1.465,1.153,1.148,1.701,1.76,2.031,1.864,5.181,3.714,3.684,6.296,7.473,7.163,5.877,2.878,2.25,2.317,5.793,5.271,3.936,2.176) qmult=(0.1968,0.2117,0.5168,0.2088,0.4912,0.523,0.4961,0.6956,0.8027,0.3785,2.2071,0.9308,1.2109,0.8971,1.0648,2.3544,2.5036,1.3939,0.4569,0.7616,2.6394,1.5374,0.9865,0.4419)
+new object=loadshape.3121_loadcurve interval=1 npts=24 useactual=yes mult=(2.487,2.652,2.114,2.152,1.906,2.495,1.868,2.192,6.759,4.95,3.043,2.438,2.727,4.933,2.806,2.77,2.708,4.634,8.629,6.262,7.516,5.044,2.689,2.58) qmult=(0.6233,1.1297,1.0239,0.3066,0.4777,0.8201,0.7383,0.7205,2.4532,2.3974,1.2027,0.3474,0.3886,1.7904,1.359,0.5625,1.2338,1.6819,1.7522,2.8531,3.2018,2.2981,1.1455,1.0991)
+new object=loadshape.3122_loadcurve interval=1 npts=24 useactual=yes mult=(2.756,1.694,1.451,1.475,1.718,1.435,1.376,1.864,4.342,4.07,2.83,2.691,1.605,2.451,6.295,8.409,6.879,5.871,10.925,9.406,3.49,3.182,2.605,1.557) qmult=(1.3348,0.344,0.4232,0.6283,0.7827,0.6538,0.4994,0.5437,1.8497,1.8543,0.9302,1.2261,0.3259,0.3492,2.8681,2.1075,2.261,2.3204,5.2912,2.7434,1.0179,0.4534,1.1869,0.6154)
+new object=loadshape.3123_loadcurve interval=1 npts=24 useactual=yes mult=(4.267,5.743,4.37,4.815,4.244,5.284,4.538,5.493,5.434,5.687,5.007,10.642,5.216,5.4,5.989,5.617,4.549,5.601,5.651,7.047,6.214,6.072,4.716,4.219) qmult=(0.608,2.7815,1.8616,1.5826,1.5404,1.073,0.9215,2.34,0.7743,1.4253,2.425,4.206,0.7432,2.4603,0.8534,1.4078,0.9237,1.841,1.4163,2.5577,3.0096,1.233,2.009,0.8567)
+new object=loadshape.3124_loadcurve interval=1 npts=24 useactual=yes mult=(2.014,2.411,2.453,1.827,2.041,2.127,1.851,2.319,2.1,5.17,4.856,2.392,3.042,2.187,1.836,1.897,4.488,2.345,2.162,4.035,2.178,1.83,1.681,1.661) qmult=(0.858,1.1677,1.188,0.7783,0.8695,0.8406,0.5399,0.3304,1.0171,1.2957,1.217,0.5995,1.4733,0.7188,0.5355,0.6885,0.9113,0.999,0.985,0.8193,0.7905,0.4586,0.6101,0.6565)
+new object=loadshape.3125_loadcurve interval=1 npts=24 useactual=yes mult=(0.595,0.543,0.699,0.761,1.066,0.404,0.417,0.411,0.97,0.742,0.995,2.975,0.393,0.208,0.199,0.302,0.339,0.714,3.105,2.892,1.614,1.027,1.099,1.06) qmult=(0.2711,0.2146,0.2763,0.3467,0.2672,0.0576,0.1648,0.1873,0.197,0.186,0.2494,0.6041,0.0985,0.0684,0.0284,0.0993,0.085,0.3042,1.4147,1.3176,0.7817,0.3728,0.3205,0.4189)
+new object=loadshape.3126_loadcurve interval=1 npts=24 useactual=yes mult=(2.83,2.408,2.311,2.36,2.299,2.163,2.53,2.324,4.419,3.55,5.68,3.998,8.045,5.513,5.563,6.041,9.345,6.19,4.529,13.128,7.622,8.33,3.754,3.14) qmult=(1.1185,0.874,0.5792,0.6883,0.5762,0.6309,0.3605,1.1256,2.1402,1.2885,1.1534,1.1661,3.1796,2.5118,2.5346,2.5735,3.0716,1.5514,0.9197,2.6658,2.5052,3.7953,1.7104,0.9158)
+new object=loadshape.3127_loadcurve interval=1 npts=24 useactual=yes mult=(8.347,6.354,3.722,4.717,3.89,4.189,4.374,5.174,12.139,14.216,8.875,13.141,13.197,16.156,16.761,11.472,9.403,12.417,8.633,11.92,15.361,8.993,10.403,6.572) qmult=(2.7435,2.895,0.5304,1.8643,1.6571,1.7845,1.7287,2.2041,5.5307,2.0257,4.0436,4.3192,4.3376,4.7122,6.0834,2.3295,3.4128,2.5214,2.8375,4.3264,6.9987,4.3555,5.0384,2.3853)
+new object=loadshape.3128_loadcurve interval=1 npts=24 useactual=yes mult=(4.428,4.529,5.481,5.553,5.417,4.424,4.431,4.201,4.219,4.54,4.417,4.3,5.327,4.552,5.53,4.899,5.084,6.85,5.151,7.361,8.001,5.189,3.788,2.807) qmult=(1.7501,1.321,1.8015,1.6196,2.1409,1.8846,1.4564,0.853,1.2305,1.934,1.7457,1.0777,1.0817,1.9391,1.3859,2.2321,2.4623,2.7073,1.291,1.8448,2.3336,2.3642,1.6137,0.9226)
+new object=loadshape.3129_loadcurve interval=1 npts=24 useactual=yes mult=(2.487,2.96,2.834,1.744,1.088,1.357,0.998,4.009,4.621,4.095,2.692,0.912,1.817,1.724,2.17,2.972,3.803,7.292,5.286,5.802,5.684,4.46,5.127,2.931) qmult=(0.9829,0.4218,1.2073,0.7946,0.4635,0.2756,0.1422,1.4551,0.6585,1.9833,1.3038,0.3604,0.5972,0.835,0.6329,1.3541,1.25,2.882,1.9186,2.81,2.7529,1.3008,1.2849,1.2486)
+new object=loadshape.3130_loadcurve interval=1 npts=24 useactual=yes mult=(1.554,1.887,1.762,1.69,2.38,2.568,2.025,4.224,2.301,1.923,1.827,1.927,2.141,2.093,2.488,3.092,2.317,2.0,5.322,4.68,4.635,3.392,3.485,2.338) qmult=(0.6142,0.6849,0.8028,0.77,0.9406,0.5215,0.4112,1.0586,0.6711,0.3905,0.5329,0.562,0.4347,0.425,0.8178,0.9018,1.1222,0.4061,2.5776,0.6669,1.3519,1.5454,1.4846,0.6819)
+new object=loadshape.3131_loadcurve interval=1 npts=24 useactual=yes mult=(3.234,2.865,2.521,2.748,2.927,2.754,2.759,3.286,5.45,5.747,13.046,10.487,6.5,7.518,5.435,5.211,4.229,9.11,11.892,10.267,15.555,11.482,7.842,3.577) qmult=(0.6567,0.5818,0.5119,1.3309,1.4176,0.9052,0.9068,1.5915,1.5896,2.4482,1.859,5.0791,1.6291,1.8842,1.9726,1.306,0.8587,1.8499,4.3162,4.6778,6.1477,4.8913,3.7981,0.8965)
+new object=loadshape.3132_loadcurve interval=1 npts=24 useactual=yes mult=(4.031,4.309,4.337,5.28,4.557,4.395,4.414,3.601,3.638,4.465,4.454,3.991,5.249,5.902,4.67,9.835,10.661,12.415,11.333,6.145,5.29,5.638,5.81,5.328) qmult=(1.3249,1.564,0.618,1.0721,1.654,1.2819,1.1063,1.534,1.4378,0.6362,0.9044,1.3118,1.9051,0.841,0.6654,2.4649,3.8694,3.1115,2.3013,1.7923,0.7538,2.5687,2.2963,0.7592)
+new object=loadshape.3134_loadcurve interval=1 npts=24 useactual=yes mult=(6.308,5.455,5.681,5.54,4.969,4.899,5.307,5.625,6.636,11.491,11.332,9.504,8.373,7.42,6.278,11.883,10.25,11.92,12.224,10.614,10.33,12.033,12.706,7.896) qmult=(2.6872,2.3238,1.1536,2.1895,1.009,2.3727,1.9262,1.8488,3.0235,3.3515,4.4787,2.772,3.039,2.6931,1.5734,5.7552,3.369,3.4767,3.5653,1.5124,2.5889,4.7557,5.4127,2.303)
+new object=loadshape.3135_loadcurve interval=1 npts=24 useactual=yes mult=(3.571,3.284,3.526,3.055,3.59,3.619,4.504,4.181,7.709,7.368,7.691,9.309,6.821,4.032,8.344,8.173,5.905,8.71,6.497,8.96,11.111,6.747,9.054,5.784) qmult=(1.2961,1.1919,1.6065,0.6203,1.4189,0.907,2.0521,1.5175,1.0985,1.4961,2.5279,1.8903,2.6958,1.176,1.6943,2.9664,2.1432,4.2184,1.6283,2.945,2.7847,2.4488,2.2691,1.1745)
+new object=loadshape.3136_loadcurve interval=1 npts=24 useactual=yes mult=(6.194,5.07,5.147,4.73,4.308,5.47,4.885,4.914,4.585,10.391,14.439,12.316,5.79,9.734,12.985,9.78,9.494,8.844,8.46,12.548,16.478,9.369,8.406,9.65) qmult=(1.2577,1.0295,0.7334,2.2908,1.2565,2.6492,1.2243,2.38,0.931,2.6042,6.5786,5.6113,2.4665,4.7144,4.268,2.8525,3.7523,4.2833,1.2055,5.3454,7.9807,2.7326,2.1067,4.3967)
+new object=loadshape.3137_loadcurve interval=1 npts=24 useactual=yes mult=(14.286,14.022,10.997,9.805,10.452,9.791,10.58,11.353,14.036,15.428,16.933,12.106,9.768,9.672,8.951,8.752,10.059,14.559,11.348,10.361,12.191,12.231,9.735,9.636) qmult=(4.6956,1.998,2.7561,1.3971,2.1224,2.8557,3.0858,2.3053,3.5178,6.5723,8.201,5.1571,4.7309,3.179,2.9421,2.5527,4.583,3.6488,5.4961,1.4764,5.5544,4.4393,2.4398,3.4974)
+new object=loadshape.3138_loadcurve interval=1 npts=24 useactual=yes mult=(6.504,6.946,7.759,8.877,8.265,7.74,7.144,5.958,5.933,6.668,6.766,3.982,3.032,4.556,5.18,5.691,9.658,9.307,7.331,5.046,5.177,3.888,4.125,5.001) qmult=(1.897,0.9898,1.9446,4.2993,3.2665,3.5264,2.0837,1.4932,2.8735,3.038,2.4557,1.8143,1.1983,2.2066,2.3601,1.6599,4.6776,4.2404,2.4096,0.719,1.51,1.7714,1.0338,0.7126)
+new object=loadshape.3139_loadcurve interval=1 npts=24 useactual=yes mult=(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0) qmult=(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+new object=loadshape.3141_loadcurve interval=1 npts=24 useactual=yes mult=(2.296,2.2,2.323,2.255,2.195,1.905,2.069,2.406,3.524,5.129,4.939,4.11,3.321,3.538,9.224,4.842,3.696,4.523,4.915,5.948,7.555,7.206,7.031,7.973) qmult=(1.112,0.8695,1.0584,0.3213,0.3128,0.8115,0.8814,0.3428,1.0278,1.6858,1.2378,1.7509,1.4147,1.1629,4.4674,0.6899,0.9263,1.7876,1.2318,2.71,1.5341,2.848,1.7621,2.6206)
+new object=loadshape.3142_loadcurve interval=1 npts=24 useactual=yes mult=(3.619,3.168,4.713,2.285,3.234,3.753,2.864,4.858,4.477,5.274,6.411,8.523,7.295,8.029,4.708,5.242,6.507,5.625,4.955,3.925,6.806,3.314,4.283,3.128) qmult=(1.7528,0.6433,2.2826,0.751,0.9433,1.7099,1.3049,0.9865,0.9091,0.7515,0.9135,3.0934,3.5331,2.639,2.145,1.723,0.9272,1.8488,1.0062,0.9837,1.9851,1.3098,2.0744,0.784)
+new object=loadshape.3143_loadcurve interval=1 npts=24 useactual=yes mult=(7.378,5.997,8.046,5.645,6.085,5.386,5.377,5.559,4.914,13.989,15.656,6.895,8.71,9.953,10.186,9.765,10.92,23.132,10.225,12.111,22.743,8.841,11.627,9.567) qmult=(1.0513,2.9045,2.0165,2.5719,0.8671,1.3499,0.7662,1.8272,1.6152,6.3736,2.2309,2.9373,1.7686,2.903,4.9333,3.8594,3.5892,9.8542,4.9522,3.0353,11.0149,4.0281,3.8216,1.9427)
+new object=loadshape.3144_loadcurve interval=1 npts=24 useactual=yes mult=(0.687,0.725,0.568,0.811,0.644,0.481,0.57,0.865,1.046,1.57,2.485,2.21,1.277,1.016,0.874,0.987,0.916,0.823,2.017,0.714,1.183,0.64,0.81,0.936) qmult=(0.1722,0.3303,0.2245,0.1647,0.2743,0.2049,0.2428,0.2843,0.2124,0.3935,1.0586,0.7264,0.4197,0.2063,0.3172,0.4205,0.2296,0.1671,0.7321,0.1017,0.1686,0.2104,0.2662,0.4533)
+new object=loadshape.3145_loadcurve interval=1 npts=24 useactual=yes mult=(1.92,1.697,1.613,1.915,1.751,1.92,2.411,2.555,2.857,7.649,13.379,8.524,2.207,3.972,4.142,4.245,6.813,10.829,7.891,5.912,9.174,6.996,4.218,3.242) qmult=(0.8179,0.7229,0.5854,0.8725,0.4388,0.56,1.1677,0.5188,1.3837,2.231,2.7167,4.1284,1.0689,0.566,1.5033,1.8084,1.7075,2.1989,2.3015,0.8424,2.6757,1.7534,2.0429,1.1767)
+new object=loadshape.3146_loadcurve interval=1 npts=24 useactual=yes mult=(1.331,1.994,1.515,1.423,1.298,1.785,1.973,4.629,1.702,1.98,1.399,0.868,0.855,2.126,3.825,2.814,1.629,2.166,2.066,1.349,1.243,1.468,2.127,1.801) qmult=(0.526,0.7237,0.4419,0.4677,0.4711,0.8133,0.5755,2.109,0.2425,0.6508,0.6374,0.1763,0.3103,0.7716,1.3883,0.5714,0.694,1.049,0.8801,0.6146,0.4511,0.5328,0.8406,0.8723)
+new object=loadshape.3147_loadcurve interval=1 npts=24 useactual=yes mult=(8.398,5.466,4.938,4.64,4.914,4.297,5.456,4.583,6.535,5.094,4.956,5.727,5.652,6.774,7.104,6.474,9.815,8.294,12.556,11.77,10.431,10.119,9.894,8.599) qmult=(1.1967,1.3699,1.9516,2.114,1.2316,1.4124,1.1079,0.9306,2.5828,0.7259,2.1112,2.2635,2.4077,2.6773,1.0123,0.9225,1.993,3.278,3.1468,3.8686,3.4285,2.9514,3.252,3.3985)
+new object=loadshape.3148_loadcurve interval=1 npts=24 useactual=yes mult=(5.86,5.893,5.263,4.834,4.774,4.848,5.337,5.985,9.479,12.843,11.607,14.825,6.743,9.386,9.182,8.23,11.335,13.512,9.876,9.436,17.591,15.531,11.655,10.296) qmult=(1.9261,2.5104,1.7299,1.5889,0.6803,0.9844,2.5848,2.1723,3.1156,6.2201,2.909,4.324,0.9608,2.7376,3.9115,2.9871,1.6152,3.3864,2.8805,2.3649,7.4937,5.1048,5.3102,3.7369)
+new object=loadshape.3149_loadcurve interval=1 npts=24 useactual=yes mult=(4.068,2.959,3.335,2.165,2.276,2.194,2.933,3.023,2.988,3.972,10.193,9.214,6.327,3.676,3.469,2.088,2.911,4.275,6.858,3.851,6.323,6.272,7.298,3.083) qmult=(1.6078,1.3482,1.3181,1.0486,0.3243,0.3126,0.4179,1.3773,0.9821,1.5698,4.9367,3.6416,2.2964,0.7464,1.5805,1.0113,1.0566,1.6896,2.9215,0.782,3.0624,1.5719,2.6488,0.4393)
+new object=loadshape.3150_loadcurve interval=1 npts=24 useactual=yes mult=(1.318,1.679,1.081,1.186,1.044,1.106,0.992,1.112,1.702,1.386,1.398,0.784,0.864,1.379,0.939,1.07,1.918,1.445,1.21,3.78,4.086,1.625,1.808,3.868) qmult=(0.6383,0.5519,0.4925,0.2408,0.212,0.2246,0.2014,0.3655,0.4266,0.1975,0.6369,0.3797,0.1754,0.4022,0.3086,0.5182,0.5594,0.6584,0.4392,1.8307,0.5822,0.4073,0.7146,0.7854)
+new object=loadshape.3151_loadcurve interval=1 npts=24 useactual=yes mult=(0.798,0.987,1.442,1.034,0.764,0.893,1.116,2.28,2.645,3.755,1.632,1.385,1.194,0.818,1.078,1.072,1.809,1.657,1.194,1.246,1.447,2.009,1.234,1.174) qmult=(0.2896,0.3582,0.657,0.3753,0.2773,0.3804,0.4411,1.0388,1.2051,1.4841,0.5923,0.5474,0.4334,0.3727,0.4261,0.3127,0.6566,0.6549,0.3924,0.3634,0.5252,0.6603,0.3599,0.3424)
+new object=loadshape.3152_loadcurve interval=1 npts=24 useactual=yes mult=(2.011,1.479,1.469,1.521,1.475,2.02,1.821,1.128,0.709,0.768,0.989,2.12,2.335,2.416,2.228,2.066,2.62,2.1,2.74,2.514,2.511,2.67,2.669,1.504) qmult=(0.7948,0.5845,0.5332,0.6479,0.7144,0.5063,0.5985,0.5463,0.2573,0.3272,0.4506,0.7695,0.9229,0.3443,0.5584,0.2944,0.7642,0.9568,0.6867,0.7332,1.144,1.2931,1.0549,0.4387)
+new object=loadshape.3153_loadcurve interval=1 npts=24 useactual=yes mult=(4.949,3.997,4.195,3.6325,3.4137,3.7774,4.6052,4.05,7.6595,8.2208,11.9214,9.5547,10.9711,9.9135,15.8725,9.6995,13.5144,12.1158,16.8259,10.7861,8.1664,8.2504,7.0899,5.8046) qmult=(1.7962,1.7027,1.7871,1.0595,0.8556,1.8295,1.1542,1.8452,1.0914,3.7455,5.7738,4.6275,4.9986,3.2584,6.2732,2.829,5.3412,3.9823,8.1492,3.1459,3.2276,2.0677,1.4397,2.6447)
+new object=loadshape.3154_loadcurve interval=1 npts=24 useactual=yes mult=(2.223,2.415,2.359,1.709,2.654,1.983,1.966,3.279,3.896,3.389,1.974,2.573,2.604,5.123,3.597,4.515,5.793,3.835,6.728,3.284,4.55,5.631,3.086,3.428) qmult=(0.4514,1.1696,1.0748,0.7786,1.2092,0.9035,0.8957,1.3968,1.6597,0.9885,0.8994,1.0169,0.6526,2.3341,1.1823,1.7844,2.1026,0.7787,1.6862,1.0794,1.7983,2.5656,0.6266,0.8591)
+new object=loadshape.3155_loadcurve interval=1 npts=24 useactual=yes mult=(2.043,2.761,1.566,1.664,1.562,1.638,1.717,1.91,1.967,1.555,1.459,1.663,2.57,1.772,1.878,1.465,1.566,1.626,1.874,6.139,2.084,2.583,1.946,1.681) qmult=(0.9895,0.692,0.318,0.3379,0.5669,0.2334,0.8316,0.8137,0.493,0.6146,0.5295,0.8054,0.6441,0.4441,0.6816,0.5317,0.7584,0.6927,0.8538,2.797,0.9495,1.251,0.5676,0.6101)
+new object=loadshape.3157_loadcurve interval=1 npts=24 useactual=yes mult=(6.224,5.023,5.316,5.375,6.542,5.731,5.024,4.918,9.42,13.35,12.968,13.51,10.804,19.915,9.336,6.469,7.628,8.079,5.685,7.066,8.581,10.129,8.04,8.496) qmult=(1.8153,1.8231,2.101,0.7659,2.3744,2.0801,1.4653,1.785,3.0962,1.9023,2.6333,2.7433,5.2326,8.4838,2.3398,2.3479,3.2495,2.3564,1.4248,3.0101,3.3914,4.3149,2.015,2.1293)
+new object=loadshape.3158_loadcurve interval=1 npts=24 useactual=yes mult=(4.564,5.435,4.232,4.68,3.612,4.529,4.616,13.52,9.931,10.4,5.345,7.727,12.68,9.384,6.524,6.874,6.328,6.401,6.187,11.173,9.626,8.391,6.361,4.711) qmult=(2.0794,1.3621,0.8593,1.6986,0.9053,1.1351,1.3463,4.4438,3.925,4.1103,2.277,2.8045,4.6022,4.5449,1.6351,1.3958,1.8457,1.2998,2.0336,1.5921,4.3857,3.8231,2.514,1.8619)
+new object=loadshape.3159_loadcurve interval=1 npts=24 useactual=yes mult=(7.676,7.681,7.776,7.775,7.358,6.51,8.67,14.43,14.216,10.819,7.302,8.616,6.919,7.804,8.163,9.546,9.52,10.18,7.342,10.449,11.267,7.237,7.098,7.009) qmult=(3.0337,2.5246,3.3126,1.5788,1.4941,1.3219,1.7605,6.1472,6.8851,4.6089,3.5365,3.1272,2.018,1.9559,1.1632,3.1376,4.3374,1.4506,1.4909,3.4344,2.2879,3.2973,1.7789,3.1934)
+new object=loadshape.3160_loadcurve interval=1 npts=24 useactual=yes mult=(5.285,1.657,1.318,1.613,1.604,1.294,1.106,1.871,4.974,6.105,5.54,4.057,1.844,1.73,1.734,1.684,2.122,1.369,2.661,1.662,2.121,2.692,3.968,3.812) qmult=(2.4079,0.5446,0.5615,0.5854,0.7308,0.5896,0.1576,0.8525,1.9659,2.2158,1.3885,1.4725,0.8931,0.2465,0.5058,0.24,0.9668,0.6237,1.0517,0.2368,0.4307,0.9771,1.5683,1.6239)
+new object=loadshape.3161_loadcurve interval=1 npts=24 useactual=yes mult=(2.12,1.843,2.375,1.836,2.125,2.75,3.594,4.009,4.443,4.658,6.28,2.958,5.224,4.211,2.999,3.153,2.49,4.395,5.106,4.659,4.012,2.429,2.337,1.737) qmult=(0.9659,0.6689,0.3384,0.2616,0.7713,0.5584,0.9007,1.3177,1.8927,1.1674,2.8613,0.6006,1.8961,1.6643,0.8747,0.7902,0.9037,1.8723,2.3264,1.8414,1.1702,0.4932,0.4745,0.3527)
+new object=loadshape.3162_loadcurve interval=1 npts=24 useactual=yes mult=(3.195,2.908,3.013,2.875,2.556,2.559,2.611,2.864,5.031,5.493,7.95,5.482,7.522,3.885,4.064,3.121,3.019,3.055,3.136,2.932,3.214,3.201,3.251,3.086) qmult=(1.5474,0.8482,1.3728,1.0435,0.3642,0.7464,1.0319,0.9414,1.6536,1.3767,3.8504,2.1666,3.6431,1.2769,1.1853,0.4447,0.8805,1.3014,0.4469,1.1588,1.5566,1.3636,1.2849,0.9001)
+new object=load.load_1003 bus1=t_bus1003_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=15.290000000000001 kvar=3.832035216364534 daily=1003_loadcurve
+new object=load.load_1004 bus1=t_bus1004_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=6.892000000000000 kvar=3.337947946542479 daily=1004_loadcurve
+new object=load.load_1005 bus1=t_bus1005_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.916000000000000 kvar=1.942927521885772 daily=1005_loadcurve
+new object=load.load_1008 bus1=t_bus1008_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=14.096000000000000 kvar=6.422327335762342 daily=1008_loadcurve
+new object=load.load_1009 bus1=t_bus1009_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=17.081000000000000 kvar=6.750843165445662 daily=1009_loadcurve
+new object=load.load_1010 bus1=t_bus1010_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=7.136000000000000 kvar=2.820327663990413 daily=1010_loadcurve
+new object=load.load_1011 bus1=t_bus1011_l.1 phases=1 conn=wye kv=7.9677 kw=3.125000000000000 kvar=1.027137828683947 daily=1011_loadcurve
+new object=load.load_1012 bus1=t_bus1012_l.2 phases=1 conn=wye kv=7.9677 kw=3.083000000000000 kvar=1.118979580058769 daily=1012_loadcurve
+new object=load.load_1013 bus1=t_bus1013_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=1.537000000000 kvar=0.448291666666667 daily=1013_loadcurve
+new object=load.load_1014 bus1=t_bus1014_l.2 phases=1 conn=wye kv=7.9677 kw=0.458000000000000 kvar=0.195107182990382 daily=1014_loadcurve
+new object=load.load_1015 bus1=t_bus1015_l.2 phases=1 conn=wye kv=7.9677 kw=0.793000000000000 kvar=0.161025517882765 daily=1015_loadcurve
+new object=load.load_1016 bus1=t_bus1016_l.3 phases=1 conn=wye kv=7.9677 kw=3.083000000000000 kvar=1.493165049215099 daily=1016_loadcurve
+new object=load.load_1017 bus1=t_bus1017_l.3 phases=1 conn=wye kv=7.9677 kw=2.131000000000000 kvar=0.621541666666667 daily=1017_loadcurve
+new object=load.load_2002 bus1=t_bus2002_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=27.940000000000000 kvar=10.140865866637050 daily=2002_loadcurve
+new object=load.load_2003 bus1=t_bus2003_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=14.286000000000001 kvar=3.580409097513652 daily=2003_loadcurve
+new object=load.load_2005 bus1=t_bus2005_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=8.947000000000000 kvar=3.536080662797397 daily=2005_loadcurve
+new object=load.load_2008 bus1=t_bus2008_l.1 phases=1 conn=wye kv=7.9677 kw=2.067000000000000 kvar=0.941753022348238 daily=2008_loadcurve
+new object=load.load_2009 bus1=t_bus2009_l.1 phases=1 conn=wye kv=7.9677 kw=1.246000000000000 kvar=0.492450710388461 daily=2009_loadcurve
+new object=load.load_2010 bus1=t_bus2010_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.290000000000000 kvar=0.905065912351184 daily=2010_loadcurve
+new object=load.load_2011 bus1=t_bus2011_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=5.367999999999999 kvar=1.764376276600136 daily=2011_loadcurve
+new object=load.load_2014 bus1=t_bus2014_l.2 phases=1 conn=wye kv=7.9677 kw=2.816000000000000 kvar=0.821333333333334 daily=2014_loadcurve
+new object=load.load_2015 bus1=t_bus2015_l.2 phases=1 conn=wye kv=7.9677 kw=1.490000000000000 kvar=0.634737342042945 daily=2015_loadcurve
+new object=load.load_2016 bus1=t_bus2016_l.2 phases=1 conn=wye kv=7.9677 kw=1.640000000000000 kvar=0.333016203439767 daily=2016_loadcurve
+new object=load.load_2017 bus1=t_bus2017_l.2 phases=1 conn=wye kv=7.9677 kw=5.125000000000000 kvar=2.482150787293994 daily=2017_loadcurve
+new object=load.load_2018 bus1=t_bus2018_l.2 phases=1 conn=wye kv=7.9677 kw=2.809000000000000 kvar=0.819291666666667 daily=2018_loadcurve
+new object=load.load_2020 bus1=t_bus2020_l.2 phases=1 conn=wye kv=7.9677 kw=3.086000000000000 kvar=1.014319148581971 daily=2020_loadcurve
+new object=load.load_2022 bus1=t_bus2022_l.3 phases=1 conn=wye kv=7.9677 kw=2.728000000000000 kvar=1.242913519577161 daily=2022_loadcurve
+new object=load.load_2023 bus1=t_bus2023_l.3 phases=1 conn=wye kv=7.9677 kw=0.728000000000000 kvar=0.147826704941555 daily=2023_loadcurve
+new object=load.load_2024 bus1=t_bus2024_l.3 phases=1 conn=wye kv=7.9677 kw=2.549000000000000 kvar=0.363212828405741 daily=2024_loadcurve
+new object=load.load_2025 bus1=t_bus2025_l.3 phases=1 conn=wye kv=7.9677 kw=2.701000000000000 kvar=1.067503506227313 daily=2025_loadcurve
+new object=load.load_2028 bus1=t_bus2028_l.1 phases=1 conn=wye kv=7.9677 kw=0.000000000000000 kvar=0.0000000000000000 daily=2028_loadcurve
+new object=load.load_2029 bus1=t_bus2029_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=9.427000000000000 kvar=1.914233993796757 daily=2029_loadcurve
+new object=load.load_2030 bus1=t_bus2030_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=5.331000000000000 kvar=2.581921140890592 daily=2030_loadcurve
+new object=load.load_2031 bus1=t_bus2031_l.1 phases=1 conn=wye kv=7.9677 kw=3.279000000000000 kvar=1.588092181763319 daily=2031_loadcurve
+new object=load.load_2032 bus1=t_bus2032_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.217000000000000 kvar=1.010095041386571 daily=2032_loadcurve
+new object=load.load_2034 bus1=t_bus2034_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=3.621000000000000 kvar=1.753730341617864 daily=2034_loadcurve
+new object=load.load_2035 bus1=t_bus2035_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=3.931000000000000 kvar=1.426762481093423 daily=2035_loadcurve
+new object=load.load_2037 bus1=t_bus2037_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=3.941000000000000 kvar=1.295344058509899 daily=2037_loadcurve
+new object=load.load_2040 bus1=t_bus2040_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=81.759999999999990 kvar=23.846666666666675 daily=2040_loadcurve
+new object=load.load_2041 bus1=t_bus2041_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=1.919000000000000 kvar=0.389669569756654 daily=2041_loadcurve
+new object=load.load_2042 bus1=t_bus2042_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.223000000000000 kvar=2.045292248730251 daily=2042_loadcurve
+new object=load.load_2043 bus1=t_bus2043_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=6.509000000000000 kvar=1.631309170916727 daily=2043_loadcurve
+new object=load.load_2045 bus1=t_bus2045_l.2 phases=1 conn=wye kv=7.9677 kw=2.175000000000000 kvar=0.545106382968794 daily=2045_loadcurve
+new object=load.load_2046 bus1=t_bus2046_l.2 phases=1 conn=wye kv=7.9677 kw=6.621000000000000 kvar=2.820534189037812 daily=2046_loadcurve
+new object=load.load_2047 bus1=t_bus2047_l.2 phases=1 conn=wye kv=7.9677 kw=5.512000000000001 kvar=1.381437417436319 daily=2047_loadcurve
+new object=load.load_2048 bus1=t_bus2048_l.2 phases=1 conn=wye kv=7.9677 kw=3.764000000000000 kvar=1.714929064401919 daily=2048_loadcurve
+new object=load.load_2049 bus1=t_bus2049_l.3 phases=1 conn=wye kv=7.9677 kw=3.538000000000000 kvar=1.284122528137505 daily=2049_loadcurve
+new object=load.load_2050 bus1=t_bus2050_l.3 phases=1 conn=wye kv=7.9677 kw=3.747000000000000 kvar=0.533918582987961 daily=2050_loadcurve
+new object=load.load_2051 bus1=t_bus2051_l.3 phases=1 conn=wye kv=7.9677 kw=5.778000000000001 kvar=2.461417692834991 daily=2051_loadcurve
+new object=load.load_2052 bus1=t_bus2052_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=40.029000000000000 kvar=17.052282593716143 daily=2052_loadcurve
+new object=load.load_2053 bus1=t_bus2053_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.280000000000000 kvar=1.950025609893787 daily=2053_loadcurve
+new object=load.load_2054 bus1=t_bus2054_l.1 phases=1 conn=wye kv=7.9677 kw=7.159000000000000 kvar=3.467261948534187 daily=2054_loadcurve
+new object=load.load_2055 bus1=t_bus2055_l.1 phases=1 conn=wye kv=7.9677 kw=4.260000000000000 kvar=1.242500000000000 daily=2055_loadcurve
+new object=load.load_2056 bus1=t_bus2056_l.1 phases=1 conn=wye kv=7.9677 kw=4.723000000000001 kvar=2.011989574811295 daily=2056_loadcurve
+new object=load.load_2058 bus1=t_bus2058_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=31.480000000000004 kvar=11.425714297843033 daily=2058_loadcurve
+new object=load.load_2059 bus1=t_bus2059_l.2 phases=1 conn=wye kv=7.9677 kw=2.635000000000000 kvar=1.276188746247742 daily=2059_loadcurve
+new object=load.load_2060 bus1=t_bus2060_l.2 phases=1 conn=wye kv=7.9677 kw=1.946000000000000 kvar=0.639619268678067 daily=2060_loadcurve
+new object=load.load_3002 bus1=t_bus3002_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=19.645 kvar=7.13018289 daily=3002_loadcurve
+new object=load.load_3004 bus1=t_bus3004_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=3.117 kvar=1.509632001 daily=3004_loadcurve
+new object=load.load_3006 bus1=t_bus3006_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.033 kvar=1.837489085 daily=3006_loadcurve
+new object=load.load_3007 bus1=t_bus3007_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=9.425 kvar=4.564735838 daily=3007_loadcurve
+new object=load.load_3009 bus1=t_bus3009_l.1 phases=1 conn=wye kv=7.9677 kw=4.064 kvar=1.606195575 daily=3009_loadcurve
+new object=load.load_3010 bus1=t_bus3010_l.1 phases=1 conn=wye kv=7.9677 kw=4.935 kvar=1.950436802 daily=3010_loadcurve
+new object=load.load_3011 bus1=t_bus3011_l.1 phases=1 conn=wye kv=7.9677 kw=7.419 kvar=2.438507376 daily=3011_loadcurve
+new object=load.load_3012 bus1=t_bus3012_l.1 phases=1 conn=wye kv=7.9677 kw=3.763 kvar=1.365786623 daily=3012_loadcurve
+new object=load.load_3013 bus1=t_bus3013_l.2 phases=1 conn=wye kv=7.9677 kw=2.539 kvar=0.740541667 daily=3013_loadcurve
+new object=load.load_3014 bus1=t_bus3014_l.2 phases=1 conn=wye kv=7.9677 kw=3.105 kvar=1.322724461 daily=3014_loadcurve
+new object=load.load_3016 bus1=t_bus3016_l.2 phases=1 conn=wye kv=7.9677 kw=6.246 kvar=3.025075867 daily=3016_loadcurve
+new object=load.load_3017 bus1=t_bus3017_l.2 phases=1 conn=wye kv=7.9677 kw=8.493 kvar=2.477125 daily=3017_loadcurve
+new object=load.load_3018 bus1=t_bus3018_l.3 phases=1 conn=wye kv=7.9677 kw=5.351 kvar=1.94215366 daily=3018_loadcurve
+new object=load.load_3019 bus1=t_bus3019_l.3 phases=1 conn=wye kv=7.9677 kw=5.403 kvar=1.77588022 daily=3019_loadcurve
+new object=load.load_3020 bus1=t_bus3020_l.3 phases=1 conn=wye kv=7.9677 kw=5.984 kvar=2.726390946 daily=3020_loadcurve
+new object=load.load_3021 bus1=t_bus3021_l.3 phases=1 conn=wye kv=7.9677 kw=7.73 kvar=3.521892048 daily=3021_loadcurve
+new object=load.load_3023 bus1=t_bus3023_l.1 phases=1 conn=wye kv=7.9677 kw=4.344 kvar=0.618986476 daily=3023_loadcurve
+new object=load.load_3024 bus1=t_bus3024_l.1 phases=1 conn=wye kv=7.9677 kw=5.02 kvar=1.984030952 daily=3024_loadcurve
+new object=load.load_3025 bus1=t_bus3025_l.1 phases=1 conn=wye kv=7.9677 kw=6.546 kvar=1.90925 daily=3025_loadcurve
+new object=load.load_3026 bus1=t_bus3026_l.1 phases=1 conn=wye kv=7.9677 kw=10.273 kvar=2.086021621 daily=3026_loadcurve
+new object=load.load_3027 bus1=t_bus3027_l.1 phases=1 conn=wye kv=7.9677 kw=7.116 kvar=1.444965429 daily=3027_loadcurve
+new object=load.load_3028 bus1=t_bus3028_l.1 phases=1 conn=wye kv=7.9677 kw=11.008 kvar=5.33141773 daily=3028_loadcurve
+new object=load.load_3029 bus1=t_bus3029_l.1 phases=1 conn=wye kv=7.9677 kw=2.494 kvar=1.207899329 daily=3029_loadcurve
+new object=load.load_3031 bus1=t_bus3031_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.271 kvar=0.86726354 daily=3031_loadcurve
+new object=load.load_3032 bus1=t_bus3032_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=5.709 kvar=2.764994897 daily=3032_loadcurve
+new object=load.load_3033 bus1=t_bus3033_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=9.779 kvar=3.549303053 daily=3033_loadcurve
+new object=load.load_3034 bus1=t_bus3034_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.776 kvar=0.680543142 daily=3034_loadcurve
+new object=load.load_3035 bus1=t_bus3035_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=10.893 kvar=3.580355958 daily=3035_loadcurve
+new object=load.load_3036 bus1=t_bus3036_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.026 kvar=1.17425 daily=3036_loadcurve
+new object=load.load_3037 bus1=t_bus3037_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=7.303 kvar=2.886330287 daily=3037_loadcurve
+new object=load.load_3038 bus1=t_bus3038_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=6.13 kvar=1.787916667 daily=3038_loadcurve
+new object=load.load_3039 bus1=t_bus3039_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.966 kvar=1.008389309 daily=3039_loadcurve
+new object=load.load_3041 bus1=t_bus3041_l.3 phases=1 conn=wye kv=7.9677 kw=5.252 kvar=1.316275275 daily=3041_loadcurve
+new object=load.load_3042 bus1=t_bus3042_l.3 phases=1 conn=wye kv=7.9677 kw=7.719 kvar=1.09989793 daily=3042_loadcurve
+new object=load.load_3043 bus1=t_bus3043_l.3 phases=1 conn=wye kv=7.9677 kw=6.856 kvar=1.718275569 daily=3043_loadcurve
+new object=load.load_3044 bus1=t_bus3044_l.3 phases=1 conn=wye kv=7.9677 kw=4.119 kvar=1.754686652 daily=3044_loadcurve
+new object=load.load_3045 bus1=t_bus3045_l.3 phases=1 conn=wye kv=7.9677 kw=4.434 kvar=1.11126515 daily=3045_loadcurve
+new object=load.load_3047 bus1=t_bus3047_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=10.213 kvar=3.706824019 daily=3047_loadcurve
+new object=load.load_3048 bus1=t_bus3048_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.868 kvar=0.408667867 daily=3048_loadcurve
+new object=load.load_3049 bus1=t_bus3049_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=1.671 kvar=0.711843019 daily=3049_loadcurve
+new object=load.load_3050 bus1=t_bus3050_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.646 kvar=1.12719128 daily=3050_loadcurve
+new object=load.load_3051 bus1=t_bus3051_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.412 kvar=1.098939666 daily=3051_loadcurve
+new object=load.load_3052 bus1=t_bus3052_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=6.101 kvar=2.954849162 daily=3052_loadcurve
+new object=load.load_3054 bus1=t_bus3054_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.471 kvar=1.052641592 daily=3054_loadcurve
+new object=load.load_3056 bus1=t_bus3056_l.2 phases=1 conn=wye kv=7.9677 kw=3.796 kvar=1.377764024 daily=3056_loadcurve
+new object=load.load_3057 bus1=t_bus3057_l.2 phases=1 conn=wye kv=7.9677 kw=3.679 kvar=1.781821024 daily=3057_loadcurve
+new object=load.load_3058 bus1=t_bus3058_l.2 phases=1 conn=wye kv=7.9677 kw=3.475 kvar=1.142177265 daily=3058_loadcurve
+new object=load.load_3059 bus1=t_bus3059_l.2 phases=1 conn=wye kv=7.9677 kw=4.366 kvar=1.989208367 daily=3059_loadcurve
+new object=load.load_3060 bus1=t_bus3060_l.2 phases=1 conn=wye kv=7.9677 kw=3.63 kvar=1.193123302 daily=3060_loadcurve
+new object=load.load_3061 bus1=t_bus3061_l.2 phases=1 conn=wye kv=7.9677 kw=1.283 kvar=0.374208333 daily=3061_loadcurve
+new object=load.load_3062 bus1=t_bus3062_l.2 phases=1 conn=wye kv=7.9677 kw=0.929 kvar=0.423264905 daily=3062_loadcurve
+new object=load.load_3063 bus1=t_bus3063_l.2 phases=1 conn=wye kv=7.9677 kw=6.523 kvar=2.367532858 daily=3063_loadcurve
+new object=load.load_3064 bus1=t_bus3064_l.2 phases=1 conn=wye kv=7.9677 kw=7.792 kvar=2.272666667 daily=3064_loadcurve
+new object=load.load_3065 bus1=t_bus3065_l.2 phases=1 conn=wye kv=7.9677 kw=2.813 kvar=1.020982666 daily=3065_loadcurve
+new object=load.load_3066 bus1=t_bus3066_l.2 phases=1 conn=wye kv=7.9677 kw=3.257 kvar=1.577437095 daily=3066_loadcurve
+new object=load.load_3067 bus1=t_bus3067_l.2 phases=1 conn=wye kv=7.9677 kw=6.204 kvar=2.039156189 daily=3067_loadcurve
+new object=load.load_3070 bus1=t_bus3070_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=0.845 kvar=0.120405979 daily=3070_loadcurve
+new object=load.load_3071 bus1=t_bus3071_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.163 kvar=0.71094372 daily=3071_loadcurve
+new object=load.load_3072 bus1=t_bus3072_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=1.964 kvar=0.279854843 daily=3072_loadcurve
+new object=load.load_3073 bus1=t_bus3073_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=2.297 kvar=1.046544118 daily=3073_loadcurve
+new object=load.load_3074 bus1=t_bus3074_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.791 kvar=2.182844088 daily=3074_loadcurve
+new object=load.load_3077 bus1=t_bus3077_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=41.037 kvar=16.21886019 daily=3077_loadcurve
+new object=load.load_3078 bus1=t_bus3078_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=4.012 kvar=1.827921203 daily=3078_loadcurve
+new object=load.load_3081 bus1=t_bus3081_l.1.2.3.0 phases=3 conn=wye kv=13.8 kw=1.581 kvar=0.39623595 daily=3081_loadcurve
+new object=load.load_3083 bus1=t_bus3083_l.1 phases=1 conn=wye kv=7.9677 kw=3.831 kvar=0.777917729 daily=3083_loadcurve
+new object=load.load_3084 bus1=t_bus3084_l.1 phases=1 conn=wye kv=7.9677 kw=2.25 kvar=0.65625 daily=3084_loadcurve
+new object=load.load_3085 bus1=t_bus3085_l.1 phases=1 conn=wye kv=7.9677 kw=6.765 kvar=1.695468819 daily=3085_loadcurve
+new object=load.load_3086 bus1=t_bus3086_l.1 phases=1 conn=wye kv=7.9677 kw=2.35 kvar=0.92877943 daily=3086_loadcurve
+new object=load.load_3087 bus1=t_bus3087_l.1 phases=1 conn=wye kv=7.9677 kw=4.101 kvar=1.747018684 daily=3087_loadcurve
+new object=load.load_3088 bus1=t_bus3088_l.1 phases=1 conn=wye kv=7.9677 kw=8.41 kvar=1.707723336 daily=3088_loadcurve
+new object=load.load_3089 bus1=t_bus3089_l.1 phases=1 conn=wye kv=7.9677 kw=0.836 kvar=0.303427483 daily=3089_loadcurve
+new object=load.load_3090 bus1=t_bus3090_l.1 phases=1 conn=wye kv=7.9677 kw=3.236 kvar=0.461105027 daily=3090_loadcurve
+new object=load.load_3091 bus1=t_bus3091_l.1 phases=1 conn=wye kv=7.9677 kw=2.536 kvar=0.739666667 daily=3091_loadcurve
+new object=load.load_3093 bus1=t_bus3093_l.1 phases=1 conn=wye kv=7.9677 kw=4.264 kvar=1.942735795 daily=3093_loadcurve
+new object=load.load_3094 bus1=t_bus3094_l.1 phases=1 conn=wye kv=7.9677 kw=3.12 kvar=0.444575922 daily=3094_loadcurve
+new object=load.load_3095 bus1=t_bus3095_l.1 phases=1 conn=wye kv=7.9677 kw=5.901 kvar=2.141777004 daily=3095_loadcurve
+new object=load.load_3096 bus1=t_bus3096_l.1 phases=1 conn=wye kv=7.9677 kw=2.842 kvar=0.934120227 daily=3096_loadcurve
+new object=load.load_3097 bus1=t_bus3097_l.1 phases=1 conn=wye kv=7.9677 kw=11.1 kvar=4.02876203 daily=3097_loadcurve
+new object=load.load_3098 bus1=t_bus3098_l.2 phases=1 conn=wye kv=7.9677 kw=6.461 kvar=2.752374474 daily=3098_loadcurve
+new object=load.load_3099 bus1=t_bus3099_l.2 phases=1 conn=wye kv=7.9677 kw=4.424 kvar=0.630385858 daily=3099_loadcurve
+new object=load.load_3101 bus1=t_bus3101_l.3 phases=1 conn=wye kv=7.9677 kw=2.387 kvar=1.156076864 daily=3101_loadcurve
+new object=load.load_3102 bus1=t_bus3102_l.3 phases=1 conn=wye kv=7.9677 kw=8.2 kvar=2.391666667 daily=3102_loadcurve
+new object=load.load_3103 bus1=t_bus3103_l.3 phases=1 conn=wye kv=7.9677 kw=6.718 kvar=2.655123493 daily=3103_loadcurve
+new object=load.load_3104 bus1=t_bus3104_l.3 phases=1 conn=wye kv=7.9677 kw=8.73 kvar=2.869412238 daily=3104_loadcurve
+new object=load.load_3105 bus1=t_bus3105_l.3 phases=1 conn=wye kv=7.9677 kw=3.052 kvar=0.619735032 daily=3105_loadcurve
+new object=load.load_3106 bus1=t_bus3106_l.3 phases=1 conn=wye kv=7.9677 kw=9.815 kvar=3.879136214 daily=3106_loadcurve
+new object=load.load_3108 bus1=t_bus3108_l.1 phases=1 conn=wye kv=7.9677 kw=2.175 kvar=0.634375 daily=3108_loadcurve
+new object=load.load_3109 bus1=t_bus3109_l.1 phases=1 conn=wye kv=7.9677 kw=13.807 kvar=6.687035301 daily=3109_loadcurve
+new object=load.load_3110 bus1=t_bus3110_l.1 phases=1 conn=wye kv=7.9677 kw=9.577 kvar=1.364648591 daily=3110_loadcurve
+new object=load.load_3111 bus1=t_bus3111_l.1 phases=1 conn=wye kv=7.9677 kw=9.729 kvar=2.837625 daily=3111_loadcurve
+new object=load.load_3112 bus1=t_bus3112_l.1 phases=1 conn=wye kv=7.9677 kw=9.339 kvar=1.330735427 daily=3112_loadcurve
+new object=load.load_3114 bus1=t_bus3114_l.2 phases=1 conn=wye kv=7.9677 kw=5.162 kvar=2.351876682 daily=3114_loadcurve
+new object=load.load_3115 bus1=t_bus3115_l.2 phases=1 conn=wye kv=7.9677 kw=7.794 kvar=1.110584851 daily=3115_loadcurve
+new object=load.load_3116 bus1=t_bus3116_l.2 phases=1 conn=wye kv=7.9677 kw=7.337 kvar=2.139958333 daily=3116_loadcurve
+new object=load.load_3117 bus1=t_bus3117_l.2 phases=1 conn=wye kv=7.9677 kw=3.688 kvar=1.786179923 daily=3117_loadcurve
+new object=load.load_3120 bus1=t_bus3120_l.2 phases=1 conn=wye kv=7.9677 kw=3.209 kvar=0.457257735 daily=3120_loadcurve
+new object=load.load_3121 bus1=t_bus3121_l.2 phases=1 conn=wye kv=7.9677 kw=2.845 kvar=0.713024211 daily=3121_loadcurve
+new object=load.load_3122 bus1=t_bus3122_l.2 phases=1 conn=wye kv=7.9677 kw=4.209 kvar=1.917677054 daily=3122_loadcurve
+new object=load.load_3123 bus1=t_bus3123_l.2 phases=1 conn=wye kv=7.9677 kw=5.077 kvar=2.458903326 daily=3123_loadcurve
+new object=load.load_3124 bus1=t_bus3124_l.2 phases=1 conn=wye kv=7.9677 kw=3.261 kvar=1.579374384 daily=3124_loadcurve
+new object=load.load_3125 bus1=t_bus3125_l.2 phases=1 conn=wye kv=7.9677 kw=0.76 kvar=0.3680848 daily=3125_loadcurve
+new object=load.load_3126 bus1=t_bus3126_l.2 phases=1 conn=wye kv=7.9677 kw=6.249 kvar=2.662062853 daily=3126_loadcurve
+new object=load.load_3127 bus1=t_bus3127_l.2 phases=1 conn=wye kv=7.9677 kw=6.152 kvar=1.24921688 daily=3127_loadcurve
+new object=load.load_3128 bus1=t_bus3128_l.2 phases=1 conn=wye kv=7.9677 kw=3.688 kvar=1.21218698 daily=3128_loadcurve
+new object=load.load_3129 bus1=t_bus3129_l.2 phases=1 conn=wye kv=7.9677 kw=1.967 kvar=0.646521635 daily=3129_loadcurve
+new object=load.load_3130 bus1=t_bus3130_l.2 phases=1 conn=wye kv=7.9677 kw=3.657 kvar=0.742585522 daily=3130_loadcurve
+new object=load.load_3131 bus1=t_bus3131_l.2 phases=1 conn=wye kv=7.9677 kw=3.556 kvar=1.620161465 daily=3131_loadcurve
+new object=load.load_3132 bus1=t_bus3132_l.1 phases=1 conn=wye kv=7.9677 kw=11.56 kvar=4.924539379 daily=3132_loadcurve
+new object=load.load_3134 bus1=t_bus3134_l.1 phases=1 conn=wye kv=7.9677 kw=5.953 kvar=0.848256558 daily=3134_loadcurve
+new object=load.load_3135 bus1=t_bus3135_l.1 phases=1 conn=wye kv=7.9677 kw=7.005 kvar=2.302432157 daily=3135_loadcurve
+new object=load.load_3136 bus1=t_bus3136_l.1 phases=1 conn=wye kv=7.9677 kw=9.443 kvar=4.573453636 daily=3136_loadcurve
+new object=load.load_3137 bus1=t_bus3137_l.1 phases=1 conn=wye kv=7.9677 kw=13.759 kvar=2.793884112 daily=3137_loadcurve
+new object=load.load_3138 bus1=t_bus3138_l.1 phases=1 conn=wye kv=7.9677 kw=8.522 kvar=3.630356798 daily=3138_loadcurve
+new object=load.load_3139 bus1=t_bus3139_l.1 phases=1 conn=wye kv=7.9677 kw=0 kvar=0 daily=3139_loadcurve
+new object=load.load_3141 bus1=t_bus3141_l.3 phases=1 conn=wye kv=7.9677 kw=4.915 kvar=0.998033317 daily=3141_loadcurve
+new object=load.load_3142 bus1=t_bus3142_l.3 phases=1 conn=wye kv=7.9677 kw=4.017 kvar=1.006755099 daily=3142_loadcurve
+new object=load.load_3143 bus1=t_bus3143_l.3 phases=1 conn=wye kv=7.9677 kw=7.716 kvar=2.536126556 daily=3143_loadcurve
+new object=load.load_3144 bus1=t_bus3144_l.3 phases=1 conn=wye kv=7.9677 kw=0.482 kvar=0.219605688 daily=3144_loadcurve
+new object=load.load_3145 bus1=t_bus3145_l.3 phases=1 conn=wye kv=7.9677 kw=1.782 kvar=0.863061991 daily=3145_loadcurve
+new object=load.load_3146 bus1=t_bus3146_l.3 phases=1 conn=wye kv=7.9677 kw=1.616 kvar=0.736271352 daily=3146_loadcurve
+new object=load.load_3147 bus1=t_bus3147_l.3 phases=1 conn=wye kv=7.9677 kw=8.324 kvar=4.031497201 daily=3147_loadcurve
+new object=load.load_3148 bus1=t_bus3148_l.3 phases=1 conn=wye kv=7.9677 kw=9.987 kvar=4.550211628 daily=3148_loadcurve
+new object=load.load_3149 bus1=t_bus3149_l.3 phases=1 conn=wye kv=7.9677 kw=2.029 kvar=0.864350381 daily=3149_loadcurve
+new object=load.load_3150 bus1=t_bus3150_l.3 phases=1 conn=wye kv=7.9677 kw=2.602 kvar=0.652122671 daily=3150_loadcurve
+new object=load.load_3151 bus1=t_bus3151_l.3 phases=1 conn=wye kv=7.9677 kw=1.686 kvar=0.554161401 daily=3151_loadcurve
+new object=load.load_3152 bus1=t_bus3152_l.3 phases=1 conn=wye kv=7.9677 kw=1.934 kvar=0.936678951 daily=3152_loadcurve
+new object=load.load_3153 bus1=t_bus3153_l.3 phases=1 conn=wye kv=7.9677 kw=5.976 kvar=2.894308899 daily=3153_loadcurve
+new object=load.load_3154 bus1=t_bus3154_l.3 phases=1 conn=wye kv=7.9677 kw=4.836 kvar=0.689092679 daily=3154_loadcurve
+new object=load.load_3155 bus1=t_bus3155_l.3 phases=1 conn=wye kv=7.9677 kw=1.477 kvar=0.485466423 daily=3155_loadcurve
+new object=load.load_3157 bus1=t_bus3157_l.3 phases=1 conn=wye kv=7.9677 kw=9.74 kvar=4.149222625 daily=3157_loadcurve
+new object=load.load_3158 bus1=t_bus3158_l.3 phases=1 conn=wye kv=7.9677 kw=6.517 kvar=1.63331416 daily=3158_loadcurve
+new object=load.load_3159 bus1=t_bus3159_l.3 phases=1 conn=wye kv=7.9677 kw=9.776 kvar=4.454077187 daily=3159_loadcurve
+new object=load.load_3160 bus1=t_bus3160_l.3 phases=1 conn=wye kv=7.9677 kw=4.252 kvar=1.397564815 daily=3160_loadcurve
+new object=load.load_3161 bus1=t_bus3161_l.3 phases=1 conn=wye kv=7.9677 kw=2.744 kvar=0.390998824 daily=3161_loadcurve
+new object=load.load_3162 bus1=t_bus3162_l.3 phases=1 conn=wye kv=7.9677 kw=3.75 kvar=0.761469977 daily=3162_loadcurve
+new object=capacitor.cap_201 bus1=bus2038.1.2.3 phases=3 kv=13.80000 kvar=50.00000000 enabled=yes
+new object=capacitor.cap_301 bus1=bus3079.1.2.3 phases=3 kv=13.80000 kvar=50.00000000 enabled=yes
+new object=loadshape.pvscaling1 mult=(0,0,0,0,0,0,0,0.084654201,0.4084613,0.676864065,0.859273011,0.976124644,1,0.934483244,0.778657014,0.531155984,0.209112825,0,0,0,0,0,0,0)
+new object=pvsystem.pv1 bus1=bus1009.1.2.3 phases=3 kv=13.8 conn=wye irradiance=1 pmpp=110 kva=100 pf=1 balanced=true limitcurrent=true vminpu=0.9090909 daily=pvscaling1
+new object=storage.bat1 bus1=bus1009.1.2.3 phases=3 kv=13.8 kwhstored=200 kwhrated=200 kwrated=100 kva=100 kvar=100 %charge=100 %discharge=100 %effcharge=100 %effdischarge=100 %idlingkw=1 %r=0 %x=50
+new object=pvsystem.pv2 bus1=bus2027.1.2.3 phases=3 kv=13.8 conn=wye irradiance=1 pmpp=110 kva=100 pf=1 balanced=true limitcurrent=true vminpu=0.9090909 daily=pvscaling1
+new object=storage.bat2 bus1=bus2027.1.2.3 phases=3 kv=13.8 kwhstored=800 kwhrated=800 kwrated=400 kva=400 kvar=400 %charge=100 %discharge=100 %effcharge=100 %effdischarge=100 %idlingkw=1 %r=0 %x=50
+new object=pvsystem.pv3 bus1=bus3030.1.2.3 phases=3 kv=13.8 conn=wye irradiance=1 pmpp=110 kva=100 pf=1 balanced=true limitcurrent=true vminpu=0.9090909 daily=pvscaling1
+new object=storage.bat3 bus1=bus3030.1.2.3 phases=3 kv=13.8 kwhstored=800 kwhrated=800 kwrated=400 kva=400 kvar=400 %charge=100 %discharge=100 %effcharge=100 %effdischarge=100 %idlingkw=1 %r=0 %x=50
+new object=pvsystem.pv4 bus1=bus3082.1.2.3 phases=3 kv=13.8 conn=wye irradiance=1 pmpp=110 kva=100 pf=1 balanced=true limitcurrent=true vminpu=0.9090909 daily=pvscaling1
+new object=generator.gen3 bus1=t_bus3082_l.1.2.3 phases=3 kv=0.48 pf=1 conn=wye kw=750 kvar=0 xdp=0.15 h=1.5 d=1.0
+makebuslist
+setbusxy bus=bus1 x=-82.11708769267223 y=30.088114154560138
+setbusxy bus=eq_source_bus x=-82.11428769267222 y=30.09011415456014
+setbusxy bus=bus1001 x=-82.12038769267222 y=30.08251415456014
+setbusxy bus=bus1002 x=-82.13328769267223 y=30.09321415456014
+setbusxy bus=bus1003 x=-82.13328769267223 y=30.08571415456014
+setbusxy bus=bus1004 x=-82.14458769267223 y=30.09321415456014
+setbusxy bus=bus1005 x=-82.15828769267223 y=30.09321415456014
+setbusxy bus=bus1006 x=-82.17078769267222 y=30.09321415456014
+setbusxy bus=bus1007 x=-82.17078769267222 y=30.08191415456014
+setbusxy bus=bus1008 x=-82.18518769267223 y=30.09321415456014
+setbusxy bus=bus1009 x=-82.19828769267222 y=30.09321415456014
+setbusxy bus=bus1010 x=-82.20828769267223 y=30.09321415456014
+setbusxy bus=bus1011 x=-82.19828769267222 y=30.08191415456014
+setbusxy bus=bus1012 x=-82.19828769267222 y=30.073214154560137
+setbusxy bus=bus1013 x=-82.19828769267222 y=30.06441415456014
+setbusxy bus=bus1014 x=-82.18378769267223 y=30.06441415456014
+setbusxy bus=bus1015 x=-82.17378769267222 y=30.06441415456014
+setbusxy bus=bus1016 x=-82.19828769267222 y=30.05691415456014
+setbusxy bus=bus1017 x=-82.19828769267222 y=30.04941415456014
+setbusxy bus=bus2001 x=-82.11708769267223 y=30.074414154560138
+setbusxy bus=bus2002 x=-82.12668769267222 y=30.02791415456014
+setbusxy bus=bus2003 x=-82.13928769267223 y=30.02791415456014
+setbusxy bus=bus2004 x=-82.15158769267222 y=30.02791415456014
+setbusxy bus=bus2005 x=-82.16458769267223 y=30.02791415456014
+setbusxy bus=bus2006 x=-82.17688769267222 y=30.02791415456014
+setbusxy bus=bus2007 x=-82.17678769267222 y=30.03461415456014
+setbusxy bus=bus2008 x=-82.18568769267222 y=30.03461415456014
+setbusxy bus=bus2009 x=-82.17678769267222 y=30.04141415456014
+setbusxy bus=bus2010 x=-82.18548769267223 y=30.02791415456014
+setbusxy bus=bus2011 x=-82.19518769267222 y=30.02791415456014
+setbusxy bus=bus2012 x=-82.19908769267222 y=30.02311415456014
+setbusxy bus=bus2013 x=-82.19918769267223 y=30.016514154560138
+setbusxy bus=bus2014 x=-82.19918769267223 y=30.008914154560138
+setbusxy bus=bus2015 x=-82.20818769267223 y=30.008914154560138
+setbusxy bus=bus2016 x=-82.19918769267223 y=30.00181415456014
+setbusxy bus=bus2017 x=-82.19918769267223 y=29.99451415456014
+setbusxy bus=bus2018 x=-82.19918769267223 y=29.98721415456014
+setbusxy bus=bus2019 x=-82.18998769267222 y=30.016614154560138
+setbusxy bus=bus2020 x=-82.18998769267222 y=30.010614154560137
+setbusxy bus=bus2021 x=-82.18188769267222 y=30.016514154560138
+setbusxy bus=bus2022 x=-82.18188769267222 y=30.00931415456014
+setbusxy bus=bus2023 x=-82.18188769267222 y=30.00201415456014
+setbusxy bus=bus2024 x=-82.18188769267222 y=29.99471415456014
+setbusxy bus=bus2025 x=-82.18188769267222 y=29.98741415456014
+setbusxy bus=bus2026 x=-82.17428769267222 y=30.016614154560138
+setbusxy bus=bus2027 x=-82.16638769267223 y=30.016614154560138
+setbusxy bus=bus2028 x=-82.16638769267223 y=30.01091415456014
+setbusxy bus=bus2029 x=-82.16648769267222 y=30.00521415456014
+setbusxy bus=bus2030 x=-82.16648769267222 y=29.99941415456014
+setbusxy bus=bus2031 x=-82.16648769267222 y=29.993714154560138
+setbusxy bus=bus2032 x=-82.15618769267222 y=30.016614154560138
+setbusxy bus=bus2033 x=-82.14628769267223 y=30.016614154560138
+setbusxy bus=bus2034 x=-82.14628769267223 y=30.01001415456014
+setbusxy bus=bus2035 x=-82.13768769267223 y=30.016514154560138
+setbusxy bus=bus2036 x=-82.12928769267222 y=30.016614154560138
+setbusxy bus=bus2037 x=-82.12018769267223 y=30.016614154560138
+setbusxy bus=bus2038 x=-82.12018769267223 y=30.010514154560138
+setbusxy bus=bus2039 x=-82.12018769267223 y=30.00191415456014
+setbusxy bus=bus2040 x=-82.11158769267223 y=30.00191415456014
+setbusxy bus=bus2041 x=-82.10348769267223 y=30.00191415456014
+setbusxy bus=bus2042 x=-82.12018769267223 y=29.99601415456014
+setbusxy bus=bus2043 x=-82.12018769267223 y=29.98841415456014
+setbusxy bus=bus2044 x=-82.13468769267223 y=29.98841415456014
+setbusxy bus=bus2045 x=-82.13468769267223 y=29.99501415456014
+setbusxy bus=bus2046 x=-82.13468769267223 y=30.00211415456014
+setbusxy bus=bus2047 x=-82.14388769267222 y=29.99501415456014
+setbusxy bus=bus2048 x=-82.15308769267223 y=29.99501415456014
+setbusxy bus=bus2049 x=-82.14358769267223 y=29.98841415456014
+setbusxy bus=bus2050 x=-82.15218769267223 y=29.98841415456014
+setbusxy bus=bus2051 x=-82.16068769267223 y=29.98831415456014
+setbusxy bus=bus2052 x=-82.16068769267223 y=29.980214154560137
+setbusxy bus=bus2053 x=-82.13468769267223 y=29.97311415456014
+setbusxy bus=bus2054 x=-82.14448769267223 y=29.97311415456014
+setbusxy bus=bus2055 x=-82.15388769267223 y=29.97311415456014
+setbusxy bus=bus2056 x=-82.16368769267223 y=29.97311415456014
+setbusxy bus=bus2057 x=-82.13468769267223 y=29.966114154560138
+setbusxy bus=bus2058 x=-82.12328769267222 y=29.966114154560138
+setbusxy bus=bus2059 x=-82.14508769267222 y=29.966114154560138
+setbusxy bus=bus2060 x=-82.15468769267223 y=29.966114154560138
+setbusxy bus=bus3001 x=-82.11398769267223 y=30.082314154560137
+setbusxy bus=bus3002 x=-82.09728769267223 y=30.07371415456014
+setbusxy bus=bus3003 x=-82.09728769267223 y=30.080614154560138
+setbusxy bus=bus3004 x=-82.09728769267223 y=30.08641415456014
+setbusxy bus=bus3005 x=-82.08868769267222 y=30.080614154560138
+setbusxy bus=bus3006 x=-82.08868769267222 y=30.091214154560138
+setbusxy bus=bus3007 x=-82.08868769267222 y=30.09921415456014
+setbusxy bus=bus3008 x=-82.07608769267223 y=30.06621415456014
+setbusxy bus=bus3009 x=-82.07618769267222 y=30.07251415456014
+setbusxy bus=bus3010 x=-82.07608769267223 y=30.079114154560138
+setbusxy bus=bus3011 x=-82.07618769267222 y=30.08571415456014
+setbusxy bus=bus3012 x=-82.07608769267223 y=30.09231415456014
+setbusxy bus=bus3013 x=-82.07618769267222 y=30.05981415456014
+setbusxy bus=bus3014 x=-82.07608769267223 y=30.05271415456014
+setbusxy bus=bus3015 x=-82.06438769267223 y=30.06621415456014
+setbusxy bus=bus3016 x=-82.06428769267222 y=30.05961415456014
+setbusxy bus=bus3017 x=-82.06428769267222 y=30.053114154560138
+setbusxy bus=bus3018 x=-82.06428769267222 y=30.072814154560138
+setbusxy bus=bus3019 x=-82.06428769267222 y=30.079314154560137
+setbusxy bus=bus3020 x=-82.06428769267222 y=30.08591415456014
+setbusxy bus=bus3021 x=-82.06428769267222 y=30.09241415456014
+setbusxy bus=bus3022 x=-82.05238769267223 y=30.06621415456014
+setbusxy bus=bus3023 x=-82.05238769267223 y=30.05971415456014
+setbusxy bus=bus3024 x=-82.05238769267223 y=30.053314154560137
+setbusxy bus=bus3025 x=-82.05238769267223 y=30.04681415456014
+setbusxy bus=bus3026 x=-82.05238769267223 y=30.07271415456014
+setbusxy bus=bus3027 x=-82.05238769267223 y=30.079314154560137
+setbusxy bus=bus3028 x=-82.05238769267223 y=30.08591415456014
+setbusxy bus=bus3029 x=-82.05238769267223 y=30.09241415456014
+setbusxy bus=bus3030 x=-82.03968769267223 y=30.06621415456014
+setbusxy bus=bus3031 x=-82.03968769267223 y=30.06121415456014
+setbusxy bus=bus3032 x=-82.03968769267223 y=30.056114154560138
+setbusxy bus=bus3033 x=-82.03968769267223 y=30.05111415456014
+setbusxy bus=bus3034 x=-82.03968769267223 y=30.04601415456014
+setbusxy bus=bus3035 x=-82.03978769267222 y=30.07261415456014
+setbusxy bus=bus3036 x=-82.03958769267223 y=30.078914154560138
+setbusxy bus=bus3037 x=-82.03978769267222 y=30.085314154560137
+setbusxy bus=bus3038 x=-82.03978769267222 y=30.09161415456014
+setbusxy bus=bus3039 x=-82.03968769267223 y=30.09801415456014
+setbusxy bus=bus3040 x=-82.02718769267223 y=30.06621415456014
+setbusxy bus=bus3041 x=-82.02718769267223 y=30.060814154560138
+setbusxy bus=bus3042 x=-82.02718769267223 y=30.05541415456014
+setbusxy bus=bus3043 x=-82.02718769267223 y=30.050014154560138
+setbusxy bus=bus3044 x=-82.02718769267223 y=30.07241415456014
+setbusxy bus=bus3045 x=-82.02718769267223 y=30.07841415456014
+setbusxy bus=bus3046 x=-82.01348769267223 y=30.06621415456014
+setbusxy bus=bus3047 x=-82.01348769267223 y=30.07371415456014
+setbusxy bus=bus3048 x=-82.01058769267223 y=30.06131415456014
+setbusxy bus=bus3049 x=-82.00228769267223 y=30.06131415456014
+setbusxy bus=bus3050 x=-81.99408769267222 y=30.06131415456014
+setbusxy bus=bus3051 x=-81.98588769267222 y=30.06131415456014
+setbusxy bus=bus3052 x=-81.97768769267222 y=30.06121415456014
+setbusxy bus=bus3053 x=-82.02718769267223 y=30.10001415456014
+setbusxy bus=bus3054 x=-82.02718769267223 y=30.09401415456014
+setbusxy bus=bus3055 x=-82.01218769267223 y=30.10001415456014
+setbusxy bus=bus3056 x=-82.00728769267222 y=30.10411415456014
+setbusxy bus=bus3057 x=-82.00008769267222 y=30.10411415456014
+setbusxy bus=bus3058 x=-81.99298769267223 y=30.10411415456014
+setbusxy bus=bus3059 x=-81.98578769267222 y=30.10411415456014
+setbusxy bus=bus3060 x=-81.97858769267222 y=30.10411415456014
+setbusxy bus=bus3061 x=-81.97138769267222 y=30.10411415456014
+setbusxy bus=bus3062 x=-82.00698769267223 y=30.09341415456014
+setbusxy bus=bus3063 x=-81.99988769267223 y=30.09341415456014
+setbusxy bus=bus3064 x=-81.99278769267222 y=30.09351415456014
+setbusxy bus=bus3065 x=-81.98568769267223 y=30.09341415456014
+setbusxy bus=bus3066 x=-81.97848769267223 y=30.09341415456014
+setbusxy bus=bus3067 x=-81.97138769267222 y=30.09341415456014
+setbusxy bus=bus3068 x=-82.03968769267223 y=30.04031415456014
+setbusxy bus=bus3069 x=-82.05578769267223 y=30.04031415456014
+setbusxy bus=bus3070 x=-82.05578769267223 y=30.034814154560138
+setbusxy bus=bus3071 x=-82.05578769267223 y=30.02921415456014
+setbusxy bus=bus3072 x=-82.05578769267223 y=30.02371415456014
+setbusxy bus=bus3073 x=-82.06468769267222 y=30.04031415456014
+setbusxy bus=bus3074 x=-82.07248769267223 y=30.04031415456014
+setbusxy bus=bus3075 x=-82.03178769267222 y=30.04031415456014
+setbusxy bus=bus3076 x=-82.02258769267222 y=30.04031415456014
+setbusxy bus=bus3077 x=-82.01498769267222 y=30.04031415456014
+setbusxy bus=bus3078 x=-82.00738769267222 y=30.04031415456014
+setbusxy bus=bus3079 x=-82.02258769267222 y=30.03281415456014
+setbusxy bus=bus3080 x=-82.02258769267222 y=30.02631415456014
+setbusxy bus=bus3081 x=-82.03018769267223 y=30.02631415456014
+setbusxy bus=bus3082 x=-82.02258769267222 y=30.02001415456014
+setbusxy bus=bus3083 x=-82.03128769267222 y=30.02001415456014
+setbusxy bus=bus3084 x=-82.03998769267223 y=30.02001415456014
+setbusxy bus=bus3085 x=-82.04868769267223 y=30.02001415456014
+setbusxy bus=bus3086 x=-82.05738769267222 y=30.02001415456014
+setbusxy bus=bus3087 x=-82.06608769267223 y=30.02001415456014
+setbusxy bus=bus3088 x=-82.07478769267223 y=30.02001415456014
+setbusxy bus=bus3089 x=-82.08348769267222 y=30.02001415456014
+setbusxy bus=bus3090 x=-82.09218769267223 y=30.02001415456014
+setbusxy bus=bus3091 x=-82.10088769267223 y=30.02001415456014
+setbusxy bus=bus3092 x=-82.00178769267222 y=30.02001415456014
+setbusxy bus=bus3093 x=-82.00158769267223 y=30.02511415456014
+setbusxy bus=bus3094 x=-82.00188769267223 y=30.030214154560138
+setbusxy bus=bus3095 x=-82.00178769267222 y=30.03531415456014
+setbusxy bus=bus3096 x=-82.00178769267222 y=30.04041415456014
+setbusxy bus=bus3097 x=-82.00178769267222 y=30.045514154560138
+setbusxy bus=bus3098 x=-82.00178769267222 y=30.013414154560138
+setbusxy bus=bus3099 x=-82.00178769267222 y=30.007714154560137
+setbusxy bus=bus3100 x=-81.99138769267222 y=30.02011415456014
+setbusxy bus=bus3101 x=-81.98368769267222 y=30.02011415456014
+setbusxy bus=bus3102 x=-81.97698769267222 y=30.02011415456014
+setbusxy bus=bus3103 x=-81.97108769267223 y=30.02011415456014
+setbusxy bus=bus3104 x=-81.99138769267222 y=30.027314154560138
+setbusxy bus=bus3105 x=-81.99148769267222 y=30.03291415456014
+setbusxy bus=bus3106 x=-81.99138769267222 y=30.03881415456014
+setbusxy bus=bus3107 x=-82.02248769267223 y=30.007514154560138
+setbusxy bus=bus3108 x=-82.03258769267222 y=30.007514154560138
+setbusxy bus=bus3109 x=-82.04158769267222 y=30.007514154560138
+setbusxy bus=bus3110 x=-82.05258769267222 y=30.007514154560138
+setbusxy bus=bus3111 x=-82.06258769267222 y=30.007514154560138
+setbusxy bus=bus3112 x=-82.07158769267222 y=30.007514154560138
+setbusxy bus=bus3113 x=-82.03598769267222 y=29.999714154560138
+setbusxy bus=bus3114 x=-82.03598769267222 y=29.993614154560138
+setbusxy bus=bus3115 x=-82.03598769267222 y=29.98741415456014
+setbusxy bus=bus3116 x=-82.04678769267223 y=29.99961415456014
+setbusxy bus=bus3117 x=-82.05678769267223 y=29.999714154560138
+setbusxy bus=bus3118 x=-82.00868769267223 y=29.992414154560137
+setbusxy bus=bus3119 x=-81.99458769267223 y=29.992414154560137
+setbusxy bus=bus3120 x=-81.99458769267223 y=29.99901415456014
+setbusxy bus=bus3121 x=-81.99448769267222 y=30.00551415456014
+setbusxy bus=bus3122 x=-81.99448769267222 y=30.01171415456014
+setbusxy bus=bus3123 x=-81.98588769267222 y=29.99251415456014
+setbusxy bus=bus3124 x=-81.97808769267222 y=29.99251415456014
+setbusxy bus=bus3125 x=-81.97058769267223 y=29.99251415456014
+setbusxy bus=bus3126 x=-81.96258769267223 y=29.99251415456014
+setbusxy bus=bus3127 x=-81.96258769267223 y=29.99791415456014
+setbusxy bus=bus3128 x=-81.96258769267223 y=30.00331415456014
+setbusxy bus=bus3129 x=-81.96258769267223 y=30.00871415456014
+setbusxy bus=bus3130 x=-81.96258769267223 y=30.01411415456014
+setbusxy bus=bus3131 x=-81.96258769267223 y=30.019614154560138
+setbusxy bus=bus3132 x=-82.00878769267223 y=29.98431415456014
+setbusxy bus=bus3133 x=-82.00868769267223 y=29.97621415456014
+setbusxy bus=bus3134 x=-81.99698769267222 y=29.97621415456014
+setbusxy bus=bus3135 x=-81.98658769267223 y=29.97621415456014
+setbusxy bus=bus3136 x=-81.97698769267222 y=29.97621415456014
+setbusxy bus=bus3137 x=-82.00858769267222 y=29.97001415456014
+setbusxy bus=bus3138 x=-82.00858769267222 y=29.96371415456014
+setbusxy bus=bus3139 x=-82.00868769267223 y=29.957414154560137
+setbusxy bus=bus3140 x=-82.04618769267222 y=29.977114154560137
+setbusxy bus=bus3141 x=-82.03808769267222 y=29.976914154560138
+setbusxy bus=bus3142 x=-82.02998769267222 y=29.976914154560138
+setbusxy bus=bus3143 x=-82.02198769267223 y=29.977014154560138
+setbusxy bus=bus3144 x=-82.03918769267223 y=29.963214154560138
+setbusxy bus=bus3145 x=-82.03238769267223 y=29.963214154560138
+setbusxy bus=bus3146 x=-82.02558769267222 y=29.963214154560138
+setbusxy bus=bus3147 x=-82.01878769267222 y=29.963214154560138
+setbusxy bus=bus3148 x=-82.05358769267222 y=29.976914154560138
+setbusxy bus=bus3149 x=-82.06098769267223 y=29.976914154560138
+setbusxy bus=bus3150 x=-82.06828769267223 y=29.976914154560138
+setbusxy bus=bus3151 x=-82.07568769267222 y=29.976914154560138
+setbusxy bus=bus3152 x=-82.08308769267222 y=29.976914154560138
+setbusxy bus=bus3153 x=-82.09048769267223 y=29.976914154560138
+setbusxy bus=bus3154 x=-82.09788769267223 y=29.977014154560138
+setbusxy bus=bus3155 x=-82.10528769267222 y=29.977014154560138
+setbusxy bus=bus3156 x=-82.04588769267222 y=29.963214154560138
+setbusxy bus=bus3157 x=-82.05328769267223 y=29.963214154560138
+setbusxy bus=bus3158 x=-82.06058769267223 y=29.963214154560138
+setbusxy bus=bus3159 x=-82.06798769267222 y=29.963214154560138
+setbusxy bus=bus3160 x=-82.07528769267222 y=29.963214154560138
+setbusxy bus=bus3161 x=-82.08258769267222 y=29.963214154560138
+setbusxy bus=bus3162 x=-82.08998769267222 y=29.963214154560138
+setbusxy bus=bus_xfmr x=-82.11549516447589 y=30.089664210448316
+setbusxy bus=t_bus1003_l x=-82.13399227352068 y=30.08500453083732
+setbusxy bus=t_bus1004_l x=-82.14533157399735 y=30.0925458428259
+setbusxy bus=t_bus1005_l x=-82.15732310909837 y=30.09347793198343
+setbusxy bus=t_bus1006_l x=-82.17036804465475 y=30.09412184147832
+setbusxy bus=t_bus1007_l x=-82.16984978223718 y=30.081567277037333
+setbusxy bus=t_bus1008_l x=-82.18591418369918 y=30.092526978609055
+setbusxy bus=t_bus1009_l x=-82.19867049668672 y=30.09413798413668
+setbusxy bus=t_bus1010_l x=-82.20915269711382 y=30.09371591876375
+setbusxy bus=t_bus1011_l x=-82.1972893842402 y=30.081856014431793
+setbusxy bus=t_bus1012_l x=-82.19814694211348 y=30.07222410947015
+setbusxy bus=t_bus1013_l x=-82.19847363750692 y=30.063431594374478
+setbusxy bus=t_bus1014_l x=-82.18308205070517 y=30.063705585993006
+setbusxy bus=t_bus1015_l x=-82.17456329054146 y=30.065045381892595
+setbusxy bus=t_bus1016_l x=-82.19913467701502 y=30.057445772395663
+setbusxy bus=t_bus1017_l x=-82.19915063273609 y=30.048908848270674
+setbusxy bus=t_bus2002_l x=-82.12571691440522 y=30.02767417631881
+setbusxy bus=t_bus2003_l x=-82.1396333315073 y=30.02885252218303
+setbusxy bus=t_bus2005_l x=-82.16553014275858 y=30.027579807682283
+setbusxy bus=t_bus2008_l x=-82.1856405045822 y=30.033615268538533
+setbusxy bus=t_bus2009_l x=-82.17741296085185 y=30.042194564518773
+setbusxy bus=t_bus2010_l x=-82.18449398082161 y=30.027802186895386
+setbusxy bus=t_bus2011_l x=-82.19420137593336 y=30.02774929313155
+setbusxy bus=t_bus2014_l x=-82.19841931720057 y=30.009554153884025
+setbusxy bus=t_bus2015_l x=-82.20901635190856 y=30.009473907961244
+setbusxy bus=t_bus2016_l x=-82.19995769950309 y=30.002452190202117
+setbusxy bus=t_bus2017_l x=-82.19988196206296 y=29.99379443932959
+setbusxy bus=t_bus2018_l x=-82.19964744074538 y=29.988102203944592
+setbusxy bus=t_bus2020_l x=-82.18899370839326 y=30.010723677403277
+setbusxy bus=t_bus2022_l x=-82.18194007253712 y=30.01031278179277
+setbusxy bus=t_bus2023_l x=-82.18090662614365 y=30.002207825586638
+setbusxy bus=t_bus2024_l x=-82.1808934417489 y=29.994607079345986
+setbusxy bus=t_bus2025_l x=-82.18090222353919 y=29.987584009168106
+setbusxy bus=t_bus2028_l x=-82.16708381145209 y=30.01163208118893
+setbusxy bus=t_bus2029_l x=-82.16614210439968 y=30.00615254080571
+setbusxy bus=t_bus2030_l x=-82.16732629157443 y=29.99995890393484
+setbusxy bus=t_bus2031_l x=-82.16674118213301 y=29.99274681641178
+setbusxy bus=t_bus2032_l x=-82.15613891579441 y=30.017612964259826
+setbusxy bus=t_bus2034_l x=-82.14568856231247 y=30.010814806052377
+setbusxy bus=t_bus2035_l x=-82.13868756963991 y=30.01652984052445
+setbusxy bus=t_bus2037_l x=-82.12070230923247 y=30.01575673412889
+setbusxy bus=t_bus2040_l x=-82.11208891049694 y=30.002779475709886
+setbusxy bus=t_bus2041_l x=-82.10414001668934 y=30.00115621434041
+setbusxy bus=t_bus2042_l x=-82.12101009840215 y=29.99544525314919
+setbusxy bus=t_bus2043_l x=-82.11924348033128 y=29.98874349185714
+setbusxy bus=t_bus2045_l x=-82.13439880074945 y=29.99597151627702
+setbusxy bus=t_bus2046_l x=-82.1347931367191 y=30.001119729322635
+setbusxy bus=t_bus2047_l x=-82.14455676946353 y=29.994270961282897
+setbusxy bus=t_bus2048_l x=-82.15399019737254 y=29.994583474556055
+setbusxy bus=t_bus2049_l x=-82.14296982282993 y=29.989200434954128
+setbusxy bus=t_bus2050_l x=-82.1531232382879 y=29.988767360450513
+setbusxy bus=t_bus2051_l x=-82.1598429114312 y=29.987779042744894
+setbusxy bus=t_bus2052_l x=-82.16164477874189 y=29.98050395838217
+setbusxy bus=t_bus2053_l x=-82.13559924775474 y=29.97352533254051
+setbusxy bus=t_bus2054_l x=-82.14463210974729 y=29.972124637653547
+setbusxy bus=t_bus2055_l x=-82.15384577147422 y=29.97211503363995
+setbusxy bus=t_bus2056_l x=-82.16270599016192 y=29.973304575623214
+setbusxy bus=t_bus2058_l x=-82.1235297539768 y=29.967084415517217
+setbusxy bus=t_bus2059_l x=-82.14595208093513 y=29.966616979510732
+setbusxy bus=t_bus2060_l x=-82.15531578164614 y=29.96533601303005
+setbusxy bus=t_bus3002_l x=-82.09711512933578 y=30.07469915298395
+setbusxy bus=t_bus3004_l x=-82.09684460043054 y=30.085517678534043
+setbusxy bus=t_bus3006_l x=-82.08771772052037 y=30.0914573705642
+setbusxy bus=t_bus3007_l x=-82.08786683811138 y=30.099785291837808
+setbusxy bus=t_bus3009_l x=-82.07567569019359 y=30.07165517058947
+setbusxy bus=t_bus3010_l x=-82.07511678129507 y=30.078874715428636
+setbusxy bus=t_bus3011_l x=-82.07533689969321 y=30.085188653554557
+setbusxy bus=t_bus3012_l x=-82.07508838728174 y=30.09235142031589
+setbusxy bus=t_bus3013_l x=-82.07691527693426 y=30.059128136235575
+setbusxy bus=t_bus3014_l x=-82.0764637024903 y=30.053640770239216
+setbusxy bus=t_bus3016_l x=-82.0643240841869 y=30.060613492169587
+setbusxy bus=t_bus3017_l x=-82.06369128847868 y=30.053916838830524
+setbusxy bus=t_bus3018_l x=-82.0641536049892 y=30.073805124031544
+setbusxy bus=t_bus3019_l x=-82.0652867843729 y=30.079356766455714
+setbusxy bus=t_bus3020_l x=-82.06361822385432 y=30.086656994719164
+setbusxy bus=t_bus3021_l x=-82.0649670759016 y=30.091680370921978
+setbusxy bus=t_bus3023_l x=-82.05293529011938 y=30.05887741264301
+setbusxy bus=t_bus3024_l x=-82.05146738800292 y=30.052922952162834
+setbusxy bus=t_bus3025_l x=-82.0525129858807 y=30.045822034803297
+setbusxy bus=t_bus3026_l x=-82.0525174499118 y=30.073705700352715
+setbusxy bus=t_bus3027_l x=-82.05201893457665 y=30.078384629161373
+setbusxy bus=t_bus3028_l x=-82.05188732716977 y=30.08504834028216
+setbusxy bus=t_bus3029_l x=-82.05151559988582 y=30.091924814012152
+setbusxy bus=t_bus3031_l x=-82.04024984362789 y=30.062041189204542
+setbusxy bus=t_bus3032_l x=-82.03953122021397 y=30.055126472237827
+setbusxy bus=t_bus3033_l x=-82.04038559106017 y=30.05183035134881
+setbusxy bus=t_bus3034_l x=-82.03945120774108 y=30.046985789716636
+setbusxy bus=t_bus3035_l x=-82.03944185678489 y=30.073552449577193
+setbusxy bus=t_bus3036_l x=-82.04028469257362 y=30.079631225782155
+setbusxy bus=t_bus3037_l x=-82.04078477369593 y=30.085237803841938
+setbusxy bus=t_bus3038_l x=-82.03882208762768 y=30.091874167825075
+setbusxy bus=t_bus3039_l x=-82.03983730147232 y=30.09900289982912
+setbusxy bus=t_bus3041_l x=-82.02804555840883 y=30.06030028066709
+setbusxy bus=t_bus3042_l x=-82.02710525419741 y=30.056410750715997
+setbusxy bus=t_bus3043_l x=-82.02652587562676 y=30.050763819951055
+setbusxy bus=t_bus3044_l x=-82.02655787677895 y=30.071637410110153
+setbusxy bus=t_bus3045_l x=-82.02635259473557 y=30.077864053263845
+setbusxy bus=t_bus3047_l x=-82.01248770325272 y=30.073709554465804
+setbusxy bus=t_bus3048_l x=-82.01155791340614 y=30.06155637703534
+setbusxy bus=t_bus3049_l x=-82.00231837292931 y=30.06231368381025
+setbusxy bus=t_bus3050_l x=-81.99506748321502 y=30.061514180789022
+setbusxy bus=t_bus3051_l x=-81.98685676855698 y=30.061067391658543
+setbusxy bus=t_bus3052_l x=-81.97728444761651 y=30.060299062529225
+setbusxy bus=t_bus3054_l x=-82.0281839722133 y=30.09392797407488
+setbusxy bus=t_bus3056_l x=-82.0064662218393 y=30.103543904026903
+setbusxy bus=t_bus3057_l x=-81.99921014920751 y=30.10363465746157
+setbusxy bus=t_bus3058_l x=-81.99229091543661 y=30.103396866972112
+setbusxy bus=t_bus3059_l x=-81.98647171129497 y=30.103384690014224
+setbusxy bus=t_bus3060_l x=-81.97768382921183 y=30.103686333516997
+setbusxy bus=t_bus3061_l x=-81.97047249262167 y=30.10371115472459
+setbusxy bus=t_bus3062_l x=-82.00666360230765 y=30.094360180688525
+setbusxy bus=t_bus3063_l x=-82.00088096331287 y=30.093529970942548
+setbusxy bus=t_bus3064_l x=-81.99258125594748 y=30.092535694607623
+setbusxy bus=t_bus3065_l x=-81.98628008192229 y=30.09260850266483
+setbusxy bus=t_bus3066_l x=-81.97867638519183 y=30.094396190777925
+setbusxy bus=t_bus3067_l x=-81.9723748296637 y=30.09325427785752
+setbusxy bus=t_bus3070_l x=-82.05675925090114 y=30.035050955336796
+setbusxy bus=t_bus3071_l x=-82.05481370850423 y=30.02898753849606
+setbusxy bus=t_bus3072_l x=-82.05571120503004 y=30.024711225089536
+setbusxy bus=t_bus3073_l x=-82.06421528685873 y=30.0411955357191
+setbusxy bus=t_bus3074_l x=-82.07159610509574 y=30.03986130624839
+setbusxy bus=t_bus3077_l x=-82.01571605234658 y=30.040999349557772
+setbusxy bus=t_bus3078_l x=-82.00725656536993 y=30.041305520098472
+setbusxy bus=t_bus3081_l x=-82.02929772233378 y=30.025858136143093
+setbusxy bus=t_bus3083_l x=-82.03050954887787 y=30.019386068391437
+setbusxy bus=t_bus3084_l x=-82.03901325125881 y=30.020238796345684
+setbusxy bus=t_bus3085_l x=-82.0480375937325 y=30.02077400412984
+setbusxy bus=t_bus3086_l x=-82.05838759434923 y=30.02002817726722
+setbusxy bus=t_bus3087_l x=-82.06508783785141 y=30.020031193847082
+setbusxy bus=t_bus3088_l x=-82.07476533840956 y=30.01901440444789
+setbusxy bus=t_bus3089_l x=-82.08436425297644 y=30.019532862514627
+setbusxy bus=t_bus3090_l x=-82.09315353166895 y=30.01975501167983
+setbusxy bus=t_bus3091_l x=-82.10128665818031 y=30.01909718862655
+setbusxy bus=t_bus3093_l x=-82.0009853503297 y=30.025912392433455
+setbusxy bus=t_bus3094_l x=-82.00288298703668 y=30.03031105207346
+setbusxy bus=t_bus3095_l x=-82.00148649400803 y=30.03626771597121
+setbusxy bus=t_bus3096_l x=-82.00237005043822 y=30.039601221947684
+setbusxy bus=t_bus3097_l x=-82.00150745537856 y=30.04647408531766
+setbusxy bus=t_bus3098_l x=-82.00144166265552 y=30.012475931117912
+setbusxy bus=t_bus3099_l x=-82.0017217277843 y=30.00671633261532
+setbusxy bus=t_bus3101_l x=-81.98465379874297 y=30.020372299984402
+setbusxy bus=t_bus3102_l x=-81.97790424388714 y=30.019714237230616
+setbusxy bus=t_bus3103_l x=-81.97189744449804 y=30.020700927071932
+setbusxy bus=t_bus3104_l x=-81.9913747283223 y=30.026314238600854
+setbusxy bus=t_bus3105_l x=-81.99238262881319 y=30.03336034880439
+setbusxy bus=t_bus3106_l x=-81.9904643902455 y=30.038430080831766
+setbusxy bus=t_bus3108_l x=-82.03222516551604 y=30.006582181351817
+setbusxy bus=t_bus3109_l x=-82.04225976991208 y=30.006773673511308
+setbusxy bus=t_bus3110_l x=-82.0517338599718 y=30.008034702079293
+setbusxy bus=t_bus3111_l x=-82.06162071213427 y=30.00776900478915
+setbusxy bus=t_bus3112_l x=-82.07203384843467 y=30.008409109886195
+setbusxy bus=t_bus3114_l x=-82.03681489014396 y=29.99417606589012
+setbusxy bus=t_bus3115_l x=-82.03525320864242 y=29.986735528588085
+setbusxy bus=t_bus3116_l x=-82.0469744908773 y=29.998631756254674
+setbusxy bus=t_bus3117_l x=-82.05775165691048 y=29.99944812270613
+setbusxy bus=t_bus3120_l x=-81.99358819812922 y=29.998982363704386
+setbusxy bus=t_bus3121_l x=-81.99427328710797 y=30.006490899283193
+setbusxy bus=t_bus3122_l x=-81.9935165511427 y=30.0114756506196
+setbusxy bus=t_bus3123_l x=-81.98687841304762 y=29.99237823863843
+setbusxy bus=t_bus3124_l x=-81.97908390180213 y=29.992601145188946
+setbusxy bus=t_bus3125_l x=-81.97109954502541 y=29.991655081124083
+setbusxy bus=t_bus3126_l x=-81.96342899997376 y=29.993054711702705
+setbusxy bus=t_bus3127_l x=-81.9619813028862 y=29.99711898701339
+setbusxy bus=t_bus3128_l x=-81.96170073767152 y=30.003776010410736
+setbusxy bus=t_bus3129_l x=-81.9616279803513 y=30.008433170110305
+setbusxy bus=t_bus3130_l x=-81.96228934469153 y=30.015068611726498
+setbusxy bus=t_bus3131_l x=-81.96350120156 y=30.019207335789737
+setbusxy bus=t_bus3132_l x=-82.00796031616227 y=29.9837525068852
+setbusxy bus=t_bus3134_l x=-81.99613837628266 y=29.976742038705023
+setbusxy bus=t_bus3135_l x=-81.98754992053236 y=29.97648639993693
+setbusxy bus=t_bus3136_l x=-81.97798595810212 y=29.976155280699412
+setbusxy bus=t_bus3137_l x=-82.0076366631042 y=29.969705054639842
+setbusxy bus=t_bus3138_l x=-82.00761217246925 y=29.963494244729546
+setbusxy bus=t_bus3139_l x=-82.00954379157669 y=29.956897342538433
+setbusxy bus=t_bus3141_l x=-82.03907879777623 y=29.97704723601201
+setbusxy bus=t_bus3142_l x=-82.03063672590523 y=29.97615339450436
+setbusxy bus=t_bus3143_l x=-82.02105640888567 y=29.977378449096072
+setbusxy bus=t_bus3144_l x=-82.03944272110881 y=29.96224722100682
+setbusxy bus=t_bus3145_l x=-82.03259561617352 y=29.964192299650403
+setbusxy bus=t_bus3146_l x=-82.02466283890983 y=29.963594477473197
+setbusxy bus=t_bus3147_l x=-82.01968195286722 y=29.96366170199187
+setbusxy bus=t_bus3148_l x=-82.05343784980849 y=29.977902864384195
+setbusxy bus=t_bus3149_l x=-82.06010562377257 y=29.977385274986627
+setbusxy bus=t_bus3150_l x=-82.06752605018741 y=29.976266157086904
+setbusxy bus=t_bus3151_l x=-82.07618611642135 y=29.977781088102173
+setbusxy bus=t_bus3152_l x=-82.0824011368565 y=29.976187077458388
+setbusxy bus=t_bus3153_l x=-82.09022459934177 y=29.977878924947056
+setbusxy bus=t_bus3154_l x=-82.09808838069621 y=29.977993809763273
+setbusxy bus=t_bus3155_l x=-82.1056536582696 y=29.976083526180208
+setbusxy bus=t_bus3157_l x=-82.0525127349872 y=29.963846167682185
+setbusxy bus=t_bus3158_l x=-82.05976039798965 y=29.962652386362237
+setbusxy bus=t_bus3159_l x=-82.06898652545473 y=29.963165852670162
+setbusxy bus=t_bus3160_l x=-82.07606114805795 y=29.962580303815646
+setbusxy bus=t_bus3161_l x=-82.08339095312422 y=29.963809782502945
+setbusxy bus=t_bus3162_l x=-82.0899345223535 y=29.962215569102
+setbusxy bus=t_bus3082_l x=-82.02159812441212 y=30.02015821933234
+set voltagebases="69.0,13.8,0.208"
+calcvoltagebases
+solve
+new object=energymeter.circuit element=transformer.sub_xfmr
+show quantity=voltage
+setbusxy bus=transformer.sub_xfmr x=-82.08558576101797 y=30.040503838816466
