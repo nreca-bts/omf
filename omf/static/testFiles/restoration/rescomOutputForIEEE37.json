@@ -7,9 +7,9 @@
         "blockgroup": "200910527021",
         "oip score": 0.511728175769596,
         "oip index": 0.6363636363636364,
-        "location-based crit score": 160.1962581831888,
+        "locational crit score": 160.1962581831888,
         "base crit index": 0.9333333333333333,
-        "location-based crit index": 0.8666666666666667
+        "locational crit index": 0.8666666666666667
     },
     "load.s701b": {
         "kva": 156.52475842498527,
@@ -19,9 +19,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 177.59035082575568,
+        "locational crit score": 177.59035082575568,
         "base crit index": 0.9333333333333333,
-        "location-based crit index": 0.9333333333333333
+        "locational crit index": 0.9333333333333333
     },
     "load.s701c": {
         "kva": 391.3118960624632,
@@ -31,9 +31,9 @@
         "blockgroup": "200910527021",
         "oip score": 0.511728175769596,
         "oip index": 0.6363636363636364,
-        "location-based crit score": 400.49064545797205,
+        "locational crit score": 400.49064545797205,
         "base crit index": 1.0,
-        "location-based crit index": 1.0
+        "locational crit index": 1.0
     },
     "load.s712c": {
         "kva": 93.94147114027967,
@@ -43,9 +43,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 106.58440865689163,
+        "locational crit score": 106.58440865689163,
         "base crit index": 0.5,
-        "location-based crit index": 0.7
+        "locational crit index": 0.7
     },
     "load.s713c": {
         "kva": 93.94147114027967,
@@ -55,9 +55,9 @@
         "blockgroup": "200910528041",
         "oip score": 0.30620330545667107,
         "oip index": 0.2727272727272727,
-        "location-based crit score": 57.53037796523221,
+        "locational crit score": 57.53037796523221,
         "base crit index": 0.6,
-        "location-based crit index": 0.5333333333333333
+        "locational crit index": 0.5333333333333333
     },
     "load.s714a": {
         "kva": 18.788294228055936,
@@ -67,9 +67,9 @@
         "blockgroup": "200910528052",
         "oip score": 0.238107250045349,
         "oip index": 0.09090909090909091,
-        "location-based crit score": 8.947258143370604,
+        "locational crit score": 8.947258143370604,
         "base crit index": 0.06666666666666667,
-        "location-based crit index": 0.03333333333333333
+        "locational crit index": 0.03333333333333333
     },
     "load.s714b": {
         "kva": 23.259406699226016,
@@ -79,9 +79,9 @@
         "blockgroup": "200910536033",
         "oip score": 0.2671090893030818,
         "oip index": 0.18181818181818182,
-        "location-based crit score": 12.425597882320522,
+        "locational crit score": 12.425597882320522,
         "base crit index": 0.13333333333333333,
-        "location-based crit index": 0.1
+        "locational crit index": 0.1
     },
     "load.s718a": {
         "kva": 93.94147114027967,
@@ -91,9 +91,9 @@
         "blockgroup": "200910528052",
         "oip score": 0.238107250045349,
         "oip index": 0.09090909090909091,
-        "location-based crit score": 44.73629071685302,
+        "locational crit score": 44.73629071685302,
         "base crit index": 0.5,
-        "location-based crit index": 0.2
+        "locational crit index": 0.2
     },
     "load.s720c": {
         "kva": 93.94147114027967,
@@ -103,9 +103,9 @@
         "blockgroup": "200910528041",
         "oip score": 0.30620330545667107,
         "oip index": 0.2727272727272727,
-        "location-based crit score": 57.53037796523221,
+        "locational crit score": 57.53037796523221,
         "base crit index": 0.6,
-        "location-based crit index": 0.5333333333333333
+        "locational crit index": 0.5333333333333333
     },
     "load.s722b": {
         "kva": 156.52475842498527,
@@ -115,9 +115,9 @@
         "blockgroup": "200910535572",
         "oip score": 0.6274616903773093,
         "oip index": 0.9090909090909091,
-        "location-based crit score": 196.42657901448246,
+        "locational crit score": 196.42657901448246,
         "base crit index": 0.8666666666666667,
-        "location-based crit index": 0.9666666666666667
+        "locational crit index": 0.9666666666666667
     },
     "load.s722c": {
         "kva": 23.259406699226016,
@@ -127,9 +127,9 @@
         "blockgroup": "200910536044",
         "oip score": 0.7328741271031713,
         "oip index": 1.0,
-        "location-based crit score": 34.09243476326584,
+        "locational crit score": 34.09243476326584,
         "base crit index": 0.13333333333333333,
-        "location-based crit index": 0.13333333333333333
+        "locational crit index": 0.13333333333333333
     },
     "load.s724b": {
         "kva": 46.95742752749558,
@@ -139,9 +139,9 @@
         "blockgroup": "200910528032",
         "oip score": 0.49266672264878975,
         "oip index": 0.5454545454545454,
-        "location-based crit score": 46.26872384797862,
+        "locational crit score": 46.26872384797862,
         "base crit index": 0.2,
-        "location-based crit index": 0.23333333333333334
+        "locational crit index": 0.23333333333333334
     },
     "load.s725b": {
         "kva": 46.95742752749558,
@@ -151,9 +151,9 @@
         "blockgroup": "200910528072",
         "oip score": 0.37094213110185553,
         "oip index": 0.36363636363636365,
-        "location-based crit score": 34.83697647622029,
+        "locational crit score": 34.83697647622029,
         "base crit index": 0.2,
-        "location-based crit index": 0.16666666666666666
+        "locational crit index": 0.16666666666666666
     },
     "load.s727c": {
         "kva": 46.95742752749558,
@@ -163,9 +163,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 53.27710524772671,
+        "locational crit score": 53.27710524772671,
         "base crit index": 0.43333333333333335,
-        "location-based crit index": 0.4666666666666667
+        "locational crit index": 0.4666666666666667
     },
     "load.s728": {
         "kva": 140.87228258248675,
@@ -175,9 +175,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 159.83131574318014,
+        "locational crit score": 159.83131574318014,
         "base crit index": 0.8333333333333334,
-        "location-based crit index": 0.8333333333333334
+        "locational crit index": 0.8333333333333334
     },
     "load.s729a": {
         "kva": 46.95742752749558,
@@ -187,9 +187,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 53.27710524772671,
+        "locational crit score": 53.27710524772671,
         "base crit index": 0.3,
-        "location-based crit index": 0.4
+        "locational crit index": 0.4
     },
     "load.s730c": {
         "kva": 93.94147114027967,
@@ -199,9 +199,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 106.58440865689163,
+        "locational crit score": 106.58440865689163,
         "base crit index": 0.7666666666666667,
-        "location-based crit index": 0.7666666666666667
+        "locational crit index": 0.7666666666666667
     },
     "load.s731b": {
         "kva": 93.94147114027967,
@@ -211,9 +211,9 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 106.58440865689163,
+        "locational crit score": 106.58440865689163,
         "base crit index": 0.7,
-        "location-based crit index": 0.7333333333333333
+        "locational crit index": 0.7333333333333333
     },
     "load.s732c": {
         "kva": 46.95742752749558,
@@ -223,9 +223,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 50.244755453754436,
+        "locational crit score": 50.244755453754436,
         "base crit index": 0.3,
-        "location-based crit index": 0.3
+        "locational crit index": 0.3
     },
     "load.s733a": {
         "kva": 93.94147114027967,
@@ -235,9 +235,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 100.51799029334563,
+        "locational crit score": 100.51799029334563,
         "base crit index": 0.7666666666666667,
-        "location-based crit index": 0.6666666666666666
+        "locational crit index": 0.6666666666666666
     },
     "load.s734c": {
         "kva": 46.95742752749558,
@@ -247,9 +247,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 50.244755453754436,
+        "locational crit score": 50.244755453754436,
         "base crit index": 0.43333333333333335,
-        "location-based crit index": 0.36666666666666664
+        "locational crit index": 0.36666666666666664
     },
     "load.s735c": {
         "kva": 93.94147114027967,
@@ -259,9 +259,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 100.51799029334563,
+        "locational crit score": 100.51799029334563,
         "base crit index": 0.7,
-        "location-based crit index": 0.6333333333333333
+        "locational crit index": 0.6333333333333333
     },
     "load.s736b": {
         "kva": 46.95742752749558,
@@ -271,9 +271,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 50.244755453754436,
+        "locational crit score": 50.244755453754436,
         "base crit index": 0.43333333333333335,
-        "location-based crit index": 0.36666666666666664
+        "locational crit index": 0.36666666666666664
     },
     "load.s737a": {
         "kva": 156.52475842498527,
@@ -283,9 +283,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 167.48251817918143,
+        "locational crit score": 167.48251817918143,
         "base crit index": 0.9666666666666667,
-        "location-based crit index": 0.9
+        "locational crit index": 0.9
     },
     "load.s738a": {
         "kva": 140.42791745233566,
@@ -295,9 +295,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 150.25879275735807,
+        "locational crit score": 150.25879275735807,
         "base crit index": 0.8,
-        "location-based crit index": 0.8
+        "locational crit index": 0.8
     },
     "load.s740c": {
         "kva": 93.94147114027967,
@@ -307,9 +307,9 @@
         "blockgroup": "200450012032",
         "oip score": 0.46830950888887146,
         "oip index": 0.45454545454545453,
-        "location-based crit score": 87.98736842800493,
+        "locational crit score": 87.98736842800493,
         "base crit index": 0.7,
-        "location-based crit index": 0.5666666666666667
+        "locational crit index": 0.5666666666666667
     },
     "load.s741c": {
         "kva": 46.95742752749558,
@@ -319,9 +319,9 @@
         "blockgroup": "200910537012",
         "oip score": 0.5350032795592772,
         "oip index": 0.7272727272727273,
-        "location-based crit score": 50.244755453754436,
+        "locational crit score": 50.244755453754436,
         "base crit index": 0.3,
-        "location-based crit index": 0.3
+        "locational crit index": 0.3
     },
     "load.s742a": {
         "kva": 8.94427190999916,
@@ -331,9 +331,9 @@
         "blockgroup": "200910527021",
         "oip score": 0.511728175769596,
         "oip index": 0.6363636363636364,
-        "location-based crit score": 9.154071896182218,
+        "locational crit score": 9.154071896182218,
         "base crit index": 0.03333333333333333,
-        "location-based crit index": 0.06666666666666667
+        "locational crit index": 0.06666666666666667
     },
     "load.s742b": {
         "kva": 93.94147114027967,
@@ -343,9 +343,9 @@
         "blockgroup": "200910527021",
         "oip score": 0.511728175769596,
         "oip index": 0.6363636363636364,
-        "location-based crit score": 96.14499531145492,
+        "locational crit score": 96.14499531145492,
         "base crit index": 0.6,
-        "location-based crit index": 0.6
+        "locational crit index": 0.6
     },
     "load.s744a": {
         "kva": 46.95742752749558,
@@ -355,8 +355,8 @@
         "blockgroup": "200910527022",
         "oip score": 0.5672915665634652,
         "oip index": 0.8181818181818182,
-        "location-based crit score": 53.27710524772671,
+        "locational crit score": 53.27710524772671,
         "base crit index": 0.43333333333333335,
-        "location-based crit index": 0.4666666666666667
+        "locational crit index": 0.4666666666666667
     }
 }

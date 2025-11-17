@@ -70,9 +70,9 @@
 				<label class="tooltip">Feeder Map Coloring By<span class="classic">Determines coloring of loads and equipment on the circuit.<br><br>To change coloring after running the model, go to the top right of the output map and click &quot;Edit&quot; -> &quot;Color circuit&quot;.</span></label>
 				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
 					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
-					<option value="Location-Based Criticality Score" {% if allInputDataDict.loadCol == "Location-Based Criticality Score" %}selected{% endif %}>Location-Based Criticality Score</option>
+					<option value="Locational Criticality Score" {% if allInputDataDict.loadCol == "Locational Criticality Score" %}selected{% endif %}>Locational Criticality Score</option>
 					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
-					<option value="Location-Based Criticality Index" {% if allInputDataDict.loadCol == "Location-Based Criticality Index" %}selected{% endif %}>Location-Based Criticality Index</option>
+					<option value="Locational Criticality Index" {% if allInputDataDict.loadCol == "Locational Criticality Index" %}selected{% endif %}>Locational Criticality Index</option>
 					<option value="Feeder Sections" {% if allInputDataDict.loadCol == "Feeder Sections" %}selected{% endif %}>Feeder Sections</option>
 					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
 				</select>
@@ -115,7 +115,7 @@
 				<p class="inputSectionHeader">Outage Impact Potential (OIP)</p>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties specified in &quot;Properties for oip (.csv file)&quot; are aggregated to create the Custom Impact Metric.</span></label>
+				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties whose weights are specified in &quot;Outage Impact Potential - Customer Variables&quot; and &quot;Outage Impact Potential - Weather Hazards Annualized Frequency&quot; are aggregated to create Outage Impact Potential (OIP).</span></label>
 				<select id="oipAggMethod" name="oipAggMethod" value="{{allInputDataDict.oipAggMethod}}">
 					<option value="Average of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "Average of Min-Max-Normalized" %}selected{% endif %}>Average of Min-Max-Normalized</option>
 					<option value="RMS of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "RMS of Min-Max-Normalized" %}selected{% endif %}>RMS of Min-Max-Normalized</option>

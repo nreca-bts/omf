@@ -1081,8 +1081,8 @@ def getResComInfo(modelDir, pathToOmd, useLci, rescomOutputFilePath):
 		for loadName in completeLoadList:
 			loadData = rescomLoadDict.get(f'load.{loadName}')
 			if loadData != None:
-				lciDict[loadName] = loadData.get('location-based crit index')
-				lcsDict[loadName] = loadData.get('location-based crit score')
+				lciDict[loadName] = loadData.get('locational crit index')
+				lcsDict[loadName] = loadData.get('locational crit score')
 				bcsDict[loadName] = loadData.get('base crit score')
 	return completeLoadList, lciDict, lcsDict, bcsDict
 

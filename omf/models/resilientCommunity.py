@@ -334,8 +334,8 @@ def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccu
 	sections1 = [value.get('section') for value in loadDict.values()]
 	bcsVals1 = [value.get('base crit score') for value in loadDict.values()]
 	bciVals1 = [value.get('base crit index') for value in loadDict.values()]
-	lcsVals1 = [value.get('location-based crit score') for value in loadDict.values()]
-	lciVals1 = [value.get('location-based crit index') for value in loadDict.values()]
+	lcsVals1 = [value.get('locational crit score') for value in loadDict.values()]
+	lciVals1 = [value.get('locational crit index') for value in loadDict.values()]
 	types1 = ['load']*len(bcsVals1)
 	loadsList = list(zip(loadNames, types1,  sections1,  bcsVals1, bciVals1, lcsVals1, lciVals1))
 	# Do equipment
@@ -343,13 +343,13 @@ def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccu
 	sections2 = [value.get('section') for value in equipmentDict.values()]
 	bcsVals2 = [value.get('base crit score') for value in equipmentDict.values()]
 	bciVals2 = [value.get('base crit index') for value in equipmentDict.values()]
-	lcsVals2 = [value.get('location-based crit score') for value in equipmentDict.values()]
-	lciVals2 = [value.get('location-based crit index') for value in equipmentDict.values()]
+	lcsVals2 = [value.get('locational crit score') for value in equipmentDict.values()]
+	lciVals2 = [value.get('locational crit index') for value in equipmentDict.values()]
 	types2 = ['equipment']*len(bcsVals2)
 	equipList = list(zip(equipNames, types2, sections2, bcsVals2, bciVals2, lcsVals2, lciVals2))
 	
 	cols = ['Object Name', 'Type', 'Section', 'Base Criticality Score', 'Base Criticality Index',
-			'Location-Based Criticality Score', 'Location-Based Criticality Index']
+			'Locational Criticality Score', 'Locational Criticality Index']
 	finList = loadsList + equipList
 	newDF = pd.DataFrame(finList, columns = cols)
 	newDF.to_csv(pJoin(modelDir, 'resilientCommunityOutput.csv'))  
@@ -1070,7 +1070,7 @@ def addPctlToDict(inDict, varName, tieBreaker = None):
 
 		Args:
 			Input: inDict -> Dictionary of circuit objects with keys in the format type.name (e.g. load.s733) and dicts of their attributes as values
-			Input: varName -> The name of the attribute in loadDict to calculate percentiles for, chosen from 'base crit score' or 'location-based crit score'
+			Input: varName -> The name of the attribute in loadDict to calculate percentiles for, chosen from 'base crit score' or 'locational crit score'
 			Input: tieBreaker -> The name of the attribute in loadDict to use as a tie-breaker
 	'''
 	# Validate inputs
@@ -1101,21 +1101,21 @@ def addPctlToDict(inDict, varName, tieBreaker = None):
 	})
 	rankingDf['pct_rank'] = rankingDf[['primaryVals', 'tiebreakerVals']].apply(tuple, axis=1).rank(pct=True, method='max')
 	# Assign percentiles to the loads dictionary
-	if varName in ['base crit score', 'location-based crit score']:
+	if varName in ['base crit score', 'locational crit score']:
 		newVarName = varName.replace('score', 'index')
 	else:
-		raise ValueError('Variable varName must be equal to \'base crit score\' or \'location-based crit score\'')
+		raise ValueError('Variable varName must be equal to \'base crit score\' or \'locational crit score\'')
 	for i, (k, v) in enumerate(inDict.items()):
 		if not isinstance(v, dict):
 			raise ValueError(f"Invalid load format for key '{k}'. Expected a dictionary.")
 		inDict[k][newVarName] = rankingDf.loc[i, 'pct_rank']
 
 def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict):
-	''' Add blockgroup, OIP Score, and OIP Index to loadDict for each load in each blockgroup, then calculate 'location-based crit score', 
+	''' Add blockgroup, OIP Score, and OIP Index to loadDict for each load in each blockgroup, then calculate 'locational crit score', 
 		based on information about the load ('base crit score') and information about its blockgroup ('OIP Score').
-		Then calculate base crit index (bci) and location-based crit index (lci)  and add them to loadDict. 
+		Then calculate base crit index (bci) and locational crit index (lci)  and add them to loadDict. 
 	'''
-	# Add blockgroup values to loads and calculate location-based crit score based on them
+	# Add blockgroup values to loads and calculate locational crit score based on them
 	for loadKey, loadData in loadDict.items():
 		blockgroup = loads2BgDict[loadKey]
 		oipScore = blockgroupDict[blockgroup]['OIP Score']
@@ -1123,9 +1123,9 @@ def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict):
 		loadData['blockgroup'] = blockgroup
 		loadData['oip score'] = oipScore
 		loadData['oip index'] = oipIndex
-		loadData['location-based crit score'] = loadData['base crit score'] * oipScore
+		loadData['locational crit score'] = loadData['base crit score'] * oipScore
 	addPctlToDict(loadDict, 'base crit score', 'distance_from_source')
-	addPctlToDict(loadDict, 'location-based crit score', 'distance_from_source')
+	addPctlToDict(loadDict, 'locational crit score', 'distance_from_source')
 
 def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
 	''' Returns 3 dataframes (bgDF, bgGeoDF, sectionLoadSummaryDF) from the information in loadDict, blockgroupDict, and totalSections.
@@ -1141,9 +1141,9 @@ def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
 	loadDF = loadDF.rename(columns={'blockgroup':'blockgroupFIPS'})
 	aggKwargs = {
 		'avg_BCS':('base crit score', 'mean'),
-		'avg_LCS':('location-based crit score', 'mean'),
+		'avg_LCS':('locational crit score', 'mean'),
 		'avg_BCI':('base crit index', 'mean'),
-		'avg_LCI':('location-based crit index', 'mean'),
+		'avg_LCI':('locational crit index', 'mean'),
 		'load_count':('base crit score', 'count'),
 		'load_amount':('kva', 'sum') 
 	}
@@ -1209,7 +1209,7 @@ def makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList):
 	''' Returns a dictionary with entries for all equipment on the feeder in equipmentList.
 		In addition to data already present in the feeder, equipment also has the following data added to it:
 
-		'section', 'downlineObs', 'downlineLoads', 'base crit score', 'location-based crit score', 'base crit index', 'location-based crit index'
+		'section', 'downlineObs', 'downlineLoads', 'base crit score', 'locational crit score', 'base crit index', 'locational crit index'
 	'''
 	# Make a dict of all objects in the omd and a namesToKeys dict
 	obDict = {}
@@ -1262,11 +1262,11 @@ def makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList):
 			loadData = loadDict.get(dl)
 			if loadData:
 				bcSum += loadData['base crit score']
-				lcSum += loadData['location-based crit score']
+				lcSum += loadData['locational crit score']
 		equipData['base crit score'] = bcSum
-		equipData['location-based crit score'] = lcSum
+		equipData['locational crit score'] = lcSum
 	addPctlToDict(equipmentDict, 'base crit score')
-	addPctlToDict(equipmentDict, 'location-based crit score')
+	addPctlToDict(equipmentDict, 'locational crit score')
 	return equipmentDict
 
 ############################## Add Info to Omd Tree Code ######################################
@@ -1285,8 +1285,8 @@ def addLoadInfoToOmd(loadsDict, omdDict):
 			ob['section'] 					= loadsDict.get(k,{}).get('section')
 			ob['base crit score'] 			= loadsDict.get(k,{}).get('base crit score')
 			ob['base crit index'] 			= loadsDict.get(k,{}).get('base crit index')
-			ob['location-based crit score']	= loadsDict.get(k,{}).get('location-based crit score')
-			ob['location-based crit index']	= loadsDict.get(k,{}).get('location-based crit index')
+			ob['locational crit score']	= loadsDict.get(k,{}).get('locational crit score')
+			ob['locational crit index']	= loadsDict.get(k,{}).get('locational crit index')
 			ob['kva']						= loadsDict.get(k,{}).get('kva')
 		else:
 			continue
@@ -1307,8 +1307,8 @@ def addEquipmentInfoToOmd(obDict, omdDict, equipList):
 			ob['section'] 					= obDict.get(k,{}).get('section')
 			ob['base crit score'] 			= obDict.get(k,{}).get('base crit score')
 			ob['base crit index'] 			= obDict.get(k,{}).get('base crit index')
-			ob['location-based crit score'] = obDict.get(k,{}).get('location-based crit score')
-			ob['location-based crit index'] = obDict.get(k,{}).get('location-based crit index')
+			ob['locational crit score'] = obDict.get(k,{}).get('locational crit score')
+			ob['locational crit index'] = obDict.get(k,{}).get('locational crit index')
 		else:
 			continue
 	return omdDict
@@ -1345,7 +1345,7 @@ def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
 	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
 	combined_dict = {**newloadsDict, **newobjectsDict}
 	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
-	new_df[['base crit score','location-based crit score','base crit index','location-based crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
+	new_df[['base crit score','locational crit score','base crit index','locational crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
 
 def copyInputFilesToModelDir(modelDir, inputDict):
 	''' Creates local copies of input files in the model directory modelDir.
@@ -1431,11 +1431,11 @@ def work(modelDir, inputDict):
 	createColorCSVBlockGroup(modelDir, loadDict, equipmentDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
 		colVal = "1"
-	elif (inputDict['loadCol'] == 'Location-Based Criticality Score'):
+	elif (inputDict['loadCol'] == 'Locational Criticality Score'):
 		colVal = "2"
 	elif(inputDict['loadCol'] == 'Base Criticality Index'):
 		colVal = "3"
-	elif(inputDict['loadCol'] == 'Location-Based Criticality Index'):
+	elif(inputDict['loadCol'] == 'Locational Criticality Index'):
 		colVal = "4"
 	elif(inputDict['loadCol'] == 'Feeder Sections'):
 		colVal = "5"
@@ -1488,14 +1488,14 @@ def work(modelDir, inputDict):
 			v.get('section'),
 			round(v.get('base crit score'),2),
 			round(v.get('base crit index'),2),
-			round(v.get('location-based crit score'),2),
-			round(v.get('location-based crit index'),2),
+			round(v.get('locational crit score'),2),
+			round(v.get('locational crit index'),2),
 			round(v.get('oip score'),4),
 			round(v.get('oip index'),4),
 			round(v.get('kva'),2)
 		)
 		tableRows1.append(row)
-	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Location-Based Criticality Score', 'Location-Based Criticality Index', 'Outage Impact Potential Score', 'Outage Impact Potential Index', 'Demand (kva)']
+	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Locational Criticality Score', 'Locational Criticality Index', 'Outage Impact Potential Score', 'Outage Impact Potential Index', 'Demand (kva)']
 	outData['loadTableValues'] = tableRows1
 	
 	# Collect Equipment Data Table Info
@@ -1506,15 +1506,15 @@ def work(modelDir, inputDict):
 			v.get('section'),
 			round(v.get('base crit score'),2),
 			round(v.get('base crit index'),2),
-			round(v.get('location-based crit score'),2),
-			round(v.get('location-based crit index'),2)
+			round(v.get('locational crit score'),2),
+			round(v.get('locational crit index'),2)
 			)
 		tableRows2.append(row)
-	outData['loadTableHeadings2'] = ['Equipment Name', 'Section', 'Base Criticality Score', 'Base Criticallity Index', 'Location-Based Criticality Score', 'Location-Based Criticality Index']
+	outData['loadTableHeadings2'] = ['Equipment Name', 'Section', 'Base Criticality Score', 'Base Criticallity Index', 'Locational Criticality Score', 'Locational Criticality Index']
 	outData['loadTableValues2'] = tableRows2
 	
 	# Collect Sections Data Table Info
-	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Location-Based Criticality Score', 'Location-Based Criticality Index','Outage Impact Potential Score','Load Count', 'Demand (kva)']
+	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Locational Criticality Score', 'Locational Criticality Index','Outage Impact Potential Score','Load Count', 'Demand (kva)']
 	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_LCS', 'avg_LCI', 'avg_OIP_Score', 'load_count', 'load_amount']
 	sectionDF[['load_count','load_amount']] = sectionDF[['load_count','load_amount']].fillna(0)
 	sectionDF[cols[1:]] = sectionDF[cols[1:]].fillna('None').map(smartRound)
