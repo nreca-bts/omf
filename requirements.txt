@@ -53,3 +53,4 @@ statsmodels
 shapely
 geopandas
 pyshp
+nrel-pysam>=7.0.0
