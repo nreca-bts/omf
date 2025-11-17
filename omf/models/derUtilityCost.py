@@ -1092,6 +1092,9 @@ def work(modelDir, inputDict):
 				device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 				outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
 
+				## Total savings (demand savings + consumption savings)
+				#outData[device_name+'_total_savings_allyears'] = (device_consumption_savings_allyears + device_peakDemand_savings_allyears).tolist()
+
 		## Calculate the monthly peak demand costs for the base demand curve (w/o DERs) and adjusted demand curve (w/ DERs)
 		outData['monthlyPeakDemand'] = monthly_total_kw_withoutDERs.tolist()
 		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
@@ -1148,18 +1151,21 @@ def work(modelDir, inputDict):
 			device_demand[device_demand == -0.0] = 0.0 ## avoid sign errors
 			device_demand_at_baseP = device_demand[peak_demand_indices]
 			device_demand_at_baseP_cost = device_demand_at_baseP * peakDemandCharge
+
+			## Demand (kW) savings
+			## NOTE: Assigns the following Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 			device_peakDemand_savings_monthly = device_demand_at_baseP_cost * fval_monthly
 			device_peakDemand_savings_monthly[device_peakDemand_savings_monthly == -0.0] = 0.0 ## avoid sign errors
 			device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
-			
-			## Demand (kW) savings
-			## NOTE: Assigns the following Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 			outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
 			## Consumption (kWh) savings
 			device_consumption_savings_monthly = thermal_device_savings[device_name]['consumption_cost_monthly']
 			device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 			outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
+
+			## Total savings (demand savings + consumption savings)
+			#outData[device_name+'_total_savings_allyears'] = (device_consumption_savings_allyears + device_peakDemand_savings_allyears).tolist()
 			
 		## Output monthly peak demand costs and savings
 		outData['monthlyPeakDemand'] = demand[peak_demand_indices].tolist()
