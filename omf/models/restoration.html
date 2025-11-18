@@ -25,7 +25,12 @@
 		}
 	</style>
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 	<!-- Leaflet -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"	integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="	crossorigin=""/>
 	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
@@ -173,7 +178,7 @@
 		<div id="fig1" class="tightContent">
 			<div id="fig1Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig1Chart", JSON.parse(allOutputData["fig1Data"]), JSON.parse(allOutputData["fig1Layout"]) || {})
+				plotGraph("fig1Chart", allOutputData["fig1Data"], allOutputData["fig1Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Generator Profiles for Microgrids</p>
@@ -183,7 +188,7 @@
 				$("<div/>").appendTo("#gensFigures")
 					.attr("id", "gens_fig_mg_"+mgID)
 					.attr("style","width:1000px")
-				Plotly.newPlot("gens_fig_mg_"+mgID, figData, JSON.parse(allOutputData["mgGensFigsLayout"]))
+				plotGraph("gens_fig_mg_"+mgID, figData, allOutputData["mgGensFigsLayout"])
 			}
 			</script>
 		</div>
@@ -191,21 +196,21 @@
 		<div id="fig2" class="tightContent">
 			<div id="fig2Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig2Chart", JSON.parse(allOutputData["fig2Data"]), JSON.parse(allOutputData["fig2Layout"]) || {})
+				plotGraph("fig2Chart", allOutputData["fig2Data"], allOutputData["fig2Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Demand Served</p>
 		<div id="fig3" class="tightContent">
 			<div id="fig3Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig3Chart", JSON.parse(allOutputData["fig3Data"]), JSON.parse(allOutputData["fig3Layout"]) || {})
+				plotGraph("fig3Chart", allOutputData["fig3Data"], allOutputData["fig3Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Customer Outage Plots (wrt duration)</p>
 		<div id="fig4" class="tightContent">
 			<div id="fig4Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig4Chart", JSON.parse(allOutputData["fig4Data"]), JSON.parse(allOutputData["fig4Layout"]) || {})
+				plotGraph("fig4Chart", allOutputData["fig4Data"], allOutputData["fig4Layout"])
 			</script>
 		</div>
 		<p class="reportTitle" style="page-break-before:always">Customer Outage Cost</p>
@@ -216,14 +221,14 @@
 		<div id="fig5" class="tightContent">
 			<div id="fig5Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig5Chart", JSON.parse(allOutputData["fig5Data"]), JSON.parse(allOutputData["fig5Layout"]) || {})
+				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
 		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in minutes) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
 		<div id="taofiHist" class="tightContent">
 			<div id="taofiHistChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("taofiHistChart", JSON.parse(allOutputData["taofiHistData"]), JSON.parse(allOutputData["taofiHistLayout"]) || {})
+				plotGraph("taofiHistChart", allOutputData["taofiHistData"], allOutputData["taofiHistLayout"])
 			</script>
 		</div>
 		{% if allInputDataDict["useLci"] == "Yes" %}
@@ -231,7 +236,7 @@
 		<div id="lciTaofiScatter" class="tightContent">
 			<div id="lciTaofiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("lciTaofiScatterChart", JSON.parse(allOutputData["lciTaofiScatterData"]), JSON.parse(allOutputData["lciTaofiScatterLayout"] || {}))
+				plotGraph("lciTaofiScatterChart", allOutputData["lciTaofiScatterData"], allOutputData["lciTaofiScatterLayout"])
 			</script>
 		</div>
 		{% endif %}
@@ -239,7 +244,7 @@
 		<div id="taodiHist" class="tightContent">
 			<div id="taodiHistChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("taodiHistChart", JSON.parse(allOutputData["taodiHistData"]), JSON.parse(allOutputData["taodiHistLayout"]) || {})
+				plotGraph("taodiHistChart", allOutputData["taodiHistData"], allOutputData["taodiHistLayout"])
 			</script>
 		</div>
 		{% if allInputDataDict["useLci"] == "Yes" %}
@@ -247,7 +252,7 @@
 		<div id="lciTaodiScatter" class="tightContent">
 			<div id="lciTaodiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("lciTaodiScatterChart", JSON.parse(allOutputData["lciTaodiScatterData"]), JSON.parse(allOutputData["lciTaodiScatterLayout"]) || {})
+				plotGraph("lciTaodiScatterChart", allOutputData["lciTaodiScatterData"], allOutputData["lciTaodiScatterLayout"])
 			</script>
 		</div>
 		{% endif %}
@@ -259,7 +264,7 @@
 		<div id="fig6" class="tightContent">
 			<div id="fig6Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig6Chart", JSON.parse(allOutputData["fig6Data"]), JSON.parse(allOutputData["fig6Layout"]) || {})
+				plotGraph("fig6Chart", allOutputData["fig6Data"], allOutputData["fig6Layout"])
 			</script>
 		</div>
 		<p class="reportTitle"><label class="tooltip">Outage Incidence for Microgrids<span class="classic">Outage Incidence is the percent of loads in a system that are experiencing an outage at a given time. A load is considered to be experiencing an outage at a given time if its "After" status in the Timeline below is "offline".</span></label></p>
@@ -269,7 +274,7 @@
 				$("<div/>").appendTo("#outageIncidenceFigures")
 					.attr("id", "OI_fig_mg_"+mgID)
 					.attr("style","width:1000px")
-				Plotly.newPlot("OI_fig_mg_"+mgID, figData, JSON.parse(allOutputData["mgOIFigsLayout"]))
+				plotGraph("OI_fig_mg_"+mgID, figData, allOutputData["mgOIFigsLayout"])
 			}
 			</script>
 		</div>

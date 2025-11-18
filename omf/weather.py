@@ -1390,7 +1390,12 @@ def get_cds_coper_data(latitude, longitude, year, modelDir):
 def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDataFile: str="output_cdsWeatherDataFull.csv") -> list:
 	'''
 	Turning multiple copernicus zip files into one CSV
-	Returns a tuple (dataset, dataframe) of combined data
+	Returns a tuple [filename, dataset, dataframe] of combined data
+	
+	filename = standard "output_cdsWeatherDataFull.csv
+	dataset = required for windpowerlib wind estimates ( cds_windpowerlib_getWind() )
+	dataframe = required for PySAM pvwatts estimates (cds_pySam_GetSolar() )
+
 	'''
 	from zipfile import ZipFile
 	import xarray as xr
@@ -1419,12 +1424,14 @@ def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDat
 		total_weather_data_df = pd.concat([total_weather_data_df, month_weather_data_df])
 	total_weather_data_df.to_csv(Path(modelDir, outputDataFile))
 	print(f"{outputDataFile} created")
-	return [total_weather_data_ds, total_weather_data_df]
+	return [outputDataFile, total_weather_data_ds, total_weather_data_df]
 
-# Cool stuff with copernicus data
-def cds_csvModifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
+#### Cool stuff with copernicus data
+## PySAM PvWatts & feedinlib for solar and wind stuff
+
+def cds_csvToPySAMSolarData(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
 	'''
-
+		Turns one large CVS of copernicus weather data into the inputs required for pysam pvwatts 
 	'''
 	copernicus_df = pd.read_csv(cdsDataFile)
 	copernicus_df["Timestamp"] = pd.DatetimeIndex(pd.to_datetime(copernicus_df["valid_time"], utc=True))
@@ -1457,35 +1464,49 @@ def cds_csvModifications(cdsDataFile: str="output_cdsWeatherDataFull.csv"):
 			copernicus_df["CDS Wind Speed"],
 			copernicus_df['CDS Temp']
 	])
+
 	return weather_data
 
-def cds_getSolar(copernicus_csv_path):
+def cds_pySAM_getSolar(cdsDataFile):
+	'''
+
+	uses PySAM.pvWattsv8 to turn Copernicus data from Climate Data Store
+
+	Inputs:
+		cdsDataFile - comes frmo cds_processWeatherData first argument
+
+	weather_data has very specific formatting:
+	# lat, long, first index, year, month, day, hour, minute, DNI, DHI, GHI, windspeed, dry bulb temperature
+
+	'''
 	import PySAM.Pvwattsv8 as pvwatts
 
-	# weather_data[2] is the first index
-	weather_data = cds_csvModifications(copernicus_csv_path)
+	weather_data = cds_csvToPySAMSolarData(cdsDataFile=cdsDataFile)
+
+		# required argument for pysam pvwatts, this is default formatting that works for the copernicus data
 	sys_design = {
-    "ModelParams": {
-        "SystemDesign": {
-            "array_type": 2.0,
-            "azimuth": 180.0,
-            "dc_ac_ratio": 1.08,
-            "gcr": 0.592,
-            "inv_eff": 97.5,
-            "losses": 15.53,
-            "module_type": 2.0,
-            "system_capacity": 720,
-            "tilt": 0.0
-        },
-        "SolarResource": {
-        }
-    },
-    "Other": {
-        "lat": weather_data[0],
-        "lon": weather_data[1],
-        "elev": 1829
-    }
-	}  
+		"ModelParams": {
+				"SystemDesign": {
+						"array_type": 2.0,
+						"azimuth": 180.0,
+						"dc_ac_ratio": 1.08,
+						"gcr": 0.592,
+						"inv_eff": 97.5,
+						"losses": 15.53,
+						"module_type": 2.0,
+						"system_capacity": 720,
+						"tilt": 0.0
+				},
+				"SolarResource": {
+				}
+		},
+		"Other": {
+				"lat": weather_data[0],
+				"lon": weather_data[1],
+				"elev": 1829
+		}
+	}
+
 	model_params = sys_design['ModelParams']
 	elev = sys_design['Other']['elev']
 	lat = sys_design['Other']['lat']
@@ -1523,7 +1544,7 @@ def cds_getSolar(copernicus_csv_path):
 	ac_dc_df = ac_dc_df.set_index((weather_data[2]).copy())
 	return ac_dc_df
 
-def format_windpowerlib(ds):
+def _format_windpowerlib(ds):
     """
     Code from feedinlib
     Format dataset to dataframe as required by the windpowerlib's ModelChain.
@@ -1602,7 +1623,11 @@ def format_windpowerlib(ds):
     df.dropna(inplace=True)
     return df
 
-def cds_getWind(weather_dataset):
+def cds_windpowerlib_getWind(weather_dataset):
+	'''
+	Uses feednilib windpowerlib instead of PySAM Wind Turbines to turn copernicus data into wind outputs
+
+	'''
 	from omf.solvers import feedinlib_custom
 
 	bergey_turbine_data = {
@@ -1613,7 +1638,7 @@ def cds_getWind(weather_dataset):
 			'wind_speed': [1.0, 2.01, 2.99, 4.01, 5.00, 6.00, 7.00, 8.00, 9.00, 9.99, 11.01, 11.97, 12.99, 13.99, 15.00, 15.97, 16.47]})  # in m/s
 	}
 	wind_turbine = feedinlib_custom.powerplants.WindPowerPlant(**bergey_turbine_data)
-	windpowerlib_df = format_windpowerlib(weather_dataset)  
+	windpowerlib_df = _format_windpowerlib(weather_dataset)  
 	windpowerlib_df = windpowerlib_df.droplevel([1,2])
 	wind_output_ds = wind_turbine.feedin(
 		weather = windpowerlib_df,
@@ -1624,6 +1649,11 @@ def cds_getWind(weather_dataset):
 	return wind_output_ds
 
 def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
+	'''
+
+	get wind data from https://developer.nrel.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
+
+	'''
 	successFlag = False
 	filesInModelDir = os.listdir(modelDir)
 	for file in filesInModelDir:
@@ -1645,7 +1675,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 		successFlag = True
 	return successFlag
 
-def nrel_pysamWind(modelDir, year: int, longitude: float, latitude: float):
+def nrel_pySam_getWind(modelDir, year: int, longitude: float, latitude: float):
 	'''
 		'windpower-inputs.json' - windpower defaults
 		'wind-turbines.json' - wind turbine data. 

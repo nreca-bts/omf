@@ -17,9 +17,15 @@
 	</style>
 	<!-- Library Imports -->
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 	<!--  Macro for direct file upload usage:
-		file_upload('fileInputID', 'userInputVoltage', 'voltageDataFileName')
+		file_upload('fileInputID', 'userFileDisplayNameID', 'userFileDisplayNameID')
 		line 1: input for the actual file. There should be no value in inputDict that matches this one.
 		line 2: button for file upload, thats it.
 		line 3: the name of the file the user is using/inputting in. We wanna save this for display. Originally its set as the default.
@@ -230,14 +236,14 @@
 			<div id="histogramFigure" class="tightContent">
 				<div id="histogramFigure" style="width:1000px"></div>
 				<script type="text/javascript">
-					Plotly.newPlot("histogramFigure", JSON.parse( allOutputData["histogramFigure"]) )
+					plotGraph("histogramFigure", allOutputData["histogramFigure"])
 				</script>
 			</div>
 			<p class="reportTitle">AMI-Based Hosting Capacity By Bus</p>
 			<div id="barChartFigure" class="tightContent">
 				<div id="barChartFigure" style="width:1000px"></div>
 				<script type="text/javascript">
-					Plotly.newPlot("barChartFigure", JSON.parse( allOutputData["barChartFigure"]) )
+					plotGraph("barChartFigure", allOutputData["barChartFigure"])
 				</script>
 			</div>
 			<p class="reportTitle">AMI-Based Full Hosting Capacity Data Table</p>
@@ -267,7 +273,7 @@
 			<div id="modelBasedHCGraph" class="tightContent">
 				<div id="modelBasedHCGraph" style="width:1000px"></div>
 				<script type="text/javascript">
-					Plotly.newPlot("modelBasedHCGraph", JSON.parse( allOutputData["modelBasedGraphData"]) )
+					plotGraph("modelBasedHCGraph", allOutputData["modelBasedGraphData"])
 				</script>
 			</div>
 			<p class="reportTitle">Model-Based Hosting Capacity Full Data Table</p>

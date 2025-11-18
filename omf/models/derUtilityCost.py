@@ -58,6 +58,29 @@ hidden = True ## Keep the model hidden=True during active development
 #
 #	return energy_rate_array
 
+def calculate_fval(peak_demands, adjusted_peak_demands, DER_contribution):
+	""" 
+	Calculates linear scaling factor, Fval, to quantify the impact of DERs on the total peak demand savings when the peak is shifted by the contribution from DERs.
+	Fval is calculated as follows = (peak_demands - adjusted_peak_demands) / DER_contribution. Fval is set to zero except in cases where the DER_contribution is nonzero.
+	NOTE: See email with Lisa 9/3/2025 with the subject line "F_val validation calcs" for more explanation.
+	
+	Inputs:
+	 - peak_demands (array): The peak demand (kW) or peak demand cost ($) for the demand curve without DERs.
+	 - adjusted_peak_demands (array): The adjusted peak demand (kW) or cost ($) for the demand curve with DERs.
+	 - DER_contribution: The contribution from all DERs at the location of the peak demand for the demand curve without DERs.
+
+	Outputs:
+	 - fval (array): Returns an array of float values representing the scaling factor for each peak to be applied to each DER individually.
+	"""
+
+	numerator = peak_demands - adjusted_peak_demands
+	denominator = DER_contribution
+	fval = np.zeros_like(peak_demands) ## Initialize monthly array for fval as all zeros
+	nonzero_case = denominator != 0 ## If the DER contribution is nonzero, then calculate Fval
+	fval[nonzero_case] = numerator[nonzero_case] / denominator[nonzero_case]
+
+	return fval
+
 def construct_monthly_demand_charge_array(response_file, timestamps, demand, monthHours):
 	"""
 	Extracts demand charge information contained in the JSON response_file and calculates the total monthly demand charge cost ($) based on the demand rate structure and monthly facility demand charge, if present. 
@@ -245,8 +268,11 @@ def work(modelDir, inputDict):
 			response_file = json.loads(inputDict['wholesaleRateStructure'])
 		except json.JSONDecodeError:
 			## Convert single quotes to double quotes for proper JSON formatting, then parse the JSON and use it as a Python dictionary
-			fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
-			response_file = json.loads(fixed)
+			try: 
+				fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
+				response_file = json.loads(fixed)
+			except json.JSONDecodeError:
+				raise Exception("Try re-uploading the JSON file and running the model again.")
 		except TypeError:
 			## If the wholesale_rate_curve is already a Python dictionary, use it directly
 			if isinstance(inputDict['wholesaleRateStructure'], dict):
@@ -368,11 +394,12 @@ def work(modelDir, inputDict):
 	## Add a Battery Energy Storage System (BESS) section to REopt input scenario, if enabled 
 	if inputDict['enableBESS'] == 'Yes' and float(inputDict['number_devices_BESS']) > 0:
 		BESScheck = 'enabled'
+		utility_control_percentage = float(inputDict['utility_BESS_portion'])/100. ## convert percentage to decimal (e.g. 20% -> 0.20)
 		scenario['ElectricStorage'] = {
-			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']),
-			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']),
-			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']),
-			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']),
+			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
+			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
+			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
+			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
 			'can_grid_charge': True,
 			'total_rebate_per_kw': 0,
 			'macrs_option_years': 0,
@@ -403,10 +430,15 @@ def work(modelDir, inputDict):
 	with open(pJoin(modelDir, 'results.json')) as jsonFile:
 		reoptResults = json.load(jsonFile)
 	outData.update(reoptResults) ## Update output file with reopt results
+	reoptErrorMsgs = reoptResults['Messages']['errors']
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
 	if BESScheck == 'enabled':
-		BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		try:
+			BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
+		except KeyError:
+			raise Exception(f'No BESS found in REopt. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
+		
 		grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
 		outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
 	else:
@@ -454,14 +486,14 @@ def work(modelDir, inputDict):
 	single_device_results = {} 
 	for suffix in thermal_suffixes:
 		## Include only the thermal devices specified by the user
-		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: If thermal tech is not enabled by the user, the load_type_X variable will be set to 0 in derConsumer.html
+		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: If thermal tech is not enabled by the user, the load_type_X variable will be set to 0
 			all_device_suffixes.append(suffix)
 
-			## Add the appropriate thermal device variables to the inputDict_vbatDispatch
+			## Add the appropriate thermal device variables to the inputDict_vbatDispatch dictionary
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
-			## Create a model subdirectory for each thermal device and store the vbatDispatch results
+			## Create a model subdirectory for each thermal device and store the vbatDispatch results there
 			newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
 			os.makedirs(newDir, exist_ok=True)
 			os.chdir(newDir) ##jump into the newly created subdirectory
@@ -536,19 +568,23 @@ def work(modelDir, inputDict):
 	## Get the charging and discharging behavior after the total combined TESS has been calculated
 	combined_TESS_vbatPower = combined_device_results['vbatPower']
 	combined_TESS_vbatPower_series = pd.Series(combined_TESS_vbatPower)
-	combined_device_results['vbat_discharge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging
-	combined_device_results['vbat_charge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
-	combined_device_results['vbat_charge_flipsign'] = combined_device_results['vbat_charge'].mul(-1)
+	combined_device_results['vbat_discharge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series >= 0.0, 0.0) ##positive values = discharging
+	combined_device_results['vbat_charge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series < 0.0, 0.0) ##negative values = charging
+	combined_device_results['vbat_charge_flipsign'] = combined_device_results['vbat_charge'].mul(-1.0)
 
 	## Calculate the subsidies, compensation rate, and consumption cost (kWh) for each individual thermal tech device
 	## NOTE: This loop must come after the calculation of the combined TESS devices in order to correctly calculate the single_device_vbat_discharge/charge components
 	for device_result in single_device_results:
 		single_device_vbatPower = single_device_results[device_result]['VBpower']
-		single_device_vbatPower[single_device_vbatPower == -0.0] = 0.0 ## Convert negative zeros into positive zeros to avoid sign errors
+		single_device_vbatPower_series.replace(-0.0, 0.0, inplace=True) ## replace negative zeros with positive zeros
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
-		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging 
-		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
-		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1)
+		## select out the individual TESS discharge/charge values where the sum total TESS discharge/charge is collectively discharging/charging
+		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0.0, 0.0) ##positive values = discharging 
+		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0.0, 0.0) ##negative values = charging
+		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1.0)
+		## select out the original individual TESS discharge/charge values
+		orig_single_device_vbat_discharge_component = single_device_vbatPower_series.where(single_device_vbatPower_series > 0.0, 0.0) ##positive values = discharging 
+		orig_single_device_vbat_charge_component_flipsign = single_device_vbatPower_series.where(single_device_vbatPower_series < 0.0, 0.0) * -1.0 ##negative values = charging. multiply by -1 for plotting purposes
 
 		## Calculate subsidy for each thermal DER technology
 		single_device_subsidy_ongoing = float(single_device_results[device_result]['TESS_subsidy_ongoing'])
@@ -573,9 +609,13 @@ def work(modelDir, inputDict):
 		costs_year1_monthly_single_device = single_device_subsidy_year1_array + single_device_compensation_year1_array
 		costs_allyears_single_device = single_device_subsidy_allyears_array + single_device_compensation_allyears_array 
 
-		## Save relevant variables for calculating the demand cost savings later on
+		## Save relevant variables for each TESS device for calculating the demand cost savings later on
 		thermal_device_savings[device_result] = {
 			'demand': np.array(single_device_vbatPower),
+			'vbat_discharge_component': np.array(orig_single_device_vbat_discharge_component),
+			'vbat_discharge_component_W': np.array(orig_single_device_vbat_discharge_component) * 1000.,
+			'vbat_charge_component_flipsign': np.array(orig_single_device_vbat_charge_component_flipsign),
+			'vbat_charge_component_flipsign_W': np.array(orig_single_device_vbat_charge_component_flipsign) * 1000.,
 			'consumption_cost_monthly': np.array(single_device_consumption_cost_monthly),
 			'consumption_cost_allyears': np.array(single_device_consumption_cost_allyears),
     	}
@@ -584,6 +624,11 @@ def work(modelDir, inputDict):
 		## NOTE: This is where the html variables outData['vbatResults_wh_costs_allyears'], outData['vbatResults_hp_costs_allyears'], and outData['vbatResults_ac_costs_allyears'] are saved.
 		outData[device_result+'_costs_allyears'] = list(costs_allyears_single_device*-1.0) ## Multiply by negative one for displaying in the plot as a cost
 		outData[device_result+'_check'] = 'enabled'
+
+	## vbatDispatch variables
+	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
+	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
+	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
 
 	## NOTE: temporarily comment out the two derConsumer runs. This needs some development since derConsumer.py has changed over time.
 	"""
@@ -678,209 +723,8 @@ def work(modelDir, inputDict):
 		'TESSsavingsSmallConsumer': smallConsumerOutput['savings'],
 		'TESSsavingsLargeConsumer': largeConsumerOutput['savings']
 	})
-	"""
-	########################################################################################################################################################
-	## DER Serving Load Overview plot 
-	########################################################################################################################################################
 
-	## vbatDispatch variables
-	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
-	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
-	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
-
-	## Convert all values from kW to Watts for plotting purposes only
-	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
-	grid_to_load_W = np.array(grid_to_load) * 1000.
-	BESS_W = np.array(BESS) * 1000.
-	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
-	vbat_discharge_component_W = vbat_discharge_component * 1000.
-	vbat_charge_component_W = vbat_charge_component * 1000.
-	demand_W = np.array(demand) * 1000.
-	grid_serving_new_load_W = grid_to_load_W + grid_charging_BESS_W + vbat_charge_component_W - vbat_discharge_component_W
-	generator_W = generator * 1000.
-
-	## Put all DER plot variables into a dataFrame for plotting
-	df = pd.DataFrame({
-		'timestamp': timestamps,
-		'Home BESS Serving Load': BESS_W,
-		'Home TESS Serving Load': vbat_discharge_component_W,
-		'Grid Serving Load': grid_to_load_W, #grid_serving_new_load_W,
-		'Home Generator Serving Load': generator_W,
-		'Grid Charging Home BESS': grid_charging_BESS_W,
-		'Grid Charging Home TESS': vbat_charge_component_W
-	})
-
-	## Define colors for each plot series
-	colors = {
-		'Grid Serving Load': 'rgba(128, 128, 128, 0.8)',  ## Gray
-		'Home BESS Serving Load': 'rgba(0, 128, 0, 0.8)',  ## Green
-		'Home Generator Serving Load': 'rgba(139, 0, 0, 0.8)',  ## Dark red
-		'Home TESS Serving Load': 'rgba(128, 0, 128, 0.8)',  ## Purple
-		'Grid Charging Home BESS': 'rgba(0, 128, 0, 0.4)',  ## Green w/ half opacity
-		'Grid Charging Home TESS': 'rgba(128, 0, 128, 0.4)'  ## Purple w/ half opacity
-	}
-
-	## Plot options
-	showlegend = True ## either enable or disable the legend toggle in the plot
-	lineshape = 'hv'
-	fig = go.Figure()
-
-	## Discharging DERs to plot
-	for col in ["Grid Serving Load", "Home BESS Serving Load", "Home Generator Serving Load", "Home TESS Serving Load","Grid Charging Home BESS", "Grid Charging Home TESS"]:
-		fig.add_trace(go.Scatter(
-			x=df["timestamp"],
-			y=df[col],
-			fill="tonexty",
-			mode="none",
-			name=col,
-			fillcolor=colors[col],
-			line_shape=lineshape,			
-			stackgroup="discharge"  ## Stack all the discharging DERs together
-		))
-
-	## Temperature line on a secondary y-axis (defined in the plot layout)
-	fig.add_trace(go.Scatter(x=timestamps,
-						y=temperatures_degF,
-						yaxis='y2',
-						#mode='lines',
-						line=dict(color='red',width=1),
-						name='Average Air Temperature',
-						showlegend=showlegend 
-						))
 	
-	## Make temperature and its legend name hidden in the plot by default
-	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
-	fig.update_layout(
-		xaxis_title="Timestamp",yaxis_title="Power (W)",
-		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
-    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
-	)
-
-	## NOTE: This opens a window that displays the correct figure with the appropriate patterns.
-	## NOTE (cont.): For some reason, the slash-mark patterns are not showing up on the OMF page otherwise. Eventually we will delete this part.
-	#fig.show()
-	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
-	fig.write_html(pJoin(modelDir, "Plot_DerServingLoadOverview.html"))
-
-	## Encode plot data as JSON for showing in the HTML 
-	outData['derOverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['derOverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-	###################################################################################################################################
-	## Impact to Demand plot 
-	###################################################################################################################################
-	showlegend = True ## either enable or disable the legend toggle in the plot
-	#lineshape = 'linear'
-	lineshape = 'hv'
-
-	fig = go.Figure()
-	new_demand = demand_W + vbat_charge_component_W + grid_charging_BESS_W - BESS_W - vbat_discharge_component_W - generator_W
-
-	## Original load piece (minus any vbat or BESS charging aka 'new/additional loads')
-	fig.add_trace(go.Scatter(x=timestamps,
-						y = demand_W,
-						yaxis='y1',
-						mode='none',
-						name='Original Demand',
-						fill='tozeroy',
-						fillcolor='rgba(81,40,136,1)',
-						showlegend=showlegend))
-	## Make original load and its legend name hidden in the plot by default
-	#fig.update_traces(legendgroup='Original Demand', visible='legendonly', selector=dict(name='Original Demand')) 
-
-	## New demand piece (minus any vbat or BESS charging aka 'new/additional loads')
-	fig.add_trace(go.Scatter(x=timestamps,
-						y = new_demand,
-						yaxis='y1',
-						mode='none',
-						name='New Demand',
-						fill='tozeroy',
-						fillcolor='rgba(235,97,35,0.5)',
-						showlegend=showlegend))
-
-	## Temperature line on a secondary y-axis (defined in the plot layout)
-	fig.add_trace(go.Scatter(x=timestamps,
-						y=temperatures_degF,
-						yaxis='y2',
-						#mode='lines',
-						line=dict(color='red',width=1),
-						name='Average Air Temperature',
-						showlegend=showlegend 
-						))
-	
-	## Make temperature and its legend name hidden in the plot by default
-	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
-
-	## Plot layout
-	fig.update_layout(
-    	xaxis=dict(title='Timestamp'),
-    	#yaxis=dict(title='Power (W)',type='log'),
-		yaxis=dict(title='Power (W)'),
-    	yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
-		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1)
-	)
-
-	## NOTE: This opens a window that displays the correct figure with the appropriate patterns.
-	## For some reason, the slash-mark patterns are not showing up on the OMF page otherwise.
-	## Eventually we will delete this part.
-	#fig.show()
-	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
-	fig.write_html(pJoin(modelDir, "Plot_NewDemand.html"))
-
-	## Encode plot data as JSON for showing in the HTML 
-	outData['newDemandData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['newDemandLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-	################################################################################################################################################
-	## Create Thermal Battery Power plot object 
-	################################################################################################################################################
-	fig = go.Figure()
-
-	data_names = ['vbatMinPowerCapacity', 'vbatMaxPowerCapacity', 'vbatPower']
-	colors = ['green', 'blue', 'black']
-	titles = ['Minimum Calculated Power Capacity', 'Maximum Calculated Power Capacity', 'Actual Power Utilized']
-
-	dataCheckList = []
-	for data_name, color, title in zip(data_names, colors, titles):
-		dataCheck = np.sum(combined_device_results[data_name])
-		dataCheckList.append(dataCheck)
-		fig.add_trace(go.Scatter(
-			x=timestamps, 
-			y=np.array(combined_device_results[data_name])*1000., ## convert from kW to W
-			yaxis='y1',
-			mode='lines',
-			line=dict(color=color, width=1),
-			name=title,
-			showlegend=True
-		))
-
-	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Power (W)'),
-		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1))
-	
-	## Add a thermal battery variable that signals to the HTML plot if all of the thermal series contain no data
-	outData['thermalDataCheck'] = float(sum(np.array(dataCheckList)))
-	
-	## Encode plot data as JSON for showing in the HTML side
-	outData['thermalBatPowerPlot'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['thermalBatPowerPlotLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)	
-
-	################################################################################################################################################
-	## Create Chemical BESS State of Charge plot object 
-	################################################################################################################################################
-	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=timestamps, y=outData['chargeLevelBattery'],
-						mode='lines',
-						line=dict(color='purple', width=1),
-						name='Battery SOC',
-						showlegend=True))
-	
-	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Charge (%)'), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right',x=1))
-
-	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-
-	"""
 	#####################################################################################################################################################################################################
 	## Compensation rate to member-consumer
 	compensationRate = float(inputDict['rateCompensation'])
@@ -988,6 +832,7 @@ def work(modelDir, inputDict):
 		
 		peakDemandCharge = np.zeros(12) ## TODO: update this if flatdemandstructure is defined in JSON file. Setting to zero for now until Lisa has looked at the JSON inputs from coops. In theory, the flat facility demand input in JSON response file could be used as a monthly demand charge here.
 
+		## Perform the Fval-corrected savings calculations between the demand charge cost w/ DERs and w/o DERs
 		if 'demandratestructure' in response_file:
 			## Re-stack tuples into arrays
 			## max dollar indices for demand curve array, the max dollar amounts, and the demand rates ($/kW)
@@ -1007,29 +852,17 @@ def work(modelDir, inputDict):
 			DERs_at_baseP = DERs[:, index_noDERs]
 			DERs_at_adjP = DERs[:, index_withDERs]
 
-			## Fval calculation
-			## Fval = (demand at base peak t=1 - demand at adjusted peak t=2) / DERs at base peak t=1
+			## Calculate linear scaling factor Fval to properly calculate individual DER peak demand savings due to peak shifting
 			demand_baseP = np.array(demand[index_noDERs]*rate_noDERs)
-			demand_adjP = np.array(demand[index_withDERs]*rate_withDERs)
+			demand_adjP = np.array(adjusted_demand[index_withDERs]*rate_withDERs)
 			DERs_at_baseP_dollars = DERs_at_baseP*rate_noDERs
-			DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
+			#DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
 			totalDER_at_baseP_dollars = np.sum(DERs_at_baseP_dollars, axis=0)
-			numerator   = demand_baseP - demand_adjP
-			denominator = totalDER_at_baseP_dollars
 
-			## Handle edge cases of Fval equation
-			fval_hourly = np.divide(
-				numerator,
-				denominator,
-				out=np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-				where=denominator != 0
-			)
-			fval_hourly_cleaned = np.nan_to_num(fval_hourly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
-			zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
-			fval_hourly_cleaned[zero_mask] = 0.0
+			fval_hourly = calculate_fval(demand_baseP, demand_adjP, totalDER_at_baseP_dollars)
 
-			## Apply Fval to each DER
-			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly_cleaned
+			## Apply Fval to each 
+			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly
 
 			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs
 			monthly_savings = np.zeros((3, 12)) ## (3 DERs × 12 months) 
@@ -1053,7 +886,7 @@ def work(modelDir, inputDict):
 				device_demand_at_baseP = device_demand[index_noDERs]
 				device_demand_at_adjP = device_demand[index_withDERs]
 				device_at_baseP_dollars = device_demand_at_baseP * rate_noDERs
-				device_peakDemand_savings_year = device_at_baseP_dollars * fval_hourly_cleaned
+				device_peakDemand_savings_year = device_at_baseP_dollars * fval_hourly
 				device_peakDemand_savings_monthly = np.zeros(12)
 				for m, (month_first_index, month_last_index) in enumerate(monthHours):
 					mask = (index_withDERs >= month_first_index) & (index_withDERs <= month_last_index) 
@@ -1071,27 +904,32 @@ def work(modelDir, inputDict):
 				device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 				outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
 
+				## Total savings (demand savings + consumption savings)
+				#outData[device_name+'_total_savings_allyears'] = (device_consumption_savings_allyears + device_peakDemand_savings_allyears).tolist()
+
 		## Calculate the monthly peak demand costs for the base demand curve (w/o DERs) and adjusted demand curve (w/ DERs)
 		outData['monthlyPeakDemand'] = monthly_total_kw_withoutDERs.tolist()
 		outData['monthlyPeakDemandCost'] = monthly_demand_charge_cost_withoutDERs.tolist()
 		outData['monthlyAdjustedPeakDemand'] = monthly_total_kw_withDERs.tolist()
 		outData['monthlyAdjustedPeakDemandCost'] = monthly_demand_charge_cost_withDERs.tolist()
+		outData['monthlyPeakDemandSavings'] = (monthly_demand_charge_cost_withoutDERs - monthly_demand_charge_cost_withDERs).tolist()
 
-	else: ## Use the user-provided .CSV demand charge file		
-		## Get the indices of each month's peak demand with respect to the indices of the demand arrays (8760 elements)
-		peak_demand_indices = [0]*12
-		adjusted_demand_indices = [0]*12
+	else: ## Use the user-provided .CSV demand charge file
+		
+		## Get the indices of each month's peak kW demand with respect to the annual demand curve arrays (8760 elements)
+		peak_demand_indices = [0]*12 ## demand curve w/o DERs
+		adjusted_demand_indices = [0]*12 ## demand curve w/ DERs
 		for month_number, (month_begin_index, month_end_index) in enumerate(monthHours):
-			demand_this_month = demand[month_begin_index:month_end_index]
-			adjusted_demand_this_month = adjusted_demand[month_begin_index:month_end_index]
-			index_of_peak_demand_this_month = np.argmax(demand_this_month)
+			demand_this_month = demand[month_begin_index:month_end_index] ## kW demand for each hour of the month
+			adjusted_demand_this_month = adjusted_demand[month_begin_index:month_end_index] ## adjusted kW demand for each hour of the month
+			index_of_peak_demand_this_month = np.argmax(demand_this_month) 
 			index_of_peak_adjusted_demand_this_month = np.argmax(adjusted_demand_this_month)
-			peak_demand_indices[month_number] = int(month_begin_index) + index_of_peak_demand_this_month
-			adjusted_demand_indices[month_number] = int(month_begin_index) + index_of_peak_adjusted_demand_this_month
+			peak_demand_indices[month_number] = int(month_begin_index) + index_of_peak_demand_this_month ## indices of every monthly peak demand for the demand curve w/o DERs
+			adjusted_demand_indices[month_number] = int(month_begin_index) + index_of_peak_adjusted_demand_this_month ## indices of every monthly peak demand for the demand curve with DERs
 
-		## Calculate the fval-corrected monthly peak demand savings for BESS, TESS, and GEN technologies
+		## Calculate the fval-corrected monthly peak demand savings for individual BESS, TESS, and GEN technologies
 		peak_demand_at_monthly_baseP = demand[peak_demand_indices] ## baseP = monthly peaks of the baseline demand (without DERs)
-		peak_demand_at_monthly_adjP = demand[adjusted_demand_indices] ## adjP = monthly peaks of the adjusted demand curve (with DERs)
+		peak_demand_at_monthly_adjP = adjusted_demand[adjusted_demand_indices] ## adjP = monthly peaks of the adjusted demand curve (with DERs)
 		
 		BESS_demand_at_monthly_baseP = BESS_demand[peak_demand_indices]
 		BESS_demand_at_monthly_adjP = BESS_demand[adjusted_demand_indices]
@@ -1100,41 +938,24 @@ def work(modelDir, inputDict):
 		GEN_demand_at_monthly_baseP = GEN_demand[peak_demand_indices]
 		GEN_demand_at_monthly_adjP = GEN_demand[adjusted_demand_indices]
 
-		BESS_demand_at_baseP_cost = BESS_demand_at_monthly_baseP * peakDemandCharge
+		BESS_demand_at_baseP_cost = BESS_demand_at_monthly_baseP * peakDemandCharge ## e.g. 1000 kW x $50/kW 
 		TESS_demand_at_baseP_cost = TESS_demand_at_monthly_baseP * peakDemandCharge
 		GEN_demand_at_baseP_cost = GEN_demand_at_monthly_baseP * peakDemandCharge
 
-		allDER_at_baseP = BESS_demand_at_monthly_baseP+TESS_demand_at_monthly_baseP+GEN_demand_at_monthly_baseP
-		allDER_at_adjP = BESS_demand_at_monthly_adjP+TESS_demand_at_monthly_adjP+GEN_demand_at_monthly_adjP
+		allDER_at_baseP = BESS_demand_at_monthly_baseP + TESS_demand_at_monthly_baseP + GEN_demand_at_monthly_baseP
+		allDER_at_adjP = BESS_demand_at_monthly_adjP + TESS_demand_at_monthly_adjP + GEN_demand_at_monthly_adjP
 
-		## Calculate the F_val (the linear scaling factor that quantifies the impact of DERs on peak demand savings) NOTE: See CIDER project plan for doc link to detailed calculation of F_val
-		## TODO: Create a separate function that calculates Fval based on the size of the input demand charge array (monthly or hourly)
-		demand_1 = np.array(peak_demand_at_monthly_baseP) ## monthly peak demand at t=1 (peak w/o DERs)
-		demand_2 = np.array(peak_demand_at_monthly_adjP) ## monthly peak demand at t=2 (peak w/ DERs)
-		D_DER_1 = np.array(allDER_at_baseP) ## DER contribution (kW) at t=1
-		D_DER_2 = np.array(allDER_at_adjP) ## DER contribution (kW) at t=2
-		
-		numerator = demand_1 - demand_2
-		denominator = D_DER_1
+		## Calculate linear scaling factor Fval to properly calculate individual DER peak demand savings due to peak shifting
+		demand_without_DERs = np.array(peak_demand_at_monthly_baseP) 
+		demand_with_DERs = np.array(peak_demand_at_monthly_adjP) 
+		DERs_at_demand_peak = np.array(allDER_at_baseP)
+		fval_monthly = calculate_fval(demand_without_DERs, demand_with_DERs, DERs_at_demand_peak)
 
-		## Handle edge cases of Fval equation
-		## TODO: combine the zero_mask into fval_hourly to set fval to zero in all those cases
-		fval_monthly = np.divide(
-			numerator,
-			denominator,
-			out = np.zeros_like(numerator, dtype=float), ## If denomenator=0, set Fval=0
-			where = denominator !=0
-		)
-		fval_monthly_cleaned = np.nan_to_num(fval_monthly, nan=0.0, posinf=0.0, neginf=0.0) ## If nan and +/- inf values, set Fval=0)
-		zero_mask = (numerator == 0) & (denominator == 0) ## If numerator=0 and denominator=0, then set Fval=0
-		fval_monthly_cleaned[zero_mask] = 0.0
-
-		## Apply the monthly Fval to the monthly BESS, TESS, GEN peak demand savings
-		BESS_monthly_demand_savings = BESS_demand_at_baseP_cost*fval_monthly_cleaned
-		TESS_monthly_demand_savings = TESS_demand_at_baseP_cost*fval_monthly_cleaned
-		GEN_monthly_demand_savings = GEN_demand_at_baseP_cost*fval_monthly_cleaned
-		allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_monthly_demand_savings,TESS_monthly_demand_savings,GEN_monthly_demand_savings)]
-		allDevices_peakDemand_savings_total = sum(allDevices_peakDemand_savings_monthly)
+		## Apply the monthly Fval correction to the monthly BESS, TESS, GEN peak demand savings
+		BESS_monthly_demand_savings = BESS_demand_at_baseP_cost*fval_monthly
+		TESS_monthly_demand_savings = TESS_demand_at_baseP_cost*fval_monthly
+		GEN_monthly_demand_savings = GEN_demand_at_baseP_cost*fval_monthly
+		#allDevices_peakDemand_savings_monthly = [a+b+c for a,b,c in zip(BESS_monthly_demand_savings,TESS_monthly_demand_savings,GEN_monthly_demand_savings)]
 
 		## Calculate the consumption and fval-corrected demand savings
 		for device_name in single_device_results:
@@ -1142,24 +963,29 @@ def work(modelDir, inputDict):
 			device_demand[device_demand == -0.0] = 0.0 ## avoid sign errors
 			device_demand_at_baseP = device_demand[peak_demand_indices]
 			device_demand_at_baseP_cost = device_demand_at_baseP * peakDemandCharge
-			device_peakDemand_savings_monthly = device_demand_at_baseP_cost * fval_monthly_cleaned
+
+			## Demand (kW) savings
+			## NOTE: Assigns the following Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
+			device_peakDemand_savings_monthly = device_demand_at_baseP_cost * fval_monthly
 			device_peakDemand_savings_monthly[device_peakDemand_savings_monthly == -0.0] = 0.0 ## avoid sign errors
 			device_peakDemand_savings_allyears = np.full(projectionLength, sum(device_peakDemand_savings_monthly))
-			
-			## Demand (kW) savings
-			## NOTE: For CSV file tariff inputs, Savings Breakdown of Thermal Technologies plot variables: vbatResults_ac_peakDemand_savings_allyears, vbatResults_wh_peakDemand_savings_allyears, vbatResults_hp_peakDemand_savings_allyears
 			outData[device_name+'_peakDemand_savings_allyears'] = device_peakDemand_savings_allyears.tolist()
 
 			## Consumption (kWh) savings
 			device_consumption_savings_monthly = thermal_device_savings[device_name]['consumption_cost_monthly']
 			device_consumption_savings_allyears = thermal_device_savings[device_name]['consumption_cost_allyears']
 			outData[device_name+'_consumption_savings_allyears'] = device_consumption_savings_allyears.tolist()
+
+			## Total savings (demand savings + consumption savings)
+			#outData[device_name+'_total_savings_allyears'] = (device_consumption_savings_allyears + device_peakDemand_savings_allyears).tolist()
 			
-		outData['monthlyPeakDemand'] = [demand[np.argmax(demand[s:f])] for s, f in monthHours] ## monthly peak demand hours without DERs
+		## Output monthly peak demand costs and savings
+		outData['monthlyPeakDemand'] = demand[peak_demand_indices].tolist()
 		outData['monthlyPeakDemandCost'] = (peakDemandCharge*np.array(outData['monthlyPeakDemand'])).tolist()  ## peak demand charge before including DERs
-		outData['monthlyAdjustedPeakDemand'] = [adjusted_demand[np.argmax(adjusted_demand[s:f])] for s, f in monthHours] ## monthly peak demand hours (including DERs)
+		outData['monthlyAdjustedPeakDemand'] = adjusted_demand[adjusted_demand_indices].tolist() ## monthly peak demand hours (including DERs)
 		outData['monthlyAdjustedPeakDemandCost'] = (peakDemandCharge * np.array(outData['monthlyAdjustedPeakDemand'])).tolist() ## peak demand charge after including all DERs
-		
+		outData['monthlyPeakDemandSavings'] = (np.array(outData['monthlyPeakDemandCost']) - np.array(outData['monthlyAdjustedPeakDemandCost'])).tolist()
+
 	########################################################################################################################
 	## Calculate the combined (energy cost + demand cost) savings between the base demand curve and adjusted demand curve
 	########################################################################################################################
@@ -1303,7 +1129,7 @@ def work(modelDir, inputDict):
 	## Calculate the financial savings of controlling member-consumer DERs
 	## NOTE: The savings are the sum of the energy consumption savings and peak demand savings
 	######################################################################################################################################################
-	utilitySavings_year1_monthly_array = BESS_savings_year1_monthly_array + TESS_savings_year1_monthly_array + GEN_savings_year1_monthly_array #BESS_savings_allyears[0] + TESS_savings_allyears[0] + GEN_savings_allyears[0]
+	utilitySavings_year1_monthly_array = np.array(outData['monthlyPeakDemandSavings']) + monthlyEnergyConsumptionSavings
 	utilitySavings_year1_total = np.sum(utilitySavings_year1_monthly_array)
 	utilitySavings_allyears_array = np.full(projectionLength, utilitySavings_year1_total)
 	utilitySavings_allyears_total = np.sum(utilitySavings_allyears_array)
@@ -1327,24 +1153,27 @@ def work(modelDir, inputDict):
 	outData['NPV'] = npv(float(inputDict['discountRate'])/100., utilityNetSavings_allyears_array)
 
 	## Energy consumption variables ($/kW)
-	outData['monthlyEnergyConsumption'] = list(monthlyEnergyConsumption)
-	outData['monthlyAdjustedEnergyConsumption'] = list(monthlyAdjustedEnergyConsumption)
-	outData['monthlyEnergyConsumptionCost'] = list(monthlyEnergyConsumptionCost)
-	outData['monthlyAdjustedEnergyConsumptionCost'] = list(monthlyAdjustedEnergyConsumptionCost)
-	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings)
+	outData['monthlyEnergyConsumption'] = monthlyEnergyConsumption
+	outData['monthlyAdjustedEnergyConsumption'] = monthlyAdjustedEnergyConsumption
+	outData['monthlyEnergyConsumptionCost'] = monthlyEnergyConsumptionCost
+	outData['monthlyAdjustedEnergyConsumptionCost'] = monthlyAdjustedEnergyConsumptionCost
+	outData['monthlyEnergyConsumptionSavings'] = monthlyEnergyConsumptionSavings.tolist()
 
 	## NOTE: The demand variables below are calculated differently depending on the input method for demand rate information (JSON response file vs. CSV file)
-	##allOutputData.monthlyPeakDemand)
-	##allOutputData.monthlyAdjustedPeakDemand)
-	##allOutputData.monthlyPeakDemandCost)
-	##allOutputData.monthlyAdjustedPeakDemandCost)
-	##allOutputData.monthlyTotalCostService)
-	##allOutputData.monthlyTotalCostAdjustedService)
+	##allOutputData.monthlyPeakDemand
+	##allOutputData.monthlyAdjustedPeakDemand
+	##allOutputData.monthlyPeakDemandCost
+	##allOutputData.monthlyAdjustedPeakDemandCost
+	##allOutputData.monthlyTotalCostService
+	##allOutputData.monthlyTotalCostAdjustedService
+	##allOutputData.monthlyPeakDemandSavings
 
-	outData['totalCost_paidToConsumer'] = list(allDevices_compensation_year1_monthly_array + allDevices_subsidy_year1_monthly_array)
+	outData['totalCost_paidToConsumer'] = (allDevices_compensation_year1_monthly_array + allDevices_subsidy_year1_monthly_array).tolist()
 	startup_and_operational_costs_year1_array = startupCosts_year1_monthly_array + operationalCosts_year1_monthly_array ## Combine the startup and operational costs for displaying in the Monthly Cost Comparison table
-	outData['startupAndOperationalCosts_year1'] = list(startup_and_operational_costs_year1_array)
-	outData['totalNetSavings_year1'] = list(utilityNetSavings_year1_array) ## (total cost of service - adjusted total cost of service) - (operational costs + subsidies + compensation to consumer + startup costs)
+	outData['startupAndOperationalCosts_year1'] = startup_and_operational_costs_year1_array.tolist()
+	outData['totalCosts_year1'] = utilityCosts_year1_monthly_array.tolist()
+	outData['totalSavings_year1'] = utilitySavings_year1_monthly_array.tolist()
+	outData['totalNetSavings_year1'] = utilityNetSavings_year1_array.tolist() ## (total cost of service - adjusted total cost of service) - (operational costs + subsidies + compensation to consumer + startup costs)
 	
 	## NOTE: The following are not used in the output HTML plot, but could potentially be useful later
 	#outData['operationalCosts_allyears'] = list(operationalCosts_allyears_array*-1.)
@@ -1357,13 +1186,11 @@ def work(modelDir, inputDict):
 	## CashFlow Projection Plot variables
 	## NOTE: The utility costs are shown as negative values
 	######################################################################################################################################################
-	outData['savingsAllYears'] = list(utilitySavings_allyears_array)
-	outData['costsAllYears'] = list(utilityCosts_allyears_array*-1.) ## Show as negative for plotting purposes
-	outData['cumulativeCashflow_total'] = list(np.cumsum(utilityNetSavings_allyears_array))
+	outData['savingsAllYears'] = utilitySavings_allyears_array.tolist()
+	outData['costsAllYears'] = (-1.0*utilityCosts_allyears_array).tolist() ## Show as negative for plotting purposes
+	outData['cumulativeCashflow_total'] = np.cumsum(utilityNetSavings_allyears_array).tolist()
 	
 	## NOTE: The following variables are not used in output HTML plot, but could potentially be useful later
-	#outData['totalCost_year1'] = list(utilityCosts_year1_array)
-	#outData['totalSavings_year1'] = list(utilitySavings_year1_monthly_array)
 	#outData['subsidies'] = list(allDevices_subsidy_allyears_array*-1.) 
 	#outData['BESS_compensation_to_consumer_allyears'] = list(BESS_compensation_allyears_array*-1.)
 	#outData['TESS_compensation_to_consumer_allyears'] = list(TESS_compensation_allyears_array*-1.)
@@ -1373,21 +1200,303 @@ def work(modelDir, inputDict):
 	## Savings Breakdown Per Technology Plot variables
 	######################################################################################################################################################
 
-	outData['savings_consumption_BESS_allyears'] = list(BESS_consumption_savings_allyears)
-	outData['savings_consumption_TESS_allyears'] = list(TESS_consumption_savings_allyears)
-	outData['savings_consumption_GEN_allyears'] = list(GEN_consumption_savings_allyears)
+	outData['savings_consumption_BESS_allyears'] = BESS_consumption_savings_allyears.tolist()
+	outData['savings_consumption_TESS_allyears'] = TESS_consumption_savings_allyears.tolist()
+	outData['savings_consumption_GEN_allyears'] = GEN_consumption_savings_allyears.tolist()
 
-	outData['savings_peakDemand_BESS_allyears'] = list(BESS_peakDemand_savings_allyears)
-	outData['savings_peakDemand_TESS_allyears'] = list(TESS_peakDemand_savings_allyears)
-	outData['savings_peakDemand_GEN_allyears'] = list(GEN_peakDemand_savings_allyears)
+	outData['savings_peakDemand_BESS_allyears'] = BESS_peakDemand_savings_allyears.tolist()
+	outData['savings_peakDemand_TESS_allyears'] = TESS_peakDemand_savings_allyears.tolist()
+	outData['savings_peakDemand_GEN_allyears'] = GEN_peakDemand_savings_allyears.tolist()
 
-	outData['totalCosts_BESS_allyears'] = list(-1.0*totalCosts_BESS_allyears_array) ## Costs are negative for plotting purposes
-	outData['totalCosts_TESS_allyears'] = list(-1.0*totalCosts_TESS_allyears_array) ## Costs are negative for plotting purposes
-	outData['totalCosts_GEN_allyears'] = list(-1.0*totalCosts_GEN_allyears_array) ## Costs are negative for plotting purposes
-	outData['cumulativeSavings_total'] = list(np.cumsum(utilitySavings_allyears_array))
+	outData['totalCosts_BESS_allyears'] = (-1.0*totalCosts_BESS_allyears_array).tolist() ## Costs are negative for plotting purposes
+	outData['totalCosts_TESS_allyears'] =(-1.0*totalCosts_TESS_allyears_array).tolist() ## Costs are negative for plotting purposes
+	outData['totalCosts_GEN_allyears'] = (-1.0*totalCosts_GEN_allyears_array).tolist() ## Costs are negative for plotting purposes
+	outData['cumulativeSavings_total'] = np.cumsum(utilitySavings_allyears_array).tolist()
 	
 	## Add a flag for the case when no DER technology is specified. The Savings Breakdown plot will then display a placeholder plot with no available data.
 	outData['techCheck'] = float(sum(BESS) + sum(vbat_discharge_component) + sum(generator))
+
+	###################################################################################################################################
+	## Plot variables
+	###################################################################################################################################
+	## Convert all values from kW to Watts for plotting purposes only
+	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	grid_to_load_W = np.array(grid_to_load) * 1000.
+	BESS_W = np.array(BESS) * 1000.
+	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
+	vbat_discharge_component_W = vbat_discharge_component * 1000.
+	vbat_charge_component_W = vbat_charge_component * 1000.
+	demand_W = np.array(demand) * 1000.
+	grid_serving_new_load_W = grid_to_load_W + grid_charging_BESS_W + vbat_charge_component_W - vbat_discharge_component_W
+	generator_W = generator * 1000.
+
+	showlegend = True ## either enable or disable the legend toggle in the plot
+	#lineshape = 'linear'
+	lineshape = 'hv'
+
+	###################################################################################################################################
+	## Impact to Demand plot 
+	###################################################################################################################################
+	fig = go.Figure()
+	new_demand = demand_W + vbat_charge_component_W + grid_charging_BESS_W - BESS_W - vbat_discharge_component_W - generator_W
+
+	## Original load piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = demand_W,
+						yaxis='y1',
+						mode='none',
+						name='Original Demand',
+						fill='tozeroy',
+						fillcolor='rgba(81,40,136,1)',
+						showlegend=showlegend))
+	## Make original load and its legend name hidden in the plot by default
+	#fig.update_traces(legendgroup='Original Demand', visible='legendonly', selector=dict(name='Original Demand')) 
+
+	## New demand piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = new_demand,
+						yaxis='y1',
+						mode='none',
+						name='New Demand',
+						fill='tozeroy',
+						fillcolor='rgba(235,97,35,0.5)',
+						showlegend=showlegend))
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+
+	## Plot layout
+	fig.update_layout(
+    	xaxis=dict(title='Timestamp'),
+    	#yaxis=dict(title='Power (W)',type='log'),
+		yaxis=dict(title='Power (W)'),
+    	yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_NewDemand.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['newDemandData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['newDemandLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	########################################################################################################################################################
+	## DER Serving Load Overview plot 
+	########################################################################################################################################################
+	fig = go.Figure()
+
+	## Put all DER plot variables into a dataFrame for plotting
+	df = pd.DataFrame({
+		'timestamp': timestamps,
+		'Home BESS Serving Load': BESS_W,
+		'Home TESS Serving Load': vbat_discharge_component_W,
+		'Grid Serving Load': grid_to_load_W, #grid_serving_new_load_W,
+		'Home Generator Serving Load': generator_W,
+		'Grid Charging Home BESS': grid_charging_BESS_W,
+		'Grid Charging Home TESS': vbat_charge_component_W
+	})
+
+	## Define colors for each plot series
+	colors = {
+		'Grid Serving Load': 'rgba(128, 128, 128, 0.8)',  ## Gray
+		'Home BESS Serving Load': 'rgba(0, 128, 0, 0.8)',  ## Green
+		'Home Generator Serving Load': 'rgba(139, 0, 0, 0.8)',  ## Dark red
+		'Home TESS Serving Load': 'rgba(128, 0, 128, 0.8)',  ## Purple
+		'Grid Charging Home BESS': 'rgba(0, 128, 0, 0.4)',  ## Green w/ half opacity
+		'Grid Charging Home TESS': 'rgba(128, 0, 128, 0.4)'  ## Purple w/ half opacity
+	}
+
+	## Discharging DERs to plot
+	for col in ['Grid Serving Load', 'Home BESS Serving Load', 'Home Generator Serving Load', 'Home TESS Serving Load', 'Grid Charging Home BESS', 'Grid Charging Home TESS']:
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=df[col],
+			fill='tonexty',
+			mode='none',
+			name=col,
+			fillcolor=colors[col],
+			line_shape=lineshape,			
+			stackgroup='withgrid'  ## Stack all the discharging DERs together
+		))
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+	fig.update_layout(
+		xaxis_title='Timestamp',yaxis_title='Power (W)',
+		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_DerServingLoadOverview.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['derOverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['derOverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	########################################################################################################################################################
+	## Thermal DER Serving Load Overview plot 
+	## NOTE: This plot is like DER Serving Load Overview but only shows the thermal (AC, WH, HP) technologies
+	########################################################################################################################################################
+	fig = go.Figure()
+	
+	df = pd.DataFrame({
+		'timestamp': timestamps,
+		'Grid Serving Load': grid_to_load_W,
+	})
+
+	## Grid Serving Load series
+	fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=df['Grid Serving Load'],
+			fill='tonexty',
+			mode='none',
+			name='Grid Serving Load',
+			fillcolor='rgba(128, 128, 128, 0.8)', ## gray at 80% opacity
+			line_shape=lineshape,			
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+	
+	for thermal_device in single_device_results:
+		## thermal_device = 'vbatResults_hp'
+		if thermal_device == 'vbatResults_hp':
+			label = 'Home Heat Pump'
+			discharge_color = 'rgba(58,147,195,1)' ## medium blue
+			charge_color = 'rgba(58,147,195,0.5)' ## medium blue at 50% opacity
+		if thermal_device == 'vbatResults_ac':
+			label = 'Home Air Conditioner'
+			discharge_color = 'rgba(142,196,222,1)' ## light blue
+			charge_color = 'rgba(142,196,222,0.5)' ## light blue at 50% opacity
+		if thermal_device == 'vbatResults_wh':
+			label = 'Home Water Heater'
+			discharge_color = 'rgba(16,101,171,1)' ## dark blue
+			charge_color = 'rgba(16,101,171,0.5)' ## dark blue at 50% opacity
+
+		discharge_W = thermal_device_savings[thermal_device]['vbat_discharge_component_W']
+		charge_W = thermal_device_savings[thermal_device]['vbat_charge_component_flipsign_W']
+
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=discharge_W,
+			fill='tonexty',
+			mode='none',
+			name=label+' Serving Load',
+			fillcolor=discharge_color,
+			line_shape=lineshape,			
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=charge_W,
+			fill='tonexty',
+			mode='none',
+			name='Grid Charging ' + label,
+			fillcolor=charge_color,
+			line_shape=lineshape,
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+	fig.update_layout(
+		xaxis_title='Timestamp', yaxis_title='Power (W)',
+		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_ThermalDERServingLoadOverview.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['ThermalDEROverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['ThermalDEROverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	################################################################################################################################################
+	## Create Thermal Battery Power plot object 
+	################################################################################################################################################
+	fig = go.Figure()
+
+	data_names = ['vbatMinPowerCapacity', 'vbatMaxPowerCapacity', 'vbatPower']
+	colors = ['green', 'blue', 'black']
+	titles = ['Minimum Calculated Power Capacity', 'Maximum Calculated Power Capacity', 'Actual Power Utilized']
+
+	dataCheckList = []
+	for data_name, color, title in zip(data_names, colors, titles):
+		dataCheck = np.sum(combined_device_results[data_name])
+		dataCheckList.append(dataCheck)
+		fig.add_trace(go.Scatter(
+			x=timestamps, 
+			y=np.array(combined_device_results[data_name])*1000., ## convert from kW to W
+			yaxis='y1',
+			mode='lines',
+			line=dict(color=color, width=1),
+			name=title,
+			showlegend=True
+		))
+
+	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Power (W)'),
+		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1))
+	
+	## Add a thermal battery variable that signals to the HTML plot if all of the thermal series contain no data
+	outData['thermalDataCheck'] = float(sum(np.array(dataCheckList)))
+	
+	## Encode plot data as JSON for showing in the HTML side
+	outData['thermalBatPowerPlot'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['thermalBatPowerPlotLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)	
+
+	################################################################################################################################################
+	## Create Chemical BESS State of Charge plot object 
+	################################################################################################################################################
+	fig = go.Figure()
+	fig.add_trace(go.Scatter(x=timestamps, y=outData['chargeLevelBattery'],
+						mode='lines',
+						line=dict(color='purple', width=1),
+						name='Battery SOC',
+						showlegend=True))
+	
+	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Charge (%)'), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right',x=1))
+
+	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
 
 	## Model operations typically end here.
 	## Stdout/stderr.
@@ -1427,7 +1536,7 @@ def new(modelDir):
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
-		'useWholesaleJSONBool': True,
+		'useWholesaleJSONBool': False,
 		'wholesaleRateCurveFileName': 'TODrate66a13566e90ecdb7d40581d2.csv',
 		'wholesaleRateCurve': wholesale_rate_curve,
 		'wholesaleRateStructureFileName': 'exampleWholesaleRateStructure.json',
@@ -1437,7 +1546,7 @@ def new(modelDir):
 		
 		## Fossil Fuel Generator Inputs (for REopt)
 		## Modeled after Generac 20 kW diesel model with max tank of 95 gallons
-		'fossilGenerator': 'Yes',
+		'fossilGenerator': 'No',
 		'number_devices_GEN': '5',
 		'existing_gen_kw': '20',
 		'fuel_type': '3', 
@@ -1448,6 +1557,7 @@ def new(modelDir):
 		## Modeled after residential Tesla Powerwall 3 battery specs
 		'enableBESS': 'Yes',
 		'number_devices_BESS': '20000',
+		'utility_BESS_portion': '20.0',
 		'BESS_kw': '5.0',
 		'BESS_kwh': '13.5',
 

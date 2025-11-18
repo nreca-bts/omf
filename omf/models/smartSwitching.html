@@ -19,7 +19,13 @@
 		}
 	</style>
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 </head>
 <body>
 	{{ omfModelTitle }}
@@ -176,21 +182,21 @@
 		<div id="fig1" class="tightContent">
 			<div id="fig1Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig1Chart", JSON.parse(allOutputData["fig1Data"]), JSON.parse(allOutputData["fig1Layout"]) || {})
+				plotGraph("fig1Chart", allOutputData["fig1Data"], allOutputData["fig1Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Outage Distribution Data</p>
 		<div id="fig2" class="tightContent">
 			<div id="fig2Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig2Chart", JSON.parse(allOutputData["fig2Data"]), JSON.parse(allOutputData["fig2Layout"]) || {})
+				plotGraph("fig2Chart", allOutputData["fig2Data"], allOutputData["fig2Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Outage Timeline</p>
 		<div id="fig3" class="tightContent">
 			<div id="fig3Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig3Chart", JSON.parse(allOutputData["fig3Data"]), JSON.parse(allOutputData["fig3Layout"]) || {})
+				plotGraph("fig3Chart", allOutputData["fig3Data"], allOutputData["fig3Layout"])
 			</script>
 		</div>
 		{{ rawOutputFiles }}
