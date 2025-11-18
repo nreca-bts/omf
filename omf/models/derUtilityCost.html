@@ -13,8 +13,9 @@
 	<!-- Add Plotly plots -->
 	<script type="text/javascript">	
 		$(window).on('pageshow',function(){
-			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout'] );
 			plotGraph('newDemandData', allOutputData['newDemandData'], allOutputData['newDemandLayout'] );
+			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout'] );
+			plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 		});
 	</script>
 
@@ -438,11 +439,14 @@
 	<!-- Output tables, graphs, etc -->
 	<div id="output">
 
+		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
+		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+
 		<p class="reportTitle" style="page-break-before:always">DER Serving Load Overview</p>
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
-		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
-		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
+		<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
@@ -601,12 +605,12 @@
 				"xAxis":{"title":{"text":"Year After Installation","style":{"color":"gray"}},"type":"linear","tickColor":"gray","tickInterval":1,"lineColor":"gray","minorTickColor":"gray","minorTickInterval":5},
 				"title":{"text":"", "verticalAlign":"top", "align":"right", "y":35, "x":-10, "style":{"color":"#333333", "fontSize":"12px"}}, 
 				"series":[
-					{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 					{"name":"Water Heater Peak Demand Savings","data":allOutputData.vbatResults_wh_peakDemand_savings_allyears, "color": "rgba(16,101,171,0.5)"},
-					{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
+					{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 					{"name":"Heat Pump Peak Demand Savings","data":allOutputData.vbatResults_hp_peakDemand_savings_allyears, "color": "rgba(58,147,195,0.5)"},
-					{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
+					{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
 					{"name":"Air Conditioner Peak Demand Savings","data":allOutputData.vbatResults_ac_peakDemand_savings_allyears,"color":"rgba(142,196,222,0.5)"},
+					{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
 					{"name":"Water Heater Incentives","data":allOutputData.vbatResults_wh_costs_allyears,"color": "rgb(179,21,41)"},
 					{"name":"Heat Pump Incentives","data":allOutputData.vbatResults_hp_costs_allyears,"color": "rgb(215,95,76)"},
 					{"name":"Air Conditioner Incentives","data":allOutputData.vbatResults_ac_costs_allyears,"color": "rgb(246,164,130)"}

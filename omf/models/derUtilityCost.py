@@ -568,19 +568,23 @@ def work(modelDir, inputDict):
 	## Get the charging and discharging behavior after the total combined TESS has been calculated
 	combined_TESS_vbatPower = combined_device_results['vbatPower']
 	combined_TESS_vbatPower_series = pd.Series(combined_TESS_vbatPower)
-	combined_device_results['vbat_discharge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging
-	combined_device_results['vbat_charge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
-	combined_device_results['vbat_charge_flipsign'] = combined_device_results['vbat_charge'].mul(-1)
+	combined_device_results['vbat_discharge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series >= 0.0, 0.0) ##positive values = discharging
+	combined_device_results['vbat_charge'] = combined_TESS_vbatPower_series.where(combined_TESS_vbatPower_series < 0.0, 0.0) ##negative values = charging
+	combined_device_results['vbat_charge_flipsign'] = combined_device_results['vbat_charge'].mul(-1.0)
 
 	## Calculate the subsidies, compensation rate, and consumption cost (kWh) for each individual thermal tech device
 	## NOTE: This loop must come after the calculation of the combined TESS devices in order to correctly calculate the single_device_vbat_discharge/charge components
 	for device_result in single_device_results:
 		single_device_vbatPower = single_device_results[device_result]['VBpower']
-		single_device_vbatPower[single_device_vbatPower == -0.0] = 0.0 ## Convert negative zeros into positive zeros to avoid sign errors
+		single_device_vbatPower_series.replace(-0.0, 0.0, inplace=True) ## replace negative zeros with positive zeros
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
-		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging 
-		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
-		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1)
+		## select out the individual TESS discharge/charge values where the sum total TESS discharge/charge is collectively discharging/charging
+		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0.0, 0.0) ##positive values = discharging 
+		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0.0, 0.0) ##negative values = charging
+		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1.0)
+		## select out the original individual TESS discharge/charge values
+		orig_single_device_vbat_discharge_component = single_device_vbatPower_series.where(single_device_vbatPower_series > 0.0, 0.0) ##positive values = discharging 
+		orig_single_device_vbat_charge_component_flipsign = single_device_vbatPower_series.where(single_device_vbatPower_series < 0.0, 0.0) * -1.0 ##negative values = charging. multiply by -1 for plotting purposes
 
 		## Calculate subsidy for each thermal DER technology
 		single_device_subsidy_ongoing = float(single_device_results[device_result]['TESS_subsidy_ongoing'])
@@ -605,9 +609,13 @@ def work(modelDir, inputDict):
 		costs_year1_monthly_single_device = single_device_subsidy_year1_array + single_device_compensation_year1_array
 		costs_allyears_single_device = single_device_subsidy_allyears_array + single_device_compensation_allyears_array 
 
-		## Save relevant variables for calculating the demand cost savings later on
+		## Save relevant variables for each TESS device for calculating the demand cost savings later on
 		thermal_device_savings[device_result] = {
 			'demand': np.array(single_device_vbatPower),
+			'vbat_discharge_component': np.array(orig_single_device_vbat_discharge_component),
+			'vbat_discharge_component_W': np.array(orig_single_device_vbat_discharge_component) * 1000.,
+			'vbat_charge_component_flipsign': np.array(orig_single_device_vbat_charge_component_flipsign),
+			'vbat_charge_component_flipsign_W': np.array(orig_single_device_vbat_charge_component_flipsign) * 1000.,
 			'consumption_cost_monthly': np.array(single_device_consumption_cost_monthly),
 			'consumption_cost_allyears': np.array(single_device_consumption_cost_allyears),
     	}
@@ -616,6 +624,11 @@ def work(modelDir, inputDict):
 		## NOTE: This is where the html variables outData['vbatResults_wh_costs_allyears'], outData['vbatResults_hp_costs_allyears'], and outData['vbatResults_ac_costs_allyears'] are saved.
 		outData[device_result+'_costs_allyears'] = list(costs_allyears_single_device*-1.0) ## Multiply by negative one for displaying in the plot as a cost
 		outData[device_result+'_check'] = 'enabled'
+
+	## vbatDispatch variables
+	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
+	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
+	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
 
 	## NOTE: temporarily comment out the two derConsumer runs. This needs some development since derConsumer.py has changed over time.
 	"""
@@ -710,209 +723,8 @@ def work(modelDir, inputDict):
 		'TESSsavingsSmallConsumer': smallConsumerOutput['savings'],
 		'TESSsavingsLargeConsumer': largeConsumerOutput['savings']
 	})
-	"""
-	########################################################################################################################################################
-	## DER Serving Load Overview plot 
-	########################################################################################################################################################
 
-	## vbatDispatch variables
-	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
-	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
-	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
-
-	## Convert all values from kW to Watts for plotting purposes only
-	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
-	grid_to_load_W = np.array(grid_to_load) * 1000.
-	BESS_W = np.array(BESS) * 1000.
-	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
-	vbat_discharge_component_W = vbat_discharge_component * 1000.
-	vbat_charge_component_W = vbat_charge_component * 1000.
-	demand_W = np.array(demand) * 1000.
-	grid_serving_new_load_W = grid_to_load_W + grid_charging_BESS_W + vbat_charge_component_W - vbat_discharge_component_W
-	generator_W = generator * 1000.
-
-	## Put all DER plot variables into a dataFrame for plotting
-	df = pd.DataFrame({
-		'timestamp': timestamps,
-		'Home BESS Serving Load': BESS_W,
-		'Home TESS Serving Load': vbat_discharge_component_W,
-		'Grid Serving Load': grid_to_load_W, #grid_serving_new_load_W,
-		'Home Generator Serving Load': generator_W,
-		'Grid Charging Home BESS': grid_charging_BESS_W,
-		'Grid Charging Home TESS': vbat_charge_component_W
-	})
-
-	## Define colors for each plot series
-	colors = {
-		'Grid Serving Load': 'rgba(128, 128, 128, 0.8)',  ## Gray
-		'Home BESS Serving Load': 'rgba(0, 128, 0, 0.8)',  ## Green
-		'Home Generator Serving Load': 'rgba(139, 0, 0, 0.8)',  ## Dark red
-		'Home TESS Serving Load': 'rgba(128, 0, 128, 0.8)',  ## Purple
-		'Grid Charging Home BESS': 'rgba(0, 128, 0, 0.4)',  ## Green w/ half opacity
-		'Grid Charging Home TESS': 'rgba(128, 0, 128, 0.4)'  ## Purple w/ half opacity
-	}
-
-	## Plot options
-	showlegend = True ## either enable or disable the legend toggle in the plot
-	lineshape = 'hv'
-	fig = go.Figure()
-
-	## Discharging DERs to plot
-	for col in ["Grid Serving Load", "Home BESS Serving Load", "Home Generator Serving Load", "Home TESS Serving Load","Grid Charging Home BESS", "Grid Charging Home TESS"]:
-		fig.add_trace(go.Scatter(
-			x=df["timestamp"],
-			y=df[col],
-			fill="tonexty",
-			mode="none",
-			name=col,
-			fillcolor=colors[col],
-			line_shape=lineshape,			
-			stackgroup="discharge"  ## Stack all the discharging DERs together
-		))
-
-	## Temperature line on a secondary y-axis (defined in the plot layout)
-	fig.add_trace(go.Scatter(x=timestamps,
-						y=temperatures_degF,
-						yaxis='y2',
-						#mode='lines',
-						line=dict(color='red',width=1),
-						name='Average Air Temperature',
-						showlegend=showlegend 
-						))
 	
-	## Make temperature and its legend name hidden in the plot by default
-	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
-	fig.update_layout(
-		xaxis_title="Timestamp",yaxis_title="Power (W)",
-		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
-    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
-	)
-
-	## NOTE: This opens a window that displays the correct figure with the appropriate patterns.
-	## NOTE (cont.): For some reason, the slash-mark patterns are not showing up on the OMF page otherwise. Eventually we will delete this part.
-	#fig.show()
-	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
-	fig.write_html(pJoin(modelDir, "Plot_DerServingLoadOverview.html"))
-
-	## Encode plot data as JSON for showing in the HTML 
-	outData['derOverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['derOverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-	###################################################################################################################################
-	## Impact to Demand plot 
-	###################################################################################################################################
-	showlegend = True ## either enable or disable the legend toggle in the plot
-	#lineshape = 'linear'
-	lineshape = 'hv'
-
-	fig = go.Figure()
-	new_demand = demand_W + vbat_charge_component_W + grid_charging_BESS_W - BESS_W - vbat_discharge_component_W - generator_W
-
-	## Original load piece (minus any vbat or BESS charging aka 'new/additional loads')
-	fig.add_trace(go.Scatter(x=timestamps,
-						y = demand_W,
-						yaxis='y1',
-						mode='none',
-						name='Original Demand',
-						fill='tozeroy',
-						fillcolor='rgba(81,40,136,1)',
-						showlegend=showlegend))
-	## Make original load and its legend name hidden in the plot by default
-	#fig.update_traces(legendgroup='Original Demand', visible='legendonly', selector=dict(name='Original Demand')) 
-
-	## New demand piece (minus any vbat or BESS charging aka 'new/additional loads')
-	fig.add_trace(go.Scatter(x=timestamps,
-						y = new_demand,
-						yaxis='y1',
-						mode='none',
-						name='New Demand',
-						fill='tozeroy',
-						fillcolor='rgba(235,97,35,0.5)',
-						showlegend=showlegend))
-
-	## Temperature line on a secondary y-axis (defined in the plot layout)
-	fig.add_trace(go.Scatter(x=timestamps,
-						y=temperatures_degF,
-						yaxis='y2',
-						#mode='lines',
-						line=dict(color='red',width=1),
-						name='Average Air Temperature',
-						showlegend=showlegend 
-						))
-	
-	## Make temperature and its legend name hidden in the plot by default
-	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
-
-	## Plot layout
-	fig.update_layout(
-    	xaxis=dict(title='Timestamp'),
-    	#yaxis=dict(title='Power (W)',type='log'),
-		yaxis=dict(title='Power (W)'),
-    	yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
-		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1)
-	)
-
-	## NOTE: This opens a window that displays the correct figure with the appropriate patterns.
-	## For some reason, the slash-mark patterns are not showing up on the OMF page otherwise.
-	## Eventually we will delete this part.
-	#fig.show()
-	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
-	fig.write_html(pJoin(modelDir, "Plot_NewDemand.html"))
-
-	## Encode plot data as JSON for showing in the HTML 
-	outData['newDemandData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['newDemandLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-	################################################################################################################################################
-	## Create Thermal Battery Power plot object 
-	################################################################################################################################################
-	fig = go.Figure()
-
-	data_names = ['vbatMinPowerCapacity', 'vbatMaxPowerCapacity', 'vbatPower']
-	colors = ['green', 'blue', 'black']
-	titles = ['Minimum Calculated Power Capacity', 'Maximum Calculated Power Capacity', 'Actual Power Utilized']
-
-	dataCheckList = []
-	for data_name, color, title in zip(data_names, colors, titles):
-		dataCheck = np.sum(combined_device_results[data_name])
-		dataCheckList.append(dataCheck)
-		fig.add_trace(go.Scatter(
-			x=timestamps, 
-			y=np.array(combined_device_results[data_name])*1000., ## convert from kW to W
-			yaxis='y1',
-			mode='lines',
-			line=dict(color=color, width=1),
-			name=title,
-			showlegend=True
-		))
-
-	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Power (W)'),
-		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1))
-	
-	## Add a thermal battery variable that signals to the HTML plot if all of the thermal series contain no data
-	outData['thermalDataCheck'] = float(sum(np.array(dataCheckList)))
-	
-	## Encode plot data as JSON for showing in the HTML side
-	outData['thermalBatPowerPlot'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['thermalBatPowerPlotLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)	
-
-	################################################################################################################################################
-	## Create Chemical BESS State of Charge plot object 
-	################################################################################################################################################
-	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=timestamps, y=outData['chargeLevelBattery'],
-						mode='lines',
-						line=dict(color='purple', width=1),
-						name='Battery SOC',
-						showlegend=True))
-	
-	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Charge (%)'), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right',x=1))
-
-	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
-	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
-
-
-	"""
 	#####################################################################################################################################################################################################
 	## Compensation rate to member-consumer
 	compensationRate = float(inputDict['rateCompensation'])
@@ -1403,6 +1215,288 @@ def work(modelDir, inputDict):
 	
 	## Add a flag for the case when no DER technology is specified. The Savings Breakdown plot will then display a placeholder plot with no available data.
 	outData['techCheck'] = float(sum(BESS) + sum(vbat_discharge_component) + sum(generator))
+
+	###################################################################################################################################
+	## Plot variables
+	###################################################################################################################################
+	## Convert all values from kW to Watts for plotting purposes only
+	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
+	grid_to_load_W = np.array(grid_to_load) * 1000.
+	BESS_W = np.array(BESS) * 1000.
+	grid_charging_BESS_W = np.array(grid_charging_BESS) * 1000.
+	vbat_discharge_component_W = vbat_discharge_component * 1000.
+	vbat_charge_component_W = vbat_charge_component * 1000.
+	demand_W = np.array(demand) * 1000.
+	grid_serving_new_load_W = grid_to_load_W + grid_charging_BESS_W + vbat_charge_component_W - vbat_discharge_component_W
+	generator_W = generator * 1000.
+
+	showlegend = True ## either enable or disable the legend toggle in the plot
+	#lineshape = 'linear'
+	lineshape = 'hv'
+
+	###################################################################################################################################
+	## Impact to Demand plot 
+	###################################################################################################################################
+	fig = go.Figure()
+	new_demand = demand_W + vbat_charge_component_W + grid_charging_BESS_W - BESS_W - vbat_discharge_component_W - generator_W
+
+	## Original load piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = demand_W,
+						yaxis='y1',
+						mode='none',
+						name='Original Demand',
+						fill='tozeroy',
+						fillcolor='rgba(81,40,136,1)',
+						showlegend=showlegend))
+	## Make original load and its legend name hidden in the plot by default
+	#fig.update_traces(legendgroup='Original Demand', visible='legendonly', selector=dict(name='Original Demand')) 
+
+	## New demand piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = new_demand,
+						yaxis='y1',
+						mode='none',
+						name='New Demand',
+						fill='tozeroy',
+						fillcolor='rgba(235,97,35,0.5)',
+						showlegend=showlegend))
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+
+	## Plot layout
+	fig.update_layout(
+    	xaxis=dict(title='Timestamp'),
+    	#yaxis=dict(title='Power (W)',type='log'),
+		yaxis=dict(title='Power (W)'),
+    	yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_NewDemand.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['newDemandData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['newDemandLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	########################################################################################################################################################
+	## DER Serving Load Overview plot 
+	########################################################################################################################################################
+	fig = go.Figure()
+
+	## Put all DER plot variables into a dataFrame for plotting
+	df = pd.DataFrame({
+		'timestamp': timestamps,
+		'Home BESS Serving Load': BESS_W,
+		'Home TESS Serving Load': vbat_discharge_component_W,
+		'Grid Serving Load': grid_to_load_W, #grid_serving_new_load_W,
+		'Home Generator Serving Load': generator_W,
+		'Grid Charging Home BESS': grid_charging_BESS_W,
+		'Grid Charging Home TESS': vbat_charge_component_W
+	})
+
+	## Define colors for each plot series
+	colors = {
+		'Grid Serving Load': 'rgba(128, 128, 128, 0.8)',  ## Gray
+		'Home BESS Serving Load': 'rgba(0, 128, 0, 0.8)',  ## Green
+		'Home Generator Serving Load': 'rgba(139, 0, 0, 0.8)',  ## Dark red
+		'Home TESS Serving Load': 'rgba(128, 0, 128, 0.8)',  ## Purple
+		'Grid Charging Home BESS': 'rgba(0, 128, 0, 0.4)',  ## Green w/ half opacity
+		'Grid Charging Home TESS': 'rgba(128, 0, 128, 0.4)'  ## Purple w/ half opacity
+	}
+
+	## Discharging DERs to plot
+	for col in ['Grid Serving Load', 'Home BESS Serving Load', 'Home Generator Serving Load', 'Home TESS Serving Load', 'Grid Charging Home BESS', 'Grid Charging Home TESS']:
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=df[col],
+			fill='tonexty',
+			mode='none',
+			name=col,
+			fillcolor=colors[col],
+			line_shape=lineshape,			
+			stackgroup='withgrid'  ## Stack all the discharging DERs together
+		))
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+	fig.update_layout(
+		xaxis_title='Timestamp',yaxis_title='Power (W)',
+		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_DerServingLoadOverview.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['derOverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['derOverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	########################################################################################################################################################
+	## Thermal DER Serving Load Overview plot 
+	## NOTE: This plot is like DER Serving Load Overview but only shows the thermal (AC, WH, HP) technologies
+	########################################################################################################################################################
+	fig = go.Figure()
+	
+	df = pd.DataFrame({
+		'timestamp': timestamps,
+		'Grid Serving Load': grid_to_load_W,
+	})
+
+	## Grid Serving Load series
+	fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=df['Grid Serving Load'],
+			fill='tonexty',
+			mode='none',
+			name='Grid Serving Load',
+			fillcolor='rgba(128, 128, 128, 0.8)', ## gray at 80% opacity
+			line_shape=lineshape,			
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+	
+	for thermal_device in single_device_results:
+		## thermal_device = 'vbatResults_hp'
+		if thermal_device == 'vbatResults_hp':
+			label = 'Home Heat Pump'
+			discharge_color = 'rgba(58,147,195,1)' ## medium blue
+			charge_color = 'rgba(58,147,195,0.5)' ## medium blue at 50% opacity
+		if thermal_device == 'vbatResults_ac':
+			label = 'Home Air Conditioner'
+			discharge_color = 'rgba(142,196,222,1)' ## light blue
+			charge_color = 'rgba(142,196,222,0.5)' ## light blue at 50% opacity
+		if thermal_device == 'vbatResults_wh':
+			label = 'Home Water Heater'
+			discharge_color = 'rgba(16,101,171,1)' ## dark blue
+			charge_color = 'rgba(16,101,171,0.5)' ## dark blue at 50% opacity
+
+		discharge_W = thermal_device_savings[thermal_device]['vbat_discharge_component_W']
+		charge_W = thermal_device_savings[thermal_device]['vbat_charge_component_flipsign_W']
+
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=discharge_W,
+			fill='tonexty',
+			mode='none',
+			name=label+' Serving Load',
+			fillcolor=discharge_color,
+			line_shape=lineshape,			
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+
+		fig.add_trace(go.Scatter(
+			x=df['timestamp'],
+			y=charge_W,
+			fill='tonexty',
+			mode='none',
+			name='Grid Charging ' + label,
+			fillcolor=charge_color,
+			line_shape=lineshape,
+			stackgroup='withgrid' ## Stack all DERs together + grid
+		))
+
+
+	## Temperature line on a secondary y-axis (defined in the plot layout)
+	fig.add_trace(go.Scatter(x=timestamps,
+						y=temperatures_degF,
+						yaxis='y2',
+						#mode='lines',
+						line=dict(color='red',width=1),
+						name='Average Air Temperature',
+						showlegend=showlegend 
+						))
+	
+	## Make temperature and its legend name hidden in the plot by default
+	fig.update_traces(legendgroup='Average Air Temperature', visible='legendonly', selector=dict(name='Average Air Temperature')) 
+	fig.update_layout(
+		xaxis_title='Timestamp', yaxis_title='Power (W)',
+		yaxis2=dict(title='degrees Fahrenheit',overlaying='y',side='right'),
+    	legend=dict(orientation='h',yanchor='bottom', xanchor='right',y=1.02,x=1,)
+	)
+
+	## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+	#fig.show()
+	#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_ThermalDERServingLoadOverview.html'))
+
+	## Encode plot data as JSON for showing in the HTML 
+	outData['ThermalDEROverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['ThermalDEROverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+
+	################################################################################################################################################
+	## Create Thermal Battery Power plot object 
+	################################################################################################################################################
+	fig = go.Figure()
+
+	data_names = ['vbatMinPowerCapacity', 'vbatMaxPowerCapacity', 'vbatPower']
+	colors = ['green', 'blue', 'black']
+	titles = ['Minimum Calculated Power Capacity', 'Maximum Calculated Power Capacity', 'Actual Power Utilized']
+
+	dataCheckList = []
+	for data_name, color, title in zip(data_names, colors, titles):
+		dataCheck = np.sum(combined_device_results[data_name])
+		dataCheckList.append(dataCheck)
+		fig.add_trace(go.Scatter(
+			x=timestamps, 
+			y=np.array(combined_device_results[data_name])*1000., ## convert from kW to W
+			yaxis='y1',
+			mode='lines',
+			line=dict(color=color, width=1),
+			name=title,
+			showlegend=True
+		))
+
+	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Power (W)'),
+		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1))
+	
+	## Add a thermal battery variable that signals to the HTML plot if all of the thermal series contain no data
+	outData['thermalDataCheck'] = float(sum(np.array(dataCheckList)))
+	
+	## Encode plot data as JSON for showing in the HTML side
+	outData['thermalBatPowerPlot'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['thermalBatPowerPlotLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)	
+
+	################################################################################################################################################
+	## Create Chemical BESS State of Charge plot object 
+	################################################################################################################################################
+	fig = go.Figure()
+	fig.add_trace(go.Scatter(x=timestamps, y=outData['chargeLevelBattery'],
+						mode='lines',
+						line=dict(color='purple', width=1),
+						name='Battery SOC',
+						showlegend=True))
+	
+	fig.update_layout(xaxis=dict(title='Timestamp'), yaxis=dict(title='Charge (%)'), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right',x=1))
+
+	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
 
 	## Model operations typically end here.
 	## Stdout/stderr.
