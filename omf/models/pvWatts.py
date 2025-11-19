@@ -63,7 +63,6 @@ def work(modelDir, inputDict):
 	requestSuccess = False
 	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	print(modified_url)
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")
