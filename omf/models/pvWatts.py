@@ -27,6 +27,7 @@ def work(modelDir, inputDict):
 	sys_cap = float( inputDict['systemCapacity'] )
 	tilt = float( inputDict['tilt'] )
 	elev = float( inputDict['elev'] )
+	start = pd.to_datetime(inputDict["simStartDate"])
 
 	sys_design = {
 		"ModelParams": {
@@ -55,11 +56,14 @@ def work(modelDir, inputDict):
 
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
-	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
+	# base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
+	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv?"
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	print(modified_url)
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")
@@ -119,7 +123,6 @@ def work(modelDir, inputDict):
 		outData['longitude'] = pvwatts_model.Outputs.lon
 		outData['elev'] = pvwatts_model.Outputs.elev
 
-		start = pd.to_datetime(inputDict["simStartDate"])
 		thirty_minute_start = pd.to_timedelta( 30, unit="minute")
 		start = start + thirty_minute_start
 		time_passed = pd.to_timedelta( int(inputDict['simLength']), unit=inputDict['simLengthUnits'])
