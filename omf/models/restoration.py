@@ -2005,7 +2005,7 @@ def work(modelDir, inputDict):
 	#	outData['customerCostFig.png'] = base64.standard_b64encode(inFile.read()).decode()
 	# Plotly outputs.
 	layoutOb = go.Layout()
-	outData['mgGensFigsData'] = json.dumps(plotOuts.get('mgGensFigs',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['mgGensFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgGensFigs',{}).items()}
 	outData['mgGensFigsLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig1Data'] = json.dumps(plotOuts.get('gens',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig1Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
@@ -2019,7 +2019,7 @@ def work(modelDir, inputDict):
 	outData['fig5Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Data'] = json.dumps(plotOuts.get('outageIncidenceFig',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['mgOIFigsData'] = json.dumps(plotOuts.get('mgOIFigs',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['mgOIFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgOIFigs',{}).items()}
 	outData['mgOIFigsLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['taofiHistData'] = json.dumps(plotOuts.get('taofiHist',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['taofiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)

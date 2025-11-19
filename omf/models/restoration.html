@@ -27,8 +27,8 @@
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
 	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
 	<script>
-		function plotGraph(graphTitle, graphData ) {
-			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		function plotGraph(graphTitle, graphData , graphLayout) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} , JSON.parse(graphLayout) || {})
 		}
 	</script>
 	<!-- Leaflet -->
@@ -184,7 +184,7 @@
 		<p class="reportTitle">Generator Profiles for Microgrids</p>
 		<div id="gensFigures" class="tightContent" style="max-height:450px; overflow-y: scroll;">
 			<script type="text/javascript">			
-			for (let [mgID,figData] of Object.entries(JSON.parse(allOutputData['mgGensFigsData']))) {
+			for (let [mgID,figData] of Object.entries(allOutputData['mgGensFigsData'])) {
 				$("<div/>").appendTo("#gensFigures")
 					.attr("id", "gens_fig_mg_"+mgID)
 					.attr("style","width:1000px")
@@ -270,7 +270,7 @@
 		<p class="reportTitle"><label class="tooltip">Outage Incidence for Microgrids<span class="classic">Outage Incidence is the percent of loads in a system that are experiencing an outage at a given time. A load is considered to be experiencing an outage at a given time if its "After" status in the Timeline below is "offline".</span></label></p>
 		<div id="outageIncidenceFigures" class="tightContent" style="max-height:450px; overflow-y: scroll;">
 			<script type="text/javascript">			
-			for (let [mgID,figData] of Object.entries(JSON.parse(allOutputData['mgOIFigsData']))) {
+			for (let [mgID,figData] of Object.entries(allOutputData['mgOIFigsData'])) {
 				$("<div/>").appendTo("#outageIncidenceFigures")
 					.attr("id", "OI_fig_mg_"+mgID)
 					.attr("style","width:1000px")
