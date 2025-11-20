@@ -349,18 +349,6 @@
             "units": "ft",
             "linecode": "oh_3p_type1"
         },
-        "35": {
-            "object": "line",
-            "name": "l_1006_1007",
-            "from": "bus1006",
-            "to": "bus1007",
-            "!FROCODE": ".1.2",
-            "!TOCODE": ".1.2",
-            "phases": "2",
-            "length": "2000",
-            "units": "ft",
-            "linecode": "oh_2p_type2"
-        },
         "36": {
             "object": "line",
             "name": "l_1006_1008",
@@ -516,54 +504,6 @@
             "length": "1",
             "units": "ft",
             "linecode": "t_type2"
-        },
-        "49": {
-            "object": "line",
-            "name": "l_1006_1006_l_1",
-            "from": "bus1006",
-            "to": "t_bus1006_l",
-            "!FROCODE": ".1.0",
-            "!TOCODE": ".1.0",
-            "phases": "1",
-            "length": "1",
-            "units": "ft",
-            "linecode": "t_type3"
-        },
-        "50": {
-            "object": "line",
-            "name": "l_1006_1006_l_2",
-            "from": "bus1006",
-            "to": "t_bus1006_l",
-            "!FROCODE": ".2.0",
-            "!TOCODE": ".2.0",
-            "phases": "1",
-            "length": "1",
-            "units": "ft",
-            "linecode": "t_type3"
-        },
-        "51": {
-            "object": "line",
-            "name": "l_1007_1007_l_1",
-            "from": "bus1007",
-            "to": "t_bus1007_l",
-            "!FROCODE": ".1.0",
-            "!TOCODE": ".1.0",
-            "phases": "1",
-            "length": "1",
-            "units": "ft",
-            "linecode": "t_type4"
-        },
-        "52": {
-            "object": "line",
-            "name": "l_1007_1007_l_2",
-            "from": "bus1007",
-            "to": "t_bus1007_l",
-            "!FROCODE": ".2.0",
-            "!TOCODE": ".2.0",
-            "phases": "1",
-            "length": "1",
-            "units": "ft",
-            "linecode": "t_type4"
         },
         "53": {
             "object": "line",
@@ -10226,12 +10166,6 @@
             "latitude": 30.09321415456014,
             "longitude": -82.17078769267222
         },
-        "876": {
-            "object": "bus",
-            "name": "bus1007",
-            "latitude": 30.08191415456014,
-            "longitude": -82.17078769267222
-        },
         "877": {
             "object": "bus",
             "name": "bus1008",
@@ -11647,18 +11581,6 @@
             "name": "t_bus1005_l",
             "latitude": 30.09347793198343,
             "longitude": -82.15732310909837
-        },
-        "1113": {
-            "object": "bus",
-            "name": "t_bus1006_l",
-            "latitude": 30.09412184147832,
-            "longitude": -82.17036804465475
-        },
-        "1114": {
-            "object": "bus",
-            "name": "t_bus1007_l",
-            "latitude": 30.081567277037333,
-            "longitude": -82.16984978223718
         },
         "1115": {
             "object": "bus",

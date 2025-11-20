@@ -717,10 +717,10 @@ class FeatureEditModal { // implements ObserverInterface, ModalInterface
         for (const [key, val] of Object.entries(this.#observable.getProperties('meta'))) {
             if (key === 'TRACT') {
                 propTable.insertTHeadRow({elements: [null, null, 'Census Tract', val.toString()], position: 'prepend'});
-            } else if (key === 'SOVI_SCORE') {
-                propTable.insertTBodyRow({elements: [null, null, 'Social Vulnerability Score', val.toString()]});
-            } else if (key === 'SOVI_RATNG') {
-                propTable.insertTBodyRow({elements: [null, null, 'Social Vulnerability Rating', val.toString()]});
+            } else if (key === 'OIP Score') {
+                propTable.insertTBodyRow({elements: [null, null, 'OIP Score', val.toString()]});
+            } else if (key === 'OIP Rating') {
+                propTable.insertTBodyRow({elements: [null, null, 'OIP Rating', val.toString()]});
             } else {
                 propTable.insertTBodyRow({elements: [null, null, key, val.toString()]});
             }

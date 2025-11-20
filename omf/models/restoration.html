@@ -27,8 +27,8 @@
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
 	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
 	<script>
-		function plotGraph(graphTitle, graphData ) {
-			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		function plotGraph(graphTitle, graphData , graphLayout) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} , JSON.parse(graphLayout) || {})
 		}
 	</script>
 	<!-- Leaflet -->
@@ -80,7 +80,7 @@
 				<input type="text" id="feederName1" name="feederName1" value="{{allInputDataDict.feederName1}}" style="display:none">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Event Information (.json file)<span class="classic">Please see the documentation at the help link for the required format</span></label>
+				<label class="tooltip">Event Information (.json file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
 				<input id="eventFile" type="file" style="display:none" onchange="handle_files(this.files,'eventData','eventFileName')">
 				<input id="eventData" name="eventData" value='{{allInputDataDict.eventData}}' type="hidden">
 				<div>
@@ -114,21 +114,12 @@
 					<input id="microgridTaggingFileName" name="microgridTaggingFileName" value="{{allInputDataDict.microgridTaggingFileName}}" value='' readonly class="uploadFileName">
 				</div>
 			</div>
-			<div class="shortInput">
-				<label class="tooltip">Impact of CCI<span class="classic">Select an option for the level of impact you want Community Criticality Index (CCI) to have on the results of the simulation. CCI reflects an individual&#39;s relative vulnerability to outages at a load. It is calculated using social vulnerability alongside technical factors. For more information, see the documentation at the help link. </span></label>
-				<select id="cciImpact" name="cciImpact" value="{{allInputDataDict.cciImpact}}" />
-					<option value='1.0' {% if allInputDataDict.cciImpact == '1.0' %}selected{% endif %}>High</option>
-					<option value='0.4' {% if allInputDataDict.cciImpact == '0.4' %}selected{% endif %}>Medium</option>
-					<option value='0.1' {% if allInputDataDict.cciImpact == '0.1' %}selected{% endif %}>Low</option>
-					<option value='0.0' {% if allInputDataDict.cciImpact == '0.0' %}selected{% endif %}>None</option>
-				</select>
-			</div>
 			<div class="wideInput">
 				<p class="inputSectionHeader">Outage Cost Parameters</p>
 			</div>
 			<hr>
 			<div class="shortInput">
-				<label class="tooltip">Customer Information (.csv file)<span class="classic">Please see the documentation at the help link for the required format</span></label>
+				<label class="tooltip">Customer Information (.csv file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
 				<input id="customerFile" type="file" style="display:none" onchange="handle_files(this.files,'customerData','customerFileName')">
 				<input id="customerData" name="customerData" value='{{allInputDataDict.customerData}}' type="hidden">
 				<div>
@@ -148,6 +139,35 @@
 				<label class="tooltip">Energy Sales Margin<span class="classic">Decimal representing the percentage of profit on energy sales.</span></label>
 				<input type="text" id="profit_on_energy_sales" name="profit_on_energy_sales" value="{{allInputDataDict.profit_on_energy_sales}}" pattern="^\d{1,3}(\.\d*?)?$" required="required">
 			</div>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Include Locational Data in Analysis</p>
+			</div>
+			<hr>
+			<div class="shortInput">
+				<label class="tooltip">Load LCI Data (.json file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
+				<input id="rescomOutputFile" type="file" style="display:none" onchange="handle_files(this.files,'rescomOutputData','rescomOutputFileName')">
+				<input id="rescomOutputData" name="rescomOutputData" value='{{allInputDataDict.rescomOutputData}}' type="hidden">
+				<div>
+					<label for="rescomOutputFile" class="fileButton">Choose File</label>
+					<input id="rescomOutputFileName" name="rescomOutputFileName" value="{{allInputDataDict.rescomOutputFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Use LCI<span class="classic">Select an option for whether to use LCI in the analysis.</span></label>
+				<select id="useLci" name="useLci" value="{{allInputDataDict.useLci}}" />
+					<option value='Yes' {% if allInputDataDict.useLci == 'Yes' %}selected{% endif %}>Yes</option>
+					<option value='No' {% if allInputDataDict.useLci == 'No' %}selected{% endif %}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Impact of LCI<span class="classic">Select an option for the level of impact of LCI on the simulation.</span></label>
+				<select id="lciImpact" name="lciImpact" value="{{allInputDataDict.lciImpact}}" />
+					<option value='1.0' {% if allInputDataDict.lciImpact == '1.0' %}selected{% endif %}>High</option>
+					<option value='0.4' {% if allInputDataDict.lciImpact == '0.4' %}selected{% endif %}>Medium</option>
+					<option value='0.1' {% if allInputDataDict.lciImpact == '0.1' %}selected{% endif %}>Low</option>
+					<option value='0.0' {% if allInputDataDict.lciImpact == '0.0' %}selected{% endif %}>None</option>
+				</select>
+			</div>
 			{{ omfModelButtons }}
 		</form>
 	</div>
@@ -164,7 +184,7 @@
 		<p class="reportTitle">Generator Profiles for Microgrids</p>
 		<div id="gensFigures" class="tightContent" style="max-height:450px; overflow-y: scroll;">
 			<script type="text/javascript">			
-			for (let [mgID,figData] of Object.entries(JSON.parse(allOutputData['mgGensFigsData']))) {
+			for (let [mgID,figData] of Object.entries(allOutputData['mgGensFigsData'])) {
 				$("<div/>").appendTo("#gensFigures")
 					.attr("id", "gens_fig_mg_"+mgID)
 					.attr("style","width:1000px")
@@ -211,13 +231,15 @@
 				plotGraph("taofiHistChart", allOutputData["taofiHistData"], allOutputData["taofiHistLayout"])
 			</script>
 		</div>
-		<p class="reportTitle"><label class="tooltip">TAOFI vs CCI<span class="classic">Hover over the trendline for its equation.<br><br>Only residential loads are represented because CCI only applies to residential loads.</span></label></p>
-		<div id="cciTaofiScatter" class="tightContent">
-			<div id="cciTaofiScatterChart" style="width:1000px"></div>
+		{% if allInputDataDict["useLci"] == "Yes" %}
+		<p class="reportTitle"><label class="tooltip">TAOFI vs LCI<span class="classic">Hover over the trendline for its equation.<br><br>Only loads with LCI values are plotted.</span></label></p>
+		<div id="lciTaofiScatter" class="tightContent">
+			<div id="lciTaofiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				plotGraph("cciTaofiScatterChart", allOutputData["cciTaofiScatterData"], allOutputData["cciTaofiScatterLayout"])
+				plotGraph("lciTaofiScatterChart", allOutputData["lciTaofiScatterData"], allOutputData["lciTaofiScatterLayout"])
 			</script>
 		</div>
+		{% endif %}
 		<p class="reportTitle"><label class="tooltip">TAODI Histogram<span class="classic">Time Average Outage Duration Index (TAODI) is the percent of the total simulation time during which a particular load is experiencing an outage. E.g. If load_x experiences a 1 hour outage, regains power for an hour, and then experiences a 2 hour outage during a 24 hour simulation, the TAODI for load_x would be 3/24 = 12.5%</span></label></p>
 		<div id="taodiHist" class="tightContent">
 			<div id="taodiHistChart" style="width:1000px"></div>
@@ -225,13 +247,15 @@
 				plotGraph("taodiHistChart", allOutputData["taodiHistData"], allOutputData["taodiHistLayout"])
 			</script>
 		</div>
-		<p class="reportTitle"><label class="tooltip">TAODI vs CCI<span class="classic">Hover over the trendline for its equation.<br><br>Only residential loads are represented because CCI only applies to residential loads.</span></label></p>
-		<div id="cciTaodiScatter" class="tightContent">
-			<div id="cciTaodiScatterChart" style="width:1000px"></div>
+		{% if allInputDataDict["useLci"] == "Yes" %}
+		<p class="reportTitle"><label class="tooltip">TAODI vs LCI<span class="classic">Hover over the trendline for its equation.<br><br>Only loads with LCI values are plotted.</span></label></p>
+		<div id="lciTaodiScatter" class="tightContent">
+			<div id="lciTaodiScatterChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				plotGraph("cciTaodiScatterChart", allOutputData["cciTaodiScatterData"], allOutputData["cciTaodiScatterLayout"])
+				plotGraph("lciTaodiScatterChart", allOutputData["lciTaodiScatterData"], allOutputData["lciTaodiScatterLayout"])
 			</script>
 		</div>
+		{% endif %}
 		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
 		<div id="utilityOutageCostCalc" class="tightContent">
 			{{ allOutputDataDict['utilityOutageHtml'] }}
@@ -246,7 +270,7 @@
 		<p class="reportTitle"><label class="tooltip">Outage Incidence for Microgrids<span class="classic">Outage Incidence is the percent of loads in a system that are experiencing an outage at a given time. A load is considered to be experiencing an outage at a given time if its "After" status in the Timeline below is "offline".</span></label></p>
 		<div id="outageIncidenceFigures" class="tightContent" style="max-height:450px; overflow-y: scroll;">
 			<script type="text/javascript">			
-			for (let [mgID,figData] of Object.entries(JSON.parse(allOutputData['mgOIFigsData']))) {
+			for (let [mgID,figData] of Object.entries(allOutputData['mgOIFigsData'])) {
 				$("<div/>").appendTo("#outageIncidenceFigures")
 					.attr("id", "OI_fig_mg_"+mgID)
 					.attr("style","width:1000px")
@@ -258,14 +282,16 @@
 		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['timelineStatsHtml'] }}
 		</div>
-		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by Microgrid<span class="classic">&quot;Est. Household Residents Served&quot; and CCI related metrics only consider residential loads in each microgrid.</span></label></p>
+		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by Microgrid<span class="classic">LCI related metrics only consider loads in each microgrid that have LCI values.</span></label></p>
 		<div id="tradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['tradMetricsHtml'] }}
 		</div>
-		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by CCI Quartiles<span class="classic">All metrics in this table are calculated only considering residential loads.</span></label></p>
-		<div id="cciQuartTradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
-			{{ allOutputDataDict['cciQuartTradMetricsHtml'] }}
+		{% if allOutputDataDict['lciQuartTradMetricsHtml'] != "<!-- No LCI Quartile Table -->" %}
+		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by LCI Quartiles<span class="classic">All metrics in this table are calculated only considering loads that have LCI values.</span></label></p>
+		<div id="lciQuartTradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
+			{{ allOutputDataDict['lciQuartTradMetricsHtml'] }}
 		</div>
+		{% endif %}
 		<!-- Leaflet map directly inline with model-->
 		<p class="reportTitle">Outage Map and Time Slider</p>
 		<div class="tightContent" style="margin-bottom:-1px">

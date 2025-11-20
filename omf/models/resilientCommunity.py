@@ -1,4 +1,4 @@
-''' Calculates Social Vulnerability for a given Circuit '''
+''' Calculates Outage Impact Potential for a given Circuit '''
 # warnings.filterwarnings("ignore")
 from logging import raiseExceptions
 import urllib.request
@@ -17,6 +17,7 @@ from shapely.geometry import Polygon, Point
 import geopandas as gpd
 import networkx as nx
 import time
+from collections import OrderedDict
 
 # OMF imports
 from omf import geo
@@ -36,7 +37,8 @@ tooltip = "Determines the most vulnerable areas and pieces of equipment within a
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True
 
-#UNUSED
+#================================================== !!! CURRENTLY UNUSED !!! ======================================================
+############################## NRI Data Code ##################################
 def retrieveCensusNRI():
 	'''
 	Retrieves necessary data from ZIP File and exports to geojson
@@ -81,61 +83,9 @@ def stripDownCensusNRI(properties2Keep):
 			propsByTractFIPS[tractFIPS][prop] = feature['properties'][prop]
 	with open(outfile, 'w') as f:
 		json.dump(propsByTractFIPS,f,indent=4)
+############################## End NRI Data Code ##############################
 
-def findCensusBlockGroup(lat,lon):
-	'''
-	Finds Census Block at a given lon / lat incorporates US Census Geolocator API
-	Input: lat -> specified latitude value
-	Input: lon -> specified longitude value
-	return censusBlockGroup ->  census block group found at location
-	'''
-	
-	def getCensusJson(request_url):
-		''' Helper function to get the json from request_url'''
-		opener = urllib.request.build_opener()
-		opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-		resp = opener.open(request_url, timeout=100)
-		censusJson = json.loads(resp.read())
-		return censusJson
-	
-	try:
-		# Requested for API Key to bypass api load limits
-		request_url = f'https://geo.fcc.gov/api/census/block/find?latitude={lat}&longitude={lon}&censusYear=2020&format=json&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b'
-		censusJson = getCensusJson(request_url)
-		censusBlockGroup = censusJson['Block']['FIPS'][:-3]
-		return censusBlockGroup
-	except Exception as e1:
-		try:
-			# Documentation on geocoding API: https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.pdf
-			request_url = f'https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x={lon}&y={lat}&benchmark=8&vintage=820&format=json'
-			censusJson = getCensusJson(request_url)
-			censusBlockGroup = censusJson['result']['geographies']['Census Blocks'][0]['GEOID'][:-3]
-			return censusBlockGroup
-		except Exception as e2:
-			print('\nErrors trying to retrieve block group information from Census APIs')
-			print(f'Error for geo.fcc.gov:\n{e1}')
-			print(f'Error for geocoding.geo.census.gov:\n{e2}\n')
-
-def repeatFindCensusBlockGroup(lat, long, lim=10, wait=3):
-	''' Repeatedly attempts to retrieve census blockgroup, returning the info as soon as it is successful, and raising an exception after a certain number of attempts.
-		Args:
-			Input: lat -> specified latitude value
-			Input: lon -> specified longitude value
-			Input: lim -> num attempts before an exception is raised
-			Input: wait -> num sec between attempts to avoid overwhelming server
-		Return: censusBlockGroup ->  census Tract found at location
-	'''
-	for i in range(0,lim):
-		censusBlockGroup = findCensusBlockGroup(lat,long)
-		if censusBlockGroup:
-			break
-		elif i == lim-1:
-			raise Exception(f'ERROR - Could not get census block group in {lim} calls to the server')
-		else:
-			time.sleep(wait)
-	return censusBlockGroup
-
-#UNUSED (EXCEPT IN OTHER UNUSED FUNCTION)
+############################## Coord Transform Code ##################################
 def transform(coordList):
 	'''
 	transform coordinates from WGS_1984_Web_Mercator_Auxiliary_Sphere(EPSG 3857) to EPSG:4326
@@ -151,7 +101,6 @@ def transform(coordList):
 		
 	return coordList
 
-#UNUSED
 def runTransformation(geos):
 	'''
 	runs transformations for a list of geometries
@@ -165,924 +114,9 @@ def runTransformation(geos):
 		else:
 			geoTransformed.append(transform(i[0]))
 	return geoTransformed
+############################## End Coord Transform Code ##############################
 
-def createDF(tractData, columns, geoTransformed):
-	'''
-	Creates Pandas DF from list of data containing GeoData 
-	input: tractData -> Data associated with data
-	input: columns -> columns for data
-	input: geoTransformed -> EPSG:4326 transformed geometry
-	'''
-	data = pd.DataFrame(tractData, columns = columns)
-	#print(data)
-	#print(data.T)
-	if (geoTransformed):
-		data['geometry'] = geoTransformed
-	return data
-
-def createGeoDF(df):
-	'''
-	Creates GeoPandas DF From pandas DF
-	input: df -> pandas df
-	return geo -> geodataframe
-	'''
-	df['geometry'] = df['geometry'].apply(Polygon)
-	geo = gpd.GeoDataFrame(df, geometry=df["geometry"], crs="EPSG:4326")
-	return geo
-
-def getCoopData(coopgeoJson):
-	'''
-	Retrieves Cooperative Data From Geo Json and saves to lists to be converted to DataFrame
-	coopgeoJson -> cooperative geojson
-	returns list of cooperative data, geometry, and column names for the cooperative data
-	'''
-	data = []
-	geom = []
-	for i in coopgeoJson['features']:
-		currData = (i['properties']['Member_Class'], i['properties']['Cooperative'], i['properties']['Data_Source'],i['properties']['Data_Year'],i['properties']['Shape_Length'], i['properties']['Shape_Area'])
-		if (i['geometry']['type'] == 'Polygon'):
-			data.append(currData)
-			geom.append(i['geometry']['coordinates'][0])
-		elif (i['geometry']['type'] == 'MultiPolygon'):
-			for j in i['geometry']['coordinates']:
-				data.append(currData)
-				geom.append(j[0])
-	columns = ['Member_Class', 'Cooperative', 'Data_Source','Data_Year','Shape_Length', 'Shape_Area']
-	return data, geom, columns
-
-#UNUSED
-def getCoopFromList(coopgeoJson, listOfCoops):
-	'''
-	Gets data for a list of coops
-	coopgeoJson -> Coop data
-	listOfCoops -> list of cooperatives interested 
-	
-	'''
-	coopData, coopGeo, columns = getCoopData(coopgeoJson)
-	coopDF = createDF(coopData,  columns, coopGeo)
-	geocoopDF = createGeoDF(coopDF[coopDF['Member_Class'] == 'Distribution'] )
-	listOfCoopsDF = geocoopDF[geocoopDF['Cooperative'].isin(listOfCoops)]
-	return listOfCoopsDF
-
-#UNUSED
-def coopvcensusDF(coopDF, geonriDF):
-	'''
-	Relates census tract data to cooperative data
-	coopDF -> cooperative datafrme
-	geonriDF -> nri dataframe
-	returns dataframe containing relevant columns and 
-	'''
-	values = []
-	geom = []
-	columns = ['Cooperative_Name', 'BUILDVALUE','AGRIVALUE','EAL_VALT','EAL_VALB','EAL_VALP','EAL_VALA','SOVI_SCORE','SOVI_RATNG','RESL_RATNG','RESL_VALUE','AVLN_AFREQ','CFLD_AFREQ','CWAV_AFREQ','DRGT_AFREQ','ERQK_AFREQ','HAIL_AFREQ','HWAV_AFREQ','HRCN_AFREQ','ISTM_AFREQ','LNDS_AFREQ','LTNG_AFREQ','RFLD_AFREQ','SWND_AFREQ','TRND_AFREQ','TSUN_AFREQ','VLCN_AFREQ','WFIR_AFREQ','WNTW_AFREQ']
-	for index, row in coopDF.iterrows():
-		for j in row['censusTracts']:
-			# object information
-			#Shape = geonriDF.loc[j]['Shape']
-			if(j not in list(geonriDF.index)):
-				continue
-			BUILDVALUE = geonriDF.loc[j]['BUILDVALUE'] / geonriDF.loc[j]['Shape_Area'] #Building Value
-			AGRIVALUE = geonriDF.loc[j]['AGRIVALUE']/ geonriDF.loc[j]['Shape_Area'] #Agriculture Value
-			#Exp annual loss metrics
-			EAL_VALT = geonriDF.loc[j]['EAL_VALT']/ geonriDF.loc[j]['Shape_Area'] # Expected Annual Loss - Total - Composite
-			EAL_VALB = geonriDF.loc[j]['EAL_VALB'] / geonriDF.loc[j]['Shape_Area']# Expected Annual Loss - Building Value - Composite
-			EAL_VALP = geonriDF.loc[j]['EAL_VALP']/ geonriDF.loc[j]['Shape_Area'] # Expected Annual Loss - Population - Composite
-			EAL_VALA = geonriDF.loc[j]['EAL_VALA']/ geonriDF.loc[j]['Shape_Area'] # Expected Annual Loss - Agriculture Value - Composite
-			# Social Vulnerabultiy
-			SOVI_SCORE = geonriDF.loc[j]['SOVI_SCORE']/ geonriDF.loc[j]['Shape_Area'] # Social Vulnerability - Score
-			SOVI_RATNG = geonriDF.loc[j]['SOVI_RATNG'] # Social Vulnerability - Rating
-			# Community Resilience
-			RESL_RATNG = geonriDF.loc[j]['RESL_RATNG']# Community Resilience - Rating
-			RESL_VALUE = geonriDF.loc[j]['RESL_VALUE']/ geonriDF.loc[j]['Shape_Area'] # Community Resilience - Value
-			# Weather/ Natural Disaster Risk
-			#Avalanche
-			AVLN_AFREQ = geonriDF.loc[j]['AVLN_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Avalanche - Annualized Frequency
-			# Coastal Flooding
-			CFLD_AFREQ = geonriDF.loc[j]['CFLD_AFREQ'] / geonriDF.loc[j]['Shape_Area']# Coastal Flooding - Annualized Frequency
-			# Cold Wave
-			CWAV_AFREQ= geonriDF.loc[j]['CWAV_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Cold Wave - Annualized Frequency
-			#Drought
-			DRGT_AFREQ=geonriDF.loc[j]['DRGT_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Drought - Annualized Frequency
-			#EarthQuakes
-			ERQK_AFREQ=geonriDF.loc[j]['ERQK_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Earthquake - Annualized Frequency
-			#Hail
-			HAIL_AFREQ=geonriDF.loc[j]['HAIL_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Hail - Annualized Frequency
-			#Heat Wave
-			HWAV_AFREQ=geonriDF.loc[j]['HWAV_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Heat Wave - Annualized Frequency
-			#Hurricane
-			HRCN_AFREQ= geonriDF.loc[j]['HRCN_AFREQ'] / geonriDF.loc[j]['Shape_Area']# Hurricane - Annualized Frequency
-			# Ice Storm
-			ISTM_AFREQ= geonriDF.loc[j]['ISTM_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Ice Storm - Annualized Frequency
-			#LandSlide
-			LNDS_AFREQ= geonriDF.loc[j]['LNDS_AFREQ'] / geonriDF.loc[j]['Shape_Area']# Landslide - Annualized Frequency
-			#Lightning
-			LTNG_AFREQ=geonriDF.loc[j]['LNDS_EVNTS'] / geonriDF.loc[j]['Shape_Area']# Lightning - Annualized Frequency
-			#Riverline Flooding
-			RFLD_AFREQ = geonriDF.loc[j]['RFLD_AFREQ'] / geonriDF.loc[j]['Shape_Area']# Riverine Flooding - Annualized Frequency
-			#Strong Wind
-			SWND_AFREQ= geonriDF.loc[j]['SWND_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Strong Wind - Annualized Frequency
-			#Tornado
-			TRND_AFREQ=geonriDF.loc[j]['TRND_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Tornado - Annualized Frequency
-			#Tsunami
-			TSUN_AFREQ= geonriDF.loc[j]['TSUN_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Tsunami - Annualized Frequency
-			#Volcanic Activity
-			VLCN_AFREQ= geonriDF.loc[j]['VLCN_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Volcanic Activity - Annualized Frequency
-			#Wildfire
-			WFIR_AFREQ= geonriDF.loc[j]['WFIR_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Wildfire - Annualized Frequency
-			#Winter Weather
-			WNTW_AFREQ= geonriDF.loc[j]['WNTW_AFREQ']/ geonriDF.loc[j]['Shape_Area'] # Winter Weather - Annualized Frequency
-			rowVals = [row['Cooperative'],BUILDVALUE,AGRIVALUE,EAL_VALT,EAL_VALB,EAL_VALP,EAL_VALA,SOVI_SCORE,SOVI_RATNG,RESL_RATNG,RESL_VALUE,AVLN_AFREQ,CFLD_AFREQ,CWAV_AFREQ,DRGT_AFREQ,ERQK_AFREQ,HAIL_AFREQ,HWAV_AFREQ,HRCN_AFREQ,ISTM_AFREQ,LNDS_AFREQ,LTNG_AFREQ,RFLD_AFREQ,SWND_AFREQ,TRND_AFREQ,TSUN_AFREQ,VLCN_AFREQ,WFIR_AFREQ,WNTW_AFREQ]
-			values.append(rowVals)
-			geom.append(row['geometry'])
-			finalDF = createDF(values, columns, geom)
-			return finalDF.set_index('Cooperative_Name')		 
-
-def all_vals(obj):
-	''' helper method that retrieves all values in nested dictionary'''
-	if isinstance(obj, dict):
-		for v in obj.values():
-			yield from all_vals(v)
-	else:
-		yield obj
-
-def getPercentile(loads, columnName, tieBreaker=None):
-	"""
-	Gets percentile of specified column, resolving ties with an optional tie-breaker.
-
-	Args:
-		loads (dict): Dictionary of loads with their attributes.
-		columnName (str): The name of the column to calculate percentiles for.
-		tieBreaker (str, optional): Column name used for tie-breaking. Defaults to None.
-
-	Raises:
-		ValueError: If `loads` is not a dictionary or if `columnName` is missing from the loads.
-		ValueError: If the lengths of primary and tieBreaker values don't match.
-	"""
-	# Validate inputs
-	if not isinstance(loads, dict):
-		raise ValueError("The 'loads' argument must be a dictionary.")
-	if not isinstance(columnName, str) or not columnName:
-		raise ValueError("The 'columnName' argument must be a non-empty string.")
-	if tieBreaker and not isinstance(tieBreaker, str):
-		raise ValueError("The 'tieBreaker' argument must be a string if provided.")
-	# Retrieve column values and handle missing data
-	loadServedVals = [v.get(columnName) for k, v in loads.items()]
-	if None in loadServedVals:
-		raise ValueError(f"Missing values detected in column '{columnName}'.")
-	# Retrieve tie-breaker values or default to zeros
-	if tieBreaker:
-		tieBreakerVals = [v.get(tieBreaker, 0) for k, v in loads.items()]
-		if None in tieBreakerVals:
-			raise ValueError(f"Missing values detected in tie-breaker column '{tieBreaker}'.")
-	else:
-		tieBreakerVals = [0] * len(loads)
-	# Ensure consistent lengths
-	if len(loadServedVals) != len(tieBreakerVals):
-		raise ValueError("Mismatch in lengths of primary and tie-breaker values.")
-	# Rank values with tiebreakers
-	rankingDf = pd.DataFrame({
-		'primaryVals': loadServedVals,
-		'tiebreakerVals': tieBreakerVals
-	})
-	rankingDf['pct_rank'] = rankingDf[['primaryVals', 'tiebreakerVals']].apply(tuple, axis=1).rank(pct=True, method='max')
-	# Assign percentiles to the loads dictionary
-	if columnName == 'base crit score':
-		new_str = 'base crit index'
-	elif columnName == 'community crit score':
-		new_str = 'community crit index'
-	else:
-		raise ValueError('Variable columnName must be equal to \'base crit score\' or \'community crit score\'')
-	for i, (k, v) in enumerate(loads.items()):
-		if not isinstance(v, dict):
-			raise ValueError(f"Invalid load format for key '{k}'. Expected a dictionary.")
-		loads[k][new_str] = rankingDf.loc[i, 'pct_rank']
-
-def coordCheck(long, lat, geoList):
-	"""
-	Check if a point defined by longitude and latitude intersects any polygons in a given geospatial list.
-	
-	Args:
-		long (float): Longitude of the point.
-		lat (float): Latitude of the point.
-		geoList (dict): A dictionary containing geospatial data, where keys represent identifiers
-						and values include a 'geometry' key with a list of polygon coordinates.
-	
-	Returns:
-		str: The key of the geospatial entry that the point intersects with, or an empty string if none.
-	"""
-	try:
-		# Ensure valid input types
-		if not isinstance(long, (int, float)):
-			raise ValueError("Longitude must be a number.")
-		if not isinstance(lat, (int, float)):
-			raise ValueError("Latitude must be a number.")
-		if not isinstance(geoList, dict):
-			raise ValueError("geoList must be a dictionary.")
-		# Create a point from the given coordinates
-		point = Point(long, lat)
-		# Iterate through the geospatial list
-		for k, v in geoList.items():
-			if 'geometry' not in v or not isinstance(v['geometry'], list):
-				raise KeyError(f"Missing or invalid 'geometry' key in entry {k}.")
-			# Handle single polygon or list of polygons
-			if len(v['geometry']) == 1:
-				coords = v['geometry'][0]
-			else:
-				coords = v['geometry']
-			# Check if the polygon intersects with the point
-			try:
-				poly = Polygon(coords)
-				if poly.intersects(point):
-					return k
-			except Exception as e:
-				# Handle potential errors in creating or processing polygons
-				print(f"Error processing polygon for key {k}: {e}")
-				continue
-		# Return an empty string if no intersection is found
-		return ''
-	except Exception as e:
-		print(f"Error in coordCheck: {e}")
-		return ''
-
-def getPowerMeasures(ob):
-	''' Retrieves kw, kvar, and kva from a load object
-		Input: ob -> a load object 
-		Return: -> [kw, kvar, kva]
-	'''
-	kw = ob.get('kw',None)
-	kvar = ob.get('kvar',None)
-	kva = ob.get('kva',None)
-	pf = ob.get('pf',None)
-	if kw and kvar:
-		kw = float(kw)
-		kvar = float(kvar)
-		kva = math.sqrt(kw**2 + kvar**2)
-	elif kw and pf:
-		kw = float(kw)
-		kva = kw/float(pf)
-		kvar = math.sqrt(kva**2 - kw**2)
-	elif kva and pf:
-		kw = float(kva)*float(pf)
-		kva = float(kva)
-		kvar = math.sqrt(kva**2 + kw**2)
-	else:
-		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
-	return kw, kvar, kva
-
-def getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList,avgPeakDemand, pathToLoadsFile, pathToZillowData = None, useZillowData=False):
-	'''
-	Retrieves downline loads for specific set of equipment and retrieve nri data for each of the equipment, optionally using zillow data.
-	pathToOmd -> path to the omdfile
-	equipmentList -> list of equipment of interest
-	'''
-	# iterate throughout circuit
-	# store census information
-	omd = json.load(open(pathToOmd))
-	loadsDF = pd.read_csv(pathToLoadsFile)
-	blockgroupDict = {}
-	blockgroupDictFilePath = pJoin(modelDir, 'blockgroupDictData.json')
-	loadsDict = {}
-	valList = []
-	geoms = []
-	obDict = {}
-	webDataUpdated = False
-	if isfile(blockgroupDictFilePath):
-		with open(blockgroupDictFilePath, 'r') as f:
-			blockgroupDict = json.load(f)
-	
-	# Helper function with informative error catching
-	def loadIsResidential(loadsDF,obName):
-		''' Checks if there's a single entry for a load in the Customer Information file and if so, returns whether it's residential or not.'''
-		loadRowsDf = loadsDF[loadsDF["Load Name"] == obName]
-		if len(loadRowsDf) > 1:
-			raise Exception(f"ERROR: Your Customer Information (.csv file) contains more than 1 entry for the load {obName}")
-		elif len(loadRowsDf) == 0:
-			raise Exception(f"ERROR: Your Customer Information (.csv file) contains no entry for the load {obName}")
-		else:
-			return loadRowsDf["Business Type"].iloc[0].lower() == 'residential'
-
-	# Section code
-	sectionsDict, distanceDict, totalSections = runSections(pathToOmd, omd)
-	# Retrieve data to compute SVI
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		obDict[key] = ob
-		from_field = ob.get('from', None)
-		to_field = ob.get('to', None)
-		section_key = str((from_field, to_field))
-		# Check all three below rather than just (section_key in sectionsDict) for robustness 
-		# in case, for example, there is a "('bus1',None)" in sectionsDict by some error
-		if section_key in sectionsDict and from_field and to_field:
-			obDict[key]['section'] = sectionsDict[section_key]
-		elif obName in sectionsDict:
-			obDict[key]['section'] = sectionsDict[obName]
-		else:
-			obDict[key]['section'] = None
-		if (obType == 'load'):
-			if loadIsResidential(loadsDF,obName): 
-				loadsDict[key] = {}
-				loadsDict[key]['section'] = sectionsDict.get(obName)
-				kw, kvar, kva = getPowerMeasures(ob)
-				loadsDict[key]['kva'] = kva
-				loadsDict[key]["base crit score"] = ((math.sqrt(kw**2 + kvar**2))/ float(avgPeakDemand)) * 4
-				loadsDict[key]['distance_from_source'] = int(distanceDict.get(obName, 0))
-				long = float(ob['longitude'])
-				lat = float(ob['latitude'])
-				if blockgroupDict:
-					check = coordCheck(long, lat, blockgroupDict)
-					if check:
-						loadsDict[key]['blockgroup'] = check
-						continue
-				blockgroup = repeatFindCensusBlockGroup(lat,long)
-				loadsDict[key]['blockgroup'] = blockgroup
-				blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
-				webDataUpdated = True
-	if webDataUpdated:
-		with open(pJoin(modelDir, 'blockgroupDictData.json'), 'w') as f:
-			json.dump(blockgroupDict, f)
-	
-	# Prep data to build sviDF
-	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(TractFIPS)
-	sviCols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_Pop_Disabled_ACS_16_20','pct_HH_Limited_Eng_ACS_16_20','pct_singlefamily_u18',
-			'pct_MLT_U10p_ACS_16_20','pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
-	# Coastal Flooding, Riverine Flooding, Tornado, and Volcanic Activity removed until we can find a good way to estimate them at bg resolution
-	# Unlike most variables, they're not broad enough sized events to span the entire tract and thus all blockgroups (thus bg resolution can be approximated with tract resolution value)
-	# And unlike Avalanche, Landslide, and Lightning, they're not localized enough that their bg resolution value could be estimated by multiplying frequency by bg_area/tract_area
-	weatherCols = ['AVLN_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
-			'LNDS_AFREQ', 'LTNG_AFREQ', 'SWND_AFREQ', 'TSUN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']#+['CFLD_AFREQ', 'RFLD_AFREQ', 'TRND_AFREQ', 'VLCN_AFREQ']
-	# DO NOT CHANGE ORDER OF FIST TWO TERMS IN ADDITION -> matches order of dictionary built in buildSVI(TractFIPS)
-	cols = sviCols+['blockgroupFIPS', 'geometry']+weatherCols
-
-	# Add Weather info to blockgroupDict
-	weatherFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database_properties_by_tractFIPS.json')
-	with open(weatherFile) as f:
-		weatherDict = json.load(f)
-	for bg in blockgroupDict.keys():
-		tractFIPS = bg[:11]
-		tractArea = weatherDict[tractFIPS]['AREA']
-		blockgroupArea = blockgroupDict[bg]['LAND_AREA']
-		del blockgroupDict[bg]['LAND_AREA']
-		for wc in weatherCols:
-			weatherData = weatherDict[tractFIPS].get(wc,'Not Available')
-			if weatherData == -9999.0:
-				weatherData = 'Not Applicable'
-			# Avalanche, Landslide, and Lightning are localized enough hazards that we scale the tract-wide value by the proportion of the tract made up by the blockgroup to estimate blockgroup resolution
-			elif wc in ['AVLN_AFREQ', 'LNDS_AFREQ', 'LTNG_AFREQ']:
-				weatherData = weatherData * blockgroupArea/tractArea
-			blockgroupDict[bg][wc] = weatherData
-
-	for blockgroup in blockgroupDict.keys():
-		valList.append(list(all_vals(blockgroupDict[blockgroup])))
-		geoms.append(blockgroupDict[blockgroup]['geometry'])
-	
-	# compute SVI
-	sviDF = createDF(valList, cols, geoms)
-	pctile_list = []
-	for i in sviCols:
-		i_pct_rank = i + '_pct_rank'
-		# Rank in descending order for employment and income for the sake of social vulnerability so that a higher value correlates to more vulnerable
-		employOrIncome = i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']
-		sviDF[i_pct_rank] = sviDF[i].rank(pct=True, method='max') if not employOrIncome else sviDF[i].rank(pct=True, method='max', ascending=False)
-		pctile_list.append(i_pct_rank)
-	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
-	# Once SOVI_TOTAL is calculated, replace the descending order ranking of employment and income with ascending rankings for user interpretability 
-	for i in ['pct_Civ_emp_16p_ACS_16_20','avg_Agg_HH_INC_ACS_16_20']:
-		sviDF[i+'_pct_rank'] = sviDF[i].rank(pct=True, method='max')
-	sviDF['SOVI_SCORE'] = sviDF['SOVI_TOTAL'].rank(pct=True)
-	sviDF['SOVI_RATNG'] = sviDF.apply(buildSVIRating, axis=1)
-	
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		if (obType == 'load'):
-			if loadIsResidential(loadsDF,obName): 
-				currBlockGroup = loadsDict[key]['blockgroup']
-				svi_score = sviDF[sviDF['blockgroupFIPS'] == currBlockGroup]['SOVI_SCORE'].values[0]
-				loadsDict[key]['SOVI_SCORE'] = svi_score
-				if useZillowData:
-					with open(pathToZillowData, 'r') as file:
-						zillowPrices = json.load(file)
-					avgZillowPrice = zillowPrices[currBlockGroup]['avgPrice']
-					loadsDict[key]['zillow price'] = avgZillowPrice
-					loadsDict[key]["community crit score"] = (loadsDict[key]["base crit score"] * svi_score) / (avgZillowPrice/10000)
-					loadsDict[key]["affluence score"] = avgZillowPrice / 1000
-				else:
-					loadsDict[key]["community crit score"] = (loadsDict[key]["base crit score"] * svi_score)
-	if not loadsDict:
-		raise Exception('No loads labeled as Residential in Customer Information (.csv file). SVI only applies to residential loads.')
-	getPercentile(loadsDict, "base crit score", 'distance_from_source')
-	getPercentile(loadsDict, 'community crit score', 'distance_from_source')
-	
-	# calculate loads data for blockgroups
-	df_loads = pd.DataFrame(loadsDict).T
-	df_loads.rename(columns={"blockgroup": "blockgroupFIPS"}, inplace=True)
-	aggKwargs = {
-		'avg_BCS':('base crit score', 'mean'),
-		'avg_CCS':('community crit score', 'mean'),
-		'avg_BCI':('base crit index', 'mean'),
-		'avg_CCI':('community crit index', 'mean'),
-		'load_count':('base crit score', 'count'),
-		'load_amount':('kva', 'sum') 
-	}
-	colsToMove = 8
-	if useZillowData:
-		aggKwargs['avg_zillow_price'] = ('zillow price', 'mean')
-		colsToMove += 1
-	# Group by 'blockgroup' and calculate desired metrics
-	newdf_loads = df_loads.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
-	newsviDF = sviDF.merge(newdf_loads, on="blockgroupFIPS", how="left")
-	# Rearrange col ordering
-	newsviDFcols = newsviDF.columns.tolist()
-	newsviDFcols = newsviDFcols[-1*colsToMove:]+newsviDFcols[0:-1*colsToMove]
-	newsviDF = newsviDF[newsviDFcols]
-	# Create geodf and non-geo df
-	sviGeoDF = createGeoDF(newsviDF)
-	newsviDF = newsviDF.drop(columns=['geometry'])
-	# Group by 'section' and calculate desired metrics
-	aggKwargs['avg_svi_score'] = ('SOVI_SCORE', 'mean')
-	section_loads = df_loads.groupby('section').agg(**aggKwargs).reset_index()
-
-	# Leave 'SOVI_RATING' out of this becasuse it's dealt with elsewhere
-	readableColsDict = {	'pct_Prs_Blw_Pov_Lev_ACS_16_20': '_____________% Individuals Below Poverty Level',
-							'pct_Civ_emp_16p_ACS_16_20': '_____________% Age 16+ Employed',
-							'avg_Agg_HH_INC_ACS_16_20': '_____________Per Capita Income (USD)',
-							'pct_Not_HS_Grad_ACS_16_20': '_____________% Non-HS Grads',
-							'pct_Pop_65plus_ACS_16_20': '_____________% Age 65+',
-							'pct_u19ACS_16_20': '_____________% Non-Instituionalized Below Age 19',
-							'pct_Pop_Disabled_ACS_16_20': '_____________% Individuals Disabled',
-							'pct_HH_Limited_Eng_ACS_16_20': '_____________% Limited English Speaking Households',
-							'pct_singlefamily_u18': '_____________% Single Parent Families',
-							'pct_MLT_U10p_ACS_16_20': '_____________% Multi-Unit Structure',
-							'pct_Mobile_Homes_ACS_16_20': '_____________% Mobile Home',
-							'pct_Crowd_Occp_U_ACS_16_20': '_____________% Crowding',
-							'pct_noVehicle': '_____________% No Vehicle',
-							'pct_Prs_Blw_Pov_Lev_ACS_16_20_pct_rank': '_____________% Individuals Below Poverty Level (%ile)',
-							'pct_Civ_emp_16p_ACS_16_20_pct_rank': '_____________% Age 16+ Employed (%ile)',
-							'avg_Agg_HH_INC_ACS_16_20_pct_rank': '_____________Per Capita Income (USD) (%ile)',
-							'pct_Not_HS_Grad_ACS_16_20_pct_rank': '_____________% Non-HS Grads (%ile)',
-							'pct_Pop_65plus_ACS_16_20_pct_rank': '_____________% Age 65+ (%ile)',
-							'pct_u19ACS_16_20_pct_rank': '_____________% Non-Instituionalized Below Age 19 (%ile)',
-							'pct_Pop_Disabled_ACS_16_20_pct_rank': '_____________% Individuals Disabled (%ile)',
-							'pct_HH_Limited_Eng_ACS_16_20_pct_rank': '_____________% Limited English Speaking Households (%ile)',
-							'pct_singlefamily_u18_pct_rank': '_____________% Single Parent Families (%ile)',
-							'pct_MLT_U10p_ACS_16_20_pct_rank': '_____________% Multi-Unit Structure (%ile)',
-							'pct_Mobile_Homes_ACS_16_20_pct_rank': '_____________% Mobile Home (%ile)',
-							'pct_Crowd_Occp_U_ACS_16_20_pct_rank': '_____________% Crowding (%ile)',
-							'pct_noVehicle_pct_rank': '_____________% No Vehicle (%ile)',
-							'SOVI_TOTAL': '_____________SVI Total',
-							'blockgroupFIPS': '_____________blockgroupFIPS',
-							'SOVI_SCORE': 'SVI',
-							'avg_BCS': 'Avg BCS',
-							'avg_CCS': 'Avg CCS',
-							'avg_BCI': 'Avg BCI',
-							'avg_CCI': 'Avg CCI',
-							'load_count': 'Load Count',
-							'load_amount': 'Load Amount',
-							'AVLN_AFREQ': '_____________ Annual Freq: Avalanche', 
-							'CFLD_AFREQ': '_____________ Annual Freq: Coastal Flooding', 
-							'CWAV_AFREQ': '_____________ Annual Freq: Cold Wave',
-							'DRGT_AFREQ': '_____________ Annual Freq: Drought',
-							'ERQK_AFREQ': '_____________ Annual Freq: Earthquake',
-							'HAIL_AFREQ': '_____________ Annual Freq: Hail',
-							'HWAV_AFREQ': '_____________ Annual Freq: Heat Wave',
-							'HRCN_AFREQ': '_____________ Annual Freq: Hurricane',
-							'ISTM_AFREQ': '_____________ Annual Freq: Ice Storm',
-							'LNDS_AFREQ': '_____________ Annual Freq: Landslide',
-							'LTNG_AFREQ': '_____________ Annual Freq: Lightning',
-							'RFLD_AFREQ': '_____________ Annual Freq: Riverine Flooding',
-							'SWND_AFREQ': '_____________ Annual Freq: Strong Wind',
-							'TRND_AFREQ': '_____________ Annual Freq: Tornado',
-							'TSUN_AFREQ': '_____________ Annual Freq: Tsunami',
-							'VLCN_AFREQ': '_____________ Annual Freq: Volcanic Activity',
-							'WFIR_AFREQ': '_____________ Annual Freq: Wildfire',
-							'WNTW_AFREQ': '_____________ Annual Freq: Winter Weather'}
-	sviGeoDF = sviGeoDF.rename(columns=readableColsDict)
-	# Convert existing sections to a set for quick lookup
-	existing_sections = set(section_loads['section'])
-	# Iterate from 1 to totalSections to check for missing sections
-	for section in range(1, totalSections + 1):  # Inclusive range
-		if section not in existing_sections:
-			# Append a row with all metrics set to None
-			section_loads = pd.concat([
-				section_loads,
-				pd.DataFrame({
-					'section': [section],
-					'avg_BCS': [None],
-					'avg_CCS': [None],
-					'avg_BCI': [None],
-					'avg_CCI': [None],
-					'avg_zillow_price': [None],
-					'load_count': [None],
-					'avg_svi_score':[None],
-					'load_amount': [None]
-				})
-			], ignore_index=True)
-	# Sort the DataFrame by 'section' to maintain order
-	section_loads = section_loads.sort_values(by='section').reset_index(drop=True)	
-	del omd
-	digraph = createGraph(pathToOmd)
-	nodes = digraph.nodes()
-	namesToKeys = {v.get('name'):k for k,v in obDict.items()} 
-	for obKey, ob in obDict.items():
-		obType = ob['object']
-		obName = ob['name']
-		obTo = ob.get('to')
-		if obName in nodes:
-			startingPoint = obName
-		elif obTo in nodes:
-			startingPoint = obTo
-		else:
-			continue
-		successors = nx.dfs_successors(digraph, startingPoint).values()
-		ob['downlineObs'] = []
-		ob['downlineLoads'] = []
-		if obType in equipmentList:
-			for listofVals in successors:
-				for element in listofVals:
-					elementKey = namesToKeys.get(element)
-					elementType = elementKey.split('.')[0]
-					if elementKey not in ob['downlineObs']:
-						ob['downlineObs'].append(elementKey)
-					if elementKey not in ob['downlineLoads'] and elementType == 'load':
-						ob['downlineLoads'].append(elementKey)
-	filteredObDict = {k:v  for k,v in obDict.items() if v.get('object') in equipmentList}
-	# add metrics to equipment based on downline loads
-	calcEquipmentMetrics(filteredObDict, loadsDict)
-	return filteredObDict,loadsDict, sviGeoDF, newsviDF, section_loads
-
-#UNUSED
-def getDownLineLoadsBlockGroup(pathToOmd, avgPeakDemand):
-	'''
-	Retrieves downline loads for a circuit and retrieves nri data for each of the loads within the circuit
-	pathToOmd -> path to the omdfile
-	'''
-	omd = json.load(open(pathToOmd))
-	blockgroupDict = {}
-	loadsDict = {}
-	valList = []
-	geoms = []
-	obDict = {}
-	# Retrieve data to compute SVI
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		obDict[key] = ob
-		if (obType == 'load'):
-			loadsDict[key] = {"base crit score":None}
-			kw = float(ob['kw'])
-			kvar = float(ob['kvar']) if ob['kvar'] is not None else kw/avgPeakDemand
-			kv = float(ob['kv'])
-			loadsDict[key]["base crit score"]= ((math.sqrt((kw * kw) + (kvar * kvar) ))/ (avgPeakDemand)) * 4
-			long = float(ob['longitude'])
-			lat = float(ob['latitude'])
-			if blockgroupDict:
-				check = coordCheck(long, lat, blockgroupDict)
-				if check:
-					loadsDict[key]['blockgroup'] = check
-					continue
-				else:
-					blockgroup = findCensusBlockGroup(lat,long)
-			else:
-				blockgroup = findCensusBlockGroup(lat,long)
-			# Following replaces a potentially infinite loop. Whether it's necessary at all though should be investigated
-			blockgroup = repeatFindCensusBlockGroup(lat,long)
-			loadsDict[key]['blockgroup'] = blockgroup
-			blockgroupDict[blockgroup] = buildsviBlockGroup(blockgroup)
-			valList.append(list(all_vals(blockgroupDict[blockgroup])))
-			geoms.append(blockgroupDict[blockgroup]['geometry'])
-	# compute SVI
-	# DO NOT CHANGE ORDER -> matches order of dictionary in buildSVI(blockgroupFIPS)
-	cols = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle','blockgroupFIPS', 'geometry']
-	sviDF = createDF(valList,cols, geoms)
-	pctile_list = ['pct_Prs_Blw_Pov_Lev_ACS_16_20','avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-			'pct_Pop_65plus_ACS_16_20','pct_u19ACS_16_20','pct_singlefamily_u18','pct_MLT_U10p_ACS_16_20',
-			'pct_Mobile_Homes_ACS_16_20','pct_Crowd_Occp_U_ACS_16_20','pct_noVehicle']
-	for i in cols:
-		if i not in ['blockgroupFIPS', 'geometry']:
-			new_str = i + '_pct_rank'
-			sviDF[new_str] = sviDF[i].rank(pct=True)
-			pctile_list.append(new_str)
-	sviDF['SOVI_TOTAL']= sviDF[pctile_list].sum(axis=1)
-	sviDF['SOVI_SCORE'] = sviDF['SOVI_TOTAL'].rank(pct=True)
-	#sviDF['SOVI_SCORE'] = sviDF[pctile_list].sum(axis=1).rank(pct=True)
-	sviDF['SOVI_RATNG'] = sviDF.apply(buildSVIRating, axis=1)
-	#sviDF.to_csv('outSVI.csv', index=False)
-	sviGeoDF = createGeoDF(sviDF)
-	# put all
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		if (obType == 'load'):
-			currBlockGroup = loadsDict[key]['blockgroup']
-			svi_score = sviDF[sviDF['blockgroupFIPS'] == currBlockGroup]['SOVI_SCORE'].values[0]
-			loadsDict[key]["community crit score"] = loadsDict[key]["base crit score"] *  svi_score
-			loadsDict[key]['SOVI_SCORE'] = svi_score
-	getPercentile(loadsDict, "base crit score")
-	getPercentile(loadsDict, 'community crit score')
-	del omd
-	digraph = createGraph(pathToOmd)
-	nodes = digraph.nodes()
-	namesToKeys = {v.get('name'):k for k,v in obDict.items()}
-	for obKey, ob in obDict.items():
-		obType = ob['object']
-		obName = ob['name']
-		obTo = ob.get('to')
-		if obName in nodes:
-			startingPoint = obName
-		elif obTo in nodes:
-			startingPoint = obTo
-		else:
-			continue
-		successors = nx.dfs_successors(digraph, startingPoint).values()
-		ob['downlineObs'] = []
-		ob['downlineLoads'] = []
-		for listofVals in successors:
-			for element in listofVals:
-				elementKey = namesToKeys.get(element)
-				elementType = elementKey.split('.')[0]
-				if elementKey not in ob['downlineObs']:
-					ob['downlineObs'].append(elementKey)
-				if elementKey not in ob['downlineLoads'] and elementType == 'load':
-					ob['downlineLoads'].append(elementKey)
-	return obDict,loadsDict, sviGeoDF
-
-def calcEquipmentMetrics(obsDict, loadsDict):
-	'''
-	Calculates bcs, ccs, bci, and cci for equipment on the feeder and adds them to the objects in the input dict obsDict
-	
-	Args:
-		Input: obsDict -> dict of all circuit objects
-		Input: loadsDict -> dict of loads
-	'''
-	for k,v in obsDict.items():
-		weights=0
-		comm_crit_sum=0
-		base_crit_sum = 0
-		for j in v['downlineLoads']:
-				ob = loadsDict.get(j)
-				if ob:
-					weights+=ob['SOVI_SCORE']
-					comm_crit_sum+=ob['community crit score'] 
-					base_crit_sum+=ob['base crit score'] 
-		obsDict[k]['base crit score'] = base_crit_sum
-		obsDict[k]['community crit score'] = comm_crit_sum/weights if (comm_crit_sum != 0 and weights != 0) else 0
-	getPercentile(obsDict, 'base crit score')
-	getPercentile(obsDict, 'community crit score')
-
-def addLoadInfoToOmd(loadsDict, omdDict):
-	'''
-	adds criticality values to omd file for all objects
-	loadsDict -> dict of loads
-	omdDict -> dict of omd objects
-	returns new dict of omd objects
-	'''
-	for ob in omdDict.get('tree', {}).values():
-		if ob['object'] == 'load':
-			obType = ob['object']
-			obName = ob['name']
-			k = obType + '.' + obName
-			ob['section'] 				= loadsDict.get(k,{}).get('section')
-			ob['base crit score'] 		= loadsDict.get(k,{}).get('base crit score')
-			ob['base crit index'] 		= loadsDict.get(k,{}).get('base crit index')
-			ob['community crit score'] 	= loadsDict.get(k,{}).get('community crit score')
-			ob['community crit index'] 	= loadsDict.get(k,{}).get('community crit index')
-		else:
-			continue
-	return omdDict
-
-def addEquipmentInfoToOmd(obDict, omdDict, equipList):
-	'''
-	adds criticality values to omd file for all objects
-	loadsDict -> dict of loads
-	omdDict -> dict of omd objects
-	returns new dict of omd objects
-	'''
-	for ob in omdDict.get('tree', {}).values():
-		if (ob['object'] in equipList):
-			obType = ob['object']
-			obName = ob['name']
-			k = obType + '.' + obName
-			ob['section'] 				= obDict.get(k,{}).get('section')
-			ob['base crit score'] 		= obDict.get(k,{}).get('base crit score')
-			ob['base crit index'] 		= obDict.get(k,{}).get('base crit index')
-			ob['community crit score'] 	= obDict.get(k,{}).get('community crit score')
-			ob['community crit index'] 	= obDict.get(k,{}).get('community crit index')
-		else:
-			continue
-	return omdDict
-
-def addEquipLifeData(omdTree, equipLifePath):
-	''' Adds available equipment lifetime data from Equipment Lifetime (.csv file) info to items in omdTree. Directly modifies omdTree. 
-		Args:
-			Input: omdTree -> tree dict representation of omd
-			Input: equipLifePath -> Path to equipment lifetime csv
-	'''
-	equipLifeDF = pd.read_csv(equipLifePath)
-	equipNames2Consider = equipLifeDF['equipment name']
-	if not equipNames2Consider.is_unique:
-		raise Exception('ERROR: All entries in the \'equipment name\' column of Equipment Lifetime (.csv file) must be unique')
-	
-	equipLifeDF = equipLifeDF.set_index('equipment name')
-	for ob in omdTree.get('tree', {}).values():
-		obName = ob['name']
-		if (obName == equipNames2Consider).any():
-			# cols explicitly chosen rather than just looping through existing col names from the file for the sake of controlling what information we display if extraneous cols are included
-			ob['% through planned usable lifetime'] = equipLifeDF.loc[obName,'% through planned usable lifetime'].item()
-			ob['avg hrs to restore'] 				= equipLifeDF.loc[obName,'avg hrs to restore'].item()
-		else:
-			continue
-
-def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
-	'''
-	Creates colorby CSV to color loads within the circuit
-	modelDir -> model directory
-	loadsDict -> dict of loads
-	'''
-	newloadsDict = {k.split('load.')[1]:v for k,v in loadsDict.items()}
-	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
-	combined_dict = {**newloadsDict, **newobjectsDict}
-	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
-	new_df[['base crit score','community crit score','base crit index','community crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
-
-def buildsviBlockGroup(blockgroupFIPS):
-	'''
-	Build SVI computation
-	block -> blockFIPS code
-	'''
-	# SVI Components
-	# Socioeconomic
-	# Household
-	# Housing Type
-
-	# SOCIOECONOMIC VARS
-	# Name of feature | Feature name (short): Variable name
-
-	# Percent Individuals Below Poverty Level | Poverty level: pct_Prs_Blw_Pov_Lev_ACS_16_20
-	# Percent Individuals 16+ Employed | Employed: pct_Civ_emp_16p_ACS_16_20
-	# Per capita Income | Income: avg_Agg_HH_INC_ACS_16_20
-	# Percent non highschool grads | Highschool: pct_Not_HS_Grad_ACS_16_20
-
-	# HOUSEHOULD COMPOSITION / DISABILITY VARS
-
-	#Percent Age 65+ |Age 65+ : Percentage calculated by dividing Pop_65plus_ACS_16_20 by Tot_Population_ACS_16_20
-	# Noninstituionalized People under 19 | under19: Civ_noninst_pop_U19_ACS_16_20
-	# Non Instituionalized People | noninstitution: Civ_Noninst_Pop_ACS_16_20
-	# Percent population under 19 | under19 : Civ_noninst_pop_U19_ACS_16_20 / Civ_Noninst_Pop_ACS_16_20
-	# Percent population disabled | disabled: pct_Pop_Disabled_ACS_16_20
-	# Limited English speaking household | limited english: ENG_VW_ACS_16_20
-	# Total occupied housing units | units: Tot_Occp_Units_ACS_16_20
-	# Percent households speaking Limited English | households: ENG_VW_ACS_16_20 / Tot_Occp_Units_ACS_16_20
-	# <------------------> THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET <---------------->
-	# Estimate!!Total:!!6 to 17 years:!!Living with one parent: | singleparent6-17: B23008_021E
-	# Estimate!!Total:!!Under 6 years:!!Living with one parent: | singleparentu6: B23008_008E
-	# Total single parents with u18 child | singleparentu18: B23008_021E + B23008_008E
-	# Total familes | family: B23008_001E
-	# Percent of single parent families | singleparent: (B23008_021E + B23008_008E)/(B23008_001E)
-	#<------------------>^^^^ THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET^^^^ <---------------->
-
-	# HOUSING / TRANSPORTATION VARS
-
-	# Percent Multi-unitstructure | multi: pct_MLT_U10p_ACS_16_20
-	# Percent mobile home | mobile: pct_Mobile_Homes_ACS_16_20
-	# Percent crowding | crowd: pct_Crowd_Occp_U_ACS_16_20
-	# <------------------> THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET <---------------->
-	# People No vehicles | novehicle: B08014_002E
-	# Total People | people: B01001_001E
-	# Percent non vehicle | (B08014_002E) / (B01001_001E)
-	#<------------------>^^^^ THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET^^^^ <---------------->
-					#Socioeconomic, household composition, housing /transportation variables
-	pdb_svi_vars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20',
-				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20', 'LAND_AREA']
-				# household composition / disability variables
-	acs_svi_vars = ['B23008_021E', 'B23008_008E', 'B23008_001E',
-					'B08014_002E','B01001_001E']
-	stateID = blockgroupFIPS[:2] # state identifier
-	countyID = blockgroupFIPS[2:5] # county identifier
-	tractID = blockgroupFIPS[5:11] # tract identifier
-	blockID = blockgroupFIPS[11:12] # block identifier
-	# SVI computation vals dictionary
-	# build url to use api
-	acs_request_url = "https://api.census.gov/data/2022/acs/acs5?get=" + ",".join(acs_svi_vars) + "&for=block%20group:" + str(blockID) + "&in=state:"+str(stateID)+"%20county:" +  str(countyID) + "%20tract:" + str(tractID)+"&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
-	pdb_request_url = "https://api.census.gov/data/2022/pdb/blockgroup?get="+ ",".join(pdb_svi_vars) + "&for=block%20group:" + str(blockID) + "&in=state:"+str(stateID)+"%20county:" +  str(countyID) + "%20tract:" + str(tractID)+"&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
-	# add url for census tract to add variables that arent in blockgroup
-	tractVars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'pct_Civ_emp_16p_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
-				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20', 'Civ_noninst_pop_U19_ACS_16_20', 'Civ_Noninst_Pop_ACS_16_20', 'pct_Pop_Disabled_ACS_16_20',
-				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20']
-	result = [item for item in tractVars if item not in pdb_svi_vars]
-	tractpdb_request_url = "https://api.census.gov/data/2022/pdb/tract?get="+ ",".join(result)+ "&for=tract:"+str(tractID)+"&in=state:"+str(stateID)+"%20county:"+ str(countyID) + "&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
-	#acs  data
-	opener = urllib.request.build_opener()
-	opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-	resp = opener.open(acs_request_url, timeout=50)
-	acsJson = json.loads(resp.read())
-	acsDict = {k: 0 if v[0] is None else v[0]  for k, *v in zip(*acsJson)}
-	#pdb data
-	resp = opener.open(pdb_request_url, timeout=50)
-	pdbJson = json.loads(resp.read())
-	pdbDict = {k: 0 if v[0] is None else v[0]  for k, *v in zip(*pdbJson)}
-	# extra tract data
-	resp = opener.open(tractpdb_request_url, timeout=50)
-	tractpdbJson = json.loads(resp.read())
-	tractpdbDict = {k: 0 if v[0] is None else v[0]  for k, *v in zip(*tractpdbJson)}
-	combined_dict = {**acsDict, **pdbDict,**tractpdbDict }
-	svi_var_dict = {
-		# socioeconomic vars
-		'pct_Prs_Blw_Pov_Lev_ACS_16_20': float(combined_dict['pct_Prs_Blw_Pov_Lev_ACS_16_20']),
-		'pct_Civ_emp_16p_ACS_16_20': float(combined_dict['pct_Civ_emp_16p_ACS_16_20']),
-		'avg_Agg_HH_INC_ACS_16_20': float(str(combined_dict['avg_Agg_HH_INC_ACS_16_20']).replace('$', '').replace(',','')),
-		'pct_Not_HS_Grad_ACS_16_20': float(combined_dict['pct_Not_HS_Grad_ACS_16_20']),
-		# household compisiton/ disability vars
-		'pct_Pop_65plus_ACS_16_20': float(combined_dict['Pop_65plus_ACS_16_20'])/float(combined_dict['Tot_Population_ACS_16_20']),
-		'pct_u19ACS_16_20': float(combined_dict['Civ_noninst_pop_U19_ACS_16_20'])/float(combined_dict['Civ_Noninst_Pop_ACS_16_20']),
-		'pct_Pop_Disabled_ACS_16_20': float(combined_dict['pct_Pop_Disabled_ACS_16_20']),
-		'pct_HH_Limited_Eng_ACS_16_20': float(combined_dict['ENG_VW_ACS_16_20']) / float(combined_dict['Tot_Occp_Units_ACS_16_20']),
-		'pct_singlefamily_u18': (float(combined_dict['B23008_021E']) + float(combined_dict['B23008_008E']))/max(0.0000000000001,float(combined_dict['B23008_001E'])),
-		#housing/transportation
-		'pct_MLT_U10p_ACS_16_20': float(combined_dict['pct_MLT_U10p_ACS_16_20']),
-		'pct_Mobile_Homes_ACS_16_20': float(combined_dict['pct_Mobile_Homes_ACS_16_20']),
-		'pct_Crowd_Occp_U_ACS_16_20': float(combined_dict['pct_Crowd_Occp_U_ACS_16_20']),
-		'pct_noVehicle': float(combined_dict['B08014_002E'])/float(combined_dict['B01001_001E']),
-		# Land Area in sq.mi. Not used for SVI but needed later for weather data calculations. Deleted after use before SVI calculation. 
-		'LAND_AREA': float(combined_dict['LAND_AREA'])
-	}
-	# Define the base URL for the TIGERweb REST Services
-	tigris_url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_ACS2021/MapServer/8/query"
-	params = {
-	'where': "STATE= '" + stateID +  "' AND COUNTY= '" + countyID + "' AND TRACT= '" + tractID + "' AND BLKGRP= '" + blockID +  "'",
-	'outFields': '*',
-	'returnGeometry': 'true',
-	'f': 'geojson',
-	'outSR': 4326  # Ensure we get geometries in WGS84 coordinate system
-	}
-	tigrisResponse = requests.get(tigris_url, params=params,timeout=50)
-	tigrisData = tigrisResponse.json()
-	if (tigrisData['features'][0]['geometry']['type'] == 'Polygon'):
-		coordList = tigrisData['features'][0]['geometry']['coordinates'][0]
-	else:
-		coordList = []
-		for i in tigrisData['features'][0]['geometry']['coordinates']:
-			for j in i:
-				coordList.append(j)
-	svi_var_dict['blockgroupFIPS'] = str(blockgroupFIPS)
-	svi_var_dict['geometry'] = coordList
-	return svi_var_dict
-
-def buildSVIRating(row):
-	'''computes SVI Rating for SVI_SCORE columns'''
-	if row['SOVI_SCORE'] <= .2:
-		return 'Very Low'
-	elif row['SOVI_SCORE'] > .2 and row['SOVI_SCORE'] <= .4:
-		return 'Relatively Low'
-	elif row['SOVI_SCORE'] > .4 and row['SOVI_SCORE'] <= .6:
-		return 'Relatively Moderate'
-	elif row['SOVI_SCORE'] > .6 and row['SOVI_SCORE'] <= .8:
-		return 'Relatively High'
-	else:
-		return 'Very High'
-
-def runCalculations(pathToOmd,pathToLoadsFile,avgPeakDemand, modelDir, equipmentList):
-	'''
-	Runs computations on circuit for different loads and equipment
-
-	pathToOmd -> file path to omd
-	modelDir -> modelDirectory to store csv
-	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
-	'''
-	obDict,loads, sviGeoDF, newsviDF, section_loads = getDownLineLoadsEquipmentBlockGroup(modelDir, pathToOmd, equipmentList, avgPeakDemand, pathToLoadsFile)
-	cols = ['Object Name', 'Type','Section', 'Base Criticality Score', 'Base Criticality Index',
-			'Community Criticality Score', 'Community Criticality Index']
-	load_names = list(loads.keys())
-	section1 = [value.get('section') for key, value in loads.items()]
-	base_criticality_score_vals1 = [value.get('base crit score') for key, value in loads.items()]
-	base_criticity_index_vals1 = [value.get('base crit index') for key, value in loads.items()]
-	community_criticality_score_vals1 = [value.get('community crit score') for key, value in loads.items()]
-	community_criticity_index_vals1 = [value.get('community crit index') for key, value in loads.items()]
-	#sovi_vals1 = [value.get('SOVI_SCORE') for key, value in loads.items()]
-	#affluence_vals1 = [value.get('affluence score') for key, value in loads.items()]
-	type1 = ['load' for i in range(len(base_criticality_score_vals1))]
-	loadsList = list(zip(load_names,type1,  section1,  base_criticality_score_vals1, base_criticity_index_vals1,community_criticality_score_vals1,community_criticity_index_vals1))
-	object_names = list(obDict.keys())
-	section2 = [value.get('section') for key, value in obDict.items()]
-	base_criticality_score_vals2 = [value.get('base crit score') for key, value in obDict.items()]
-	base_criticity_index_vals2 = [value.get('base crit index') for key, value in obDict.items()]
-	community_criticality_score_vals2 = [value.get('community crit score') for key, value in obDict.items()]
-	community_criticity_index_vals2 = [value.get('community crit index') for key, value in obDict.items()]
-	type2 = ['equipment' for i in range(len(base_criticality_score_vals2))]
-
-	equipList = list(zip(object_names,type2, section2,  base_criticality_score_vals2, base_criticity_index_vals2,community_criticality_score_vals2,community_criticity_index_vals2 ))
-	finList = loadsList + equipList
-	newDF = createDF(finList, cols, [])
-	newDF.to_csv(pJoin(modelDir, 'resilientCommunityOutput.csv'))  
-
+############################## Zillow Code ##################################
 def get_zillowListings(lat, lon):
 	#zillow api
 	url = "https://zillow56.p.rapidapi.com/search_coordinates"
@@ -1109,7 +143,6 @@ def get_zillowListings(lat, lon):
 	newjson = listingJson.json()
 	return newjson
 
-#UNUSED
 def calculateAvg_prices(data):
 	# Extract the list of results
 	results = data.get('results', [])
@@ -1138,7 +171,6 @@ def calculateAvg_prices(data):
 			print("Error calculating avg price")
 			return None, None
 
-#UNUSED
 def cacheZillowData(pathToOmd, pathToLoad):
 	omd = json.load(open(pathToOmd))
 	loads = json.load(open(pathToLoad))
@@ -1164,7 +196,177 @@ def cacheZillowData(pathToOmd, pathToLoad):
 				zillowDict[blockgroup] = zillowJson
 	with open('/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/zillowOutput.json', 'w') as f:
 		json.dump(zillowDict, f)
+############################## End Zillow Code ##############################
 
+############################## Statistical Distribution of CCS Code ##################################
+def getSectionsDistribution(sectionsDict, omd):
+	'''
+	Calculates and displays the distribution of Community Criticality Scores (CCS) for each section.
+	
+	sectionsDict: Dictionary mapping section names to lists of object keys in OMD.
+	omd: Dictionary containing the parsed JSON OMD data.
+	'''
+	# Iterate through each section
+	for ob in omd.get('tree', {}).values():
+		obType = ob['object']
+		obName = ob['name']
+		key = obType + '.' + obName
+		# Calculate statistics
+		mean = np.mean(ccs_list)
+		median = np.median(ccs_list)
+		std_dev = np.std(ccs_list)
+		min_value = np.min(ccs_list)
+		max_value = np.max(ccs_list)
+		# Print statistics for the section
+		print(f"CCS Statistics for Section: {section}")
+		print(f"Mean: {mean:.2f}, Median: {median:.2f}, Std Dev: {std_dev:.2f}, Min: {min_value:.2f}, Max: {max_value:.2f}\n")
+		# Plot histogram
+		plt.figure(figsize=(10, 6))
+		plt.hist(ccs_list, bins=20, edgecolor='black', alpha=0.7)
+		plt.title(f'CCS Distribution for {section}')
+		plt.xlabel('CCS Value')
+		plt.ylabel('Frequency')
+		plt.grid(True)
+		plt.show()
+
+def getDistribution():
+	import json
+	import numpy as np
+	import matplotlib.pyplot as plt
+	# Path to the OMD file
+	pathToOmd = '/Users/davidarmah/Documents/omf/omf/data/Model/admin/Automated Testing of resilientCommunity/color_test.omd'
+	# Load the JSON data
+	try:
+		with open(pathToOmd, 'r') as file:
+			omd = json.load(file)
+	except FileNotFoundError:
+		print(f"File not found: {pathToOmd}")
+		return
+	except json.JSONDecodeError:
+		print(f"Error decoding JSON file: {pathToOmd}")
+		return
+	# Collect CCS values
+	ccs_list = []
+	for obj in omd.get('tree', {}).values():
+		# Check if 'community crit score' exists and add it to the list
+		if 'community crit score' in obj and isinstance(obj['community crit score'], (int, float)):
+			ccs_list.append(obj['community crit score'])
+	# Check if CCS list is empty
+	if not ccs_list:
+		print("No Community Criticality Scores found in the data.")
+		return
+	# Calculate statistical distribution
+	mean = np.mean(ccs_list)
+	median = np.median(ccs_list)
+	std_dev = np.std(ccs_list)
+	min_value = np.min(ccs_list)
+	max_value = np.max(ccs_list)
+	# Print statistics
+	print(f"CCS Statistics:")
+	print(f"Mean: {mean:.2f}")
+	print(f"Median: {median:.2f}")
+	print(f"Standard Deviation: {std_dev:.2f}")
+	print(f"Min: {min_value:.2f}")
+	print(f"Max: {max_value:.2f}")
+	# Plot histogram
+	plt.figure(figsize=(10, 6))
+	plt.hist(ccs_list, bins=20, edgecolor='black', alpha=0.7)
+	plt.title('Community Criticality Score Distribution')
+	plt.xlabel('CCS Value')
+	plt.ylabel('Frequency')
+	plt.grid(True)
+	plt.show()
+############################## End Statistical Distribution of CCS Code ##############################
+
+############################## Run Calculations Code ##################################
+def testRunCalculations():
+	pathToOmd = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity/ieee37_LBL_simplified.omd"
+	modelDir = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity"
+	custInfoPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv')
+	avgPeakDemand = 1
+	avgNumOccupants = 4
+	equipmentList = ['lines', 'transformers', 'fuses']
+	oipInputDict = {'oip_poverty':1, 'oip_employed':1, 'oip_income':1}
+	oipAggMethod = 'Average of Min-Max-Normalized'
+	runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccupants, equipmentList, oipInputDict, oipAggMethod)
+
+def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccupants, equipmentList, oipInputDict, oipAggMethod):
+	'''
+	Runs computations on circuit for different loads and equipment.
+	Creates a CSV called resilientCommunityOutput.csv in the modelDir
+	with section, bcs, bci, lcs, lci, and type (load or equipment) for each object. 
+
+	pathToOmd -> file path to omd
+	modelDir -> modelDirectory to store csv
+	equipmentList -> specify list of equipment to use in analysis: example : ['line', 'fuse', 'transformer]
+	'''
+
+	acceptableKeys = {'oip_poverty', 'oip_employed', 'oip_income', 'oip_nongrad', 'oip_age65', 
+				'oip_below19', 'oip_disabled', 'oip_lim_eng', 'oip_multi', 'oip_mobile', 'oip_crowding', 
+				'oip_no_vehicle', 'oip_af_avln', 'oip_af_cwav', 'oip_af_drgt', 'oip_af_erqk', 
+				'oip_af_hail', 'oip_af_hwav', 'oip_af_hrcn', 'oip_af_istm', 'oip_af_lnds', 'oip_af_ltng', 
+				'oip_af_swnd', 'oip_af_wfir', 'oip_af_wntw'}
+	givenKeys = set(oipInputDict.keys())
+	unacceptableKeys = givenKeys-acceptableKeys
+	if not givenKeys:
+		raise Exception('ERROR: oipInputDict cannot be empty.')
+	elif unacceptableKeys:
+		raise Exception(f'ERROR: The following keys in oipInputDict are not accepted:{unacceptableKeys}.\nOnly keys from the following list will be accepted:{acceptableKeys}.')
+
+	with open(pathToOmd) as f:
+		omd = json.load(f)
+	# Section code
+	sectionsDict, distanceDict, totalSections = runSections(pathToOmd, omd)
+	# create loadDicts
+	custInfoDF = pd.read_csv(custInfoPath)
+	restrictToResidential = useOipCustVars(oipInputDict)
+	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, avgPeakDemand, avgNumOccupants)
+	# create blockgroupDicts with Outage Impact Metric (OIP) for each blockgroup and provide messages about what variables had to be removed from the analysis
+	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict)
+	addOipToBlockgroups(blockgroupDict, oipInputDict, oipAggMethod)
+	# Add blockgroup info to loads and process it into new metrics in loadDict
+	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict)
+	# Create equipmentDict with equipment metrics based on downline load metrics
+	equipmentDict = makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList)
+
+	# Do loads
+	loadNames = list(loadDict.keys())
+	sections1 = [value.get('section') for value in loadDict.values()]
+	bcsVals1 = [value.get('base crit score') for value in loadDict.values()]
+	bciVals1 = [value.get('base crit index') for value in loadDict.values()]
+	lcsVals1 = [value.get('locational crit score') for value in loadDict.values()]
+	lciVals1 = [value.get('locational crit index') for value in loadDict.values()]
+	types1 = ['load']*len(bcsVals1)
+	loadsList = list(zip(loadNames, types1,  sections1,  bcsVals1, bciVals1, lcsVals1, lciVals1))
+	# Do equipment
+	equipNames = list(equipmentDict.keys())
+	sections2 = [value.get('section') for value in equipmentDict.values()]
+	bcsVals2 = [value.get('base crit score') for value in equipmentDict.values()]
+	bciVals2 = [value.get('base crit index') for value in equipmentDict.values()]
+	lcsVals2 = [value.get('locational crit score') for value in equipmentDict.values()]
+	lciVals2 = [value.get('locational crit index') for value in equipmentDict.values()]
+	types2 = ['equipment']*len(bcsVals2)
+	equipList = list(zip(equipNames, types2, sections2, bcsVals2, bciVals2, lcsVals2, lciVals2))
+	
+	cols = ['Object Name', 'Type', 'Section', 'Base Criticality Score', 'Base Criticality Index',
+			'Locational Criticality Score', 'Locational Criticality Index']
+	finList = loadsList + equipList
+	newDF = pd.DataFrame(finList, columns = cols)
+	newDF.to_csv(pJoin(modelDir, 'resilientCommunityOutput.csv'))  
+############################## End Run Calculations Code ##############################
+
+############################## Unused Helper Function Code ######################################
+def all_vals(obj):
+	''' helper method that retrieves all values in nested dictionary'''
+	if isinstance(obj, dict):
+		for v in obj.values():
+			yield from all_vals(v)
+	else:
+		yield obj
+############################## End Unused Helper Function Code ##################################
+#================================================== !!! END CURRENTLY UNUSED !!! ==================================================
+
+############################## Sections Code ##################################
 def runSections(pathToOmd, omd):
 	#omd = json.load(open(omdFilePath))
 	#dssTree = omdToTree(omdFilePath)
@@ -1318,98 +520,6 @@ def section_circuit(graph):
 	finalize_current_section()
 	return sections
 
-#UNUSED
-def getSectionsDistribution(sectionsDict, omd):
-	"""
-	Calculates and displays the distribution of Community Criticality Scores (CCS) for each section.
-	
-	sectionsDict: Dictionary mapping section names to lists of object keys in OMD.
-	omd: Dictionary containing the parsed JSON OMD data.
-	"""
-	# Iterate through each section
-	for ob in omd.get('tree', {}).values():
-		obType = ob['object']
-		obName = ob['name']
-		key = obType + '.' + obName
-		# Calculate statistics
-		mean = np.mean(ccs_list)
-		median = np.median(ccs_list)
-		std_dev = np.std(ccs_list)
-		min_value = np.min(ccs_list)
-		max_value = np.max(ccs_list)
-		# Print statistics for the section
-		print(f"CCS Statistics for Section: {section}")
-		print(f"Mean: {mean:.2f}, Median: {median:.2f}, Std Dev: {std_dev:.2f}, Min: {min_value:.2f}, Max: {max_value:.2f}\n")
-		# Plot histogram
-		plt.figure(figsize=(10, 6))
-		plt.hist(ccs_list, bins=20, edgecolor='black', alpha=0.7)
-		plt.title(f'CCS Distribution for {section}')
-		plt.xlabel('CCS Value')
-		plt.ylabel('Frequency')
-		plt.grid(True)
-		plt.show()
-
-#UNUSED
-def getDistribution():
-	import json
-	import numpy as np
-	import matplotlib.pyplot as plt
-	# Path to the OMD file
-	pathToOmd = '/Users/davidarmah/Documents/omf/omf/data/Model/admin/Automated Testing of resilientCommunity/color_test.omd'
-	# Load the JSON data
-	try:
-		with open(pathToOmd, 'r') as file:
-			omd = json.load(file)
-	except FileNotFoundError:
-		print(f"File not found: {pathToOmd}")
-		return
-	except json.JSONDecodeError:
-		print(f"Error decoding JSON file: {pathToOmd}")
-		return
-	# Collect CCS values
-	ccs_list = []
-	for obj in omd.get('tree', {}).values():
-		# Check if 'community crit score' exists and add it to the list
-		if 'community crit score' in obj and isinstance(obj['community crit score'], (int, float)):
-			ccs_list.append(obj['community crit score'])
-	# Check if CCS list is empty
-	if not ccs_list:
-		print("No Community Criticality Scores found in the data.")
-		return
-	# Calculate statistical distribution
-	mean = np.mean(ccs_list)
-	median = np.median(ccs_list)
-	std_dev = np.std(ccs_list)
-	min_value = np.min(ccs_list)
-	max_value = np.max(ccs_list)
-	# Print statistics
-	print(f"CCS Statistics:")
-	print(f"Mean: {mean:.2f}")
-	print(f"Median: {median:.2f}")
-	print(f"Standard Deviation: {std_dev:.2f}")
-	print(f"Min: {min_value:.2f}")
-	print(f"Max: {max_value:.2f}")
-	# Plot histogram
-	plt.figure(figsize=(10, 6))
-	plt.hist(ccs_list, bins=20, edgecolor='black', alpha=0.7)
-	plt.title('Community Criticality Score Distribution')
-	plt.xlabel('CCS Value')
-	plt.ylabel('Frequency')
-	plt.grid(True)
-	plt.show()
-
-#UNUSED
-def getAverages_loads(loadsDict):
-	# Convert JSON data into a DataFrame
-	rows = []
-	for load_id, load_data in data.items():
-		row = load_data.copy()
-		row['load_id'] = load_id
-		rows.append(row)
-	df = pd.DataFrame(rows)
-	# Group by census tract and calculate average values
-	averages = df.groupby('cen_tract').mean()
-
 def calculate_distances_to_source(graph, source):
 	# Reverse the graph to calculate distances to the source.
 	# This flips the direction of edges, making it easier to compute distances to the source node.
@@ -1454,6 +564,817 @@ def calculate_distances_to_source(graph, source):
 	# print("Distances to source:", distance_to_source)
 	# Return the dictionary of distances to the source node.
 	return distance_to_source
+############################## End Sections Code ##############################
+
+############################## makeLoadDicts Code ##################################
+def useOipCustVars(oipInputDict):
+	''' Check if any of the OIP Customer Variables have nonzero weights. Return True if so, False otherwise.'''
+	# TODO: Add in 'oip_single_par' once the calc for that is corrected and it's added to the inputs
+	custVarList = ['oip_employed', 'oip_age65', 'oip_crowding', 'oip_poverty', 'oip_disabled', 'oip_lim_eng', 'oip_mobile', 'oip_multi', 'oip_no_vehicle', 'oip_nongrad', 'oip_below19', 'oip_income']
+	doLimit = False
+	for custVar in custVarList:
+		if float(oipInputDict[custVar]) != 0:
+			doLimit = True
+			break
+	return doLimit
+
+def loadIsResidential(custInfoDF,loadName):
+	''' Checks if there's a single entry for a load in custInfoDF and if so, returns whether it's residential or not.'''
+	loadRowsDf = custInfoDF[custInfoDF["Load Name"] == loadName]
+	if len(loadRowsDf) > 1:
+		raise Exception(f"ERROR: Your Customer Information (.csv file) contains more than 1 entry for the load {loadName}")
+	elif len(loadRowsDf) == 0:
+		raise Exception(f"ERROR: Your Customer Information (.csv file) contains no entry for the load {loadName}")
+	else:
+		return loadRowsDf["Business Type"].iloc[0].lower() == 'residential'
+
+def getPowerMeasures(ob):
+	''' Retrieves kw, kvar, and kva from a load object
+		Input: ob -> a load object 
+		Return: -> [kw, kvar, kva]
+	'''
+	kw = ob.get('kw',None)
+	kvar = ob.get('kvar',None)
+	kva = ob.get('kva',None)
+	pf = ob.get('pf',None)
+	if None not in [kw,kvar]:
+		kw = float(kw)
+		kvar = float(kvar)
+		kva = math.sqrt(kw**2 + kvar**2)
+	elif None not in [kw,pf]:
+		kw = float(kw)
+		kva = kw/float(pf)
+		kvar = math.sqrt(kva**2 - kw**2)
+	elif None not in [kva,pf]:
+		kw = float(kva)*float(pf)
+		kva = float(kva)
+		kvar = math.sqrt(kva**2 + kw**2)
+	else:
+		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
+	return kw, kvar, kva
+
+def makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, avgPeakDemand, avgNumOccupants):
+	''' Constructs and returns loadDict and loadCoordsDict.
+		loadCoordsDict is a seprate dict because we don't want to carry coords along into places where loadDict is used later.
+
+		When returned, loadDict contains loads as keys and dictionaries as values for each load recorded with the following keys:
+		'kva', 'base crit score', 'distance_from_source', 'section'
+
+		When returned, loadCoordsDict contains loads as keys and dictionaries as values for each load recorded with the following keys:
+		'long', 'lat'
+	'''
+	loadDict = {}
+	loadCoordsDict = {}
+	for ob in omd.get('tree', {}).values():
+		obType = ob['object']
+		obName = ob['name']
+		obKey = f'{obType}.{obName}'
+		if (obType == 'load') and (loadIsResidential(custInfoDF, obName) or not restrictToResidential):
+			loadDict[obKey] = {}
+			kw, kvar, kva = getPowerMeasures(ob)
+			loadDict[obKey]['kva'] = kva
+			loadDict[obKey]['base crit score'] = (kva / float(avgPeakDemand)) * float(avgNumOccupants)
+			loadDict[obKey]['distance_from_source'] = int(distanceDict.get(obName, 0))
+			loadDict[obKey]['section'] = sectionsDict.get(obName)
+			loadCoordsDict[obKey] = {
+				'long':	float(ob['longitude']),
+				'lat':	float(ob['latitude'])
+			}
+	return loadDict, loadCoordsDict
+############################## End makeLoadDicts Code ##############################
+
+############################## makeBlockgroupDicts Code ######################################
+def coordCheck(long, lat, geoList):
+	"""
+	Check if a point defined by longitude and latitude intersects any polygons in a given geospatial list.
+	
+	Args:
+		long (float): Longitude of the point.
+		lat (float): Latitude of the point.
+		geoList (dict): A dictionary containing geospatial data, where keys represent identifiers
+						and values include a 'geometry' key with a list of polygon coordinates.
+	
+	Returns:
+		str: The key of the geospatial entry that the point intersects with, or an empty string if none.
+	"""
+	try:
+		# Ensure valid input types
+		if not isinstance(long, (int, float)):
+			raise ValueError("Longitude must be a number.")
+		if not isinstance(lat, (int, float)):
+			raise ValueError("Latitude must be a number.")
+		if not isinstance(geoList, dict):
+			raise ValueError("geoList must be a dictionary.")
+		# Create a point from the given coordinates
+		point = Point(long, lat)
+		# Iterate through the geospatial list
+		for k, v in geoList.items():
+			if 'geometry' not in v or not isinstance(v['geometry'], list):
+				raise KeyError(f"Missing or invalid 'geometry' key in entry {k}.")
+			# Handle single polygon or list of polygons
+			if len(v['geometry']) == 1:
+				coords = v['geometry'][0]
+			else:
+				coords = v['geometry']
+			# Check if the polygon intersects with the point
+			try:
+				poly = Polygon(coords)
+				if poly.intersects(point):
+					return k
+			except Exception as e:
+				# Handle potential errors in creating or processing polygons
+				print(f"Error processing polygon for key {k}: {e}")
+				continue
+		# Return an empty string if no intersection is found
+		return ''
+	except Exception as e:
+		print(f"Error in coordCheck: {e}")
+		return ''
+
+def findCensusBlockgroup(lat,lon):
+	'''
+	Finds Census Block at a given lon / lat incorporates US Census Geolocator API
+	Input: lat -> specified latitude value
+	Input: lon -> specified longitude value
+	return censusBlockGroup ->  census block group found at location
+	'''
+	
+	def getCensusJson(request_url):
+		''' Helper function to get the json from request_url'''
+		opener = urllib.request.build_opener()
+		opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+		resp = opener.open(request_url, timeout=100)
+		censusJson = json.loads(resp.read())
+		return censusJson
+	
+	try:
+		# Requested for API Key to bypass api load limits
+		request_url = f'https://geo.fcc.gov/api/census/block/find?latitude={lat}&longitude={lon}&censusYear=2020&format=json&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b'
+		censusJson = getCensusJson(request_url)
+		censusBlockGroup = censusJson['Block']['FIPS'][:-3]
+		return censusBlockGroup
+	except Exception as e1:
+		try:
+			# Documentation on geocoding API: https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.pdf
+			request_url = f'https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x={lon}&y={lat}&benchmark=8&vintage=820&format=json'
+			censusJson = getCensusJson(request_url)
+			censusBlockGroup = censusJson['result']['geographies']['Census Blocks'][0]['GEOID'][:-3]
+			return censusBlockGroup
+		except Exception as e2:
+			print('\nErrors trying to retrieve block group information from Census APIs')
+			print(f'Error for geo.fcc.gov:\n{e1}')
+			print(f'Error for geocoding.geo.census.gov:\n{e2}\n')
+
+def repeatFindCensusBlockgroup(lat, long, lim=10, wait=3):
+	''' Repeatedly attempts to retrieve census blockgroup, returning the info as soon as it is successful, and raising an exception after a certain number of attempts.
+		Args:
+			Input: lat -> specified latitude value
+			Input: lon -> specified longitude value
+			Input: lim -> num attempts before an exception is raised
+			Input: wait -> num sec between attempts to avoid overwhelming server
+		Return: censusBlockGroup ->  census Tract found at location
+	'''
+	for i in range(0,lim):
+		censusBlockGroup = findCensusBlockgroup(lat,long)
+		if censusBlockGroup:
+			break
+		elif i == lim-1:
+			raise Exception(f'ERROR - Could not get census block group in {lim} calls to the server')
+		else:
+			time.sleep(wait)
+	return censusBlockGroup
+
+def buildBlockgroup(blockgroupFIPS):
+	'''
+	Build a blockgroup with the OIP cust var data pulled from the web.
+	Returns a dict of blockgroup information.
+	'''
+	# Cust Var Components for OIP
+	# Socioeconomic
+	# Household
+	# Housing Type
+
+	# SOCIOECONOMIC VARS
+	# Name of feature | Feature name (short): Variable name
+
+	# Percent Individuals Below Poverty Level | Poverty level: pct_Prs_Blw_Pov_Lev_ACS_16_20
+	# Percent Individuals 16+ Employed | Employed: pct_Civ_emp_16p_ACS_16_20
+	# Avg Aggregate Household Income | Income: avg_Agg_HH_INC_ACS_16_20
+	# Percent non highschool grads | Highschool: pct_Not_HS_Grad_ACS_16_20
+
+	# HOUSEHOULD COMPOSITION / DISABILITY VARS
+
+	#Percent Age 65+ |Age 65+ : Percentage calculated by dividing Pop_65plus_ACS_16_20 by Tot_Population_ACS_16_20
+	# Noninstitutionalized People under 19 | under19: Civ_noninst_pop_U19_ACS_16_20
+	# Non Institutionalized People | noninstitution: Civ_Noninst_Pop_ACS_16_20
+	# Percent population under 19 | under19 : Civ_noninst_pop_U19_ACS_16_20 / Civ_Noninst_Pop_ACS_16_20
+	# Percent population disabled | disabled: pct_Pop_Disabled_ACS_16_20
+	# Limited English speaking household | limited english: ENG_VW_ACS_16_20
+	# Total occupied housing units | units: Tot_Occp_Units_ACS_16_20
+	# Percent households speaking Limited English | households: ENG_VW_ACS_16_20 / Tot_Occp_Units_ACS_16_20
+	# <------------------> THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET <---------------->
+	# Estimate!!Total:!!6 to 17 years:!!Living with one parent: | singleparent6-17: B23008_021E
+	# Estimate!!Total:!!Under 6 years:!!Living with one parent: | singleparentu6: B23008_008E
+	# Total single parents with u18 child | singleparentu18: B23008_021E + B23008_008E
+	# Total familes | family: B23008_001E
+	# Percent of single parent families | singleparent: (B23008_021E + B23008_008E)/(B23008_001E)
+	# TODO: Fix this calculation. Currently, we conflate (# children living with 1 parent) with (# single parents with u18 children), which are not the same thing because there are single parents with multiple children. 
+	#<------------------>^^^^ THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET^^^^ <---------------->
+
+	# HOUSING / TRANSPORTATION VARS
+
+	# Percent Multi-unitstructure | multi: pct_MLT_U10p_ACS_16_20
+	# Percent mobile home | mobile: pct_Mobile_Homes_ACS_16_20
+	# Percent crowding | crowd: pct_Crowd_Occp_U_ACS_16_20
+	# <------------------> THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET <---------------->
+	# People No vehicles | novehicle: B08014_002E
+	# Total People | people: B01001_001E
+	# Percent non vehicle | (B08014_002E) / (B01001_001E)
+	#<------------------>^^^^ THESE VARS ARE IN ACS DATASET REST ARE IN PLANNING DATABASE DATASET^^^^ <---------------->
+	
+	#Socioeconomic, household composition, housing /transportation variables
+	pdb_vars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
+				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20',
+				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20', 'LAND_AREA']
+	# household composition / disability variables
+	acs_vars = ['B23008_021E', 'B23008_008E', 'B23008_001E',
+				'B08014_002E','B01001_001E']
+	# add url for census tract to add variables that arent in blockgroup
+	tractpdb_vars = ['Civ_Noninst_Pop_ACS_16_20', 'pct_Civ_emp_16p_ACS_16_20', 'pct_Pop_Disabled_ACS_16_20', 'Civ_noninst_pop_U19_ACS_16_20']
+
+	stateID = blockgroupFIPS[:2] # state identifier
+	countyID = blockgroupFIPS[2:5] # county identifier
+	tractID = blockgroupFIPS[5:11] # tract identifier
+	blockID = blockgroupFIPS[11:12] # block identifier
+	# build url to use api
+	acs_request_url = "https://api.census.gov/data/2022/acs/acs5?get=" + ",".join(acs_vars) + "&for=block%20group:" + str(blockID) + "&in=state:"+str(stateID)+"%20county:" +  str(countyID) + "%20tract:" + str(tractID)+"&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
+	pdb_request_url = "https://api.census.gov/data/2022/pdb/blockgroup?get="+ ",".join(pdb_vars) + "&for=block%20group:" + str(blockID) + "&in=state:"+str(stateID)+"%20county:" +  str(countyID) + "%20tract:" + str(tractID)+"&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
+	tractpdb_request_url = "https://api.census.gov/data/2022/pdb/tract?get="+ ",".join(tractpdb_vars)+ "&for=tract:"+str(tractID)+"&in=state:"+str(stateID)+"%20county:"+ str(countyID) + "&key=bc86c8cfc930e7c10b81d6683c6a316f5fcb857b"
+	#acs  data
+	opener = urllib.request.build_opener()
+	opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+	resp = opener.open(acs_request_url, timeout=50)
+	acsJson = json.loads(resp.read())
+	acsDict = dict(zip(*acsJson))
+	#pdb data
+	resp = opener.open(pdb_request_url, timeout=50)
+	pdbJson = json.loads(resp.read())
+	pdbDict = dict(zip(*pdbJson))
+	# extra tract data
+	resp = opener.open(tractpdb_request_url, timeout=50)
+	tractpdbJson = json.loads(resp.read())
+	tractpdbDict = dict(zip(*tractpdbJson))
+
+	def accountForNa(func, *args):
+		''' Helper function to just return 'Not Applicable' if any args are None, otherwise execute the given function '''
+		return 'Not Applicable' if None in args else func(*args)
+		
+	bgVarsDict = {
+		# socioeconomic vars
+		'oip_poverty': 	accountForNa(float, pdbDict['pct_Prs_Blw_Pov_Lev_ACS_16_20']),
+		'oip_employed': accountForNa(float, tractpdbDict['pct_Civ_emp_16p_ACS_16_20']),
+		'oip_income': 	accountForNa(lambda x: float(str(x).replace('$','').replace(',','')), pdbDict['avg_Agg_HH_INC_ACS_16_20']),
+		'oip_nongrad': 	accountForNa(float, pdbDict['pct_Not_HS_Grad_ACS_16_20']),
+		# household compisiton/ disability vars
+		'oip_age65': 	accountForNa(lambda x,y: float(x)/float(y), pdbDict['Pop_65plus_ACS_16_20'], pdbDict['Tot_Population_ACS_16_20']),
+		'oip_below19': 	accountForNa(lambda x,y: float(x)/float(y), tractpdbDict['Civ_noninst_pop_U19_ACS_16_20'], tractpdbDict['Civ_Noninst_Pop_ACS_16_20']),
+		'oip_disabled': accountForNa(float, tractpdbDict['pct_Pop_Disabled_ACS_16_20']),
+		'oip_lim_eng': 	accountForNa(lambda x,y: float(x)/float(y), pdbDict['ENG_VW_ACS_16_20'], pdbDict['Tot_Occp_Units_ACS_16_20']),
+		# The following is commented out because the calc is wrong as detailed in the earlier TODO
+		#'oip_single_par': accountForNa(lambda x,y,z: (float(x)+float(y))/max(0.0000000000001,float(z)), acsDict['B23008_021E'], acsDict['B23008_008E'], acsDict['B23008_001E']),
+		#housing/transportation
+		'oip_multi': 	accountForNa(float, pdbDict['pct_MLT_U10p_ACS_16_20']),
+		'oip_mobile': 	accountForNa(float, pdbDict['pct_Mobile_Homes_ACS_16_20']),
+		'oip_crowding': accountForNa(float, pdbDict['pct_Crowd_Occp_U_ACS_16_20']),
+		'oip_no_vehicle': accountForNa(lambda x,y: float(x)/float(y), acsDict['B08014_002E'], acsDict['B01001_001E']),
+		# Land Area in sq.mi. Not used for OIP but needed later for weather data calculations. Deleted after use before OIP calculation. 
+		'LAND_AREA': 	accountForNa(float, pdbDict['LAND_AREA'])
+	}
+	
+	# Define the base URL for the TIGERweb REST Services
+	tigris_url = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_ACS2021/MapServer/8/query"
+	params = {
+	'where': "STATE= '" + stateID +  "' AND COUNTY= '" + countyID + "' AND TRACT= '" + tractID + "' AND BLKGRP= '" + blockID +  "'",
+	'outFields': '*',
+	'returnGeometry': 'true',
+	'f': 'geojson',
+	'outSR': 4326  # Ensure we get geometries in WGS84 coordinate system
+	}
+	tigrisResponse = requests.get(tigris_url, params=params,timeout=50)
+	tigrisData = tigrisResponse.json()
+	if (tigrisData['features'][0]['geometry']['type'] == 'Polygon'):
+		coordList = tigrisData['features'][0]['geometry']['coordinates'][0]
+	else:
+		coordList = []
+		for i in tigrisData['features'][0]['geometry']['coordinates']:
+			for j in i:
+				coordList.append(j)
+	bgVarsDict['blockgroupFIPS'] = str(blockgroupFIPS)
+	bgVarsDict['geometry'] = coordList
+	return bgVarsDict
+
+def addWeatherToBlockgroups(blockgroupDict):
+	''' Adds weather hazard data used for calculating OIP to the input blockgroupDict and removes LAND_AREA data which was included for use in this function.
+	'''
+	# Coastal Flooding, Riverine Flooding, Tornado, Tsunami, and Volcanic Activity removed until we can find a good way to estimate them at bg resolution
+	# Unlike most variables, they're not broad enough sized events to span the entire tract and thus all blockgroups (thus bg resolution can be approximated with tract resolution value)
+	# And unlike Avalanche, Landslide, and Lightning, they're not localized enough that their bg resolution value could be estimated by multiplying frequency by bg_area/tract_area
+	# missingVals = ['CFLD_AFREQ','RFLD_AFREQ', 'TRND_AFREQ', 'TSUN_AFREQ', 'VLCN_AFREQ']
+	weatherTypes = ['AVLN_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
+					'LNDS_AFREQ', 'LTNG_AFREQ', 'SWND_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ']
+	
+	# weatherfile is a stripped down version of a file that was originally 8.6GB taken from the census website. 
+	# There does not seem to be a more granular way to download the desired data, hence using a stored stripped down version instead of redownloading an 8.6GB file ever run.
+	# The retrieval and stripping were done with retrieveCensusNRI() and stripDownCensusNRI() at the top of this file
+	weatherFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database_properties_by_tractFIPS.json')
+	with open(weatherFile) as f:
+		weatherDict = json.load(f)
+	for bg in blockgroupDict.keys():
+		tractFIPS = bg[:11]
+		tractArea = weatherDict[tractFIPS]['AREA']
+		blockgroupArea = blockgroupDict[bg].pop('LAND_AREA')
+		for wt in weatherTypes:
+			weatherData = weatherDict[tractFIPS].get(wt,'Not Applicable')
+			if weatherData == -9999.0:
+				weatherData = 'Not Applicable'
+			elif wt in ['AVLN_AFREQ', 'LNDS_AFREQ', 'LTNG_AFREQ']:
+				# Avalanche, Landslide, and Lightning are localized enough hazards that we scale the tract-wide value by the proportion of the tract made up by the blockgroup to estimate blockgroup resolution
+				weatherData *= blockgroupArea/tractArea
+			weatherCode = wt.replace('_AFREQ','').lower()
+			blockgroupDict[bg][f'oip_af_{weatherCode}'] = weatherData
+
+def makeBlockgroupDicts(modelDir, loadCoordsDict):
+	''' Constructs and returns blockgroupDict and loads2BgDict.
+
+		When returned, blockgroupDict contains blockgroups as keys and dictionaries as values for each blockgroup recorded with the following keys:
+		'oip_poverty', 'oip_employed', 'oip_income', 'oip_nongrad', 'oip_age65', 'oip_below19', 'oip_disabled', 'oip_lim_eng', 'oip_multi', 'oip_mobile', 'oip_crowding',
+		'oip_no_vehicle', 'blockgroupFIPS', 'geometry', 'oip_af_avln', 'oip_af_cwav', 'oip_af_drgt', 'oip_af_erqk', 'oip_af_hail', 'oip_af_hwav', 'oip_af_hrcn', 
+		'oip_af_istm', 'oip_af_lnds', 'oip_af_ltng', 'oip_af_swnd', 'oip_af_wfir', 'oip_af_wntw'
+
+		When returned, loads2BgDict contains loadKeys (e.g. load.s733) as keys and blockgroups as values.
+
+	'''
+	blockgroupDict = {}
+	loads2BgDict = {}
+	
+	# Load blockgroupDict
+	blockgroupDictFilePath = pJoin(modelDir, 'blockgroupDictData.json')
+	if isfile(blockgroupDictFilePath):
+		with open(blockgroupDictFilePath, 'r') as f:
+			blockgroupDict = json.load(f)
+	# Build blockgroup entries that aren't already populated
+	webDataUpdated = False
+	for loadKey, coordsDict in loadCoordsDict.items():
+		long = coordsDict['long']
+		lat = coordsDict['lat']
+		if blockgroupDict:
+			bg = coordCheck(long, lat, blockgroupDict)
+			if bg:
+				loads2BgDict[loadKey] = bg
+				continue
+		bg = repeatFindCensusBlockgroup(lat, long)
+		blockgroupDict[bg] = buildBlockgroup(bg)
+		loads2BgDict[loadKey] = bg
+		webDataUpdated = True
+	# Save blockgroupDict if web-sourced contents were updated
+	if webDataUpdated:
+		with open(blockgroupDictFilePath, 'w') as f:
+			json.dump(blockgroupDict, f)
+	# Add weather data to blockgroupDict. Done here rather than in the loop because it loads and unloads a big file and we only want to do that once per run. 
+	addWeatherToBlockgroups(blockgroupDict)
+	return blockgroupDict, loads2BgDict
+############################## End makeBlockgroupDicts Code ##################################
+
+############################## Outage Impact Potential Code ######################################
+def minmaxNorm(nums, doInvert):
+	''' Returns a minmax-normalized version of the input list'''
+	mn = min(nums)
+	mx = max(nums)
+	if mn != mx:
+		mmnList = [(x-mn)/(mx-mn) for x in nums] if not doInvert else [1-((x-mn)/(mx-mn)) for x in nums]
+	else:
+		# Reasoning: If all values are the same, they shouldn't contribute to any of the values being summarized. Their weights are captured in the denomenators of those summary functions.
+		mmnList = [0]*len(nums)
+	return mmnList
+
+def arithMean(nums, weights):
+	''' Returns the weighted arithmetic mean of numbers in the input list'''
+	weightedNums = [nums[i]*weights[i] for i in range(len(nums))]
+	return sum(weightedNums)/sum(weights)
+
+def rms(nums, weights):
+	''' Returns the weighted rms of numbers in the input list'''
+	weightedSquaredNums = [(nums[i]**2)*weights[i] for i in range(len(nums))]
+	return (sum(weightedSquaredNums)/sum(weights))**0.5
+
+def buildOIPRating(row):
+	''' Computes OIP rating for the OIP Index column row entries'''
+	oipIndex = row['OIP Index']
+	if oipIndex <= 0.2:
+		rating = 'Very Low'
+	elif oipIndex <= 0.4:
+		rating = 'Relatively Low'
+	elif oipIndex <= 0.6:
+		rating = 'Relatively Moderate'
+	elif oipIndex <= 0.8:
+		rating = 'Relatively High'
+	else:
+		rating = 'Very High'
+	return rating
+
+def addOipToBlockgroups(blockgroupDict, oipInputDict, oipAggMethod):
+	''' Creates Outage Impact Potential (OIP) Score and Index then adds them to blockgroupDict.
+		Args:
+			Input: blockgroupDict -> dict with format blockgroup:dict, where the dict in each value has information about each blockgroup
+			Input: oipInputDict -> dict mapping oip_var names to weights; should be a subset of the model inputDict containing only keys that start with 'oip_'
+			Input: oipAggMethod -> string containing which aggregation method to use for calculating OIP
+		Return: rmMsgs -> list of strings which are messages about which variables were removed from analysis and which blockgroups had 'Not Applicable' for those variables
+	'''
+	# Create a DF from blockgroupDict to easily operate on it
+	bgDF = pd.DataFrame.from_dict(blockgroupDict, orient='index')
+	# Create dict of vars that have 'Not Applicable' for at least one blockgroup
+	rmVarsToNaBgs = {}
+	for varName in bgDF.columns:
+		varNaDF = bgDF[bgDF[varName] == 'Not Applicable']
+		naBgs = varNaDF['blockgroupFIPS'].tolist()
+		if len(naBgs) == bgDF.shape[0]:
+			rmVarsToNaBgs[varName] = 'all'
+		elif len(naBgs) != 0:
+			rmVarsToNaBgs[varName] = naBgs
+	# Create a version of bgDF with normalized columns, removing ones with 'Not Applicable' entries
+	normDict = {}
+	for varName in bgDF.drop(list(rmVarsToNaBgs.keys()), axis=1).columns:
+		if varName in oipInputDict:
+			doInvert = varName in ['oip_employed', 'oip_income']
+			normDict[varName] = minmaxNorm(list(bgDF[varName].apply(float)), doInvert)
+	normDF = pd.DataFrame(normDict)
+	# Create OIP Score and OIP Index
+	if oipAggMethod == 'Average of Min-Max-Normalized':
+		oipAggFunc = arithMean
+	elif oipAggMethod == 'RMS of Min-Max-Normalized':
+		oipAggFunc = rms
+	else:
+		raise Exception('ERROR: Unexpected value for oip Aggregation Method')
+	orderedVars = []
+	orderedWeights = []
+	for varName, weight in oipInputDict.items():
+		if varName not in rmVarsToNaBgs:
+			orderedVars.append(varName)
+			orderedWeights.append(weight)
+	oipSeries = normDF[orderedVars].agg(oipAggFunc, 1, orderedWeights)
+	bgDF['OIP Score'] = oipSeries.fillna(0).values
+	bgDF['OIP Index'] = bgDF['OIP Score'].rank(pct=True, method='max')
+	bgDF['OIP Rating'] = bgDF.apply(buildOIPRating, axis=1)
+	# Add OIP Score and OIP Index to blockgroupDict
+	for bg, data in blockgroupDict.items():
+		data['OIP Score'] = bgDF.loc[bgDF['blockgroupFIPS'] == bg, 'OIP Score'].iloc[0]
+		data['OIP Index'] = bgDF.loc[bgDF['blockgroupFIPS'] == bg, 'OIP Index'].iloc[0]
+		data['OIP Rating'] = bgDF.loc[bgDF['blockgroupFIPS'] == bg, 'OIP Rating'].iloc[0]
+	# Create a list of messages about which vars were removed because they contain 'Not Applicable'
+	vars2Plaintext = {
+		'oip_employed': '% Age 16+ Employed',
+		'oip_age65': '% Age 65+',
+		'oip_crowding': '% Crowding',
+		'oip_poverty': '% Individuals Below Poverty Level',
+		'oip_disabled': '% Individuals Disabled',
+		'oip_lim_eng': '% Limited English Speaking Households',
+		'oip_mobile': '% Mobile Home',
+		'oip_multi': '% Multi-Unit Structure',
+		'oip_no_vehicle': '% No Vehicle',
+		'oip_nongrad': '% Non-HS Grads',
+		'oip_below19': '% Non-Institutionalized Below Age 19',
+		'oip_income': 'Avg Aggregate Household Income (USD)',
+		'oip_af_avln': 'Avalanche',
+		'oip_af_cwav': 'Cold Wave',
+		'oip_af_drgt': 'Drought',
+		'oip_af_erqk': 'Earthquake',
+		'oip_af_hail': 'Hail',
+		'oip_af_hwav': 'Heat Wave',
+		'oip_af_hrcn': 'Hurricane',
+		'oip_af_istm': 'Ice Storm',
+		'oip_af_lnds': 'Landslide',
+		'oip_af_ltng': 'Lightning',
+		'oip_af_swnd': 'Strong Wind',
+		'oip_af_wfir': 'Wildfire',
+		'oip_af_wntw': 'Winter Weather'
+	}
+	rmMsgs = []
+	for varName, bgs in rmVarsToNaBgs.items():
+		msg = f'"{vars2Plaintext[varName]}" removed from analysis because the source data does not contain a value for the following blockgroups: {bgs}.'
+		rmMsgs.append(msg)
+	return rmMsgs
+############################## End Outage Impact Potential Code ##################################
+
+def addPctlToDict(inDict, varName, tieBreaker = None):
+	''' Gets percentile of specified variable, resolving ties with optional tie-breaker
+
+		Args:
+			Input: inDict -> Dictionary of circuit objects with keys in the format type.name (e.g. load.s733) and dicts of their attributes as values
+			Input: varName -> The name of the attribute in loadDict to calculate percentiles for, chosen from 'base crit score' or 'locational crit score'
+			Input: tieBreaker -> The name of the attribute in loadDict to use as a tie-breaker
+	'''
+	# Validate inputs
+	if not isinstance(inDict, dict):
+		raise ValueError("The 'loadDict' argument must be a dictionary.")
+	if not isinstance(varName, str) or not varName:
+		raise ValueError("The 'varName' argument must be a non-empty string.")
+	if tieBreaker and not isinstance(tieBreaker, str):
+		raise ValueError("The 'tieBreaker' argument must be a string if provided.")
+	# Retrieve variable values and handle missing data
+	obServedVals = [v.get(varName) for k, v in inDict.items()]
+	if None in obServedVals:
+		raise ValueError(f"Missing values detected in '{varName}'.")
+	# Retrieve tie-breaker values or default to zeros
+	if tieBreaker:
+		tieBreakerVals = [v.get(tieBreaker, 0) for k, v in inDict.items()]
+		if None in tieBreakerVals:
+			raise ValueError(f"Missing values detected in tie-breaker '{tieBreaker}'.")
+	else:
+		tieBreakerVals = [0] * len(inDict)
+	# Ensure consistent lengths
+	if len(obServedVals) != len(tieBreakerVals):
+		raise ValueError("Mismatch in lengths of primary and tie-breaker values.")
+	# Rank values with tiebreakers
+	rankingDf = pd.DataFrame({
+		'primaryVals': obServedVals,
+		'tiebreakerVals': tieBreakerVals
+	})
+	rankingDf['pct_rank'] = rankingDf[['primaryVals', 'tiebreakerVals']].apply(tuple, axis=1).rank(pct=True, method='max')
+	# Assign percentiles to the loads dictionary
+	if varName in ['base crit score', 'locational crit score']:
+		newVarName = varName.replace('score', 'index')
+	else:
+		raise ValueError('Variable varName must be equal to \'base crit score\' or \'locational crit score\'')
+	for i, (k, v) in enumerate(inDict.items()):
+		if not isinstance(v, dict):
+			raise ValueError(f"Invalid load format for key '{k}'. Expected a dictionary.")
+		inDict[k][newVarName] = rankingDf.loc[i, 'pct_rank']
+
+def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict):
+	''' Add blockgroup, OIP Score, and OIP Index to loadDict for each load in each blockgroup, then calculate 'locational crit score', 
+		based on information about the load ('base crit score') and information about its blockgroup ('OIP Score').
+		Then calculate base crit index (bci) and locational crit index (lci)  and add them to loadDict. 
+	'''
+	# Add blockgroup values to loads and calculate locational crit score based on them
+	for loadKey, loadData in loadDict.items():
+		blockgroup = loads2BgDict[loadKey]
+		oipScore = blockgroupDict[blockgroup]['OIP Score']
+		oipIndex = blockgroupDict[blockgroup]['OIP Index']
+		loadData['blockgroup'] = blockgroup
+		loadData['oip score'] = oipScore
+		loadData['oip index'] = oipIndex
+		loadData['locational crit score'] = loadData['base crit score'] * oipScore
+	addPctlToDict(loadDict, 'base crit score', 'distance_from_source')
+	addPctlToDict(loadDict, 'locational crit score', 'distance_from_source')
+
+def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
+	''' Returns 3 dataframes (bgDF, bgGeoDF, sectionLoadSummaryDF) from the information in loadDict, blockgroupDict, and totalSections.
+
+		bgDF contains all info from blockgroupDict except geometry + a summary of info about loads in each blockgroup
+
+		bgGeoDF is a geoDataFrame containing all info from bgDF with columns renamed to names that should be displayed in tooltips for map polygons
+
+		sectionLoadSummaryDF contains a summary of info about loads in each section with filled None values in sections that lack loads
+	'''
+	# Create bgDF with blockgroup info + summarized load info for each blockgroup
+	loadDF = pd.DataFrame.from_dict(loadDict, orient='index')
+	loadDF = loadDF.rename(columns={'blockgroup':'blockgroupFIPS'})
+	aggKwargs = {
+		'avg_BCS':('base crit score', 'mean'),
+		'avg_LCS':('locational crit score', 'mean'),
+		'avg_BCI':('base crit index', 'mean'),
+		'avg_LCI':('locational crit index', 'mean'),
+		'load_count':('base crit score', 'count'),
+		'load_amount':('kva', 'sum') 
+	}
+	bgLoadSummaryDF = loadDF.groupby('blockgroupFIPS').agg(**aggKwargs).reset_index()
+	bgDF = pd.DataFrame.from_dict(blockgroupDict, orient='index')
+	bgDF = bgDF.merge(bgLoadSummaryDF, on='blockgroupFIPS', how='left')
+	# Order bgDF columns and create a geoDF with variables given display names for the map tooltip
+	orderedVar2DisplayName = OrderedDict([
+		('OIP Rating','OIP Rating'),
+		('OIP Score','OIP Score'),
+		('OIP Index','OIP Index'),
+		('avg_BCS','Avg BCS'),
+		('avg_LCS','Avg LCS'),
+		('avg_BCI','Avg BCI'),
+		('avg_LCI','Avg LCI'),
+		('load_count','Load Count'),
+		('load_amount','Demand (kva)'),
+		('blockgroupFIPS','Blockgroup FIPS'),
+		('oip_poverty','_____________ % Individuals Below Poverty Level'),
+		('oip_employed','_____________ % Age 16+ Employed'),
+		('oip_income','_____________ Avg Aggregate Household Income (USD)'),
+		('oip_nongrad','_____________ % Non-HS Grads'),
+		('oip_age65','_____________ % Age 65+'),
+		('oip_below19','_____________ % Non-Institutionalized Below Age 19'),
+		('oip_disabled','_____________ % Individuals Disabled'),
+		('oip_lim_eng','_____________ % Limited English Speaking Households'),
+		('oip_multi','_____________ % Multi-Unit Structure'),
+		('oip_mobile','_____________ % Mobile Home'),
+		('oip_crowding','_____________ % Crowding'),
+		('oip_no_vehicle','_____________ % No Vehicle'),
+		('oip_af_avln','_____________ Annual Freq: Avalanche'),
+		('oip_af_cwav','_____________ Annual Freq: Cold Wave'),
+		('oip_af_drgt','_____________ Annual Freq: Drought'),
+		('oip_af_erqk','_____________ Annual Freq: Earthquake'),
+		('oip_af_hail','_____________ Annual Freq: Hail'),
+		('oip_af_hwav','_____________ Annual Freq: Heat Wave'),
+		('oip_af_hrcn','_____________ Annual Freq: Hurricane'),
+		('oip_af_istm','_____________ Annual Freq: Ice Storm'),
+		('oip_af_lnds','_____________ Annual Freq: Landslide'),
+		('oip_af_ltng','_____________ Annual Freq: Lightning'),
+		('oip_af_swnd','_____________ Annual Freq: Strong Wind'),
+		('oip_af_wfir','_____________ Annual Freq: Wildfire'),
+		('oip_af_wntw','_____________ Annual Freq: Winter Weather'),
+		('geometry','geometry')
+	])
+	bgDF = bgDF[list(orderedVar2DisplayName.keys())]
+	bgDF['geometry'] = bgDF['geometry'].apply(Polygon)
+	bgGeoDF = gpd.GeoDataFrame(bgDF, geometry=bgDF['geometry'], crs='EPSG:4326')
+	bgGeoDF = bgGeoDF.rename(columns=orderedVar2DisplayName)
+	bgDF = bgDF.drop(columns=['geometry'])
+	# Create sectionLoadSummaryDF, filling in any missing values that may occur
+	aggKwargs['avg_OIP_Score'] = ('oip score', 'mean')
+	sectionLoadSummaryDF = loadDF.groupby('section').agg(**aggKwargs).reset_index()
+	existingSections = set(sectionLoadSummaryDF['section'])
+	for section in range(1,totalSections+1):
+		if section not in existingSections:
+			fillVals = {'section':[section], **{k:[None] for k in aggKwargs.keys()}}
+			sectionLoadSummaryDF = pd.concat([sectionLoadSummaryDF,	pd.DataFrame(fillVals)], ignore_index=True)
+	sectionLoadSummaryDF = sectionLoadSummaryDF.sort_values(by='section').reset_index(drop=True)
+	return bgDF, bgGeoDF, sectionLoadSummaryDF
+
+def makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList):
+	''' Returns a dictionary with entries for all equipment on the feeder in equipmentList.
+		In addition to data already present in the feeder, equipment also has the following data added to it:
+
+		'section', 'downlineObs', 'downlineLoads', 'base crit score', 'locational crit score', 'base crit index', 'locational crit index'
+	'''
+	# Make a dict of all objects in the omd and a namesToKeys dict
+	obDict = {}
+	namesToKeys = {}
+	for ob in omd.get('tree', {}).values():
+		obType = ob['object']
+		obName = ob['name']
+		obKey = f'{obType}.{obName}'
+		namesToKeys[obName] = obKey
+		# Add ob section and ob data from omd to all obs
+		obDict[obKey] = ob
+		fromField = ob.get('from', None)
+		toField = ob.get('to', None)
+		sectionKey = str((fromField, toField))
+		if sectionKey in sectionsDict and fromField and toField:
+			obDict[obKey]['section'] = sectionsDict[sectionKey]
+		else: 
+			# .get because we DO want None if obName isn't in sectionsDict
+			obDict[obKey]['section'] = sectionsDict.get(obName)
+	# Add downline loads and downline obs (which includes loads) to each object in obDict using networkX
+	digraph = createGraph(pathToOmd)
+	nodes = digraph.nodes()
+	for ob in obDict.values():
+		obName = ob['name']
+		obTo = ob.get('to')
+		if obName in nodes:
+			startingPoint = obName
+		elif obTo in nodes:
+			startingPoint = obTo
+		else:
+			continue
+		descendants = nx.descendants(digraph, startingPoint)
+		ob['downlineObs'] = set()
+		ob['downlineLoads'] = set()
+		if ob['object'] in equipmentList:
+			for desName in descendants:
+				desKey = namesToKeys.get(desName)
+				if desKey == None:
+					raise Exception(f'ERROR: Element {desName} referenced by another object does not have its own entry in the omd')
+				ob['downlineObs'].add(desKey)
+				if desKey.split('.')[0] == 'load':
+					ob['downlineLoads'].add(desKey)
+	# Create equipmentDict with equipment metrics based on downline loads
+	equipmentDict = {k:v for k,v in obDict.items() if v.get('object') in equipmentList}
+	for equipData in equipmentDict.values():
+		bcSum = 0
+		lcSum = 0
+		for dl in equipData['downlineLoads']:
+			# This check is done in the case that loadsDict is a strict subset of all loads on the feeder. E.g. only residential loads
+			loadData = loadDict.get(dl)
+			if loadData:
+				bcSum += loadData['base crit score']
+				lcSum += loadData['locational crit score']
+		equipData['base crit score'] = bcSum
+		equipData['locational crit score'] = lcSum
+	addPctlToDict(equipmentDict, 'base crit score')
+	addPctlToDict(equipmentDict, 'locational crit score')
+	return equipmentDict
+
+############################## Add Info to Omd Tree Code ######################################
+def addLoadInfoToOmd(loadsDict, omdDict):
+	'''
+	adds criticality values to omd file for all objects
+	loadsDict -> dict of loads
+	omdDict -> dict of omd objects
+	returns new dict of omd objects
+	'''
+	for ob in omdDict.get('tree', {}).values():
+		if ob['object'] == 'load':
+			obType = ob['object']
+			obName = ob['name']
+			k = obType + '.' + obName
+			ob['section'] 					= loadsDict.get(k,{}).get('section')
+			ob['base crit score'] 			= loadsDict.get(k,{}).get('base crit score')
+			ob['base crit index'] 			= loadsDict.get(k,{}).get('base crit index')
+			ob['locational crit score']	= loadsDict.get(k,{}).get('locational crit score')
+			ob['locational crit index']	= loadsDict.get(k,{}).get('locational crit index')
+			ob['kva']						= loadsDict.get(k,{}).get('kva')
+		else:
+			continue
+	return omdDict
+
+def addEquipmentInfoToOmd(obDict, omdDict, equipList):
+	'''
+	adds criticality values to omd file for all objects
+	loadsDict -> dict of loads
+	omdDict -> dict of omd objects
+	returns new dict of omd objects
+	'''
+	for ob in omdDict.get('tree', {}).values():
+		if (ob['object'] in equipList):
+			obType = ob['object']
+			obName = ob['name']
+			k = obType + '.' + obName
+			ob['section'] 					= obDict.get(k,{}).get('section')
+			ob['base crit score'] 			= obDict.get(k,{}).get('base crit score')
+			ob['base crit index'] 			= obDict.get(k,{}).get('base crit index')
+			ob['locational crit score'] = obDict.get(k,{}).get('locational crit score')
+			ob['locational crit index'] = obDict.get(k,{}).get('locational crit index')
+		else:
+			continue
+	return omdDict
+
+def addEquipLifeData(omdTree, equipLifePath):
+	''' Adds available equipment lifetime data from Equipment Lifetime (.csv file) info to items in omdTree. Directly modifies omdTree. 
+		Args:
+			Input: omdTree -> tree dict representation of omd
+			Input: equipLifePath -> Path to equipment lifetime csv
+	'''
+	equipLifeDF = pd.read_csv(equipLifePath)
+	equipNames2Consider = equipLifeDF['equipment name']
+	if not equipNames2Consider.is_unique:
+		raise Exception('ERROR: All entries in the \'equipment name\' column of Equipment Lifetime (.csv file) must be unique')
+	
+	equipLifeDF = equipLifeDF.set_index('equipment name')
+	for ob in omdTree.get('tree', {}).values():
+		obName = ob['name']
+		if (obName == equipNames2Consider).any():
+			# cols explicitly chosen rather than just looping through existing col names from the file for the sake of controlling what information we display if extraneous cols are included
+			ob['% through planned usable lifetime'] = equipLifeDF.loc[obName,'% through planned usable lifetime'].item()
+			ob['avg hrs to restore'] 				= equipLifeDF.loc[obName,'avg hrs to restore'].item()
+		else:
+			continue
+############################## End Add Info to Omd Tree Code ##################################
+
+def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
+	'''
+	Creates colorby CSV to color loads within the circuit
+	modelDir -> model directory
+	loadsDict -> dict of loads
+	'''
+	newloadsDict = {k.split('load.')[1]:v for k,v in loadsDict.items()}
+	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
+	combined_dict = {**newloadsDict, **newobjectsDict}
+	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
+	new_df[['base crit score','locational crit score','base crit index','locational crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
+
+def copyInputFilesToModelDir(modelDir, inputDict):
+	''' Creates local copies of input files in the model directory modelDir.
+		
+		Returns a list of paths in the order: 
+		
+		custInfoPath, equipLifePath
+	'''	
+	inDictKeys = [
+		{	
+			'fname':'customerFileName',
+			'data':'customerData'
+		},
+		{
+			'fname':'equipLifeFileName',
+			'data':'equipLifeData'
+		}
+	]
+	localPaths = []
+	for dk in inDictKeys:
+		localPath = pJoin(modelDir, inputDict[dk['fname']])
+		data = inputDict[dk['data']]
+		if data != '':
+			with open(localPath, 'w') as file:
+				file.write(data)
+		else:
+			localPath = None
+		localPaths.append(localPath)	
+	return localPaths
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -1461,21 +1382,11 @@ def work(modelDir, inputDict):
 	# files
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd') and x != 'color_test.omd'][0][:-4]
 	inputDict['feederName1'] = feederName
-	omd_file_path = pJoin(modelDir, feederName+'.omd')
+	pathToOmd = pJoin(modelDir, feederName+'.omd')
 	census_nri_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'census_and_NRI_database.json')
-	#loads_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'loads2.json')
-	#obs_file_path = pJoin(omf.omfDir,'static','testFiles','resilientCommunity', 'objects3.json')
 	geoJson_shapes_file = pJoin(modelDir, 'geoshapes.geojson')
-	sviDF_file = pJoin(modelDir, 'sviDF.csv')
-	# Create local file in dir to handle file uploads
-	custInfoPath = pJoin(modelDir, inputDict['customerFileName'])
-	if inputDict['customerData'] != '':
-		with open(custInfoPath, 'w') as ciFile:
-			ciFile.write(inputDict['customerData'])
-	equipLifePath = pJoin(modelDir, inputDict['equipLifeFileName'])
-	if inputDict['equipLifeData'] != '':
-		with open(equipLifePath, 'w') as elFile:
-			elFile.write(inputDict['equipLifeData'])
+	oipDF_file = pJoin(modelDir, 'oipDF.csv')
+	custInfoPath, equipLifePath = copyInputFilesToModelDir(modelDir, inputDict)
 	zillowPricesPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','zillowPrices.json')
 	# check if census data json is downloaded
 	# if not download
@@ -1485,27 +1396,46 @@ def work(modelDir, inputDict):
 	#   elif inputDict['refresh']:
 	#	   retrieveCensusNRI()
 
-	# check what equipment we want to look for
+
+	#Create a subset of InputDict so we're not passing the entirety of inputDict to a function
+	oipInputDict = {varName:float(varWeight) for varName,varWeight in inputDict.items() if 'oip_' == varName[:4]}
+	with open(pathToOmd) as f:
+		omd = json.load(f)
+	# Section the Feeder
+	sectionsDict, distanceDict, totalSections = runSections(pathToOmd, omd)
+	# Create loadDict
+	custInfoDF = pd.read_csv(custInfoPath)
+	restrictToResidential = useOipCustVars(oipInputDict)
+	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, inputDict['averageDemand'], inputDict['averageOccupants'])
+	# Create blockgroupDict
+	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict)
+	outData['rmMsgs'] = addOipToBlockgroups(blockgroupDict, oipInputDict, inputDict['oipAggMethod'])
+	# Add bg info to loads
+	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict)
+	with open(pJoin(modelDir,'loadData4RestorationModel.json'), 'w') as f:
+		json.dump(loadDict,f,indent=4)
+	# Create DFs for model outputs
+	bgDF, bgGeoDF, sectionDF = organizeInfoIntoDFs(loadDict, blockgroupDict, totalSections)
+	# Create equipmentDict
 	equipmentList = ['bus']
-	if (inputDict['lines'].lower() == 'yes' ):
-		equipmentList.append('line')
-	if (inputDict['transformers'].lower() == 'yes' ):
-		equipmentList.append('transformer')
-	if (inputDict['fuses'].lower() == 'yes' ):
-		equipmentList.append('fuse')
+	for equip in ['line', 'transformer', 'fuse']:
+		if inputDict[f'{equip}s'].lower() == 'yes':
+			equipmentList.append(equip)
+	equipmentDict = makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList)
 
 	# check downline loads
-	useZillow = False
-	obDict, loads, geoDF, sviDF, loadSections = getDownLineLoadsEquipmentBlockGroup(modelDir, omd_file_path, equipmentList,inputDict['averageDemand'], custInfoPath, zillowPricesPath, useZillow)
+	# useZillow = False
+	# TODO: Add zillow data usage with new source of zillow data
+
 	# color vals based on selected column
-	createColorCSVBlockGroup(modelDir, loads, obDict)
+	createColorCSVBlockGroup(modelDir, loadDict, equipmentDict)
 	if(inputDict['loadCol'] == 'Base Criticality Score'):
 		colVal = "1"
-	elif (inputDict['loadCol'] == 'Community Criticality Score'):
+	elif (inputDict['loadCol'] == 'Locational Criticality Score'):
 		colVal = "2"
 	elif(inputDict['loadCol'] == 'Base Criticality Index'):
 		colVal = "3"
-	elif(inputDict['loadCol'] == 'Community Criticality Index'):
+	elif(inputDict['loadCol'] == 'Locational Criticality Index'):
 		colVal = "4"
 	elif(inputDict['loadCol'] == 'Feeder Sections'):
 		colVal = "5"
@@ -1513,9 +1443,9 @@ def work(modelDir, inputDict):
 		colVal = None
 	# Load Geojson file more efficiently
 	smartRound = lambda x: round(x,2) if isinstance(x,float) else x
-	geoDF = geoDF.map(smartRound)
-	geoDF.to_file(geoJson_shapes_file, driver="GeoJSON")
-	sviDF.to_csv(sviDF_file)
+	bgGeoDF = bgGeoDF.map(smartRound)
+	bgGeoDF.to_file(geoJson_shapes_file, driver="GeoJSON")
+	bgDF.to_csv(oipDF_file)
 	with open(geoJson_shapes_file) as f1:
 		geoshapes =  json.load(f1)
 	attachment_keys = {
@@ -1533,11 +1463,11 @@ def work(modelDir, inputDict):
 			}
 		}
 	}
-	outData['sviData'] =  open(sviDF_file, 'r').read()
-	with open(omd_file_path) as file1:
+	outData['oipData'] = open(oipDF_file, 'r').read()
+	with open(pathToOmd) as file1:
 		init_omdJson = json.load(file1)
-	newOmdJson = addLoadInfoToOmd(loads, init_omdJson)
-	omdJson = addEquipmentInfoToOmd(obDict, newOmdJson, equipmentList)
+	newOmdJson = addLoadInfoToOmd(loadDict, init_omdJson)
+	omdJson = addEquipmentInfoToOmd(equipmentDict, newOmdJson, equipmentList)
 	addEquipLifeData(omdJson, equipLifePath)
 	with open(pJoin(modelDir, 'color_by.csv')) as f:
 		data =  f.read()
@@ -1552,65 +1482,58 @@ def work(modelDir, inputDict):
 	
 	# Collect Loads Data Table Info
 	tableRows1 = []
-	for load_names,v in loads.items():
+	for load_names,v in loadDict.items():
 		row = (
 			load_names,
 			v.get('section'),
 			round(v.get('base crit score'),2),
 			round(v.get('base crit index'),2),
-			round(v.get('community crit score'),2),
-			round(v.get('community crit index'),2),
-			round(v.get('SOVI_SCORE'),4),
-			smartRound(v.get('affluence score'))
+			round(v.get('locational crit score'),2),
+			round(v.get('locational crit index'),2),
+			round(v.get('oip score'),4),
+			round(v.get('oip index'),4),
+			round(v.get('kva'),2)
 		)
 		tableRows1.append(row)
-	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Community Criticality Score', 'Community Criticality Index', 'Social Vulnerability', 'Affluence Score']
+	outData['loadTableHeadings'] = ['Load Name','Section', 'Base Criticality Score', 'Base Criticality Index','Locational Criticality Score', 'Locational Criticality Index', 'Outage Impact Potential Score', 'Outage Impact Potential Index', 'Demand (kva)']
 	outData['loadTableValues'] = tableRows1
 	
 	# Collect Equipment Data Table Info
 	tableRows2 = []
-	for object_names,v in obDict.items():
+	for object_names,v in equipmentDict.items():
 		row = (
 			object_names,
 			v.get('section'),
 			round(v.get('base crit score'),2),
 			round(v.get('base crit index'),2),
-			round(v.get('community crit score'),2),
-			round(v.get('community crit index'),2)
+			round(v.get('locational crit score'),2),
+			round(v.get('locational crit index'),2)
 			)
 		tableRows2.append(row)
-	outData['loadTableHeadings2'] = ['Equipment Name', 'Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index']
+	outData['loadTableHeadings2'] = ['Equipment Name', 'Section', 'Base Criticality Score', 'Base Criticallity Index', 'Locational Criticality Score', 'Locational Criticality Index']
 	outData['loadTableValues2'] = tableRows2
 	
 	# Collect Sections Data Table Info
-	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Community Criticality Score', 'Community Criticality Index','Social Vulnerability','Avg Zillow Price', 'Load Count', 'Load Amount']
-	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_CCS', 'avg_CCI', 'avg_svi_score', 'avg_zillow_price', 'load_count', 'load_amount']
-	if not useZillow:
-		headers3.remove('Avg Zillow Price')
-		cols.remove('avg_zillow_price')
-	loadSections[['load_count','load_amount']] = loadSections[['load_count','load_amount']].fillna(0)
-	loadSections[cols[1:]] = loadSections[cols[1:]].fillna('None').map(smartRound)
-	tableRows3 = list(loadSections[cols].itertuples(index=False, name=None))
+	headers3 = ['Section', 'Base Criticality Score', 'Base Criticallity Index', 'Locational Criticality Score', 'Locational Criticality Index','Outage Impact Potential Score','Load Count', 'Demand (kva)']
+	cols = ['section', 'avg_BCS', 'avg_BCI', 'avg_LCS', 'avg_LCI', 'avg_OIP_Score', 'load_count', 'load_amount']
+	sectionDF[['load_count','load_amount']] = sectionDF[['load_count','load_amount']].fillna(0)
+	sectionDF[cols[1:]] = sectionDF[cols[1:]].fillna('None').map(smartRound)
+	tableRows3 = list(sectionDF[cols].itertuples(index=False, name=None))
 	outData['loadTableHeadings3'] = headers3
 	outData['loadTableValues3'] = tableRows3
 	return outData
 
-def test():
-	# files
-	pathToOmd = "/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd"
-	modelDir = "/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity"
-	pathToLoadsFile = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv')
-	equipmentList = ['lines', 'transformers', 'fuses']
-	runCalculations(pathToOmd,pathToLoadsFile,1, modelDir, equipmentList)
-
 def new(modelDir):
+	#omdfileName = 'iowa240_in_Florida_copy2'
+	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	omdfileName = 'ieee37_LBL_simplified'
+	
+	# Establish Default Files
 	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
 	customerData = open(pJoin(*customerFileName)).read()
-	#omdfileName = 'iowa240_in_Florida_modified'
-	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	equipLifeFileName = [omf.omfDir,'static','testFiles','resilientCommunity','equipLifeExample.csv']
 	equipLifeData = open(pJoin(*equipLifeFileName)).read()
+
 	defaultInputs = {
 		"modelType": modelName,
 		"feederName1": omdfileName,
@@ -1619,6 +1542,7 @@ def new(modelDir):
 		"equipLifeFileName": equipLifeFileName[-1],
 		"equipLifeData": equipLifeData,
 		"averageDemand": 2.0,
+		"averageOccupants": 4.0,
 		"lines":'Yes',
 		"transformers":'Yes',
 		"fuses":'Yes',
@@ -1628,7 +1552,34 @@ def new(modelDir):
 		"created":str(datetime.datetime.now()),
 		"residential":"yes",
 		"retail": "yes",
-		"agriculture": "yes"
+		"agriculture": "yes",
+		"oipAggMethod": "Average of Min-Max-Normalized",
+		"oip_employed":1,
+		"oip_age65":1,
+		"oip_crowding":1,
+		"oip_poverty":1,
+		"oip_disabled":1,
+		"oip_lim_eng":1,
+		"oip_mobile":1,
+		"oip_multi":1,
+		"oip_no_vehicle":1,
+		"oip_nongrad":1,
+		"oip_below19":1,
+		"oip_single_par":1,
+		"oip_income":1,
+		"oip_af_avln":1,
+		"oip_af_cwav":1,
+		"oip_af_drgt":1,
+		"oip_af_erqk":1,
+		"oip_af_hail":1,
+		"oip_af_hwav":1,
+		"oip_af_hrcn":1,
+		"oip_af_istm":1,
+		"oip_af_lnds":1,
+		"oip_af_ltng":1,
+		"oip_af_swnd":1,
+		"oip_af_wfir":1,
+		"oip_af_wntw":1
 	}
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	try:
@@ -1668,4 +1619,4 @@ if __name__ == '__main__':
 	#sectionExample("/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd")
 	#newSection("/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd")
 	#getDistribution()
-	#test()
+	#testRunCalculations()
