@@ -1524,12 +1524,12 @@ def work(modelDir, inputDict):
 	return outData
 
 def new(modelDir):
-	#omdfileName = 'iowa240_in_Florida_copy2'
+	omdfileName = 'iowa240_in_Florida_copy2'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
-	omdfileName = 'ieee37_LBL_simplified'
+	#omdfileName = 'ieee37_LBL_simplified'
 	
 	# Establish Default Files
-	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
+	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads ORIGINAL.csv']
 	customerData = open(pJoin(*customerFileName)).read()
 	equipLifeFileName = [omf.omfDir,'static','testFiles','resilientCommunity','equipLifeExample.csv']
 	equipLifeData = open(pJoin(*equipLifeFileName)).read()
