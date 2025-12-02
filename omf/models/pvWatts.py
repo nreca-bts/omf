@@ -25,7 +25,6 @@ def work(modelDir, inputDict):
 	losses = float( inputDict['losses'] )
 	sys_cap = float( inputDict['systemCapacity'] )
 	tilt = float( inputDict['tilt'] )
-	elev = float( inputDict['elev'] )
 	start = pd.to_datetime(inputDict["simStartDate"])
 	trackingMode = int ( inputDict["trackingMode"] )
 
@@ -48,20 +47,21 @@ def work(modelDir, inputDict):
 		"Other": {
 				"lat": lat,
 				"lon": long,
-				"elev": elev
 		}
 	}
 
 	# Get the data from NSRDB API
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
-	# base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
-	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv?"
+
+	# TMY API vs GOES aggregated.
+	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
+	# base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv?"
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")
@@ -69,6 +69,7 @@ def work(modelDir, inputDict):
 	else:
 		text = response.text
 		lines = text.splitlines()[2:]
+		nsrdb_data = text.splitlines()[:2]
 		clean_text = "\n".join(lines)
 		with open( Path(modelDir,"output_tmy_wind_data.csv"), "w") as text_file:
 			text_file.write(clean_text)
@@ -80,6 +81,13 @@ def work(modelDir, inputDict):
 		import PySAM.Pvwattsv8 as pvwatts
 		pvwatts_model = pvwatts.new()
 		wind_data = pd.read_csv(Path(modelDir,"output_tmy_wind_data.csv"))
+
+		# We can snag elevation from the NSRDB Data we pulled out of the request
+		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
+		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
+
+		elevation = int( nsrdb_data[1].split(",")[8] )
+		sys_design["Other"]["elev"] = elevation
 
 		datetime_components_dict = {
 			'year': wind_data['Year'],
@@ -96,7 +104,7 @@ def work(modelDir, inputDict):
 			'lat': lat,
 			'lon': long,
 			'tz': -7,
-			'elev': 1829,
+			'elev': elevation,
 			'year': wind_data['Year'].tolist(),
 			'month': wind_data['Month'].tolist(),
 			'day': wind_data['Day'].tolist(),
@@ -200,7 +208,6 @@ def new(modelDir):
 		"inverterSize": "8",
 		"runTime": "",
 		"tilt":"45",
-		"elev": "1829",
 		"simStartDate": "2023-07-01",
 		"simLengthUnits": "hours",
 		"simLength": "100",
