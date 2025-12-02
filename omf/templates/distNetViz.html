@@ -521,7 +521,6 @@
                 <div class="modalContent">
                     <!--{{thisOwner}} is correct because this form is supposed to replace THIS feeder with a new blank one-->
                     <form onsubmit="submitForm({formId:'blankFeederForm'}); return false;" action="/newBlankFeeder/{{thisOwner}}" id="blankFeederForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <input type="hidden" name="referrer" value="distribution"/>
@@ -549,7 +548,6 @@
                     <!--I assume this is supposed to replace THIS feeder with the milsoft upload. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'milsoftForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}', inputId:'milsoftInput'}); return false;"
                     action="/milsoftImport/{{thisOwner}}" id="milsoftForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -584,7 +582,6 @@
                     <!--I assume this is supposed to replace THIS feeder with the gridlabd upload. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'opendssForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}', inputId:'feederNameOpendss'}); return false;"
                     action="/opendssImport/{{thisOwner}}" id="opendssForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -615,7 +612,6 @@
                     <!--I assume this is supposed to replace THIS feeder with the gridlabd upload. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'gridlabdForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}', inputId:'gridlabdInput'}); return false;"
                     action="/gridlabdImport/{{thisOwner}}" id="gridlabdForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -646,7 +642,6 @@
                     <!--I assume this is supposed to replace THIS feeder with the cyme upload. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'cymeForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}', inputId:'cymeInput'}); return false;"
                     action="/cymeImport/{{thisOwner}}" id="cymeForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -677,7 +672,6 @@
                     <!--I assume this is supposed to update THIS feeder with the scada loadshape. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'scadaForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}'}); return false;"
                     action="/scadaLoadshape/{{thisOwner}}/{{thisFeederName}}" id="scadaForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -705,7 +699,6 @@
                     <!--I assume this is supposed to replace THIS feeder with the ami modeling. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'amiForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}'}); return false;"
                     action="/loadModelingAmi/{{thisOwner}}/{{thisFeederName}}" id="amiForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <!--<input type="hidden" name="referrer" value="distribution"/>-->
@@ -737,7 +730,6 @@
                     <!--I assume this is supposed to update THIS feeder with the climate data. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="if (validateClimateModal()) { submitForm({formId:'climateForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}'}) } return false;"
                     action="/climateChange/{{thisOwner}}/{{thisFeederName}}" id="climateForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <!--<input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>-->
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>
@@ -780,7 +772,6 @@
                 <div class="modalContent">
                     <!--I assume this is supposed to anonymize THIS feeder. Therefore, uniqObjName with {{thisOwner}} is correct.-->
                     <form onsubmit="submitForm({formId:'anonymizeForm', pollUrl:'/checkConversion/{{thisModelName}}/{{thisOwner}}'}); return false;" action="/anonymize/{{thisOwner}}/{{thisFeederName}}" id="anonymizeForm">
-                        <input type="hidden" name="_csrf_token" value="{{csrf_token()}}"/>
                         <!--<input type="hidden" id="feederNum" name="feederNum" value="{{thisFeederNum}}"/>-->
                         <input type="hidden" id="modelName" name="modelName" value="{{thisModelName}}"/>
                         <table>

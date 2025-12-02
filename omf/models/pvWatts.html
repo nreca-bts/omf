@@ -34,57 +34,52 @@
 			</div>
 			<hr>
 			<div class="shortInput">
-				<label class="tooltip">Zip Code<span class="classic">Zip code of the planned array's geographical location.</span></label>
-				<input type="text" id="zipCode" name="zipCode" value="{{allInputDataDict.zipCode}}" pattern="^\d{5}(?:[-\s]\d{4})?$" required="required">
+				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
+				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">System Size (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
-				<input type="text" id="systemSize" name="systemSize" value="{{allInputDataDict.systemSize}}" pattern="^\d+\.?\d*$" required="required">
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Inverter Size (kW-AC)<span class="classic">Size of the total inverters in kW-AC for the system. If zero, it will be set to the system size.</span></label>
-				<input type="text" id="inverterSize" name="inverterSize" value="{{allInputDataDict.inverterSize}}" pattern="^\d+\.?\d*$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Inverter Efficiency (%)<span class="classic">Inverter Efficiency in converting DC power to AC power. It can be obtained from the Weighted Efficiency (CEC) Method.</span></label>
-				<input type="text" id="inverterEfficiency" name="inverterEfficiency" value="{{allInputDataDict.inverterEfficiency}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Non-Inverter Efficiency (%)<span class="classic">This takes in to account losses from soiling, shading, wiring and diode losses, etc.</span></label>
-				<input type="text" id="nonInverterEfficiency" name="nonInverterEfficiency" value="{{allInputDataDict.nonInverterEfficiency}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required">
-			</div>
-			<div class="wideInput">
-				<p class="inputSectionHeader">Advanced Options</p>
-			</div>
-			<hr>
-			<div class="shortInput">
-				<label class="tooltip">Max Power Temperature Coefficient (%/&deg;C)<span class="classic">Percentage decrease  of the solar module's output power for every degree over 25 degrees centigrade.</span></label>
-				<input type="text" id="gamma" name="gamma" value="{{allInputDataDict.gamma}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Tracker Rotation Limit (degrees)<span class="classic">How far each module in a tracking system is able to rotate if on a tracker, measured from the horizontal.</span></label>
-				<input type="text" id="rotlim" name="rotlim" value="{{allInputDataDict.rotlim}}" pattern="^\d+\.?\d*$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Tracking Mode<span class="classic">Type of tracking system the PV array will use if any.</span></label>
-				<select id="trackingMode" name="trackingMode"/>
-					<option value="0" {% if allInputDataDict.trackingMode == '0' %}selected{% endif %}>Fixed</option>
-					<option value="1" {% if allInputDataDict.trackingMode == '1' %}selected{% endif %}>1 Axis</option>
-					<option value="2" {% if allInputDataDict.trackingMode == '2' %}selected{% endif %}>2 Axis</option>
-					<option value="3" {% if allInputDataDict.trackingMode == '3' %}selected{% endif %}>Azimuth Axis</option>
-				</select>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
-				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
+				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
+				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
 				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Wind stow speed (m/s)<span class="classic">When the wind velocity from the weather file for the current hour is greater than or equal to this value, the concentrator moves into stow position to prevent wind damage. The solar power intercepted by the receiver is zero during this hour.</span></label>
-				<input type="text" id="w_stow" name="w_stow" value="{{allInputDataDict.w_stow}}" pattern="^\d+\.?\d*$" required="required"/>
+				<label class="tooltip">DC AC Ratio<span class="classic"></span></label>
+				<input type="text" id="dc_ac_ratio" name="dc_ac_ratio" value="{{allInputDataDict.dc_ac_ratio}}" pattern="^\d+\.?\d*$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">GCR<span class="classic">Ground Coverage Ratio</span></label>
+				<input type="text" id="gcr" name="gcr" value="{{allInputDataDict.gcr}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Inverter Efficiency (%)<span class="classic">Inverter Efficiency in converting DC power to AC power. It can be obtained from the Weighted Efficiency (CEC) Method.</span></label>
+				<input type="text" id="inverterEfficiency" name="inverterEfficiency" value="{{allInputDataDict.inverterEfficiency}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Inverter Size<span class="classic">Inverter Size</span></label>
+				<input type="text" id="inverterSize" name="inverterSize" value="{{allInputDataDict.inverterSize}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Losses<span class="classic">Losses</span></label>
+				<input type="text" id="losses" name="losses" value="{{allInputDataDict.losses}}" pattern="^\d+\.?\d*$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">System Capacity<span class="classic">System Capacity</span></label>
+				<input type="text" id="systemCapacity" name="systemCapacity" value="{{allInputDataDict.systemCapacity}}" pattern="^\d+\.?\d*$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">System Size<span class="classic">DC Output Rating of the solar panels in kilowatts</span></label>
+				<input type="text" id="systemSize" name="systemSize" value="{{allInputDataDict.systemSize}}" pattern="^\d+\.?\d*$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
+				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Elevation<span class="classic">.</span></label>
+				<input type="text" id="elev" name="elev" value="{{allInputDataDict.elev}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
 			<div class="shortInput">
 				<label>Simulation Start Date (YYYY-MM-DD)</label>
@@ -110,7 +105,7 @@
 	{% if modelStatus == 'finished' %}
 	<div id="output">
 		<div style="text-align:left" class="content">
-			<p id="dataLocation">Showing data from the closest available city: {{allOutputDataDict.city}}, {{allOutputDataDict.state}}</p>
+			<p id="dataLocation">Showing data for longitude and latitude: {{allOutputDataDict.longitude}}, {{allOutputDataDict.latitude}}</p>
 		</div>
 		<script type="text/javascript">
 			// Global Highcharts settings.
@@ -145,7 +140,7 @@
 							"dashStyle": "ShortDash",
 							"width": 2,
 							"label":{"text":"Panels Nameplate","align":"right","y":12,"x":0},
-							"value": systemSize,"zIndex": 10},
+							"value": systemCapacity,"zIndex": 10},
 							{"color": "orange",
 							"dashStyle": "ShortDash",
 							"width": 2,
