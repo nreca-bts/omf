@@ -3,12 +3,19 @@
 	<!-- Include Highcharts -->
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
 	<!-- Include Plotly -->
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script> 
+	<script>
+		function plotGraph(graphTitle, graphData, graphLayout) {
+			Plotly.newPlot(graphTitle, JSON.parse(graphData), JSON.parse(graphLayout) || {} )
+		}
+	</script>
 	<!-- Add Plotly plots -->
 	<script type="text/javascript">	
 		$(window).on('pageshow',function(){
-			Plotly.newPlot('derOverviewData', JSON.parse(allOutputData['derOverviewData']),JSON.parse(allOutputData['derOverviewLayout']));
-			Plotly.newPlot('newDemandData', JSON.parse(allOutputData['newDemandData']),JSON.parse(allOutputData['newDemandLayout']));
+			plotGraph('newDemandData', allOutputData['newDemandData'], allOutputData['newDemandLayout'] );
+			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout'] );
+			plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 		});
 	</script>
 
@@ -22,7 +29,7 @@
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				Plotly.newPlot('batteryChargePlotly', JSON.parse(allOutputData['batteryChargeData']), JSON.parse(allOutputData['batteryChargeLayout']));
+				plotGraph( 'batteryChargePlotly', allOutputData['batteryChargeData'], allOutputData['batteryChargeLayout'] );
 			});
 		</script>
 	{% endif %}
@@ -37,7 +44,7 @@
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				Plotly.newPlot('thermalBatPowerPlot', JSON.parse(allOutputData['thermalBatPowerPlot']), JSON.parse(allOutputData['thermalBatPowerPlotLayout']) || {});
+				plotGraph( 'thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout'] );
 			});
 		</script>
 	{% endif %}
@@ -45,8 +52,8 @@
 	<!-- Continue adding Plotly plots -->
 	<script type="text/javascript">	
 		$(window).on('pageshow',function(){
-		Plotly.newPlot('resiliencePlotly', JSON.parse(allOutputData['resilienceData']), JSON.parse(allOutputData['resilienceLayout']) || {});
-		Plotly.newPlot('resilienceProbPlotly', JSON.parse(allOutputData['resilienceProbData']), JSON.parse(allOutputData['resilienceProbLayout']) || {});
+			plotGraph('resiliencePlotly', allOutputData['resilienceData'], allOutputData['resilienceLayout']);
+			plotGraph('resilienceProbPlotly', allOutputData['resilienceProbData'], allOutputData['resilienceProbLayout']);
 	});
 	</script>
 </head>
@@ -174,6 +181,14 @@
 				<input type="text" id="operationalCosts_onetime" name="operationalCosts_onetime" value="{{allInputDataDict.operationalCosts_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any recurring subsidies).</span></label>
+				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home BESS - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any upfront subsidies).</span></label>
+				<input type="text" id="BESS_subsidy_ongoing" name="BESS_subsidy_ongoing" value="{{allInputDataDict.BESS_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Home Heat Pumps - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home heat pump (not including any recurring subsidies).</span></label>
 				<input type="text" id="TESS_subsidy_onetime_hp" name="TESS_subsidy_onetime_hp" value="{{allInputDataDict.TESS_subsidy_onetime_hp}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
@@ -198,46 +213,12 @@
 				<input type="text" id="TESS_subsidy_ongoing_wh" name="TESS_subsidy_ongoing_wh" value="{{allInputDataDict.TESS_subsidy_ongoing_wh}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any recurring subsidies).</span></label>
-				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home BESS - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home battery energy storage system (not including any upfront subsidies).</span></label>
-				<input type="text" id="BESS_subsidy_ongoing" name="BESS_subsidy_ongoing" value="{{allInputDataDict.BESS_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Generator - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any recurring subsidies).</span></label>
+				<label class="tooltip">Home Generators - Upfront Subsidy Amount ($)<span class="classic">The total upfront subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any recurring subsidies).</span></label>
 				<input type="text" id="GEN_subsidy_onetime" name="GEN_subsidy_onetime" value="{{allInputDataDict.GEN_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Home Generator - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any upfront subsidies).</span></label>
+				<label class="tooltip">Home Generators - Monthly Recurring Subsidy Amount ($)<span class="classic">The total monthly recurring subsidy amount ($) paid to a member-consumer for each home fossil fuel generator (not including any upfront subsidies).</span></label>
 				<input type="text" id="GEN_subsidy_ongoing" name="GEN_subsidy_ongoing" value="{{allInputDataDict.GEN_subsidy_ongoing}}" pattern="^\d+\.?\d*?$" required="required"/>
-			</div>
-			
-
-			<!-- Chemical BESS Inputs -->
-			<div class="wideInput"> 
-				<p class="inputSectionHeader">Home Chemical Battery Energy Storage Device Inputs</p>
-			</div>
-			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
-			<div class="shortInput">
-				<label class="tooltip">Enable Use of Home Chemical BESS?<span class="classic">If yes, model will run with home chemical batteries.</span></label>
-				<select id="enableBESS" name="enableBESS" value="{{allInputDataDict.enableBESS}}">
-					<option value='Yes' {{ 'selected' if allInputDataDict.enableBESS == 'Yes' }}>Yes</option>
-					<option value='No' {{ 'selected' if allInputDataDict.enableBESS == 'No' }}>No</option>
-				</select>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Number of Home Chemical Batteries<span class="classic">Total number of home chemical batteries to model.</span></label>
-				<input type="text" id="number_devices_BESS" name="number_devices_BESS" value="{{allInputDataDict.number_devices_BESS}}" required="required">
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Battery Power Capacity (kW)<span class="classic">Specify the home chemical battery power capacity in kW for each individual battery enrolled by a member-consumer.</span></label>
-				<input type="text" id="BESS_kw" name="BESS_kw" value="{{allInputDataDict.BESS_kw}}" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Home Battery Energy Capacity (kWh)<span class="classic">Specify the home chemical battery energy capacity in kWh for each individual battery enrolled by a member-consumer.</span></label>
-				<input type="text" id="BESS_kwh" name="BESS_kwh" value="{{allInputDataDict.BESS_kwh}}" required="required"/>
 			</div>
 
 			<!-- Fossil Fuel Generator Inputs -->
@@ -294,6 +275,35 @@
 			<div class="shortInput">
 				<label class="tooltip">Fuel Cost<span class="classic">Specify the cost of fuel used for the generator. For natural gas, this input expects units of $/cubic foot. For all other liquid fuels, the expected units are $/gallon.</span></label>
 				<input type="text" id="fuel_cost" name="fuel_cost" value="{{allInputDataDict.fuel_cost}}" required="required"/>
+			</div>
+
+			<!-- Chemical BESS Inputs -->
+			<div class="wideInput"> 
+				<p class="inputSectionHeader">Home Chemical Battery Energy Storage Device Inputs</p>
+			</div>
+			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
+			<div class="shortInput">
+				<label class="tooltip">Enable Use of Home Chemical BESS?<span class="classic">If yes, model will run with home chemical batteries.</span></label>
+				<select id="enableBESS" name="enableBESS" value="{{allInputDataDict.enableBESS}}">
+					<option value='Yes' {{ 'selected' if allInputDataDict.enableBESS == 'Yes' }}>Yes</option>
+					<option value='No' {{ 'selected' if allInputDataDict.enableBESS == 'No' }}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Number of Home Chemical Batteries<span class="classic">Total number of home chemical batteries to model.</span></label>
+				<input type="text" id="number_devices_BESS" name="number_devices_BESS" value="{{allInputDataDict.number_devices_BESS}}" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Portion of Charge Used by Utility (%)<span class="classic"> The maximum percentage of full charge that the utility will use at any time.</span></label>
+				<input type="text" id="utility_BESS_portion" name="utility_BESS_portion" value="{{allInputDataDict.utility_BESS_portion}}" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home Battery Power Capacity (kW)<span class="classic">Specify the home chemical battery power capacity in kW for each individual battery enrolled by a member-consumer.</span></label>
+				<input type="text" id="BESS_kw" name="BESS_kw" value="{{allInputDataDict.BESS_kw}}" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Home Battery Energy Capacity (kWh)<span class="classic">Specify the home chemical battery energy capacity in kWh for each individual battery enrolled by a member-consumer.</span></label>
+				<input type="text" id="BESS_kwh" name="BESS_kwh" value="{{allInputDataDict.BESS_kwh}}" required="required"/>
 			</div>
 
 			<!-- Air Conditioner (vbatDispatch) Inputs -->
@@ -420,9 +430,6 @@
 				<input type="text" id="deadband_wh" name="deadband_wh" value="{{allInputDataDict.deadband_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 
-
-
-
 			{{ omfModelButtons }}
 		</form>
 	</div>
@@ -432,11 +439,14 @@
 	<!-- Output tables, graphs, etc -->
 	<div id="output">
 
+		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
+		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+
 		<p class="reportTitle" style="page-break-before:always">DER Serving Load Overview</p>
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
-		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
-		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
+		<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
@@ -452,7 +462,7 @@
 		{% endif %}
 
 		<!-- Include the ChargeLevelBattery plot only when BESS exists in the model -->
-		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge</p>
+		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge (Utility Portion)</p>
 		{% if allOutputDataDict.chargeLevelBattery|sum == 0 %}
 			<div id="batteryChargePlotly" class="tightContent"></div>
 			<script type="text/javascript">    
@@ -502,16 +512,20 @@
 				<script>
 					insertMetric("monthlySummaryTable","Total Peak Demand (kW)", allOutputData.monthlyPeakDemand)
 					insertMetric("monthlySummaryTable","Total Adjusted Peak Demand (kW)", allOutputData.monthlyAdjustedPeakDemand)
+					insertMetric("monthlySummaryTable","Demand Charge ($)", allOutputData.monthlyPeakDemandCost)
+					insertMetric("monthlySummaryTable","Adjusted Demand Charge ($)", allOutputData.monthlyAdjustedPeakDemandCost)
+					insertMetric("monthlySummaryTable","Demand Cost Savings ($)", allOutputData.monthlyPeakDemandSavings)
 					insertMetric("monthlySummaryTable","Energy (kWh)", allOutputData.monthlyEnergyConsumption)
 					insertMetric("monthlySummaryTable","Adjusted Energy (kWh)", allOutputData.monthlyAdjustedEnergyConsumption)
 					insertMetric("monthlySummaryTable","Energy Cost ($)", allOutputData.monthlyEnergyConsumptionCost)
 					insertMetric("monthlySummaryTable","Adjusted Energy Cost ($)", allOutputData.monthlyAdjustedEnergyConsumptionCost)
-					insertMetric("monthlySummaryTable","Demand Charge ($)", allOutputData.monthlyPeakDemandCost)
-					insertMetric("monthlySummaryTable","Adjusted Demand Charge ($)", allOutputData.monthlyAdjustedPeakDemandCost)
+					insertMetric("monthlySummaryTable","Energy Cost Savings ($)", allOutputData.monthlyEnergyConsumptionSavings)
 					insertMetric("monthlySummaryTable","Total Cost of Service ($)", allOutputData.monthlyTotalCostService)
 					insertMetric("monthlySummaryTable","Adjusted Total Cost of Service ($)", allOutputData.monthlyTotalCostAdjustedService)
 					insertMetric("monthlySummaryTable","Total Consumer Compensation ($)", allOutputData.totalCost_paidToConsumer)
 					insertMetric("monthlySummaryTable","Program Startup and Operational Costs ($)", allOutputData.startupAndOperationalCosts_year1)
+					insertMetric("monthlySummaryTable","Total Utility Savings ($)", allOutputData.totalSavings_year1)
+					insertMetric("monthlySummaryTable","Total Utility Costs ($)", allOutputData.totalCosts_year1)
 					insertMetric("monthlySummaryTable","Net Utility Savings ($)", allOutputData.totalNetSavings_year1)
 					//insertMetric("monthlySummaryTable","1 kW Consumer Savings ($)", allOutputData.totalSavingsSmallConsumer)
 					//insertMetric("monthlySummaryTable","10 kW Consumer Savings ($)", allOutputData.totalSavingsLargeConsumer)
@@ -591,12 +605,12 @@
 				"xAxis":{"title":{"text":"Year After Installation","style":{"color":"gray"}},"type":"linear","tickColor":"gray","tickInterval":1,"lineColor":"gray","minorTickColor":"gray","minorTickInterval":5},
 				"title":{"text":"", "verticalAlign":"top", "align":"right", "y":35, "x":-10, "style":{"color":"#333333", "fontSize":"12px"}}, 
 				"series":[
-					{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 					{"name":"Water Heater Peak Demand Savings","data":allOutputData.vbatResults_wh_peakDemand_savings_allyears, "color": "rgba(16,101,171,0.5)"},
-					{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
+					{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 					{"name":"Heat Pump Peak Demand Savings","data":allOutputData.vbatResults_hp_peakDemand_savings_allyears, "color": "rgba(58,147,195,0.5)"},
-					{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
+					{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
 					{"name":"Air Conditioner Peak Demand Savings","data":allOutputData.vbatResults_ac_peakDemand_savings_allyears,"color":"rgba(142,196,222,0.5)"},
+					{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
 					{"name":"Water Heater Incentives","data":allOutputData.vbatResults_wh_costs_allyears,"color": "rgb(179,21,41)"},
 					{"name":"Heat Pump Incentives","data":allOutputData.vbatResults_hp_costs_allyears,"color": "rgb(215,95,76)"},
 					{"name":"Air Conditioner Incentives","data":allOutputData.vbatResults_ac_costs_allyears,"color": "rgb(246,164,130)"}

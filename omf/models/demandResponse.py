@@ -1,6 +1,7 @@
 ''' Calculate the costs and benefits of Time of Use (TOU) program from a distribution utility perspective. '''
 
 import json, shutil, datetime, csv, calendar, math, operator, copy
+from pathlib import Path
 from os.path import join as pJoin
 #from dateutil.parser import parse
 from numpy_financial import npv
@@ -48,11 +49,10 @@ def work(modelDir, inputDict):
 	ProgramPrices.extend(PeakDailyPrice)
 	ProgramPrices.extend(OffPeakDailyPrice2)
 	# Setting up the demand curve.
-	with open(pJoin(modelDir,"demand.csv"),"w") as demandFile:
-		demandFile.write(inputDict['demandCurve'])
+	demandFile = Path(modelDir, inputDict['demandCurveDataFileName'])
 	try:
 		demandList = []
-		with open(pJoin(modelDir,"demand.csv"), newline='') as inFile:
+		with open(demandFile, newline='') as inFile:
 			reader = csv.reader(inFile)
 			for row in reader:
 				demandList.append(row) #######demandList.append({'datetime': parse(row['timestamp']), 'power': float(row['power'])})
@@ -421,14 +421,14 @@ def _prismTests():
 
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
-	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","FrankScadaValidCSV_Copy.csv")) as f:
-		demand_curve = f.read()
+	demandCurveFileName = "FrankScadaValidCSV_Copy.csv"
+	demandCurveFilePath = Path(__neoMetaModel__._omfDir, "static", "testFiles", demandCurveFileName)
 	defaultInputs = {
 		"modelType": modelName,
 		"retailCost": "0.1",
 		"WholesaleEnergyCost": "0.07",
-		"fileName":"FrankScadaValidCSV_Copy.csv",
-		"demandCurve": demand_curve,
+		"demandCurveUserDisplayName": demandCurveFileName,
+		"demandCurveDataFileName": demandCurveFileName,
 		"DrPurchInstallCost": "100000",
 		"runTime": "0:00:03",
 		"SubstitutionPriceElasticity": "-0.09522",
@@ -450,7 +450,14 @@ def new(modelDir):
 		"ratePTR":"2.65",
 		"rate24hourly": "0.074, 0.041, 0.020, 0.035, 0.100, 0.230, 0.391, 0.550, 0.688, 0.788, 0.859, 0.904, 0.941, 0.962, 0.980, 1.000, 0.999, 0.948, 0.904, 0.880, 0.772, 0.552, 0.341, 0.169"
 	}
-	return __neoMetaModel__.new(modelDir, defaultInputs)
+	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
+	try:
+		shutil.copyfile(demandCurveFilePath, Path(modelDir, demandCurveFileName))
+	except Exception as e:
+		print(f"demandRespone | new() | Could not copy file {demandCurveFileName}")
+		print(f"{e}")
+		return False
+	return creationCode
 
 @neoMetaModel_test_setup
 def _tests():

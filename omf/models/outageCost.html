@@ -2,7 +2,12 @@
 	{{ omfHeaders }}
 	<!-- Library Imports -->
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData, graphLayout) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ), JSON.parse( graphLayout ) || {} )
+		}
+	</script>
 	<!-- Leaflet -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"	integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="	crossorigin=""/>
 	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
@@ -209,14 +214,14 @@
 		<div id="timeline" class="tightContent">
 			<div id="timelineChart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("timelineChart", JSON.parse(allOutputData["timelineData"]), JSON.parse(allOutputData["timelineLayout"]) || {})
+				plotGraph("timelineChart", allOutputData["timelineData"], allOutputData["timelineLayout"])
 			</script>
 		</div>
 		<p class="reportTitle">Outage Timeline for Randomly Generated Faults</p>
 		<div id="timeline1" class="tightContent">
 			<div id="timeline1Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("timeline1Chart", JSON.parse(allOutputData["timeline1Data"]), JSON.parse(allOutputData["timeline1Layout"]) || {})
+				plotGraph("timeline1Chart", allOutputData["timeline1Data"], allOutputData["timeline1Layout"])
 			</script>
 		</div>
 		<!-- Leaflet map directly inline with model-->

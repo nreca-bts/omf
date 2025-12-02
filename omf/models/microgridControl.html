@@ -24,7 +24,13 @@
 		}
 	</style>
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 	<!-- Leaflet -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"	integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="	crossorigin=""/>
 	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
@@ -182,28 +188,28 @@
 		<div id="fig1" class="tightContent">
 			<div id="fig1Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig1Chart", JSON.parse(allOutputData["fig1Data"]), JSON.parse(allOutputData["fig1Layout"]) || {})
+				plotGraph("fig1Chart", allOutputData["fig1Data"], allOutputData["fig1Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Voltages</p>
 		<div id="fig2" class="tightContent">
 			<div id="fig2Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig2Chart", JSON.parse(allOutputData["fig2Data"]), JSON.parse(allOutputData["fig2Layout"]) || {})
+				plotGraph("fig2Chart", allOutputData["fig2Data"], allOutputData["fig2Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Loads Served</p>
 		<div id="fig3" class="tightContent">
 			<div id="fig3Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig3Chart", JSON.parse(allOutputData["fig3Data"]), JSON.parse(allOutputData["fig3Layout"]) || {})
+				plotGraph("fig3Chart", allOutputData["fig3Data"], allOutputData["fig3Layout"])
 			</script>
 		</div>
 		<p class="reportTitle">Customer Outage Plots (wrt duration)</p>
 		<div id="fig4" class="tightContent">
 			<div id="fig4Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig4Chart", JSON.parse(allOutputData["fig4Data"]), JSON.parse(allOutputData["fig4Layout"]) || {})
+				plotGraph("fig4Chart", allOutputData["fig4Data"], allOutputData["fig4Layout"])
 			</script>
 		</div>
 		<p class="reportTitle" style="page-break-before:always">Customer Outage Cost</p>
@@ -214,7 +220,7 @@
 		<div id="fig5" class="tightContent">
 			<div id="fig5Chart" style="width:1000px"></div>
 			<script type="text/javascript">
-				Plotly.newPlot("fig5Chart", JSON.parse(allOutputData["fig5Data"]), JSON.parse(allOutputData["fig5Layout"]) || {})
+				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
 		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>

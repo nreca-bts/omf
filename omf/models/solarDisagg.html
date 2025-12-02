@@ -2,7 +2,13 @@
 	{{ omfHeaders }}
 	<script src="{{pathPrefix}}/static/d3.v3.js"></script>
 	<!-- Plotly  Import -->
-	<script src="https://cdn.plot.ly/plotly-1.50.1.min.js"></script>
+	<!-- onload function ensures plotly is loaded to display graphs -->
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 	<!-- Leaflet  Imports -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
 	integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
@@ -109,18 +115,18 @@
 		<div id="analysisSummary" class="content">
 			<div id="plotly-div"></div>
 			<script type="text/javascript">
-  				Plotly.newPlot("plotly-div", JSON.parse(allOutputData["graphJSON"]), JSON.parse(allOutputData["layoutJSON"]) || {})
+  				plotGraph("plotly-div", allOutputData["graphJSON"], allOutputData["layoutJSON"])
 			</script>
 		</div> -->
 		<p class="reportTitle">Solar Disaggregation Results</p>
 		<div id="analysisSummary2" class="content">
 			<div id="plotly-div2"></div>
 			<script type="text/javascript">
-  				Plotly.newPlot("plotly-div2", JSON.parse(allOutputData["graphWeatherJSON"]), JSON.parse(allOutputData["layoutWeatherJSON"]) || {})
+					plotGraph("plotly-div2", allOutputData["graphWeatherJSON"], allOutputData["layoutWeatherJSON"])
 			</script>
 			<div id="plotly-div3"></div>
 			<script type="text/javascript">
-  				Plotly.newPlot("plotly-div3", JSON.parse(allOutputData["graphSolarJSON"]), JSON.parse(allOutputData["layoutSolarJSON"]) || {});
+					plotGraph("plotly-div3", allOutputData["graphSolarJSON"], allOutputData["layoutSolarJSON"])
   				//console.log(allOutputData["layoutSolarJSON"]);
   				//console.log(allOutputData["graphSolarJSON"]);
 			</script>
@@ -135,6 +141,7 @@
 					console.log(allOutputData["meterJSON"][meter]['layout']);
 					console.log(allOutputData["meterJSON"][meter]['data']);
 					allPlots.appendChild(node)
+					// with local plotly import modified unsure if this works or not. cannot test model since its broken.
 					Plotly.newPlot("meter-div" + meter, JSON.parse(allOutputData['meterJSON'][meter]['data'], JSON.parse(allOutputData["meterJSON"][meter]['layout']) || {}));
 					Plotly.relayout("meter-div" + meter, {"width": 980, "yaxis": {"title": "Watts"}, "title": "Meter", "legend": {"y": 1.2, "x": 0, "orientation": "h"}, "height": 400});
 					console.log(graphDiv);

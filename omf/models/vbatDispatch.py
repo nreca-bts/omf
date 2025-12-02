@@ -139,6 +139,7 @@ def work(modelDir, inputDict):
 	out["peakAdjustedDemand"] = peakAdjustedDemand
 	out["energyAdjustedMonthly"] = energyAdjustedMonthly
 	out["VBdispatch"] = [dal-d for dal, d in zip(demandAdj, demand)]
+	out["number_devices"] = inputDict["number_devices"]
 
 	cellCost = float(inputDict["unitDeviceCost"])*float(inputDict["number_devices"])
 

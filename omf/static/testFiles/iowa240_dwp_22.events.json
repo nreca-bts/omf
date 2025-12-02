@@ -156,9 +156,39 @@
     },
     {
         "event_data": {
+            "status": 1,
+            "dispatchable": false,
+            "type": "breaker",
+            "state": "open"
+        },
+        "timestep": 7,
+        "affected_asset": "line.cb_101",
+        "event_type": "switch"
+    },
+    {
+        "event_data": {
+            "dispatchable": true
+        },
+        "timestep": 8,
+        "affected_asset": "line.cb_101",
+        "event_type": "switch"
+    },
+    {
+        "event_data": {
             "dispatchable": true
         },
         "timestep": 12,
+        "affected_asset": "line.cb_201",
+        "event_type": "switch"
+    },
+    {
+        "event_data": {
+            "status": 1,
+            "dispatchable": false,
+            "type": "breaker",
+            "state": "open"
+        },
+        "timestep": 15,
         "affected_asset": "line.cb_201",
         "event_type": "switch"
     },
@@ -168,6 +198,14 @@
         },
         "timestep": 18,
         "affected_asset": "line.cb_301",
+        "event_type": "switch"
+    },
+    {
+        "event_data": {
+            "dispatchable": true
+        },
+        "timestep": 19,
+        "affected_asset": "line.cb_201",
         "event_type": "switch"
     }
 ]
