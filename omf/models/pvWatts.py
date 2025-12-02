@@ -15,29 +15,29 @@ tooltip = "The pvWatts model runs the NREL pvWatts tool for quick estimation of 
 modelName, template = __neoMetaModel__.metadata(__file__)
 
 def work(modelDir, inputDict):
-	# Copy specific climate data into model directory
 
+	# Get inputs for system design parameters
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	azimuth = float( inputDict['azimuth'] )
-	dc_ac_ratio = float( inputDict['dc_ac_ratio'] )
-	gcr = float( inputDict['gcr'] )
+	rotlim = float( inputDict['rotlim'] )
 	inv_eff = float( inputDict['inverterEfficiency'] )
 	losses = float( inputDict['losses'] )
 	sys_cap = float( inputDict['systemCapacity'] )
 	tilt = float( inputDict['tilt'] )
 	elev = float( inputDict['elev'] )
 	start = pd.to_datetime(inputDict["simStartDate"])
+	trackingMode = int ( inputDict["trackingMode"] )
 
+	# Set up system design parameter dict for PySAM pvWatts Model
 	sys_design = {
 		"ModelParams": {
 				"SystemDesign": {
-						"array_type": 2.0,
+						"array_type": trackingMode,
 						"azimuth": azimuth,
-						"dc_ac_ratio": dc_ac_ratio,
-						"gcr": gcr,
 						"inv_eff": inv_eff,
 						"losses": losses,
+						"rotlim": rotlim,
 						"module_type": 2.0,
 						"system_capacity": sys_cap,
 						"tilt": tilt
@@ -52,8 +52,7 @@ def work(modelDir, inputDict):
 		}
 	}
 
-	import PySAM.Pvwattsv8 as pvwatts
-
+	# Get the data from NSRDB API
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
 	# base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
@@ -75,7 +74,10 @@ def work(modelDir, inputDict):
 			text_file.write(clean_text)
 			requestSuccess = True
 
+	# If getting the data was successful:
+	# - Combine data + system parameters into pvwatts model and execute
 	if requestSuccess:
+		import PySAM.Pvwattsv8 as pvwatts
 		pvwatts_model = pvwatts.new()
 		wind_data = pd.read_csv(Path(modelDir,"output_tmy_wind_data.csv"))
 
@@ -185,15 +187,12 @@ def runtimeEstimate(modelDir):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	defaultInputs = {
-		"simStartDate": "2023-07-01",
-		"simLengthUnits": "hours",
 		"modelType": modelName,
 		"longitude": "-97.1292",
 		"latitude": "33.2164",
-		"simLength": "100",
 		"azimuth":"180.0",
-		"dc_ac_ratio": "1.08",
-		"gcr": "0.592",
+		"rotlim": "45.0",
+		"trackingMode": "2",
 		"inverterEfficiency":"97.5",
 		"losses": "15.53",
 		"systemCapacity": "750",
@@ -201,7 +200,10 @@ def new(modelDir):
 		"inverterSize": "8",
 		"runTime": "",
 		"tilt":"45",
-		"elev": "1829"
+		"elev": "1829",
+		"simStartDate": "2023-07-01",
+		"simLengthUnits": "hours",
+		"simLength": "100",
 	}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
