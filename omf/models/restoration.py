@@ -10,6 +10,7 @@ import plotly.express as px
 import networkx as nx
 from scipy.stats import percentileofscore
 import time
+from collections import OrderedDict
 # from statistics import quantiles
 
 # OMF imports
@@ -25,7 +26,6 @@ from omf.solvers.opendss.dssConvert import _dss_to_clean_via_save_toBeTested as 
 from omf.solvers.opendss.__init__ import reduceCircuit
 from omf.solvers import PowerModelsONM
 from omf.comms import createGraph
-from omf.models.resilientCommunity import runCalculations as makeResComOutputCsv
 
 # Model metadata:
 tooltip = 'Calculate load, generator and switching controls to maximize power restoration for a circuit with multiple networked microgrids.'
@@ -448,17 +448,9 @@ def makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList):
 	
 	return dfLoadTimeln, dfStatus
 
-def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, taodiDict, mergedLoadPrioritiesFilePath):
-	'''
-	Generate table of SAIDI, SAIFI, CAIDI, and CAIFI during the outage simulation period, both for the whole system and broken down by microgrid. 
-	'''
-	# TODO: Update function name and docstring
-	with open(mergedLoadPrioritiesFilePath) as inFile:
-		mergedLoadWeights = {k:float(v) for k,v in json.load(inFile).items()}
-
-	def calcTradMetrics(outputTimeline, loadList, startTime, numTimeSteps):
+def calcTradMetrics(outputTimeline, loadList, loadBcsDict, loadLcsDict, mergedLoadWeights, startTime, numTimeSteps):
 		''' Calculates SAIDI, SAIFI, CAIDI, CAIFI, CI, CMI, CS, and DCI over the course of the simulation for the loads in the given loadList which should have only unique entries.
-			Also calculates average CCI of the residential loads in loadList by calculating average CCS and ranking it among CCS scores (shouldn't take the average of an index directly)
+			Also calculates average LCI of the loads in loadList by calculating average LCS and ranking it among LCS scores (shouldn't take the average of an index directly)
 			CI = # Customer Interruptions
 			CMI = # Customer Minute Interruptions 
 			CS = # Customers Served
@@ -483,17 +475,17 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 		SAIFI = CI/CS if CS!=0 else 0
 		CAIDI = CMI/CI if CI!=0 else 0
 		CAIFI = CI/DCI if DCI!=0 else 0
-		# loadBcsDict contains values exclusively for all residential loads and loadList contains the subset of loads given to the function
-		residentialLL = set(loadBcsDict.keys()) & loadList
-		sumBCS = sum([loadBcsDict[load] for load in residentialLL])
-		if residentialLL:
-			averageCCS = sum([loadCcsDict[load] for load in residentialLL])/len(residentialLL)
-			# kind='weak' measures % of values <= current value, which is consistent with resilientCommunity and SVI documentation
-			averageCCI = float(percentileofscore(list(loadCcsDict.values()),averageCCS, kind='weak'))
-			averageCCIxPriorities = sum([mergedLoadWeights[load] for load in residentialLL])/len(residentialLL)
+		# loadBcsDict contains values exclusively for all loads with BCS values and loadList contains the subset of loads given to the function
+		reducedLL = set(loadBcsDict.keys()) & loadList
+		sumBCS = sum([loadBcsDict[load] for load in reducedLL])
+		if reducedLL:
+			averageLCS = sum([loadLcsDict[load] for load in reducedLL])/len(reducedLL)
+			# kind='weak' measures % of values <= current value, which is consistent with resilientCommunity
+			averageLCI = float(percentileofscore(list(loadLcsDict.values()),averageLCS, kind='weak'))/100
+			averageLCIxPriorities = sum([mergedLoadWeights[load] for load in reducedLL])/len(reducedLL)
 		else:
-			averageCCI = 'n/a'
-			averageCCIxPriorities = 'n/a'
+			averageLCI = 'n/a'
+			averageLCIxPriorities = 'n/a'
 		return {'SAIDI':SAIDI,
 				'SAIFI':SAIFI,
 				'CAIDI':CAIDI,
@@ -503,20 +495,32 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 				'CMI':	CMI,
 				'DCI':	DCI,
 				'Sum BCS': sumBCS,
-				'Average CCI': averageCCI,
-				'Average CCIxPriorities': averageCCIxPriorities}
+				'Average LCI': averageLCI,
+				'Average LCIxPriorities': averageLCIxPriorities}
+
+def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadLciDict, loadLcsDict, loadBcsDict, mergedLoadPrioritiesFilePath, useLci):
+	'''
+	Generate table of SAIDI, SAIFI, CAIDI, and CAIFI during the outage simulation period, both for the whole system and broken down by microgrid. 
+	'''
+	# TODO: Update function name and docstring
+	with open(mergedLoadPrioritiesFilePath) as inFile:
+		mergedLoadWeights = {k:float(v) for k,v in json.load(inFile).items()}
 
 	loadsPerMg = {}
 	for load,mg in loadMgDict.items():
 		loadsPerMg[mg] = loadsPerMg.get(mg,[])+[load]
 
-	systemwideMetrics = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, loadMgDict.keys(), startTime, numTimeSteps).items()}
+	systemwideMetrics = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, loadMgDict.keys(), loadBcsDict, loadLcsDict, mergedLoadWeights, startTime, numTimeSteps).items()}
 
 	metricsPerMg = {}
 	for mg, mgLoadList in loadsPerMg.items():
-		metricsPerMg[mg] = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, mgLoadList, startTime, numTimeSteps).items()}
+		metricsPerMg[mg] = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, mgLoadList,  loadBcsDict, loadLcsDict, mergedLoadWeights, startTime, numTimeSteps).items()}
+	metricsPerMg = OrderedDict(sorted(metricsPerMg.items()))
 
-	mg_html_str = """
+	lciHeaderInsert = '''<th>Est. People Served</th>
+						<th>LCI of Average Load</th>
+						<th>Avg. Load Priorities modified by LCI</th>''' if useLci == 'Yes' else ''
+	mg_html_str = f"""
 		<table class="sortable" cellpadding="0" cellspacing="0">
 			<thead>
 				<tr>
@@ -526,12 +530,13 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 					<th>SC-CAIDI</th>
 					<th>SC-CAIFI</th>
 					<th>Loads Served</th>
-					<th>Est. Household Residents Served</th>
-					<th>CCI of Average Residential Load</th>
-					<th>Avg. CCI merged w/ Load Priorities</th>
+					{lciHeaderInsert}
 				</tr>
 			</thead>
 			<tbody>"""
+	lciSWContentInsert = f'''<td>{ systemwideMetrics["Sum BCS"] }</td>
+							<td>{ systemwideMetrics["Average LCI"] }</td>
+							<td>{ systemwideMetrics["Average LCIxPriorities"] }</td>''' if useLci == 'Yes' else ''
 	mg_html_str += f"""
 					<tr>
 						<td>Whole System</td>
@@ -540,11 +545,12 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 						<td>{ systemwideMetrics["CAIDI"] }</td>
 						<td>{ systemwideMetrics["CAIFI"] }</td>
 						<td>{ systemwideMetrics["CS"] }</td>
-						<td>{ systemwideMetrics["Sum BCS"] }</td>
-						<td>{ systemwideMetrics["Average CCI"] }</td>
-						<td>{ systemwideMetrics["Average CCIxPriorities"] }</td>
+						{lciSWContentInsert}
 					</tr>"""
 	for mg, metrics in metricsPerMg.items():
+		lciContentInsert = f'''<td>{ metrics["Sum BCS"] }</td>
+							<td>{ metrics["Average LCI"] }</td>
+							<td>{ metrics["Average LCIxPriorities"] }</td>''' if useLci == 'Yes' else ''
 		mg_html_str += f"""
 						<tr>
 							<td>Microgrid ID: {mg}</td>
@@ -553,65 +559,67 @@ def tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, mo
 							<td>{ metrics["CAIDI"] }</td>
 							<td>{ metrics["CAIFI"] }</td>
 							<td>{ metrics["CS"] }</td>
-							<td>{ metrics["Sum BCS"] }</td>
-							<td>{ metrics["Average CCI"] }</td>
-							<td>{ metrics["Average CCIxPriorities"] }</td>
+							{lciContentInsert}
 						</tr>"""
 	mg_html_str +="""</tbody></table>"""
 	with open(pJoin(modelDir, 'mgTradMetricsTable.html'), 'w') as customerOutageFile:
 		customerOutageFile.write(mg_html_str)
 
-	loadsPerCciQuart = {'Low CCI':[], 'Low-Medium CCI':[], 'High-Medium CCI':[], 'High CCI':[]}
-	# TODO: Consider if np.percentile is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
-	quart = np.percentile(list(loadCciDict.values()),[25,50,75]) if len(loadCciDict)>0 else [0,0,0]
-	for load,cci in loadCciDict.items():
-		if cci <= quart[0]:
-			loadsPerCciQuart['Low CCI'].append(load)
-		elif cci <= quart[1]:
-			loadsPerCciQuart['Low-Medium CCI'].append(load)
-		elif cci <= quart[2]:
-			loadsPerCciQuart['High-Medium CCI'].append(load)
-		else:
-			loadsPerCciQuart['High CCI'].append(load)
+	if useLci == 'Yes':
+		loadsPerLciQuart = {'Low LCI':[], 'Low-Medium LCI':[], 'High-Medium LCI':[], 'High LCI':[]}
+		# TODO: Consider if np.percentile is right to use considering resCom calculates percentile a little differently (# values equal to or below current val)
+		quart = np.percentile(list(loadLciDict.values()),[25,50,75]) if len(loadLciDict)>0 else [0,0,0]
+		for load,lci in loadLciDict.items():
+			if lci <= quart[0]:
+				loadsPerLciQuart['Low LCI'].append(load)
+			elif lci <= quart[1]:
+				loadsPerLciQuart['Low-Medium LCI'].append(load)
+			elif lci <= quart[2]:
+				loadsPerLciQuart['High-Medium LCI'].append(load)
+			else:
+				loadsPerLciQuart['High LCI'].append(load)
 
-	metricsPerCciQuart = {}
-	for cciQuart, quartLoadList in loadsPerCciQuart.items():
-		metricsPerCciQuart[cciQuart] = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, quartLoadList, startTime, numTimeSteps).items()}
+		metricsPerLciQuart = {}
+		for lciQuart, quartLoadList in loadsPerLciQuart.items():
+			metricsPerLciQuart[lciQuart] = {k:(round(v,2) if type(v) == float else v) for k,v in calcTradMetrics(outputTimeline, quartLoadList, loadBcsDict, loadLcsDict, mergedLoadWeights, startTime, numTimeSteps).items()}
 
-	cciQuart_html_str = """
-		<table class="sortable" cellpadding="0" cellspacing="0">
-			<thead>
-				<tr>
-					<th>CCI Quartile</th>
-					<th>SC-SAIDI</th>
-					<th>SC-SAIFI</th>
-					<th>SC-CAIDI</th>
-					<th>SC-CAIFI</th>
-					<th>Loads Served</th>
-					<th>Est. Household Residents Served</th>
-					<th>CCI of Average Residential Load</th>
-					<th>Avg. CCI merged w/ Load Priorities</th>
-				</tr>
-			</thead>
-			<tbody>"""
-	for cciQuart, metrics in metricsPerCciQuart.items():
-		cciQuart_html_str += f"""
+		lciQuart_html_str = f"""
+			<table class="sortable" cellpadding="0" cellspacing="0">
+				<thead>
 					<tr>
-						<td>{ cciQuart }</td>
-						<td>{ metrics["SAIDI"] }</td>
-						<td>{ metrics["SAIFI"] }</td>
-						<td>{ metrics["CAIDI"] }</td>
-						<td>{ metrics["CAIFI"] }</td>
-						<td>{ metrics["CS"] }</td>
-						<td>{ metrics["Sum BCS"] }</td>
-						<td>{ metrics["Average CCI"] }</td>
-						<td>{ metrics["Average CCIxPriorities"] }</td>
-					</tr>"""
-	cciQuart_html_str +="""</tbody></table>"""
-	with open(pJoin(modelDir, 'cciQuartTradMetricsTable.html'), 'w') as customerOutageFile:
-		customerOutageFile.write(cciQuart_html_str)
-
-	return mg_html_str, cciQuart_html_str
+						<th>LCI Quartile</th>
+						<th>SC-SAIDI</th>
+						<th>SC-SAIFI</th>
+						<th>SC-CAIDI</th>
+						<th>SC-CAIFI</th>
+						<th>Loads Served</th>
+						<th>Est. Household Residents Served</th>
+						<th>LCI of Average Residential Load</th>
+						<th>Avg. Load Priorities modified by LCI</th>
+					</tr>
+				</thead>
+				<tbody>"""
+		for lciQuart, metrics in metricsPerLciQuart.items():
+			lciQuart_html_str += f"""
+						<tr>
+							<td>{ lciQuart }</td>
+							<td>{ metrics["SAIDI"] }</td>
+							<td>{ metrics["SAIFI"] }</td>
+							<td>{ metrics["CAIDI"] }</td>
+							<td>{ metrics["CAIFI"] }</td>
+							<td>{ metrics["CS"] }</td>
+							<td>{ metrics["Sum BCS"] }</td>
+							<td>{ metrics["Average LCI"] }</td>
+							<td>{ metrics["Average LCIxPriorities"] }</td>
+						</tr>"""
+		lciQuart_html_str +="""</tbody></table>"""
+		with open(pJoin(modelDir, 'lciQuartTradMetricsTable.html'), 'w') as customerOutageFile:
+			customerOutageFile.write(lciQuart_html_str)
+	else:
+		lciQuart_html_str = '<!-- No LCI Quartile Table -->'
+		with open(pJoin(modelDir, 'lciQuartTradMetricsTable.html'), 'w') as customerOutageFile:
+			customerOutageFile.write(lciQuart_html_str)
+	return mg_html_str, lciQuart_html_str
 
 def outageIncidenceGraph(customerOutageData, outputTimeline, startTime, numTimeSteps, loadPriorityFilePath, loadMgDict):
 	'''	Returns plotly figures displaying graphs of outage incidences over the course of the event data.
@@ -945,22 +953,22 @@ def makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, loadList):
 	)
 	return taofiHist, taodiHist, TAOFI, TAODI
 
-def makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI):
-	''' Returns scatter plots of TAOFI vs CCI and TAODI vs CCI with accompanying correlation coefficient. 
-		Only includes residential loads because those are the only loads with CCI. 
+def makeLciTaofiTaodiScatter(loadLciDict, TAOFI, TAODI):
+	''' Returns scatter plots of TAOFI vs LCI and TAODI vs LCI with accompanying correlation coefficient. 
+		Only includes loads with LCI values.
 	'''
-	# TODO: make docstring
-	# Enforce standard ordering using only loads in cciDict
-	orderedVals = {'CCI':[], 'TAODI':[], 'TAOFI':[]}
-	for load, cci in loadCciDict.items():
-		orderedVals['CCI'].append(cci)
+	# Enforce standard ordering for loads in loadLciDict
+	orderedVals = {'LCI':[], 'TAODI':[], 'TAOFI':[]}
+	for load, lci in loadLciDict.items():
+		orderedVals['LCI'].append(lci)
 		orderedVals['TAODI'].append(TAODI[load])
 		orderedVals['TAOFI'].append(TAOFI[load])
 	dfOrderedVals = pd.DataFrame(orderedVals)
 
 	def makeCorrReport(var1,var2):
 		''' Takes two variable names as input and returns a string reporting the correlation and an interpretation of it.'''
-		corr = round(np.corrcoef(dfOrderedVals[var1],dfOrderedVals[var2])[0][1],3)
+		dfReduced = dfOrderedVals[[var1,var2]].dropna()
+		corr = round(np.corrcoef(dfReduced[var1],dfReduced[var2])[0][1],3)
 		sign = ' negative ' if corr < 0 else ' '
 		absCorr = abs(corr)
 		if absCorr == 0:
@@ -980,22 +988,22 @@ def makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI):
 		# Levels taken from https://www.andrews.edu/~calkins/math/edrm611/edrm05.htm#:~:text=Correlation%20coefficients%20whose%20magnitude%20are%20between%200.7%20and%200.9%20indicate,can%20be%20considered%20moderately%20correlated.
 		return f'R = {corr} ({level}{sign}correlation)'
 	
-	cciTaodiScatter = px.scatter(
+	lciTaodiScatter = px.scatter(
 		pd.DataFrame(orderedVals),
-		x='CCI',
+		x='LCI',
 		y='TAODI',
 		trendline='ols',
-		title = makeCorrReport('CCI','TAODI'),
+		title = makeCorrReport('LCI','TAODI'),
 		color_discrete_sequence=["red"]
 	)
-	cciTaofiScatter = px.scatter(
+	lciTaofiScatter = px.scatter(
 		pd.DataFrame(orderedVals),
-		x='CCI',
+		x='LCI',
 		y='TAOFI',
 		trendline='ols',
-		title = makeCorrReport('CCI','TAOFI'),
-		)
-	return cciTaofiScatter, cciTaodiScatter
+		title = makeCorrReport('LCI','TAOFI'),
+	)
+	return lciTaofiScatter, lciTaodiScatter
 
 def getMicrogridInfo(modelDir, pathToOmd, settingsFile, makeCSV = True):
 	'''	Gathers microgrid info including loads and other circuit objects in each microgrid by finding what microgrid each load's parent bus is designated as having. 
@@ -1045,71 +1053,43 @@ def getMicrogridInfo(modelDir, pathToOmd, settingsFile, makeCSV = True):
 
 	return {'loadMgDict':loadMgDict, 'busMgDict':busMgDict, 'obMgDict':obMgDict, 'mgIDs':mgIDs}
 
-def getResComInfo(modelDir, pathToOmd, customerInfo):
-	''' Returns a complete list of loads on the circuit and 3 dictionaries of loads and their CCI's, CCS's, & BCS's respectively in the following format:
+def getResComInfo(modelDir, pathToOmd, useLci, rescomOutputFilePath):
+	''' Returns a complete list of loads on the circuit and 3 dictionaries of loads and their LCI's, LCS's, & BCS's respectively in the following format:
 		
 		[loadName1, loadName2, loadname3, ...],
 
-		{loadName1:cci1, loadName2:cci2, loadName3:cci3, ...},
+		{loadName1:lci1, loadName2:lci2, loadName3:lci3, ...},
 
-		{loadName1:ccs1, loadName2:ccs2, loadName3:ccs3, ...},
+		{loadName1:lcs1, loadName2:lcs2, loadName3:lcs3, ...},
 
 		{loadName1:bcs1, loadName2:bcs2, loadName3:bcs3, ...}
 
-		If there are any non-residential loads on the circuit, they won't have entries in the dictionaries, but all loads are represented in the complete load list. 
+		If there are any loads without lci/lcs/bcs on the circuit, they won't have entries in the dictionaries, but all loads are represented in the complete load list. 
 	'''
-	completeLoadList = []
-	cciDict = {}
-	ccsDict = {}
-	bcsDict = {}
-	
+	completeLoadList = []	
 	with open(pathToOmd,'r') as omdFile:
 		omd = json.load(omdFile)
 	for ob in omd.get('tree', {}).values():
 		if ob['object'] == 'load':
 			completeLoadList.append(ob['name'])
-	
-	# Uncomment to use resilientCommunity. 
-	try:
-		makeResComOutputCsv(pathToOmd		= pathToOmd, 
-							pathToLoadsFile	= customerInfo, 
-							avgPeakDemand	= 4.25,
-							modelDir		= modelDir,		
-							equipmentList	= ['line', 'transformer', 'fuse'])
-		with open(pJoin(modelDir, 'resilientCommunityOutput.csv'), mode='r') as infile:
-			reader = csv.DictReader(infile)
-			for row in reader:
-				obType, obName = row['Object Name'].split('.')
-				obCci = float(row['Community Criticality Index'])
-				obCcs = float(row['Community Criticality Score'])
-				obBcs = float(row['Base Criticality Score'])
-				if obType == 'load':
-					cciDict[obName] = obCci
-					ccsDict[obName] = obCcs
-					bcsDict[obName] = obBcs
-	except Exception as e:
-		if str(e) == 'No loads labeled as Residential in Customer Information (.csv file). SVI only applies to residential loads.':
-			pass
-		else:
-			raise e
-	'''
-	# Uncomment to bypass calling resilientCommunity ##############
-	with open(pathToOmd,'r') as omdFile:
-		omd = json.load(omdFile)
-	for ob in omd.get('tree', {}).values():
-		if ob['object'] == 'load':
-			obName = ob['name']
-			cciDict[obName] = 50
-			ccsDict[obName] = 50
-			bcsDict[obName] = 50
-	###############################################################'''
+	lciDict = {}
+	lcsDict = {}
+	bcsDict = {}
+	if useLci == 'Yes':
+		with open(rescomOutputFilePath, mode='r') as f:
+			rescomLoadDict = json.load(f)
+		for loadName in completeLoadList:
+			loadData = rescomLoadDict.get(f'load.{loadName}')
+			if loadData != None:
+				lciDict[loadName] = loadData.get('locational crit index')
+				lcsDict[loadName] = loadData.get('locational crit score')
+				bcsDict[loadName] = loadData.get('base crit score')
+	return completeLoadList, lciDict, lcsDict, bcsDict
 
-	return completeLoadList, cciDict, ccsDict, bcsDict
+def combineLoadPriorityWithLCI(modelDir, loadList, loadPriorityFilePath, loadLciDict, lciImpact):
+	'''	Creates a JSON file called loadWeightsMerged.json containing user-input load priorities combined with LCI values via RMS and weighted by lciImpact.
 
-def combineLoadPriorityWithCCI(modelDir, loadList, loadPriorityFilePath, loadCciDict, cciImpact):
-	'''	Creates a JSON file called loadWeightsMerged.json containing user-input load priorities combined with CCI values via RMS and weighted by cciImpact.
-
-		If an empty JSON file is provided for loadPriorityFilePath, just returns a JSON file with max(1,cci*cciImpact) for each load.
+		If an empty JSON file is provided for loadPriorityFilePath, just returns a JSON file with max(1,lci*lciImpact) for each load.
 
 		Returns a string containing the path to loadWeightsMerged.json
 	'''
@@ -1122,7 +1102,7 @@ def combineLoadPriorityWithCCI(modelDir, loadList, loadPriorityFilePath, loadCci
 	# 	PowerModelsONM Primary Contributor
 	# 	R&D Manager at Los Alamos National Laboratory (LANL)
 	
-	cciImpact = float(cciImpact)
+	lciImpact = float(lciImpact)
 	with open(loadPriorityFilePath) as inFile:
 		loadWeights = {}
 		outOfBoundsLW = {}
@@ -1135,23 +1115,23 @@ def combineLoadPriorityWithCCI(modelDir, loadList, loadPriorityFilePath, loadCci
 			raise Exception(f"ERROR - Load priorities must be between 1 and 100 inclusive. The uploaded load priorities include: {outOfBoundsLW}")
 	# If-statement outside of the function definition so it isn't checked every time the function is called
 	if loadWeights:
-		mergeCciAndWeights = lambda cci,weight : ((cciImpact*cci**2 + weight**2)/(1+cciImpact))**0.5
+		mergeLciAndWeights = lambda lci,weight : ((lciImpact*lci**2 + weight**2)/(1+lciImpact))**0.5
 	else:
-		mergeCciAndWeights = lambda cci,weight : max(1,cci*cciImpact)
+		mergeLciAndWeights = lambda lci,weight : max(1,lci*lciImpact)
 	loadWeightsMerged = {}
 	for loadName in loadList:
 		# Loads defaulting to weight 1 is done to reflect that choice within PowerModelsONM and the expected priorities scale discussed above
 		loadWeight = loadWeights.get(loadName,1)
-		cci = loadCciDict.get(loadName)
-		if cci != None:
+		lci = loadLciDict.get(loadName)
+		if lci != None:
 			# PowerModelsONM expects a priorities scale of 1=non-critical, 10=sub-critical, 100=critical. 
 			# e^(x0.0460517) is the exponential best fit for (0,1),(50,10),(100,100)
-			# Using that transform, we can force linear cci values into the exponential scale expected by PowerModelsONM 
-			# (Ex: the load with 50 cci would have ~10 expCci, appropriately representing being subcritical)
-			expCci = math.e**(cci*0.0460517)
-			loadWeightsMerged[loadName] = mergeCciAndWeights(expCci,loadWeight)
+			# Using that transform, we can force linear lci values into the exponential scale expected by PowerModelsONM 
+			# (Ex: the load with 50% lci would have ~10 expLci, appropriately representing being subcritical)
+			lciAsPercent = 100*lci
+			expLci = math.e**(lciAsPercent*0.0460517)
+			loadWeightsMerged[loadName] = mergeLciAndWeights(expLci,loadWeight)
 		else:
-			# For non-residential loads that don't have a CCI, just use raw loadWeight
 			loadWeightsMerged[loadName] = loadWeight
 	mergedLoadWeightsFile = pJoin(modelDir, 'loadWeightsMerged.json')
 	with open(mergedLoadWeightsFile, 'w') as outfile:
@@ -1307,7 +1287,7 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 
 	return gensFigure, mgGensFigures
 
-def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost, hardware_cost, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadCciDict, loadCcsDict, loadBcsDict):
+def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost, hardware_cost, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadLciDict, loadLcsDict, loadBcsDict, useLci):
 	''' Run full microgrid control process. '''
 	# Gather output data.
 	with open(pJoin(modelDir,'output.json')) as inFile:
@@ -1726,8 +1706,8 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 
 	outageIncidenceFig, mgOIFigs = outageIncidenceGraph(customerOutageData, outputTimeline, startTime, numTimeSteps, loadPriorityFile, loadMgDict)
 	taofiHist, taodiHist, TAOFI, TAODI = makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, list(loadMgDict.keys()))
-	cciTaofiScatter, cciTaodiScatter = makeCciTaofiTaodiScatter(loadCciDict, TAOFI, TAODI)
-	tradMetricsHtml, cciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadCciDict, loadCcsDict, loadBcsDict, TAODI, loadPriorityFile)
+	lciTaofiScatter, lciTaodiScatter = makeLciTaofiTaodiScatter(loadLciDict, TAOFI, TAODI)
+	tradMetricsHtml, lciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadLciDict, loadLcsDict, loadBcsDict, loadPriorityFile, useLci)
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
 	profit_on_energy_sales = float(profit_on_energy_sales)
@@ -1741,7 +1721,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			'customerOutageHtml': 	customerOutageHtml, 
 			'timelineStatsHtml': 	timelineStatsHtml,
 			'tradMetricsHtml':		tradMetricsHtml,
-			'cciQuartTradMetricsHtml': cciQuartTradMetricsHtml,
+			'lciQuartTradMetricsHtml': lciQuartTradMetricsHtml,
 			'outageIncidenceFig': 	outageIncidenceFig, 
 			'mgOIFigs':				mgOIFigs, 
 			'mgGensFigs':			mgGensFigs, 
@@ -1749,8 +1729,8 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			'loads': 				loads, 
 			'volts': 				volts, 
 			'fig': 					fig, 
-			'cciTaodiScatter':		cciTaodiScatter,
-			'cciTaofiScatter':		cciTaofiScatter,
+			'lciTaodiScatter':		lciTaodiScatter,
+			'lciTaofiScatter':		lciTaofiScatter,
 			'customerOutageCost': 	customerOutageCost, 
 			'endTime': 				simTimeSteps[-1], 
 			'stepSize': 			stepSize, 
@@ -1817,7 +1797,7 @@ def copyInputFilesToModelDir(modelDir, inputDict):
 	''' Creates local copies of input files in the model directory modelDir.
 		Returns a dictionary of paths to the local copies with the following keys:
 
-		'mgTagging', 'loadPriority', 'customerInfo', 'event'
+		'mgTagging', 'loadPriority', 'customerInfo', 'event', 'rescomOutput'
 	'''
 	# TODO: See if there's any reason it's done this way as opposed to just copying files to the modelDir with shutil.copy(src,dest)
 	pathToLocalFile = {}
@@ -1855,6 +1835,10 @@ def copyInputFilesToModelDir(modelDir, inputDict):
 	with open(pJoin(modelDir, inputDict['eventFileName']), 'w') as eFile:
 		pathToLocalFile['event'] = eFile.name
 		eFile.write(inputDict['eventData'])
+
+	with open(pJoin(modelDir, inputDict['rescomOutputFileName']), 'w') as eFile:
+		pathToLocalFile['rescomOutput'] = eFile.name
+		eFile.write(inputDict['rescomOutputData'])
 	
 	return pathToLocalFile
 
@@ -1953,17 +1937,18 @@ def work(modelDir, inputDict):
 	
 	pathToLocalFile = copyInputFilesToModelDir(modelDir, inputDict)
 	
-	loadList, loadCciDict, loadCcsDict, loadBcsDict = getResComInfo(
+	loadList, loadLciDict, loadLcsDict, loadBcsDict = getResComInfo(
 		modelDir 				= modelDir, 
 		pathToOmd				= omdFilePath,
-		customerInfo			= pathToLocalFile['customerInfo']
+		useLci					= inputDict['useLci'],
+		rescomOutputFilePath	= pathToLocalFile['rescomOutput']
 	)
-	pathToMergedPriorities = combineLoadPriorityWithCCI(
+	pathToMergedPriorities = combineLoadPriorityWithLCI(
 		modelDir				= modelDir,
 		loadList				= loadList,
 		loadPriorityFilePath	= pathToLocalFile['loadPriority'],
-		loadCciDict				= loadCciDict,
-		cciImpact				= inputDict['cciImpact']
+		loadLciDict				= loadLciDict,
+		lciImpact				= inputDict['lciImpact']
 	)
 	runMicrogridControlSim(
 		modelDir				= modelDir, 
@@ -1990,9 +1975,10 @@ def work(modelDir, inputDict):
 		obMgDict 				= microgridInfo['obMgDict'],
 		busMgDict				= microgridInfo['busMgDict'],
 		mgIDs					= microgridInfo['mgIDs'],
-		loadCciDict				= loadCciDict,
-		loadCcsDict				= loadCcsDict,
-		loadBcsDict				= loadBcsDict
+		loadLciDict				= loadLciDict,
+		loadLcsDict				= loadLcsDict,
+		loadBcsDict				= loadBcsDict,
+		useLci					= inputDict['useLci']
 	)
 	# Textual outputs of outage timeline
 	with open(pJoin(modelDir,'timelineStats.html')) as inFile:
@@ -2006,9 +1992,9 @@ def work(modelDir, inputDict):
 	# Textual outputs of traditional metrics table
 	with open(pJoin(modelDir,'mgTradMetricsTable.html')) as inFile:
 		outData['tradMetricsHtml'] = inFile.read()
-	# Textual outputs of traditional metrics table for cciQuarts
-	with open(pJoin(modelDir,'cciQuartTradMetricsTable.html')) as inFile:
-		outData['cciQuartTradMetricsHtml'] = inFile.read()
+	# Textual outputs of traditional metrics table for lciQuarts
+	with open(pJoin(modelDir,'lciQuartTradMetricsTable.html')) as inFile:
+		outData['lciQuartTradMetricsHtml'] = inFile.read()
 	#The geojson dictionary to load into the outageCost.py template
 	with open(pJoin(modelDir,'geoDict.js'),'rb') as inFile:
 		outData['geoDict'] = inFile.read().decode()
@@ -2019,7 +2005,7 @@ def work(modelDir, inputDict):
 	#	outData['customerCostFig.png'] = base64.standard_b64encode(inFile.read()).decode()
 	# Plotly outputs.
 	layoutOb = go.Layout()
-	outData['mgGensFigsData'] = json.dumps(plotOuts.get('mgGensFigs',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['mgGensFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgGensFigs',{}).items()}
 	outData['mgGensFigsLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig1Data'] = json.dumps(plotOuts.get('gens',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig1Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
@@ -2033,16 +2019,16 @@ def work(modelDir, inputDict):
 	outData['fig5Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Data'] = json.dumps(plotOuts.get('outageIncidenceFig',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['mgOIFigsData'] = json.dumps(plotOuts.get('mgOIFigs',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['mgOIFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgOIFigs',{}).items()}
 	outData['mgOIFigsLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['taofiHistData'] = json.dumps(plotOuts.get('taofiHist',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['taofiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['taodiHistData'] = json.dumps(plotOuts.get('taodiHist',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['taodiHistLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaodiScatterData'] = json.dumps(plotOuts.get('cciTaodiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaodiScatterLayout'] = json.dumps(plotOuts.get('cciTaodiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaofiScatterData'] = json.dumps(plotOuts.get('cciTaofiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
-	outData['cciTaofiScatterLayout'] = json.dumps(plotOuts.get('cciTaofiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
+	outData['lciTaodiScatterData'] = json.dumps(plotOuts.get('lciTaodiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
+	outData['lciTaodiScatterLayout'] = json.dumps(plotOuts.get('lciTaodiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
+	outData['lciTaofiScatterData'] = json.dumps(plotOuts.get('lciTaofiScatter',{}).data, cls=py.utils.PlotlyJSONEncoder)
+	outData['lciTaofiScatterLayout'] = json.dumps(plotOuts.get('lciTaofiScatter',{}).layout, cls=py.utils.PlotlyJSONEncoder)
 
 	# Stdout/stderr.
 	outData['stdout'] = 'Success'
@@ -2082,6 +2068,8 @@ def new(modelDir):
 	microgridTagging_file_data = open(pJoin(*microgridTagging_file_path)).read()
 	customerInfo_file_path = [__neoMetaModel__._omfDir,'static','testFiles','restoration','customerInfoExample.csv']
 	customerInfo_file_data = open(pJoin(*customerInfo_file_path)).read()
+	rescomOutput_file_path = [__neoMetaModel__._omfDir,'static','testFiles','restoration','rescomOutputForIowa240.json']
+	rescomOutput_file_data = open(pJoin(*rescomOutput_file_path)).read()
 	'''
 	feeder_file_path= [__neoMetaModel__._omfDir,'static','testFiles','restoration','ieee37busdata', 'ieee37_LBL_simplified.omd']
 	event_file_path = [__neoMetaModel__._omfDir,'static','testFiles','restoration', 'empty event.json']
@@ -2146,7 +2134,10 @@ def new(modelDir):
 		'loadPriorityData': loadPriority_file_data,
 		'microgridTaggingFileName': microgridTagging_file_path[-1],
 		'microgridTaggingData': microgridTagging_file_data,
-		'cciImpact': '1.0'
+		'rescomOutputFileName': rescomOutput_file_path[-1],
+		'rescomOutputData': rescomOutput_file_data,
+		'useLci': 'Yes',
+		'lciImpact': '1.0'
 	}
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	try:

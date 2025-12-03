@@ -66,20 +66,23 @@
 				</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Average Peak Demand (kW)<span class="classic">Enter the average peak demand for a household
-						in the area </span></label>
-				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0" step="0.01" required>
-			</div>
-			<div class="shortInput">
 				<label class="tooltip">Feeder Map Coloring By<span class="classic">Determines coloring of loads and equipment on the circuit.<br><br>To change coloring after running the model, go to the top right of the output map and click &quot;Edit&quot; -> &quot;Color circuit&quot;.</span></label>
 				<select id="loadCol" name="loadCol" value="{{allInputDataDict.loadCol}}">
 					<option value="Base Criticality Score" {% if allInputDataDict.loadCol == "Base Criticality Score" %}selected{% endif %}>Base Criticality Score </option>
-					<option value="Community Criticality Score" {% if allInputDataDict.loadCol == "Community Criticality Score" %}selected{% endif %}>Community Criticality Score</option>
+					<option value="Locational Criticality Score" {% if allInputDataDict.loadCol == "Locational Criticality Score" %}selected{% endif %}>Locational Criticality Score</option>
 					<option value="Base Criticality Index" {% if allInputDataDict.loadCol == "Base Criticality Index" %}selected{% endif %}>Base Criticality Index</option>
-					<option value="Community Criticality Index" {% if allInputDataDict.loadCol == "Community Criticality Index" %}selected{% endif %}>Community Criticality Index</option>
+					<option value="Locational Criticality Index" {% if allInputDataDict.loadCol == "Locational Criticality Index" %}selected{% endif %}>Locational Criticality Index</option>
 					<option value="Feeder Sections" {% if allInputDataDict.loadCol == "Feeder Sections" %}selected{% endif %}>Feeder Sections</option>
 					<option value="None" {% if allInputDataDict.loadCol == "None" %}selected{% endif %}>No Node Coloring</option>
 				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Average Peak Demand (kva)<span class="classic">Enter the average peak demand for a household in the area </span></label>
+				<input type="number" name="averageDemand" id="averageDemand" value="{{allInputDataDict.averageDemand}}" min="0.01" step="0.01" required>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Average Number of Occupants<span class="classic">Enter the average number of occupants for a household in the area </span></label>
+				<input type="number" name="averageOccupants" id="averageOccupants" value="{{allInputDataDict.averageOccupants}}" min="0.01" step="0.01" required>
 			</div>
 			<hr>
 			<div class="wideInput">
@@ -106,6 +109,81 @@
 					<option value="no" {% if allInputDataDict.fuses | lower != "yes" %}selected{% endif %}>No</option>
 				</select>
 			</div>
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Outage Impact Potential (OIP)</p>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Aggregation Method<span class="classic">Determines how the properties whose weights are specified in &quot;Outage Impact Potential - Customer Variables&quot; and &quot;Outage Impact Potential - Weather Hazards Annualized Frequency&quot; are aggregated to create Outage Impact Potential (OIP).</span></label>
+				<select id="oipAggMethod" name="oipAggMethod" value="{{allInputDataDict.oipAggMethod}}">
+					<option value="Average of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "Average of Min-Max-Normalized" %}selected{% endif %}>Average of Min-Max-Normalized</option>
+					<option value="RMS of Min-Max-Normalized" {% if allInputDataDict.oipAggMethod == "RMS of Min-Max-Normalized" %}selected{% endif %}>RMS of Min-Max-Normalized</option>
+				</select>
+			</div>
+
+			<style>
+			.medInput {
+				width: 60%;
+				display: inline-block;
+				box-sizing: border-box;
+			}
+			</style>
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader"><label class="tooltip">Outage Impact Potential - Customer Variables<span class="classic">These variables only apply to residential loads.<br><br>If any of these variables are given a non-zero weight, the analysis will be restricted to loads labeled residential in the Customer Information (.csv file) upload.</span></label></p>
+			</div>
+			{% set custVarList = [
+				['% Age 16+ Employed', 'Percent of people in a blockgroup age 16+ who are employed<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages', 'oip_employed'],
+				['% Age 65+', 'Percent of people in a blockgroup age 65+', 'oip_age65'],
+				['% Crowding', 'Percent of housing units in a blockgroup with more than 1.01 people per room', 'oip_crowding'],
+				['% Individuals Below Poverty Level', 'Percent of people in a blockgroup classified as below the poverty level', 'oip_poverty'],
+				['% Individuals Disabled', 'Percent of people in a blockgroup living with a disability', 'oip_disabled'],
+				['% Limited English Speaking Households', 'Percent of limited English speaking households in a blockgroup', 'oip_lim_eng'],
+				['% Mobile Home', 'Percent of housing units in a blockgroup that are mobile homes', 'oip_mobile'],
+				['% Multi-Unit Structure', 'Percent of housing units in a blockgroup that are in structures containing 10 or more housing units','oip_multi'],
+				['% No Vehicle', 'Percent of people in a blockgroup with no vehicle', 'oip_no_vehicle'],
+				['% Non-HS Grads', 'Percent of people in a blockgroup age 25+ who are not high school graduates', 'oip_nongrad'],
+				['% Non-Institutionalized Below Age 19', 'Percent of non-institutionalized people in a blockgroup below age 19', 'oip_below19'],
+				['Avg Aggregate Household Income (USD)', 'Average aggregate household income (USD) for households in a blockgroup<br><br>This variable is inverted when aggregating it with others since a higher value implies greater resiliency to outages','oip_income']
+			] %}
+			{% for row in custVarList %}
+			<div class="shortInput">
+				<label class="tooltip">{{ row[0] }}<span class="classic">{{ row[1] }}</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0.</span></label>
+				<input type="number" name="{{ row[2] }}" id="{{ row[2] }}" value="{{ allInputDataDict[ row[2] ] }}" min="0" step="1" required>
+			</div>
+			{% endfor %}
+			<hr>
+			<div class="wideInput">
+				<p class="inputSectionHeader"><label class="tooltip">Outage Impact Potential - Weather Hazards Annualized Frequency<span class="classic">These variables apply to all loads.<br><br>Including these variables will not impact what loads are analyzed.</span></label></p>
+			</div>
+			{% set weatherVarList = [
+				['Avalanche', 'Annualized frequency of avalanche hazards in a blockgroup', 'oip_af_avln'],
+				['Cold Wave', 'Annualized frequency of cold wave hazards in a blockgroup', 'oip_af_cwav'],
+				['Drought', 'Annualized frequency of drought hazards in a blockgroup', 'oip_af_drgt'],
+				['Earthquake', 'Annualized frequency of earthquake hazards in a blockgroup', 'oip_af_erqk'],
+				['Hail', 'Annualized frequency of hail hazards in a blockgroup', 'oip_af_hail'],
+				['Heat Wave', 'Annualized frequency of heat wave hazards in a blockgroup', 'oip_af_hwav'],
+				['Hurricane', 'Annualized frequency of hurricane hazards in a blockgroup', 'oip_af_hrcn'],
+				['Ice Storm', 'Annualized frequency of ice storm hazards in a blockgroup', 'oip_af_istm'],
+				['Landslide', 'Annualized frequency of landslide hazards in a blockgroup', 'oip_af_lnds'],
+				['Lightning', 'AnnualiZed frequency of lightning hazards in a blockgroup', 'oip_af_ltng'],
+				['Strong Wind', 'Annualized frequency of strong wind hazards in a blockgroup', 'oip_af_swnd'],
+				['Wildfire', 'Annualized frequency of wildfire hazards in a blockgroup', 'oip_af_wfir'],
+				['Winter Weather', 'Annualized frequency of winter weather hazards in a blockgroup', 'oip_af_wntw']
+			] %}
+			{% for row in weatherVarList %}
+			<div class="shortInput">
+				<label class="tooltip">{{ row[0] }}<span class="classic">{{ row[1] }}</span></label>
+			</div>
+			<div class="medInput", style="display:inline-flex; align-items:center; gap:8px;">
+				<label class="tooltip">Weight<span class="classic">Weight of each property relative to each other. To exclude a property, set this to 0. </span></label>
+				<input type="number" name="{{ row[2] }}" id="{{ row[2] }}" value="{{ allInputDataDict[ row[2] ] }}" min="0" step="1" required>
+			</div>
+			{% endfor %}
+
 			{{ omfModelButtons }}
 		</form>
 	</div>
@@ -113,11 +191,20 @@
 	{% if modelStatus == 'finished' %}
 		<!-- Output tables, graphs, etc -->
 	
-	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:1px solid #2E8B57">
+	<div id="comparabilityDisclaimer" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid #2E8B57">
 		<p class="reportTitle"><em><b>IMPORTANT</b></em></p>
-		Social Vulnerability Rating, SVI, CCS, CCI, BCI, and all other "%ile" values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
+		OIP Rating, OIP Index, LCS, LCI, and BCI values cannot be compared between this and another map.<br><br>All such values are calculated relative to each other and only apply within the geographical bounds of the system being analyzed.
 	</div>
-		
+
+	{% if allOutputDataDict['rmMsgs'] != [] %}
+	<div id="removalMessage" class="tightContent" style="text-align:center; padding-bottom: 35px; border:2px solid yellow">
+		<p class="reportTitle"><em><b>NOTICE</b></em></p>
+		{% for msg in allOutputDataDict['rmMsgs'] %}
+		{{ msg }}{% if not loop.last %}<br><br>{% endif %}
+		{% endfor %}
+	</div>
+	{% endif %}
+
 	<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Resilient Community Map<span class="classic">Shapes and circuit elements can be clicked to bring up tooltips with more information about them. <br><br>Shapes can be toggled by clicking the checkbox next to &quot;geoshapes.geojson&quot; <br><br>Feeder map coloring can be changed without rerunning the model by clicking in the top right corner: &quot;Edit&quot; -> &quot;Color circuit&quot;. <br><br>Circuit elements can be searched for by clicking in the top right corner: &quot;Edit&quot; -> &quot;Search objects&quot;. They can be visualized on the map by clicking &quot;Highlight search results&quot; in the top left. <br><br>See the wiki for more details.</span></label></p>
 	<div id="resilienceMap" class="tightContent">
 		<script>
@@ -197,7 +284,7 @@
 						<div class="my-legend">
 							<div class="legend-title">
 								<p style="color:white; font-weight:bold; text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black, 0 0 2px black;">
-									Social Vulnerability Legend
+									Outage Impact Potential Legend
 								</p>
 							</div>
 							<div class="legend-scale">
@@ -299,7 +386,7 @@
         </tbody>
     </table>
 </div>
-<p class="reportTitle"><label class="tooltip">Sections Data Table<span class="classic">Sections are portions of the feeder that can be isolated from each other by opening switches. <br><br>Sections can be easily visualized by changing the feeder map coloring to &quot;Feeder Sections&quot;. <br><br>Metrics in this table are the mean values across loads in each section. The measures &quot;Load Count&quot; and &quot;Load Amount&quot; are total values across loads in each section.</span></label></p>
+<p class="reportTitle"><label class="tooltip">Sections Data Table<span class="classic">Sections are portions of the feeder that can be isolated from each other by opening switches. <br><br>Sections can be easily visualized by changing the feeder map coloring to &quot;Feeder Sections&quot;. <br><br>Metrics in this table are the mean values across loads in each section. The measures &quot;Load Count&quot; and &quot;Load Amount (kva)&quot; are total values across loads in each section.</span></label></p>
 <div id="traditionalSectionsTable" class="tightContent" style="height:300px; overflow-y: scroll;">
     <table style="width:100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
         <thead>
