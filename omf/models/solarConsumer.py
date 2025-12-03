@@ -61,11 +61,12 @@ def work(modelDir, inputDict):
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy-2024&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	lat_long_to_wkt = weather.nsrbd_latlon_to_wkt(longitude=long, latitude=lat) # "POINT({lon_str} {lat_str})"
+	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")
-		raise Exception(f"pvwatts work(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.errors[0]}")
+		raise Exception(f"pvwatts work(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
 	else:
 		text = response.text
 		lines = text.splitlines()[2:]

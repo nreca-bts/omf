@@ -9,6 +9,7 @@ from pathlib import Path
 # OMF imports
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
+from omf import weather
 
 # Model metadata:
 tooltip = "The pvWatts model runs the NREL pvWatts tool for quick estimation of solar panel output."
@@ -60,8 +61,9 @@ def work(modelDir, inputDict):
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy-2024&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	lat_long_to_wkt = weather.nsrbd_latlon_to_wkt(longitude=long, latitude=lat) # "POINT({lon_str} {lat_str})"
+	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	# modified_url = f"{base_url}wkt=POINT({long}%{lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")

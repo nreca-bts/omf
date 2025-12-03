@@ -761,11 +761,15 @@ def lat_lon_diff(lat1, lat2, lon1, lon2):
 
 # NSRDB
 def nsrbd_latlon_to_wkt(longitude, latitude):
-	if latitude < -90 or latitude > 90:
-		raise ValueError('invalid latitude')
-	elif longitude < -180 or longitude > 180:
-		raise ValueError('invalid longitude')  
-	return 'POINT({} {})'.format(longitude, latitude)
+    if not (-90 <= latitude <= 90):
+        raise ValueError('invalid latitude')
+    if not (-180 <= longitude <= 180):
+        raise ValueError('invalid longitude')
+
+    lon_str = f"{longitude:.4f}"
+    lat_str = f"{latitude:.4f}"
+
+    return f"POINT({lon_str} {lat_str})"
 
 def get_nsrdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
 	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
