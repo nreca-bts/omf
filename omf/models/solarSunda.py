@@ -9,7 +9,6 @@ import requests
 
 # OMF imports
 from omf import weather
-from omf.solvers import nrelsam2013
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
 
