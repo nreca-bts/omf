@@ -16,7 +16,7 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 
 def work(modelDir, inputDict):
 
-	# Get inputs for system design parameters
+	### Get inputs for system design parameters
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	azimuth = float( inputDict['azimuth'] )
@@ -28,7 +28,7 @@ def work(modelDir, inputDict):
 	start = pd.to_datetime(inputDict["simStartDate"])
 	trackingMode = int ( inputDict["trackingMode"] )
 
-	# Set up system design parameter dict for PySAM pvWatts Model
+	### Set up system design parameter dict for PySAM pvWatts Model
 	sys_design = {
 		"ModelParams": {
 				"SystemDesign": {
@@ -50,7 +50,7 @@ def work(modelDir, inputDict):
 		}
 	}
 
-	# Get the data from NSRDB API
+	### Get the data from NSRDB API
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
 
@@ -60,7 +60,7 @@ def work(modelDir, inputDict):
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy-2024&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	# modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names={start.year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
