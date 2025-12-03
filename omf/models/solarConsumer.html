@@ -33,15 +33,19 @@
 				<p class="inputSectionHeader">Solar System Parameters</p>
 			</div>
 			<hr>
-			<div class="shortInput">
-				<label class="tooltip">Zip Code<span class="classic">Zip code of the planned array's geographical location.</span></label>
-				<input type="text" id="zipCode" name="zipCode" value="{{allInputDataDict.zipCode}}" pattern="^\d{5}(?:[-\s]\d{4})?$" required="required">
+			<div class="shorterInput">
+				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
+				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
+				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
+				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shorterInput">
 				<label class="tooltip">System Size (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
 				<input type="text" id="SystemSize" name="SystemSize" value="{{allInputDataDict.SystemSize}}" pattern="^\d+\.?\d*$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
 				<label class="tooltip">Projected System Life (years)<span class="classic">How many years you expect the system to last. Up to 100 years.</span></label>
 				<input type="text" id="years" name="years" value="{{allInputDataDict.years}}" pattern="^(100|\d{1,2})(\.\d+)?$" required="required">
 			</div>
