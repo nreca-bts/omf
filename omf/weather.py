@@ -771,6 +771,31 @@ def nsrbd_latlon_to_wkt(longitude, latitude):
 
     return f"POINT({lon_str} {lat_str})"
 
+def get_nsrdb_goes_aggregated_data(longitude, latitude, year, api_key, attributes=["dni", "dhi", "ghi", "wind_speed" "air_temperature"], utc="false", leap_day="false", email='admin@omf.coop', filename=None):
+	'''
+		Pulls data from NSRDB GOES East and GOES West
+
+		parameters:
+		- attributes: Check https://developer.nrel.gov/docs/solar/nsrdb/nsrdb-GOES-aggregated-v4-0-0-download/ for all attributes
+		- filename: must have modelDir passed in
+	'''
+	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv?"
+	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
+	string_of_attributes = ' '.join(attributes)
+	lat_long_to_wkt = nsrbd_latlon_to_wkt(longitude=longitude, latitude=latitude) # "POINT({lon_str} {lat_str})"
+	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={string_of_attributes}&names={year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	response = requests.get(modified_url)
+	if response.status_code == 400:
+		print(f"url: {modified_url}")
+		raise Exception(f"pvwatts work(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	else:
+		text = response.text
+		clean_text = text.splitlines()
+		with open( filename, "w") as text_file:
+			text_file.write(clean_text)
+			requestSuccess = True
+
+
 def get_nsrdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
 	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
 	print("NSRDB found")
