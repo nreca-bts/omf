@@ -122,6 +122,8 @@ def work(modelDir, inputDict):
 		with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
 				json.dump(resource, outfile)
 		pvwatts_model.execute()
+	else:
+		raise Exception("model solarConsumer.py API request failed")
 
 	# Set the timezone to be UTC, it won't affect calculation and display, relative offset handled in pvWatts.html
 	startDateTime = "2013-01-01 00:00:00 UTC"
