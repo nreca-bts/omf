@@ -23,11 +23,13 @@ def work(modelDir, inputDict):
 	azimuth = float( inputDict['azimuth'] )
 	rotlim = float( inputDict['rotlim'] )
 	inv_eff = float( inputDict['inverterEfficiency'] )
-	losses = float( inputDict['losses'] )
-	sys_cap = float( inputDict['systemCapacity'] )
 	tilt = float( inputDict['tilt'] )
 	start = pd.to_datetime(inputDict["simStartDate"])
 	trackingMode = int ( inputDict["trackingMode"] )
+
+	# Defaults
+	losses = 15.53
+	sys_cap = 750
 
 	### Set up system design parameter dict for PySAM pvWatts Model
 	sys_design = {
@@ -200,8 +202,6 @@ def new(modelDir):
 		"rotlim": "45.0",
 		"trackingMode": "2",
 		"inverterEfficiency":"97.5",
-		"losses": "15.53",
-		"systemCapacity": "750",
 		"systemSize": "10",
 		"inverterSize": "8",
 		"runTime": "",
