@@ -224,6 +224,10 @@
 				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
+		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
+		<div id="utilityOutageCostCalc" class="tightContent">
+			{{ allOutputDataDict['utilityOutageHtml'] }}
+		</div>
 		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in minutes) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
 		<div id="taofiHist" class="tightContent">
 			<div id="taofiHistChart" style="width:1000px"></div>
@@ -256,10 +260,6 @@
 			</script>
 		</div>
 		{% endif %}
-		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
-		<div id="utilityOutageCostCalc" class="tightContent">
-			{{ allOutputDataDict['utilityOutageHtml'] }}
-		</div>
 		<p class="reportTitle"><label class="tooltip">Outage Incidence for Full System<span class="classic">Outage Incidence is the percent of loads in a system that are experiencing an outage at a given time. A load is considered to be experiencing an outage at a given time if its "After" status in the Timeline below is "offline".</span></label></p>
 		<div id="fig6" class="tightContent">
 			<div id="fig6Chart" style="width:1000px"></div>
