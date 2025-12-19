@@ -909,9 +909,9 @@ def makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, loadList):
 		numLoadSheds = dfLoadSheds.shape[0]
 		timeOfFirstLoadShed = dfLoadSheds['time'].min()
 		timeOfLastLoadShed = dfLoadSheds['time'].max()
-		TAOFI[loadName] = (numLoadSheds-1)/((timeOfLastLoadShed-timeOfFirstLoadShed)*60)
+		#TODO: Multiply denomenator for TAOFI by the time step size if not 1 hour
+		TAOFI[loadName] = (numLoadSheds-1)/(timeOfLastLoadShed-timeOfFirstLoadShed)
 		TAODI[loadName] = 100*dfStatus[loadName].sum()/numTimeSteps
-		#TODO: Replace 60 with resolution of step size if it's ever possible not to have a resolution of 60 min
 	minVals = (min(list(TAOFI.values())), 0)
 	maxVals = (max(list(TAOFI.values())), 100)
 	numBins = 45
@@ -1084,9 +1084,13 @@ def getResComInfo(modelDir, pathToOmd, useLci, rescomOutputFilePath):
 		for loadName in completeLoadList:
 			loadData = rescomLoadDict.get(f'load.{loadName}')
 			if loadData != None:
-				lciDict[loadName] = loadData.get('locational crit index')
-				lcsDict[loadName] = loadData.get('locational crit score')
-				bcsDict[loadName] = loadData.get('base crit score')
+				try:
+					lciDict[loadName] = loadData['locational crit index']
+					lcsDict[loadName] = loadData['locational crit score']
+					bcsDict[loadName] = loadData['base crit score']
+				except KeyError as e:
+					errorString = f'ERROR: Missing expected key {e} in Load LCI Data (.json file) for load {loadName}. Data found: {loadData}'
+					raise KeyError(errorString)	
 	return completeLoadList, lciDict, lcsDict, bcsDict
 
 def combineLoadPriorityWithLCI(modelDir, loadList, loadPriorityFilePath, loadLciDict, lciImpact):
