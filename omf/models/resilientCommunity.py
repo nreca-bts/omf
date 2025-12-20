@@ -1537,8 +1537,9 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	#omdfileName = 'iowa240_in_Florida_copy2'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
-	omdfileName = 'ieee37_LBL_simplified'
-	
+	#omdfileName = 'ieee37_LBL_simplified'
+	omdfileName = 'iowa240_in_Florida_copy2_no_show_voltage.dss'
+
 	# Establish Default Files
 	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
 	customerData = open(pJoin(*customerFileName)).read()
@@ -1595,7 +1596,8 @@ def new(modelDir):
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	try:
 		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "publicFeeders", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
-		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
+		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
+		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
 		shutil.copyfile(pJoin(*customerFileName), pJoin(modelDir, defaultInputs["customerFileName"]))
 		shutil.copyfile(pJoin(*equipLifeFileName), pJoin(modelDir, defaultInputs["equipLifeFileName"]))
 	except:
