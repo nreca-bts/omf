@@ -1356,6 +1356,7 @@ def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
 	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
 	combined_dict = {**newloadsDict, **newobjectsDict}
 	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
+	new_df = new_df.fillna(-1)
 	new_df[['base crit score','locational crit score','base crit index','locational crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
 
 def copyInputFilesToModelDir(modelDir, inputDict):
