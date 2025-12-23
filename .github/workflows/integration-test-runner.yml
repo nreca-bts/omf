@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v2 # Checkout whichever ref that triggered this workflow
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # Checkout whichever ref that triggered this workflow
       - name: Install Dependencies
         run: |
           sudo python3 install.py

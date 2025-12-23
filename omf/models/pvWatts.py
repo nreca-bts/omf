@@ -9,34 +9,35 @@ from pathlib import Path
 # OMF imports
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
+from omf import weather
 
 # Model metadata:
 tooltip = "The pvWatts model runs the NREL pvWatts tool for quick estimation of solar panel output."
 modelName, template = __neoMetaModel__.metadata(__file__)
 
 def work(modelDir, inputDict):
-	# Copy specific climate data into model directory
 
+	### Get inputs for system design parameters
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	azimuth = float( inputDict['azimuth'] )
-	dc_ac_ratio = float( inputDict['dc_ac_ratio'] )
-	gcr = float( inputDict['gcr'] )
+	rotlim = float( inputDict['rotlim'] )
 	inv_eff = float( inputDict['inverterEfficiency'] )
 	losses = float( inputDict['losses'] )
 	sys_cap = float( inputDict['systemCapacity'] )
 	tilt = float( inputDict['tilt'] )
-	elev = float( inputDict['elev'] )
+	start = pd.to_datetime(inputDict["simStartDate"])
+	trackingMode = int ( inputDict["trackingMode"] )
 
+	### Set up system design parameter dict for PySAM pvWatts Model
 	sys_design = {
 		"ModelParams": {
 				"SystemDesign": {
-						"array_type": 2.0,
+						"array_type": trackingMode,
 						"azimuth": azimuth,
-						"dc_ac_ratio": dc_ac_ratio,
-						"gcr": gcr,
 						"inv_eff": inv_eff,
 						"losses": losses,
+						"rotlim": rotlim,
 						"module_type": 2.0,
 						"system_capacity": sys_cap,
 						"tilt": tilt
@@ -47,19 +48,18 @@ def work(modelDir, inputDict):
 		"Other": {
 				"lat": lat,
 				"lon": long,
-				"elev": elev
 		}
 	}
 
-	import PySAM.Pvwattsv8 as pvwatts
-
+	### Get the data from NSRDB API
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
 	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	requestSuccess = False
-	modified_url = f"{base_url}wkt=POINT({long} {lat})&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	lat_long_to_wkt = weather.nsrbd_latlon_to_wkt(longitude=long, latitude=lat) # "POINT({lon_str} {lat_str})"
+	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
 	response = requests.get(modified_url)
 	if response.status_code == 400:
 		print(f"url: {modified_url}")
@@ -67,14 +67,25 @@ def work(modelDir, inputDict):
 	else:
 		text = response.text
 		lines = text.splitlines()[2:]
+		nsrdb_data = text.splitlines()[:2]
 		clean_text = "\n".join(lines)
 		with open( Path(modelDir,"output_tmy_wind_data.csv"), "w") as text_file:
 			text_file.write(clean_text)
 			requestSuccess = True
 
+	# If getting the data was successful:
+	# - Combine data + system parameters into pvwatts model and execute
 	if requestSuccess:
+		import PySAM.Pvwattsv8 as pvwatts
 		pvwatts_model = pvwatts.new()
 		wind_data = pd.read_csv(Path(modelDir,"output_tmy_wind_data.csv"))
+
+		# We can snag elevation from the NSRDB Data we pulled out of the request
+		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
+		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
+
+		elevation = int( nsrdb_data[1].split(",")[8] )
+		sys_design["Other"]["elev"] = elevation
 
 		datetime_components_dict = {
 			'year': wind_data['Year'],
@@ -91,7 +102,7 @@ def work(modelDir, inputDict):
 			'lat': lat,
 			'lon': long,
 			'tz': -7,
-			'elev': 1829,
+			'elev': elevation,
 			'year': wind_data['Year'].tolist(),
 			'month': wind_data['Month'].tolist(),
 			'day': wind_data['Day'].tolist(),
@@ -119,7 +130,6 @@ def work(modelDir, inputDict):
 		outData['longitude'] = pvwatts_model.Outputs.lon
 		outData['elev'] = pvwatts_model.Outputs.elev
 
-		start = pd.to_datetime(inputDict["simStartDate"])
 		thirty_minute_start = pd.to_timedelta( 30, unit="minute")
 		start = start + thirty_minute_start
 		time_passed = pd.to_timedelta( int(inputDict['simLength']), unit=inputDict['simLengthUnits'])
@@ -183,15 +193,12 @@ def runtimeEstimate(modelDir):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	defaultInputs = {
-		"simStartDate": "2023-07-01",
-		"simLengthUnits": "hours",
 		"modelType": modelName,
 		"longitude": "-97.1292",
 		"latitude": "33.2164",
-		"simLength": "100",
 		"azimuth":"180.0",
-		"dc_ac_ratio": "1.08",
-		"gcr": "0.592",
+		"rotlim": "45.0",
+		"trackingMode": "2",
 		"inverterEfficiency":"97.5",
 		"losses": "15.53",
 		"systemCapacity": "750",
@@ -199,7 +206,9 @@ def new(modelDir):
 		"inverterSize": "8",
 		"runTime": "",
 		"tilt":"45",
-		"elev": "1829"
+		"simStartDate": "2023-07-01",
+		"simLengthUnits": "hours",
+		"simLength": "100",
 	}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
