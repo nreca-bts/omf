@@ -278,10 +278,6 @@
 			}
 			</script>
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Timeline</p>
-		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
-			{{ allOutputDataDict['timelineStatsHtml'] }}
-		</div>
 		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by Microgrid<span class="classic">LCI related metrics only consider loads in each microgrid that have LCI values.</span></label></p>
 		<div id="tradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['tradMetricsHtml'] }}
@@ -292,6 +288,10 @@
 			{{ allOutputDataDict['lciQuartTradMetricsHtml'] }}
 		</div>
 		{% endif %}
+		<p class="reportTitle" style="page-break-before:always">Timeline</p>
+		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
+			{{ allOutputDataDict['timelineStatsHtml'] }}
+		</div>
 		<!-- Leaflet map directly inline with model-->
 		<p class="reportTitle">Outage Map and Time Slider</p>
 		<div class="tightContent" style="margin-bottom:-1px">
