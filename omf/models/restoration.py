@@ -233,9 +233,9 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 		customerOutageFile.write(customerOutageHtml)
 	return customerOutageHtml
 
-def utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration, modelDir):
+def utilityOutageTable(average_lost_kwh, outageDuration, modelDir):
 	'''generate html table of customer outages'''
-	# TODO: update table after calculating outage stats
+	'''# TODO: update table after calculating outage stats
 	def utilityOutageStats(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration):
 		new_html_str = """
 			<table cellpadding="0" cellspacing="0">
@@ -262,6 +262,9 @@ def utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cos
 		restoration_cost = restoration_cost,
 		hardware_cost = hardware_cost,
 		outageDuration = outageDuration)
+	'''
+	utilityOutageHtml = '<!-- placeholder -->' 
+	# TODO: replace with graph of lost kWh sales over time and change function name and docstring accordingly
 	with open(pJoin(modelDir, 'utilityOutageTable.html'), 'w') as utilityOutageFile:
 		utilityOutageFile.write(utilityOutageHtml)
 	return utilityOutageHtml
@@ -1294,7 +1297,7 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 
 	return gensFigure, mgGensFigures
 
-def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost, hardware_cost, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadLciDict, loadLcsDict, loadBcsDict, useLci):
+def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadLciDict, loadLcsDict, loadBcsDict, useLci):
 	''' Run full microgrid control process. '''
 	# Gather output data.
 	with open(pJoin(modelDir,'output.json')) as inFile:
@@ -1717,11 +1720,9 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	tradMetricsHtml, lciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadLciDict, loadLcsDict, loadBcsDict, loadPriorityFile, useLci)
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
-	profit_on_energy_sales = float(profit_on_energy_sales)
-	restoration_cost = int(restoration_cost)
-	hardware_cost = int(hardware_cost)
 	simulationDuration = int(simulationDuration)
-	utilityOutageHtml = utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, simulationDuration, modelDir)
+	utilityOutageHtml = utilityOutageTable(average_lost_kwh, simulationDuration, modelDir)
+	# TODO: Replace the Utility Outage Table with a graph of lost kWh sales over time
 	try: customerOutageCost = customerOutageCost
 	except: customerOutageCost = 0
 	return {'utilityOutageHtml': 	utilityOutageHtml, 
@@ -1972,9 +1973,6 @@ def work(modelDir, inputDict):
 	plotOuts = graphMicrogrid(
 		modelDir				= modelDir, 
 		pathToOmd				= omdFilePath, 
-		profit_on_energy_sales	= inputDict['profit_on_energy_sales'],
-		restoration_cost		= inputDict['restoration_cost'],
-		hardware_cost			= inputDict['hardware_cost'],
 		pathToJson				= pathToLocalFile['event'],
 		pathToCsv				= pathToLocalFile['customerInfo'],
 		loadPriorityFile		= pathToMergedPriorities,
@@ -2129,9 +2127,6 @@ def new(modelDir):
 		'modelType': modelName,
 		'feederName1': feeder_file_path[-1][0:-4],
 		'outageDuration': '5',
-		'profit_on_energy_sales': '0.03',
-		'restoration_cost': '100',
-		'hardware_cost': '550',
 		'customerFileName': customerInfo_file_path[-1],
 		'customerData': customerInfo_file_data,
 		'eventFileName': event_file_path[-1],
