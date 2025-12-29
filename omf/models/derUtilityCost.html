@@ -15,7 +15,6 @@
 		$(window).on('pageshow',function(){
 			plotGraph('newDemandData', allOutputData['newDemandData'], allOutputData['newDemandLayout'] );
 			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout'] );
-			plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 		});
 	</script>
 
@@ -38,12 +37,14 @@
 	{% if allOutputDataDict.thermalDataCheck == 0 %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 				$("#thermalBatPowerPlot").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 			});
 		</script>
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 				plotGraph( 'thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout'] );
 			});
 		</script>
@@ -436,7 +437,12 @@
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
 
-	<!-- Output tables, graphs, etc -->
+	<!-- Output tables, graphs, etc 
+	
+	<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
+		<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+	
+	-->
 	<div id="output">
 
 		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
@@ -446,7 +452,16 @@
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
 		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
-		<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% if allOutputDataDict.thermalDataCheck == 0 %}
+			<div id="ThermalDEROverviewData" class="tightContent"></div>
+			<script type="text/javascript">    
+				$(window).on('pageshow', function(){
+					$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
+				});
+			</script>
+		{% else %}
+			<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% endif %}
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
