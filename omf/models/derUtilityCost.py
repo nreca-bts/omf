@@ -390,14 +390,16 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	## Run REopt.jl
 	########################################################################################################################
-	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json')
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False)#, tolerance=10.0)#, random_seed=420)
 
-	## Load the REopt results once it is finished running.
-	## TODO: Add warnings here to handle when REopt does not produce an output or gives an error
-	with open(pJoin(modelDir, 'results.json')) as jsonFile:
-		reoptResults = json.load(jsonFile)
-	outData.update(reoptResults) ## Update output file with reopt results
-	reoptErrorMsgs = reoptResults['Messages']['errors']
+	## Load the REopt results once it is finished running
+	try: 
+		with open(pJoin(modelDir, 'results.json')) as jsonFile:
+			reoptResults = json.load(jsonFile)
+		outData.update(reoptResults) ## Update output file with reopt results
+		reoptErrorMsgs = reoptResults['Messages']['errors']
+	except FileNotFoundError:
+		raise Exception(f'REopt did not produce any results. An error may have occurred.')
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
 	if BESScheck == 'enabled':
