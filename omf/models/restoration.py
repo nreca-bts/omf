@@ -207,7 +207,7 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 						<th>Customer Name</th>
 						<th>Duration</th>
 						<th>Season</th>
-						<th>Average kW/hr</th>
+						<th>Time Average kW</th>
 						<th>Business Type</th>
 						<th>Load Name</th>
 						<th>Outage Cost</th>
@@ -216,7 +216,7 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 				<tbody>"""
 		row = 0
 		while row < len(customerOutageData):
-			new_html_str += '<tr><td>' + str(customerOutageData.loc[row, 'Customer Name']) + '</td><td>' + str(customerOutageData.loc[row, 'Duration']) + '</td><td>' + str(customerOutageData.loc[row, 'Season']) + '</td><td>' + '{0:.2f}'.format(customerOutageData.loc[row, 'Average kW/hr']) + '</td><td>' + str(customerOutageData.loc[row, 'Business Type']) + '</td><td>' + str(customerOutageData.loc[row, 'Load Name']) + '</td><td>' + "${:,.2f}".format(outageCost[row])+ '</td></tr>'
+			new_html_str += '<tr><td>' + str(customerOutageData.loc[row, 'Customer Name']) + '</td><td>' + str(customerOutageData.loc[row, 'Duration']) + '</td><td>' + str(customerOutageData.loc[row, 'Season']) + '</td><td>' + '{0:.2f}'.format(customerOutageData.loc[row, 'Time Average kW']) + '</td><td>' + str(customerOutageData.loc[row, 'Business Type']) + '</td><td>' + str(customerOutageData.loc[row, 'Load Name']) + '</td><td>' + "${:,.2f}".format(outageCost[row])+ '</td></tr>'
 			row += 1
 		new_html_str +="""</tbody></table>"""
 		return new_html_str
@@ -1557,6 +1557,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	# Generate customer outage outputs
 	try:
 		# TODO: this should not be customerOutageData... this is the input of customer info. It's later turned into customerOutageData by adding more info, but this same variable should NOT be used for the same thing
+		# Below variable starts as dataframe of Customer Information File data
 		customerOutageData = pd.read_csv(pathToCsv)
 	except:
 		# TODO: Needs to be updated to provide info for all loads, not just shed loads. Outage Incidence plot is dependent on all loads
@@ -1584,10 +1585,13 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	loadShapeMeanActual = {}
 	for dssLine in dssTree:
 		if 'object' in dssLine and dssLine['object'].split('.')[0] == 'loadshape':
-			shape = dssLine['mult'].replace('[','').replace('(','').replace(']','').replace(')','').split(',')
-			shape = [float(y) for y in shape]
-			if 'useactual' in dssLine and dssLine['useactual'] == 'yes': loadShapeMeanActual[dssLine['object'].split('.')[1]] = np.mean(shape)
-			else: loadShapeMeanMultiplier[dssLine['object'].split('.')[1]] = np.mean(shape)/np.max(shape)
+			loadShape = dssLine['mult'].replace('[','').replace('(','').replace(']','').replace(')','').split(',')
+			loadShape = [float(y) for y in loadShape]
+			if 'useactual' in dssLine and dssLine['useactual'] == 'yes': 
+				loadShapeMeanActual[dssLine['object'].split('.')[1]] = np.mean(loadShape)
+			else: 
+				# TODO: Inquire to Lisa about whether there should be the division at all. If mult is already supposed to be a multiplier, why divide by max?
+				loadShapeMeanMultiplier[dssLine['object'].split('.')[1]] = np.mean(loadShape)/np.max(loadShape)
 	while row < customerOutageData.shape[0]:
 		customerName = str(customerOutageData.loc[row, 'Customer Name'])
 		loadName = str(customerOutageData.loc[row, 'Load Name'])
@@ -1598,10 +1602,14 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 		averagekWperhr = str(0)
 		for elementDict in dssTree:
 			if 'object' in elementDict and elementDict['object'].split('.')[0] == 'load' and elementDict['object'].split('.')[1] == loadName:
-				if 'daily' in elementDict: averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
-				else: averagekWperhr = float(elementDict['kw'])/2
+				if 'daily' in elementDict: 
+					averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
+				else: 
+					averagekWperhr = float(elementDict['kw'])/2
 				duration = str(cumulativeLoadsShed.count(loadName) * stepSize)
 				durationFloatCapAt25 = min(float(duration), 25.0)
+				# TODO: Verify with Lisa that the break is good i.e. each object should only be defined once and this won't be skipping an expected second definition.
+				break
 		if float(duration) >= .1 and float(averagekWperhr) >= .1:
 			durationColumn.append(duration)
 			avgkWColumn.append(float(averagekWperhr))
@@ -1625,7 +1633,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 			customerOutageData = customerOutageData.drop(index=row)
 			customerOutageData = customerOutageData.reset_index(drop=True)
 	customerOutageData.insert(1, "Duration", durationColumn, True)
-	customerOutageData.insert(3, "Average kW/hr", avgkWColumn, True)
+	customerOutageData.insert(3, "Time Average kW", avgkWColumn, True)
 	durations = customerOutageData.get('Duration',['0'])
 	try:
 		maxDuration = max([float(x) for x in durations])
