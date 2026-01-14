@@ -5,11 +5,11 @@
         "distance_from_source": 3340,
         "section": 2,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 11.852442112732696,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 14.343884281902552,
         "base crit index": 0.9635416666666666,
-        "locational crit index": 0.9583333333333334
+        "locational crit index": 0.9635416666666666
     },
     "load.load_1004": {
         "kva": 7.657777777777778,
@@ -17,11 +17,11 @@
         "distance_from_source": 3606,
         "section": 2,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 5.758042301411607,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 6.9684113768437035,
         "base crit index": 0.765625,
-        "locational crit index": 0.8020833333333334
+        "locational crit index": 0.8177083333333334
     },
     "load.load_1005": {
         "kva": 5.286021505376344,
@@ -29,11 +29,11 @@
         "distance_from_source": 4000,
         "section": 2,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 3.9746694559947198,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 4.810164706424042,
         "base crit index": 0.578125,
-        "locational crit index": 0.65625
+        "locational crit index": 0.6458333333333334
     },
     "load.load_1008": {
         "kva": 15.49010989010989,
@@ -41,11 +41,11 @@
         "distance_from_source": 5503,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 14.550515055575246,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 12.981147462426893,
         "base crit index": 0.9583333333333334,
-        "locational crit index": 0.9635416666666666
+        "locational crit index": 0.9583333333333334
     },
     "load.load_1009": {
         "kva": 18.366666666666664,
@@ -53,11 +53,11 @@
         "distance_from_source": 6585,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 17.2525864406356,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 15.391782891447852,
         "base crit index": 0.96875,
-        "locational crit index": 0.9739583333333334
+        "locational crit index": 0.96875
     },
     "load.load_1010": {
         "kva": 7.673118279569892,
@@ -65,11 +65,11 @@
         "distance_from_source": 6754,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 7.207684376814921,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 6.430288783640998,
         "base crit index": 0.7708333333333334,
-        "locational crit index": 0.9166666666666666
+        "locational crit index": 0.7916666666666666
     },
     "load.load_1011": {
         "kva": 3.2894736842105265,
@@ -77,11 +77,11 @@
         "distance_from_source": 6645,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 3.0899416922525322,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 2.756671403330283,
         "base crit index": 0.328125,
-        "locational crit index": 0.546875
+        "locational crit index": 0.3489583333333333
     },
     "load.load_1012": {
         "kva": 3.2797872340425527,
@@ -89,11 +89,11 @@
         "distance_from_source": 6705,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 3.0808428001204518,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 2.74855388583622,
         "base crit index": 0.3229166666666667,
-        "locational crit index": 0.5416666666666666
+        "locational crit index": 0.34375
     },
     "load.load_1013": {
         "kva": 1.6010416666666667,
@@ -101,11 +101,11 @@
         "distance_from_source": 7011,
         "section": 2,
         "blockgroup": "121259601001",
-        "oip score": 0.46967113722238485,
-        "oip index": 0.9230769230769231,
-        "locational crit score": 1.5039261206475114,
+        "oip score": 0.41901405330620295,
+        "oip index": 0.8461538461538461,
+        "locational crit score": 1.3417179165242374,
         "base crit index": 0.07291666666666667,
-        "locational crit index": 0.19270833333333334
+        "locational crit index": 0.09375
     },
     "load.load_1014": {
         "kva": 0.4978260869565218,
@@ -113,9 +113,9 @@
         "distance_from_source": 7219,
         "section": 2,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 0.3277832847812501,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 0.394464391578182,
         "base crit index": 0.015625,
         "locational crit index": 0.015625
     },
@@ -125,9 +125,9 @@
         "distance_from_source": 7345,
         "section": 2,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 0.6084420254358002,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 0.7363395595682293,
         "base crit index": 0.03125,
         "locational crit index": 0.046875
     },
@@ -137,11 +137,11 @@
         "distance_from_source": 7479,
         "section": 2,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 2.255486165992592,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 2.7143207707343335,
         "base crit index": 0.3385416666666667,
-        "locational crit index": 0.34375
+        "locational crit index": 0.3385416666666667
     },
     "load.load_1017": {
         "kva": 2.2197916666666666,
@@ -149,11 +149,11 @@
         "distance_from_source": 7550,
         "section": 2,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.4615758858245458,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.7589049512756034,
         "base crit index": 0.14583333333333334,
-        "locational crit index": 0.171875
+        "locational crit index": 0.15625
     },
     "load.load_2002": {
         "kva": 29.72340425531915,
@@ -161,9 +161,9 @@
         "distance_from_source": 1389,
         "section": 3,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 18.9310907443002,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 22.786502367688893,
         "base crit index": 0.9791666666666666,
         "locational crit index": 0.9791666666666666
     },
@@ -173,11 +173,11 @@
         "distance_from_source": 2670,
         "section": 3,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 9.38028428483305,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 11.29062624826821,
         "base crit index": 0.9479166666666666,
-        "locational crit index": 0.9479166666666666
+        "locational crit index": 0.9427083333333334
     },
     "load.load_2005": {
         "kva": 9.62043010752688,
@@ -185,11 +185,11 @@
         "distance_from_source": 3785,
         "section": 3,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 6.334373115985388,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 7.62297759903741,
         "base crit index": 0.859375,
-        "locational crit index": 0.8645833333333334
+        "locational crit index": 0.875
     },
     "load.load_2008": {
         "kva": 2.271428571428572,
@@ -197,11 +197,11 @@
         "distance_from_source": 4300,
         "section": 3,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.495575137174088,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.7998206862151114,
         "base crit index": 0.16145833333333334,
-        "locational crit index": 0.1875
+        "locational crit index": 0.171875
     },
     "load.load_2009": {
         "kva": 1.3397849462365592,
@@ -209,9 +209,9 @@
         "distance_from_source": 4336,
         "section": 3,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 0.8821536719031848,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.0616106056108878,
         "base crit index": 0.0625,
         "locational crit index": 0.0625
     },
@@ -221,11 +221,11 @@
         "distance_from_source": 4100,
         "section": 3,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.6212936666599465,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.9511141949028357,
         "base crit index": 0.18229166666666666,
-        "locational crit index": 0.21875
+        "locational crit index": 0.20833333333333334
     },
     "load.load_2011": {
         "kva": 5.650526315789473,
@@ -233,9 +233,9 @@
         "distance_from_source": 4375,
         "section": 3,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 3.720472118798644,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 4.477329500511023,
         "base crit index": 0.6041666666666666,
         "locational crit index": 0.6197916666666666
     },
@@ -245,11 +245,11 @@
         "distance_from_source": 5146,
         "section": 4,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.9313926299774384,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 2.3242967352379633,
         "base crit index": 0.2760416666666667,
-        "locational crit index": 0.296875
+        "locational crit index": 0.2864583333333333
     },
     "load.load_2015": {
         "kva": 1.6195652173913042,
@@ -257,11 +257,11 @@
         "distance_from_source": 5266,
         "section": 4,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.0663692015809225,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.2833011865753081,
         "base crit index": 0.078125,
-        "locational crit index": 0.08333333333333333
+        "locational crit index": 0.07291666666666667
     },
     "load.load_2016": {
         "kva": 1.6734693877551021,
@@ -269,11 +269,11 @@
         "distance_from_source": 5403,
         "section": 4,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.1018612870464979,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.3260134435726785,
         "base crit index": 0.08854166666666667,
-        "locational crit index": 0.08854166666666667
+        "locational crit index": 0.08333333333333333
     },
     "load.load_2017": {
         "kva": 5.694444444444445,
@@ -281,9 +281,9 @@
         "distance_from_source": 5577,
         "section": 4,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 3.749389101755444,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 4.512129078823698,
         "base crit index": 0.6302083333333334,
         "locational crit index": 0.6302083333333334
     },
@@ -293,11 +293,11 @@
         "distance_from_source": 6024,
         "section": 4,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.926591582956898,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 2.3185190089784937,
         "base crit index": 0.2604166666666667,
-        "locational crit index": 0.2916666666666667
+        "locational crit index": 0.28125
     },
     "load.load_2020": {
         "kva": 3.2484210526315787,
@@ -305,11 +305,11 @@
         "distance_from_source": 5565,
         "section": 4,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.5882637864366247,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 2.2479376936826005,
         "base crit index": 0.3125,
-        "locational crit index": 0.203125
+        "locational crit index": 0.265625
     },
     "load.load_2022": {
         "kva": 2.997802197802198,
@@ -317,11 +317,11 @@
         "distance_from_source": 5171,
         "section": 4,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.4657276850893997,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 2.0745071065171414,
         "base crit index": 0.2916666666666667,
-        "locational crit index": 0.17708333333333334
+        "locational crit index": 0.23958333333333334
     },
     "load.load_2023": {
         "kva": 0.7428571428571429,
@@ -329,9 +329,9 @@
         "distance_from_source": 5321,
         "section": 4,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 0.36320818002948463,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 0.5140640777146582,
         "base crit index": 0.026041666666666668,
         "locational crit index": 0.026041666666666668
     },
@@ -341,11 +341,11 @@
         "distance_from_source": 5729,
         "section": 4,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.2588818096864987,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 1.7817492887845081,
         "base crit index": 0.19791666666666666,
-        "locational crit index": 0.11979166666666667
+        "locational crit index": 0.16145833333333334
     },
     "load.load_2025": {
         "kva": 2.904301075268817,
@@ -353,11 +353,11 @@
         "distance_from_source": 6060,
         "section": 4,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.4200117989696994,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 2.0098034568550545,
         "base crit index": 0.2552083333333333,
-        "locational crit index": 0.15625
+        "locational crit index": 0.21354166666666666
     },
     "load.load_2028": {
         "kva": 0.0,
@@ -365,8 +365,8 @@
         "distance_from_source": 5620,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
         "locational crit score": 0.0,
         "base crit index": 0.005208333333333333,
         "locational crit index": 0.005208333333333333
@@ -377,11 +377,11 @@
         "distance_from_source": 5751,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 6.069131950945145,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 7.260664977138807,
         "base crit index": 0.8541666666666666,
-        "locational crit index": 0.8333333333333334
+        "locational crit index": 0.8385416666666666
     },
     "load.load_2030": {
         "kva": 5.923333333333334,
@@ -389,11 +389,11 @@
         "distance_from_source": 5916,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 2.8961195842222818,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 4.099001963264509,
         "base crit index": 0.6354166666666666,
-        "locational crit index": 0.5
+        "locational crit index": 0.578125
     },
     "load.load_2031": {
         "kva": 3.643333333333333,
@@ -401,11 +401,11 @@
         "distance_from_source": 6161,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.7813498624394788,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 2.521220678586442,
         "base crit index": 0.359375,
-        "locational crit index": 0.2552083333333333
+        "locational crit index": 0.3125
     },
     "load.load_2032": {
         "kva": 2.436263736263736,
@@ -413,11 +413,11 @@
         "distance_from_source": 5484,
         "section": 5,
         "blockgroup": "120070002012",
-        "oip score": 0.32921465283706336,
-        "oip index": 0.6923076923076923,
-        "locational crit score": 1.6041074403071856,
+        "oip score": 0.396186943506471,
+        "oip index": 0.6153846153846154,
+        "locational crit score": 1.9304317664919695,
         "base crit index": 0.17708333333333334,
-        "locational crit index": 0.21354166666666666
+        "locational crit index": 0.19270833333333334
     },
     "load.load_2034": {
         "kva": 4.023333333333333,
@@ -425,11 +425,11 @@
         "distance_from_source": 5958,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 2.5384298361072717,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 3.0367915472785296,
         "base crit index": 0.4166666666666667,
-        "locational crit index": 0.4114583333333333
+        "locational crit index": 0.3854166666666667
     },
     "load.load_2035": {
         "kva": 4.181914893617021,
@@ -437,9 +437,9 @@
         "distance_from_source": 5933,
         "section": 5,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 2.6634974128791726,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 3.2059320260338238,
         "base crit index": 0.453125,
         "locational crit index": 0.453125
     },
@@ -449,11 +449,11 @@
         "distance_from_source": 6173,
         "section": 5,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 2.642164898688538,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 3.1802550382849795,
         "base crit index": 0.4479166666666667,
-        "locational crit index": 0.4479166666666667
+        "locational crit index": 0.4375
     },
     "load.load_2040": {
         "kva": 85.16666666666666,
@@ -461,9 +461,9 @@
         "distance_from_source": 7474,
         "section": 5,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 54.2433794328153,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 65.29031583927274,
         "base crit index": 1.0,
         "locational crit index": 1.0
     },
@@ -473,11 +473,11 @@
         "distance_from_source": 7857,
         "section": 5,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 1.2471709548892438,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 1.501163577965147,
         "base crit index": 0.109375,
-        "locational crit index": 0.11458333333333333
+        "locational crit index": 0.125
     },
     "load.load_2042": {
         "kva": 4.692222222222222,
@@ -485,11 +485,11 @@
         "distance_from_source": 7200,
         "section": 5,
         "blockgroup": "120070002023",
-        "oip score": 0.43553822337236786,
-        "oip index": 0.8461538461538461,
-        "locational crit score": 4.087284260670021,
+        "oip score": 0.42248675789743956,
+        "oip index": 0.9230769230769231,
+        "locational crit score": 3.9648035080019715,
         "base crit index": 0.53125,
-        "locational crit index": 0.671875
+        "locational crit index": 0.546875
     },
     "load.load_2043": {
         "kva": 6.7103092783505165,
@@ -497,11 +497,11 @@
         "distance_from_source": 7358,
         "section": 5,
         "blockgroup": "120070002023",
-        "oip score": 0.43553822337236786,
-        "oip index": 0.8461538461538461,
-        "locational crit score": 5.845192362743799,
+        "oip score": 0.42248675789743956,
+        "oip index": 0.9230769230769231,
+        "locational crit score": 5.670033622998834,
         "base crit index": 0.6875,
-        "locational crit index": 0.8229166666666666
+        "locational crit index": 0.7239583333333334
     },
     "load.load_2045": {
         "kva": 2.2422680412371134,
@@ -509,11 +509,11 @@
         "distance_from_source": 8023,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 1.4147075633204884,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 1.692452518896848,
         "base crit index": 0.15104166666666666,
-        "locational crit index": 0.15104166666666666
+        "locational crit index": 0.14583333333333334
     },
     "load.load_2046": {
         "kva": 7.196739130434783,
@@ -521,11 +521,11 @@
         "distance_from_source": 8353,
         "section": 5,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 4.583664790581173,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 5.517151125310451,
         "base crit index": 0.7395833333333334,
-        "locational crit index": 0.7239583333333334
+        "locational crit index": 0.7083333333333334
     },
     "load.load_2047": {
         "kva": 5.682474226804125,
@@ -533,9 +533,9 @@
         "distance_from_source": 8212,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 3.5852267075965676,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 4.289102659383645,
         "base crit index": 0.6145833333333334,
         "locational crit index": 0.6041666666666666
     },
@@ -545,11 +545,11 @@
         "distance_from_source": 8471,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 2.609680682222139,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 3.1220308413257056,
         "base crit index": 0.4375,
-        "locational crit index": 0.4375
+        "locational crit index": 0.4114583333333333
     },
     "load.load_2049": {
         "kva": 3.7638297872340423,
@@ -557,11 +557,11 @@
         "distance_from_source": 7830,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 2.3747020289836396,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 2.8409195898759285,
         "base crit index": 0.375,
-        "locational crit index": 0.3645833333333333
+        "locational crit index": 0.359375
     },
     "load.load_2050": {
         "kva": 3.784848484848485,
@@ -569,11 +569,11 @@
         "distance_from_source": 7954,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 2.3879632938901727,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 2.8567843959862045,
         "base crit index": 0.3802083333333333,
-        "locational crit index": 0.3697916666666667
+        "locational crit index": 0.3645833333333333
     },
     "load.load_2051": {
         "kva": 6.280434782608697,
@@ -581,11 +581,11 @@
         "distance_from_source": 8093,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 3.0707186558261994,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 4.346119499842615,
         "base crit index": 0.65625,
-        "locational crit index": 0.5364583333333334
+        "locational crit index": 0.609375
     },
     "load.load_2052": {
         "kva": 43.50978260869565,
@@ -593,9 +593,9 @@
         "distance_from_source": 8227,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 21.27341590066925,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 30.109175745794396,
         "base crit index": 0.9895833333333334,
         "locational crit index": 0.9895833333333334
     },
@@ -605,11 +605,11 @@
         "distance_from_source": 8164,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 2.967437120061306,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 3.550024442315096,
         "base crit index": 0.5364583333333334,
-        "locational crit index": 0.515625
+        "locational crit index": 0.4947916666666667
     },
     "load.load_2054": {
         "kva": 7.954444444444444,
@@ -617,11 +617,11 @@
         "distance_from_source": 8303,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 5.018674177490184,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 6.003974230037834,
         "base crit index": 0.796875,
-        "locational crit index": 0.7708333333333334
+        "locational crit index": 0.7552083333333334
     },
     "load.load_2055": {
         "kva": 4.4375,
@@ -629,11 +629,11 @@
         "distance_from_source": 8459,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 2.1696450177242053,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 3.070791425771456,
         "base crit index": 0.4895833333333333,
-        "locational crit index": 0.3333333333333333
+        "locational crit index": 0.3958333333333333
     },
     "load.load_2056": {
         "kva": 5.133695652173913,
@@ -641,11 +641,11 @@
         "distance_from_source": 8663,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 2.5100388043383766,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 3.552565316330334,
         "base crit index": 0.5677083333333334,
-        "locational crit index": 0.3958333333333333
+        "locational crit index": 0.5
     },
     "load.load_2058": {
         "kva": 33.48936170212766,
@@ -653,9 +653,9 @@
         "distance_from_source": 9332,
         "section": 5,
         "blockgroup": "120070002022",
-        "oip score": 0.315463525613994,
-        "oip index": 0.46153846153846156,
-        "locational crit score": 21.129344226230916,
+        "oip score": 0.3773974582367684,
+        "oip index": 0.3076923076923077,
+        "locational crit score": 25.27759996870951,
         "base crit index": 0.984375,
         "locational crit index": 0.984375
     },
@@ -665,11 +665,11 @@
         "distance_from_source": 9610,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.4314903591119323,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 2.0260495541553145,
         "base crit index": 0.265625,
-        "locational crit index": 0.16145833333333334
+        "locational crit index": 0.22395833333333334
     },
     "load.load_2060": {
         "kva": 2.0484210526315785,
@@ -677,11 +677,11 @@
         "distance_from_source": 9914,
         "section": 5,
         "blockgroup": "120070002021",
-        "oip score": 0.24446704425061466,
-        "oip index": 0.07692307692307693,
-        "locational crit score": 1.0015428802351496,
+        "oip score": 0.34600466769255844,
+        "oip index": 0.23076923076923078,
+        "locational crit score": 1.4175264912204601,
         "base crit index": 0.125,
-        "locational crit index": 0.06770833333333333
+        "locational crit index": 0.10416666666666667
     },
     "load.load_3002": {
         "kva": 20.89893617017021,
@@ -689,11 +689,11 @@
         "distance_from_source": 2393,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 15.714344554571538,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 19.017577788004935,
         "base crit index": 0.9739583333333334,
-        "locational crit index": 0.96875
+        "locational crit index": 0.9739583333333334
     },
     "load.load_3004": {
         "kva": 3.463333333429409,
@@ -701,11 +701,11 @@
         "distance_from_source": 2389,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 2.6041523293670727,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 3.1515580763529267,
         "base crit index": 0.34375,
-        "locational crit index": 0.4322916666666667
+        "locational crit index": 0.421875
     },
     "load.load_3006": {
         "kva": 4.431868131780789,
@@ -713,11 +713,11 @@
         "distance_from_source": 4616,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 3.3324137782014844,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 4.03290369691745,
         "base crit index": 0.484375,
-        "locational crit index": 0.5677083333333334
+        "locational crit index": 0.5572916666666666
     },
     "load.load_3007": {
         "kva": 10.472222222180045,
@@ -725,11 +725,11 @@
         "distance_from_source": 4986,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 7.874281585981693,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 9.529494664319122,
         "base crit index": 0.8802083333333334,
-        "locational crit index": 0.9322916666666666
+        "locational crit index": 0.9270833333333334
     },
     "load.load_3009": {
         "kva": 4.369892472950517,
@@ -737,11 +737,11 @@
         "distance_from_source": 4602,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 3.2858129919736405,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 3.9765071940921133,
         "base crit index": 0.46875,
-        "locational crit index": 0.5625
+        "locational crit index": 0.5520833333333334
     },
     "load.load_3010": {
         "kva": 5.306451612763088,
@@ -749,11 +749,11 @@
         "distance_from_source": 4949,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 3.990031278440995,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 4.828755660206621,
         "base crit index": 0.5833333333333334,
-        "locational crit index": 0.6614583333333334
+        "locational crit index": 0.6510416666666666
     },
     "load.load_3011": {
         "kva": 7.809473684109986,
@@ -761,9 +761,9 @@
         "distance_from_source": 5214,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 5.872105606845537,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 7.106451355305018,
         "base crit index": 0.78125,
         "locational crit index": 0.828125
     },
@@ -773,11 +773,11 @@
         "distance_from_source": 5526,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 3.010082899325691,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 3.642817267209308,
         "base crit index": 0.4114583333333333,
-        "locational crit index": 0.5260416666666666
+        "locational crit index": 0.515625
     },
     "load.load_3013": {
         "kva": 2.64479166676,
@@ -785,11 +785,11 @@
         "distance_from_source": 4611,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 1.988673834309706,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 2.4067029463187213,
         "base crit index": 0.20833333333333334,
-        "locational crit index": 0.3177083333333333
+        "locational crit index": 0.296875
     },
     "load.load_3014": {
         "kva": 3.374999999959665,
@@ -797,9 +797,9 @@
         "distance_from_source": 4906,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 2.537732659653037,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 3.0711766623490697,
         "base crit index": 0.3333333333333333,
         "locational crit index": 0.4010416666666667
     },
@@ -809,11 +809,11 @@
         "distance_from_source": 4973,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 4.538834105575385,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 5.352104924926454,
         "base crit index": 0.71875,
-        "locational crit index": 0.71875
+        "locational crit index": 0.6979166666666666
     },
     "load.load_3017": {
         "kva": 8.846875,
@@ -821,11 +821,11 @@
         "distance_from_source": 5232,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 5.785950717190387,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 6.822680584605932,
         "base crit index": 0.828125,
-        "locational crit index": 0.8177083333333334
+        "locational crit index": 0.8072916666666666
     },
     "load.load_3018": {
         "kva": 5.692553191587356,
@@ -833,9 +833,9 @@
         "distance_from_source": 4944,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 4.280349081859559,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 5.1800997070793295,
         "base crit index": 0.625,
         "locational crit index": 0.6822916666666666
     },
@@ -845,9 +845,9 @@
         "distance_from_source": 5225,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 3.7195996771975453,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 4.386079616047157,
         "base crit index": 0.6197916666666666,
         "locational crit index": 0.6145833333333334
     },
@@ -857,11 +857,11 @@
         "distance_from_source": 5532,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 4.944498896339667,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 5.983857109489733,
         "base crit index": 0.6770833333333334,
-        "locational crit index": 0.765625
+        "locational crit index": 0.75
     },
     "load.load_3021": {
         "kva": 8.49450549459859,
@@ -869,11 +869,11 @@
         "distance_from_source": 5835,
         "section": 6,
         "blockgroup": "120070004003",
-        "oip score": 0.3759603940271653,
-        "oip index": 0.7692307692307693,
-        "locational crit score": 6.387195265630413,
+        "oip score": 0.4549891351682627,
+        "oip index": 1.0,
+        "locational crit score": 7.729815417338936,
         "base crit index": 0.8125,
-        "locational crit index": 0.8697916666666666
+        "locational crit index": 0.8802083333333334
     },
     "load.load_3023": {
         "kva": 4.387878787919158,
@@ -881,11 +881,11 @@
         "distance_from_source": 5233,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 2.8697195811973533,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 3.383917531777068,
         "base crit index": 0.4739583333333333,
-        "locational crit index": 0.484375
+        "locational crit index": 0.4739583333333333
     },
     "load.load_3024": {
         "kva": 5.397849462377959,
@@ -893,9 +893,9 @@
         "distance_from_source": 5553,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 3.530251186789854,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 4.162803557820323,
         "base crit index": 0.5885416666666666,
         "locational crit index": 0.5885416666666666
     },
@@ -905,11 +905,11 @@
         "distance_from_source": 5884,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 4.45953531081223,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 5.258597328014886,
         "base crit index": 0.7083333333333334,
-        "locational crit index": 0.7083333333333334
+        "locational crit index": 0.6875
     },
     "load.load_3026": {
         "kva": 10.482653061285557,
@@ -917,11 +917,11 @@
         "distance_from_source": 5216,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 6.855767036157193,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 8.084187186593335,
         "base crit index": 0.8854166666666666,
-        "locational crit index": 0.90625
+        "locational crit index": 0.890625
     },
     "load.load_3027": {
         "kva": 7.261224489781675,
@@ -929,11 +929,11 @@
         "distance_from_source": 5584,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 4.748918351885008,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 5.599832183330108,
         "base crit index": 0.75,
-        "locational crit index": 0.734375
+        "locational crit index": 0.71875
     },
     "load.load_3028": {
         "kva": 12.2311111110871,
@@ -941,11 +941,11 @@
         "distance_from_source": 5825,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 7.999277270813672,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 9.43259222106923,
         "base crit index": 0.9322916666666666,
-        "locational crit index": 0.9375
+        "locational crit index": 0.921875
     },
     "load.load_3029": {
         "kva": 2.771111110908159,
@@ -953,11 +953,11 @@
         "distance_from_source": 6142,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 1.8123362565395476,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 2.1370716749336767,
         "base crit index": 0.234375,
-        "locational crit index": 0.265625
+        "locational crit index": 0.24479166666666666
     },
     "load.load_3031": {
         "kva": 4.358163265392123,
@@ -965,9 +965,9 @@
         "distance_from_source": 5599,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.7389890201257536,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.356019419721624,
         "base crit index": 0.4635416666666667,
         "locational crit index": 0.4635416666666667
     },
@@ -977,11 +977,11 @@
         "distance_from_source": 5850,
         "section": 6,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.954348292143195,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.165694698711195,
         "base crit index": 0.6614583333333334,
-        "locational crit index": 0.6510416666666666
+        "locational crit index": 0.6770833333333334
     },
     "load.load_3033": {
         "kva": 10.403191489251514,
@@ -989,11 +989,11 @@
         "distance_from_source": 6238,
         "section": 6,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 6.485209011613477,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 8.471840954902078,
         "base crit index": 0.875,
-        "locational crit index": 0.875
+        "locational crit index": 0.9010416666666666
     },
     "load.load_3034": {
         "kva": 4.824242424269663,
@@ -1001,11 +1001,11 @@
         "distance_from_source": 6495,
         "section": 6,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.0073675445084627,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.9286227297200638,
         "base crit index": 0.546875,
-        "locational crit index": 0.5208333333333334
+        "locational crit index": 0.5416666666666666
     },
     "load.load_3035": {
         "kva": 11.46631578956319,
@@ -1013,11 +1013,11 @@
         "distance_from_source": 5459,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 7.206272720047442,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 8.829678036160592,
         "base crit index": 0.921875,
-        "locational crit index": 0.9114583333333334
+        "locational crit index": 0.9166666666666666
     },
     "load.load_3036": {
         "kva": 4.19375,
@@ -1025,11 +1025,11 @@
         "distance_from_source": 5730,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.6356596813081703,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.2294123887511668,
         "base crit index": 0.4583333333333333,
-        "locational crit index": 0.4427083333333333
+        "locational crit index": 0.4583333333333333
     },
     "load.load_3037": {
         "kva": 7.85268817193536,
@@ -1037,11 +1037,11 @@
         "distance_from_source": 5866,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 4.935204436281512,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 6.046990990747614,
         "base crit index": 0.7864583333333334,
-        "locational crit index": 0.7604166666666666
+        "locational crit index": 0.7708333333333334
     },
     "load.load_3038": {
         "kva": 6.38541666676,
@@ -1049,11 +1049,11 @@
         "distance_from_source": 6118,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 4.013063548597924,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 4.917113249710384,
         "base crit index": 0.6666666666666666,
-        "locational crit index": 0.6666666666666666
+        "locational crit index": 0.6614583333333334
     },
     "load.load_3039": {
         "kva": 5.067346938833525,
@@ -1061,11 +1061,11 @@
         "distance_from_source": 6353,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 3.1846919863806624,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.902128878061231,
         "base crit index": 0.5625,
-        "locational crit index": 0.5572916666666666
+        "locational crit index": 0.5364583333333334
     },
     "load.load_3041": {
         "kva": 5.414432989665338,
@@ -1073,11 +1073,11 @@
         "distance_from_source": 5809,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 3.4028262838761942,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 4.169403749600778,
         "base crit index": 0.59375,
-        "locational crit index": 0.5729166666666666
+        "locational crit index": 0.59375
     },
     "load.load_3042": {
         "kva": 7.79696969703091,
@@ -1085,11 +1085,11 @@
         "distance_from_source": 6137,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 4.900186865417813,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 6.004084777182487,
         "base crit index": 0.7760416666666666,
-        "locational crit index": 0.75
+        "locational crit index": 0.7604166666666666
     },
     "load.load_3043": {
         "kva": 7.068041237218575,
@@ -1097,11 +1097,11 @@
         "distance_from_source": 6555,
         "section": 6,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.406121407399326,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.755860716999381,
         "base crit index": 0.734375,
-        "locational crit index": 0.703125
+        "locational crit index": 0.7395833333333334
     },
     "load.load_3044": {
         "kva": 4.477173912939609,
@@ -1109,11 +1109,11 @@
         "distance_from_source": 5832,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.813784028265792,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.4476640002481576,
         "base crit index": 0.5104166666666666,
-        "locational crit index": 0.4791666666666667
+        "locational crit index": 0.484375
     },
     "load.load_3045": {
         "kva": 4.571134020525379,
@@ -1121,9 +1121,9 @@
         "distance_from_source": 6225,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.8728354422068216,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.520018321675491,
         "base crit index": 0.515625,
         "locational crit index": 0.4895833333333333
     },
@@ -1133,11 +1133,11 @@
         "distance_from_source": 6236,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 6.82829497416899,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 8.366550712148006,
         "base crit index": 0.9114583333333334,
-        "locational crit index": 0.9010416666666666
+        "locational crit index": 0.8958333333333334
     },
     "load.load_3048": {
         "kva": 2.896969697031422,
@@ -1145,11 +1145,11 @@
         "distance_from_source": 6147,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.8206679531296013,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.2308220159594607,
         "base crit index": 0.25,
-        "locational crit index": 0.2708333333333333
+        "locational crit index": 0.2604166666666667
     },
     "load.load_3049": {
         "kva": 1.8163043477619698,
@@ -1157,9 +1157,9 @@
         "distance_from_source": 6373,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.1414986917152807,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 1.3986517466241701,
         "base crit index": 0.10416666666666667,
         "locational crit index": 0.09895833333333333
     },
@@ -1169,11 +1169,11 @@
         "distance_from_source": 6540,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.807543709412266,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.2147411859667523,
         "base crit index": 0.24479166666666666,
-        "locational crit index": 0.2604166666666667
+        "locational crit index": 0.2552083333333333
     },
     "load.load_3051": {
         "kva": 2.6505494504928957,
@@ -1181,11 +1181,11 @@
         "distance_from_source": 6900,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.66579942056099,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.0410652119032737,
         "base crit index": 0.21354166666666666,
-        "locational crit index": 0.23958333333333334
+        "locational crit index": 0.22916666666666666
     },
     "load.load_3052": {
         "kva": 6.778888889056384,
@@ -1193,11 +1193,11 @@
         "distance_from_source": 7192,
         "section": 6,
         "blockgroup": "120190301052",
-        "oip score": 0.2703996536408349,
-        "oip index": 0.15384615384615385,
-        "locational crit score": 3.666018415341101,
+        "oip score": 0.3153492183902704,
+        "oip index": 0.07692307692307693,
+        "locational crit score": 4.275434625436839,
         "base crit index": 0.6979166666666666,
-        "locational crit index": 0.609375
+        "locational crit index": 0.5989583333333334
     },
     "load.load_3054": {
         "kva": 2.685869565188953,
@@ -1205,11 +1205,11 @@
         "distance_from_source": 6896,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.6879971677427672,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.0682635942511864,
         "base crit index": 0.22916666666666666,
-        "locational crit index": 0.25
+        "locational crit index": 0.234375
     },
     "load.load_3056": {
         "kva": 4.038297872350264,
@@ -1217,9 +1217,9 @@
         "distance_from_source": 8079,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.5379621778279966,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.109705914381024,
         "base crit index": 0.421875,
         "locational crit index": 0.40625
     },
@@ -1229,11 +1229,11 @@
         "distance_from_source": 8257,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.5690589747559645,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.1478080950084624,
         "base crit index": 0.4270833333333333,
-        "locational crit index": 0.421875
+        "locational crit index": 0.4166666666666667
     },
     "load.load_3058": {
         "kva": 3.657894736687058,
@@ -1241,9 +1241,9 @@
         "distance_from_source": 8435,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.2988889838343836,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.8167751009013107,
         "base crit index": 0.3645833333333333,
         "locational crit index": 0.3541666666666667
     },
@@ -1253,11 +1253,11 @@
         "distance_from_source": 8709,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 3.015290327539572,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 3.6945649730486965,
         "base crit index": 0.5416666666666666,
-        "locational crit index": 0.53125
+        "locational crit index": 0.5208333333333334
     },
     "load.load_3060": {
         "kva": 3.8210526316416242,
@@ -1265,11 +1265,11 @@
         "distance_from_source": 8786,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 2.401429355916378,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.942415429315937,
         "base crit index": 0.3854166666666667,
-        "locational crit index": 0.375
+        "locational crit index": 0.3697916666666667
     },
     "load.load_3061": {
         "kva": 1.33645833324,
@@ -1277,9 +1277,9 @@
         "distance_from_source": 8970,
         "section": 6,
         "blockgroup": "120190301052",
-        "oip score": 0.2703996536408349,
-        "oip index": 0.15384615384615385,
-        "locational crit score": 0.722755740827007,
+        "oip score": 0.3153492183902704,
+        "oip index": 0.07692307692307693,
+        "locational crit score": 0.8429021815967951,
         "base crit index": 0.057291666666666664,
         "locational crit index": 0.057291666666666664
     },
@@ -1289,9 +1289,9 @@
         "distance_from_source": 8394,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 0.6415952164178165,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 0.7861316675887337,
         "base crit index": 0.052083333333333336,
         "locational crit index": 0.052083333333333336
     },
@@ -1301,9 +1301,9 @@
         "distance_from_source": 8592,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 4.361203183893894,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 5.3436806321434975,
         "base crit index": 0.7135416666666666,
         "locational crit index": 0.6927083333333334
     },
@@ -1313,9 +1313,9 @@
         "distance_from_source": 8749,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 5.101107858169255,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 6.250268587540597,
         "base crit index": 0.8020833333333334,
         "locational crit index": 0.78125
     },
@@ -1325,11 +1325,11 @@
         "distance_from_source": 8954,
         "section": 6,
         "blockgroup": "120190301051",
-        "oip score": 0.31423662370291155,
-        "oip index": 0.38461538461538464,
-        "locational crit score": 1.8807396223298085,
+        "oip score": 0.38502681236973674,
+        "oip index": 0.46153846153846156,
+        "locational crit score": 2.3044264323808643,
         "base crit index": 0.2864583333333333,
-        "locational crit index": 0.2864583333333333
+        "locational crit index": 0.2760416666666667
     },
     "load.load_3066": {
         "kva": 3.618888888689737,
@@ -1337,11 +1337,11 @@
         "distance_from_source": 9077,
         "section": 6,
         "blockgroup": "120190301052",
-        "oip score": 0.2703996536408349,
-        "oip index": 0.15384615384615385,
-        "locational crit score": 1.9570926041327417,
+        "oip score": 0.3153492183902704,
+        "oip index": 0.07692307692307693,
+        "locational crit score": 2.282427564979086,
         "base crit index": 0.3489583333333333,
-        "locational crit index": 0.3072916666666667
+        "locational crit index": 0.2708333333333333
     },
     "load.load_3067": {
         "kva": 6.530526315936335,
@@ -1349,11 +1349,11 @@
         "distance_from_source": 9351,
         "section": 6,
         "blockgroup": "120190301052",
-        "oip score": 0.2703996536408349,
-        "oip index": 0.15384615384615385,
-        "locational crit score": 3.531704107843085,
+        "oip score": 0.3153492183902704,
+        "oip index": 0.07692307692307693,
+        "locational crit score": 4.11879273881523,
         "base crit index": 0.671875,
-        "locational crit index": 0.59375
+        "locational crit index": 0.5833333333333334
     },
     "load.load_3070": {
         "kva": 0.853535353561262,
@@ -1361,11 +1361,11 @@
         "distance_from_source": 7095,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 0.5582212353045718,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 0.6582436267062869,
         "base crit index": 0.041666666666666664,
-        "locational crit index": 0.036458333333333336
+        "locational crit index": 0.03125
     },
     "load.load_3071": {
         "kva": 2.2768421054186954,
@@ -1373,11 +1373,11 @@
         "distance_from_source": 7236,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 1.48907904913052,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 1.7558930613186492,
         "base crit index": 0.16666666666666666,
-        "locational crit index": 0.18229166666666666
+        "locational crit index": 0.15104166666666666
     },
     "load.load_3072": {
         "kva": 1.9838383838283185,
@@ -1385,11 +1385,11 @@
         "distance_from_source": 7326,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 1.297451486508092,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 1.5299295654501142,
         "base crit index": 0.11979166666666667,
-        "locational crit index": 0.13541666666666666
+        "locational crit index": 0.13020833333333334
     },
     "load.load_3073": {
         "kva": 2.5241758240899936,
@@ -1397,11 +1397,11 @@
         "distance_from_source": 7008,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 1.6508379421782418,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 1.9466360027863485,
         "base crit index": 0.1875,
-        "locational crit index": 0.22395833333333334
+        "locational crit index": 0.19791666666666666
     },
     "load.load_3074": {
         "kva": 5.264835164800181,
@@ -1409,11 +1409,11 @@
         "distance_from_source": 7348,
         "section": 6,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 3.4432584158434216,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 4.0602233737938835,
         "base crit index": 0.5729166666666666,
-        "locational crit index": 0.578125
+        "locational crit index": 0.5677083333333334
     },
     "load.load_3077": {
         "kva": 44.125806449998926,
@@ -1421,9 +1421,9 @@
         "distance_from_source": 7724,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 27.507431534823557,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 35.93385881990327,
         "base crit index": 0.9947916666666666,
         "locational crit index": 0.9947916666666666
     },
@@ -1433,11 +1433,11 @@
         "distance_from_source": 7804,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.748380870268375,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.5902999540513143,
         "base crit index": 0.4791666666666667,
-        "locational crit index": 0.46875
+        "locational crit index": 0.5052083333333334
     },
     "load.load_3081": {
         "kva": 1.6298969071914955,
@@ -1445,11 +1445,11 @@
         "distance_from_source": 7837,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.0160557095810725,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.3273068543321231,
         "base crit index": 0.08333333333333333,
-        "locational crit index": 0.07291666666666667
+        "locational crit index": 0.08854166666666667
     },
     "load.load_3083": {
         "kva": 3.909183673491502,
@@ -1457,11 +1457,11 @@
         "distance_from_source": 8307,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.4369322830953077,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.183444463128173,
         "base crit index": 0.40625,
-        "locational crit index": 0.390625
+        "locational crit index": 0.4479166666666667
     },
     "load.load_3084": {
         "kva": 2.34375,
@@ -1469,11 +1469,11 @@
         "distance_from_source": 8503,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.4610620824074316,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.9086332553396392,
         "base crit index": 0.171875,
-        "locational crit index": 0.16666666666666666
+        "locational crit index": 0.1875
     },
     "load.load_3085": {
         "kva": 6.974226804184192,
@@ -1481,11 +1481,11 @@
         "distance_from_source": 9018,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.347638757419982,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.6794629157320715,
         "base crit index": 0.7239583333333334,
-        "locational crit index": 0.6875
+        "locational crit index": 0.7291666666666666
     },
     "load.load_3086": {
         "kva": 2.5268817205384044,
@@ -1493,11 +1493,11 @@
         "distance_from_source": 9356,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 1.652607627349144,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 1.9487227811303995,
         "base crit index": 0.19270833333333334,
-        "locational crit index": 0.22916666666666666
+        "locational crit index": 0.203125
     },
     "load.load_3087": {
         "kva": 4.45760869550537,
@@ -1505,11 +1505,11 @@
         "distance_from_source": 9595,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 2.9153236853367317,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 3.4376930046592795,
         "base crit index": 0.4947916666666667,
-        "locational crit index": 0.5052083333333334
+        "locational crit index": 0.4791666666666667
     },
     "load.load_3088": {
         "kva": 8.581632653074761,
@@ -1517,11 +1517,11 @@
         "distance_from_source": 10015,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 5.61247939003573,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 6.6181265685740405,
         "base crit index": 0.8229166666666666,
-        "locational crit index": 0.7916666666666666
+        "locational crit index": 0.8020833333333334
     },
     "load.load_3089": {
         "kva": 0.8893617022560142,
@@ -1529,11 +1529,11 @@
         "distance_from_source": 10127,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 0.5816520499057405,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 0.6858727876989547,
         "base crit index": 0.046875,
-        "locational crit index": 0.041666666666666664
+        "locational crit index": 0.036458333333333336
     },
     "load.load_3090": {
         "kva": 3.2686868687478574,
@@ -1541,11 +1541,11 @@
         "distance_from_source": 10692,
         "section": 7,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 2.081854662253045,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 2.5058348106485058,
         "base crit index": 0.3177083333333333,
-        "locational crit index": 0.328125
+        "locational crit index": 0.3072916666666667
     },
     "load.load_3091": {
         "kva": 2.64166666676,
@@ -1553,11 +1553,11 @@
         "distance_from_source": 10914,
         "section": 7,
         "blockgroup": "120070004002",
-        "oip score": 0.3184542823844343,
-        "oip index": 0.5384615384615384,
-        "locational crit score": 1.6825001253238727,
+        "oip score": 0.3833090949468067,
+        "oip index": 0.38461538461538464,
+        "locational crit score": 2.0251497183738465,
         "base crit index": 0.203125,
-        "locational crit index": 0.24479166666666666
+        "locational crit index": 0.21875
     },
     "load.load_3093": {
         "kva": 4.685714285909277,
@@ -1565,11 +1565,11 @@
         "distance_from_source": 8597,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.921010974778393,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.815812314072096,
         "base crit index": 0.5260416666666666,
-        "locational crit index": 0.5104166666666666
+        "locational crit index": 0.53125
     },
     "load.load_3094": {
         "kva": 3.151515151545705,
@@ -1577,11 +1577,11 @@
         "distance_from_source": 8722,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.9646119637572013,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.566436959124,
         "base crit index": 0.3020833333333333,
-        "locational crit index": 0.3125
+        "locational crit index": 0.328125
     },
     "load.load_3095": {
         "kva": 6.277659574623589,
@@ -1589,11 +1589,11 @@
         "distance_from_source": 8787,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.9134081581843163,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.11221326072656,
         "base crit index": 0.6510416666666666,
-        "locational crit index": 0.6458333333333334
+        "locational crit index": 0.671875
     },
     "load.load_3096": {
         "kva": 2.991578947393923,
@@ -1601,11 +1601,11 @@
         "distance_from_source": 9083,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.864909895067988,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.4361928810538642,
         "base crit index": 0.28125,
-        "locational crit index": 0.28125
+        "locational crit index": 0.3020833333333333
     },
     "load.load_3097": {
         "kva": 11.808510638279905,
@@ -1613,11 +1613,11 @@
         "distance_from_source": 9200,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 7.361265981139434,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 9.616262869441252,
         "base crit index": 0.9270833333333334,
-        "locational crit index": 0.921875
+        "locational crit index": 0.9322916666666666
     },
     "load.load_3098": {
         "kva": 7.022826086777799,
@@ -1625,11 +1625,11 @@
         "distance_from_source": 8651,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.37793489353933,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.719039750694763,
         "base crit index": 0.7291666666666666,
-        "locational crit index": 0.6979166666666666
+        "locational crit index": 0.734375
     },
     "load.load_3099": {
         "kva": 4.468686868641211,
@@ -1637,11 +1637,11 @@
         "distance_from_source": 9019,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.785719015220767,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.639075995813621,
         "base crit index": 0.5,
-        "locational crit index": 0.4739583333333333
+        "locational crit index": 0.5104166666666666
     },
     "load.load_3101": {
         "kva": 2.6522222221141414,
@@ -1649,11 +1649,11 @@
         "distance_from_source": 8615,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.6533594977490573,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.1598376677025475,
         "base crit index": 0.21875,
-        "locational crit index": 0.234375
+        "locational crit index": 0.25
     },
     "load.load_3102": {
         "kva": 8.54166666676,
@@ -1661,11 +1661,11 @@
         "distance_from_source": 8840,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 5.324759589276377,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 6.955907863980468,
         "base crit index": 0.8177083333333334,
-        "locational crit index": 0.7864583333333334
+        "locational crit index": 0.8125
     },
     "load.load_3103": {
         "kva": 7.22365591394555,
@@ -1673,11 +1673,11 @@
         "distance_from_source": 8974,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.503129494282259,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.882585558394595,
         "base crit index": 0.7447916666666666,
-        "locational crit index": 0.7135416666666666
+        "locational crit index": 0.7447916666666666
     },
     "load.load_3104": {
         "kva": 9.189473684144494,
@@ -1685,11 +1685,11 @@
         "distance_from_source": 8681,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 5.728593731065364,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 7.483449630987372,
         "base crit index": 0.8333333333333334,
-        "locational crit index": 0.796875
+        "locational crit index": 0.859375
     },
     "load.load_3105": {
         "kva": 3.114285714234974,
@@ -1697,11 +1697,11 @@
         "distance_from_source": 8801,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.9414036355634632,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.536119159815694,
         "base crit index": 0.296875,
-        "locational crit index": 0.3020833333333333
+        "locational crit index": 0.3177083333333333
     },
     "load.load_3106": {
         "kva": 10.553763440913684,
@@ -1709,11 +1709,11 @@
         "distance_from_source": 8982,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 6.579073531825821,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 8.59445925218797,
         "base crit index": 0.8958333333333334,
-        "locational crit index": 0.8854166666666666
+        "locational crit index": 0.9114583333333334
     },
     "load.load_3108": {
         "kva": 2.265625,
@@ -1721,11 +1721,11 @@
         "distance_from_source": 10109,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.4123600129938505,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.8450121468283178,
         "base crit index": 0.15625,
-        "locational crit index": 0.14583333333333334
+        "locational crit index": 0.17708333333333334
     },
     "load.load_3109": {
         "kva": 15.34111111089481,
@@ -1733,9 +1733,9 @@
         "distance_from_source": 10245,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 9.56344138501451,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 12.493036731782087,
         "base crit index": 0.953125,
         "locational crit index": 0.953125
     },
@@ -1745,11 +1745,11 @@
         "distance_from_source": 10397,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 6.326727538904854,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 7.46035409799317,
         "base crit index": 0.8645833333333334,
-        "locational crit index": 0.859375
+        "locational crit index": 0.8541666666666666
     },
     "load.load_3111": {
         "kva": 10.134375,
@@ -1757,11 +1757,11 @@
         "distance_from_source": 10673,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 6.627989465153099,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 7.815596303736148,
         "base crit index": 0.8697916666666666,
-        "locational crit index": 0.8958333333333334
+        "locational crit index": 0.8854166666666666
     },
     "load.load_3112": {
         "kva": 9.43333333327477,
@@ -1769,11 +1769,11 @@
         "distance_from_source": 11001,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 6.169500729371347,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 7.274955301284321,
         "base crit index": 0.8489583333333334,
-        "locational crit index": 0.8489583333333334
+        "locational crit index": 0.84375
     },
     "load.load_3114": {
         "kva": 5.672527472594147,
@@ -1781,11 +1781,11 @@
         "distance_from_source": 10037,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.536176982025288,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 4.619423819102251,
         "base crit index": 0.609375,
-        "locational crit index": 0.5989583333333334
+        "locational crit index": 0.640625
     },
     "load.load_3115": {
         "kva": 7.872727272760736,
@@ -1793,11 +1793,11 @@
         "distance_from_source": 10368,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.9077518094359815,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 6.411156942084473,
         "base crit index": 0.7916666666666666,
-        "locational crit index": 0.7552083333333334
+        "locational crit index": 0.7864583333333334
     },
     "load.load_3116": {
         "kva": 7.64270833324,
@@ -1805,11 +1805,11 @@
         "distance_from_source": 10344,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.764361110441073,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 6.223840975224853,
         "base crit index": 0.7604166666666666,
-        "locational crit index": 0.7395833333333334
+        "locational crit index": 0.7760416666666666
     },
     "load.load_3117": {
         "kva": 4.0977777779338265,
@@ -1817,11 +1817,11 @@
         "distance_from_source": 10456,
         "section": 7,
         "blockgroup": "120070004001",
-        "oip score": 0.3270053390146456,
-        "oip index": 0.6153846153846154,
-        "locational crit score": 2.679990422959864,
+        "oip score": 0.3855983375262978,
+        "oip index": 0.5384615384615384,
+        "locational crit score": 3.1601925974469802,
         "base crit index": 0.4322916666666667,
-        "locational crit index": 0.4583333333333333
+        "locational crit index": 0.4270833333333333
     },
     "load.load_3120": {
         "kva": 3.2414141414230504,
@@ -1829,11 +1829,11 @@
         "distance_from_source": 12724,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.0206537793759827,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.639646218516573,
         "base crit index": 0.3072916666666667,
-        "locational crit index": 0.3229166666666667
+        "locational crit index": 0.3333333333333333
     },
     "load.load_3121": {
         "kva": 2.932989690652214,
@@ -1841,11 +1841,11 @@
         "distance_from_source": 12930,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.8283861440443105,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.388480708756112,
         "base crit index": 0.2708333333333333,
-        "locational crit index": 0.2760416666666667
+        "locational crit index": 0.2916666666666667
     },
     "load.load_3122": {
         "kva": 4.625274725185318,
@@ -1853,11 +1853,11 @@
         "distance_from_source": 13107,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.8833337692525745,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.7665933463767933,
         "base crit index": 0.5208333333333334,
-        "locational crit index": 0.4947916666666667
+        "locational crit index": 0.5260416666666666
     },
     "load.load_3123": {
         "kva": 5.641111110997005,
@@ -1865,11 +1865,11 @@
         "distance_from_source": 12465,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.5165924466879934,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 4.593839899099658,
         "base crit index": 0.5989583333333334,
-        "locational crit index": 0.5833333333333334
+        "locational crit index": 0.6354166666666666
     },
     "load.load_3124": {
         "kva": 3.6233333333872806,
@@ -1877,11 +1877,11 @@
         "distance_from_source": 12532,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.258737043342968,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 2.9506621846543326,
         "base crit index": 0.3541666666666667,
-        "locational crit index": 0.3489583333333333
+        "locational crit index": 0.375
     },
     "load.load_3125": {
         "kva": 0.8444444445853381,
@@ -1889,11 +1889,11 @@
         "distance_from_source": 12683,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 0.5264152570381828,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 0.687673493001552,
         "base crit index": 0.036458333333333336,
-        "locational crit index": 0.03125
+        "locational crit index": 0.041666666666666664
     },
     "load.load_3126": {
         "kva": 6.7923913044908195,
@@ -1901,11 +1901,11 @@
         "distance_from_source": 13026,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.234284963782608,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.531385142199881,
         "base crit index": 0.703125,
-        "locational crit index": 0.6770833333333334
+        "locational crit index": 0.7135416666666666
     },
     "load.load_3127": {
         "kva": 6.277551020364306,
@@ -1913,11 +1913,11 @@
         "distance_from_source": 13260,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.913340486925811,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 5.112124859545002,
         "base crit index": 0.6458333333333334,
-        "locational crit index": 0.640625
+        "locational crit index": 0.6666666666666666
     },
     "load.load_3128": {
         "kva": 3.88210526318923,
@@ -1925,11 +1925,11 @@
         "distance_from_source": 13498,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.420051967982979,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.1613931545821896,
         "base crit index": 0.3958333333333333,
-        "locational crit index": 0.3802083333333333
+        "locational crit index": 0.4322916666666667
     },
     "load.load_3129": {
         "kva": 2.070526315824813,
@@ -1937,11 +1937,11 @@
         "distance_from_source": 13741,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.2907381293561127,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.6861334965073507,
         "base crit index": 0.13020833333333334,
-        "locational crit index": 0.13020833333333334
+        "locational crit index": 0.140625
     },
     "load.load_3130": {
         "kva": 3.7316326530734525,
@@ -1949,11 +1949,11 @@
         "distance_from_source": 13971,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.326249375948402,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.038855756103372,
         "base crit index": 0.3697916666666667,
-        "locational crit index": 0.359375
+        "locational crit index": 0.390625
     },
     "load.load_3131": {
         "kva": 3.9076923078296413,
@@ -1961,11 +1961,11 @@
         "distance_from_source": 14165,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.4360025858923,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.1822299692196503,
         "base crit index": 0.4010416666666667,
-        "locational crit index": 0.3854166666666667
+        "locational crit index": 0.4427083333333333
     },
     "load.load_3132": {
         "kva": 12.565217391486774,
@@ -1973,11 +1973,11 @@
         "distance_from_source": 12411,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 7.8329867468406364,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 10.232487156891159,
         "base crit index": 0.9375,
-        "locational crit index": 0.9270833333333334
+        "locational crit index": 0.9375
     },
     "load.load_3134": {
         "kva": 6.0131313130672615,
@@ -1985,11 +1985,11 @@
         "distance_from_source": 12837,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.7485048141053383,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 4.8967946209468955,
         "base crit index": 0.640625,
-        "locational crit index": 0.625
+        "locational crit index": 0.65625
     },
     "load.load_3135": {
         "kva": 7.3736842105956555,
@@ -1997,11 +1997,11 @@
         "distance_from_source": 13077,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 4.59665510730568,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 6.004761130118692,
         "base crit index": 0.7552083333333334,
-        "locational crit index": 0.7291666666666666
+        "locational crit index": 0.765625
     },
     "load.load_3136": {
         "kva": 10.492222222229264,
@@ -2009,11 +2009,11 @@
         "distance_from_source": 13444,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 6.5407095676125095,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 8.544343149124414,
         "base crit index": 0.890625,
-        "locational crit index": 0.8802083333333334
+        "locational crit index": 0.90625
     },
     "load.load_3137": {
         "kva": 14.039795918434358,
@@ -2021,11 +2021,11 @@
         "distance_from_source": 12808,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 8.752219076762906,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 11.433310458925034,
         "base crit index": 0.9427083333333334,
-        "locational crit index": 0.9427083333333334
+        "locational crit index": 0.9479166666666666
     },
     "load.load_3138": {
         "kva": 9.26304347829507,
@@ -2033,11 +2033,11 @@
         "distance_from_source": 13159,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 5.774456146700106,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 7.543361206754533,
         "base crit index": 0.84375,
-        "locational crit index": 0.8125
+        "locational crit index": 0.8697916666666666
     },
     "load.load_3139": {
         "kva": 0.0,
@@ -2045,8 +2045,8 @@
         "distance_from_source": 13448,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
         "locational crit score": 0.0,
         "base crit index": 0.010416666666666666,
         "locational crit index": 0.010416666666666666
@@ -2057,11 +2057,11 @@
         "distance_from_source": 10032,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 3.1264740723931124,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 4.08421548843029,
         "base crit index": 0.5572916666666666,
-        "locational crit index": 0.5520833333333334
+        "locational crit index": 0.5729166666666666
     },
     "load.load_3142": {
         "kva": 4.141237113395284,
@@ -2069,11 +2069,11 @@
         "distance_from_source": 10225,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 2.581591262139842,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 3.372417225759134,
         "base crit index": 0.4427083333333333,
-        "locational crit index": 0.4270833333333333
+        "locational crit index": 0.46875
     },
     "load.load_3143": {
         "kva": 8.122105263295252,
@@ -2081,11 +2081,11 @@
         "distance_from_source": 10427,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 5.0632106792629425,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 6.614237955794959,
         "base crit index": 0.8072916666666666,
-        "locational crit index": 0.7760416666666666
+        "locational crit index": 0.796875
     },
     "load.load_3144": {
         "kva": 0.529670329735349,
@@ -2093,9 +2093,9 @@
         "distance_from_source": 10339,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 0.3301893269130923,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 0.4313371330984957,
         "base crit index": 0.020833333333333332,
         "locational crit index": 0.020833333333333332
     },
@@ -2105,11 +2105,11 @@
         "distance_from_source": 10517,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.234305247266423,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.6124133741744475,
         "base crit index": 0.11458333333333333,
-        "locational crit index": 0.109375
+        "locational crit index": 0.13541666666666666
     },
     "load.load_3146": {
         "kva": 1.7758241759182998,
@@ -2117,11 +2117,11 @@
         "distance_from_source": 10695,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 1.1070247972081717,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 1.4461427531920115,
         "base crit index": 0.09895833333333333,
-        "locational crit index": 0.09375
+        "locational crit index": 0.11458333333333333
     },
     "load.load_3147": {
         "kva": 9.248888889032608,
@@ -2129,11 +2129,11 @@
         "distance_from_source": 10873,
         "section": 7,
         "blockgroup": "120199800001",
-        "oip score": 0.31169324424691874,
-        "oip index": 0.3076923076923077,
-        "locational crit score": 5.7656323670037075,
+        "oip score": 0.40717509447245637,
+        "oip index": 0.6923076923076923,
+        "locational crit score": 7.531834414314209,
         "base crit index": 0.8385416666666666,
-        "locational crit index": 0.8072916666666666
+        "locational crit index": 0.8645833333333334
     },
     "load.load_3148": {
         "kva": 10.974725274902621,
@@ -2141,11 +2141,11 @@
         "distance_from_source": 10045,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 6.296554115045892,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 7.356605353706318,
         "base crit index": 0.9166666666666666,
-        "locational crit index": 0.8541666666666666
+        "locational crit index": 0.8489583333333334
     },
     "load.load_3149": {
         "kva": 2.205434782788837,
@@ -2153,11 +2153,11 @@
         "distance_from_source": 10298,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 1.2653291184236604,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 1.478352571377551,
         "base crit index": 0.140625,
-        "locational crit index": 0.125
+        "locational crit index": 0.11979166666666667
     },
     "load.load_3150": {
         "kva": 2.682474226909212,
@@ -2165,11 +2165,11 @@
         "distance_from_source": 10437,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 1.5390220446406222,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 1.7981228472285948,
         "base crit index": 0.22395833333333334,
-        "locational crit index": 0.19791666666666666
+        "locational crit index": 0.16666666666666666
     },
     "load.load_3151": {
         "kva": 1.7747368420017327,
@@ -2177,11 +2177,11 @@
         "distance_from_source": 10593,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 1.0182238084067863,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 1.1896460481928224,
         "base crit index": 0.09375,
-        "locational crit index": 0.078125
+        "locational crit index": 0.06770833333333333
     },
     "load.load_3152": {
         "kva": 2.1488888889950686,
@@ -2189,11 +2189,11 @@
         "distance_from_source": 10853,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 1.2328869140551997,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 1.4404485861211147,
         "base crit index": 0.13541666666666666,
-        "locational crit index": 0.10416666666666667
+        "locational crit index": 0.109375
     },
     "load.load_3153": {
         "kva": 6.640000000213147,
@@ -2201,11 +2201,11 @@
         "distance_from_source": 10992,
         "section": 7,
         "blockgroup": "120070001004",
-        "oip score": 0.49663611664999274,
-        "oip index": 1.0,
-        "locational crit score": 6.595327629323617,
+        "oip score": 0.41387123997987396,
+        "oip index": 0.7692307692307693,
+        "locational crit score": 5.496210067109157,
         "base crit index": 0.6822916666666666,
-        "locational crit index": 0.890625
+        "locational crit index": 0.703125
     },
     "load.load_3154": {
         "kva": 4.884848484881737,
@@ -2213,11 +2213,11 @@
         "distance_from_source": 11111,
         "section": 7,
         "blockgroup": "120070001004",
-        "oip score": 0.49663611664999274,
-        "oip index": 1.0,
-        "locational crit score": 4.851984363910534,
+        "oip score": 0.41387123997987396,
+        "oip index": 0.7692307692307693,
+        "locational crit score": 4.043396599103627,
         "base crit index": 0.5520833333333334,
-        "locational crit index": 0.7447916666666666
+        "locational crit index": 0.5625
     },
     "load.load_3155": {
         "kva": 1.5547368419962315,
@@ -2225,11 +2225,11 @@
         "distance_from_source": 11616,
         "section": 7,
         "blockgroup": "120070002023",
-        "oip score": 0.43553822337236786,
-        "oip index": 0.8461538461538461,
-        "locational crit score": 1.354294643949209,
+        "oip score": 0.42248675789743956,
+        "oip index": 0.9230769230769231,
+        "locational crit score": 1.3137114555173832,
         "base crit index": 0.06770833333333333,
-        "locational crit index": 0.140625
+        "locational crit index": 0.078125
     },
     "load.load_3157": {
         "kva": 10.586956521673823,
@@ -2237,11 +2237,11 @@
         "distance_from_source": 10370,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 6.074078665531675,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 7.096675231124884,
         "base crit index": 0.9010416666666666,
-        "locational crit index": 0.8385416666666666
+        "locational crit index": 0.8229166666666666
     },
     "load.load_3158": {
         "kva": 6.71855670105243,
@@ -2249,11 +2249,11 @@
         "distance_from_source": 10665,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 3.8546528303466983,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 4.5035997674739345,
         "base crit index": 0.6927083333333334,
-        "locational crit index": 0.6354166666666666
+        "locational crit index": 0.625
     },
     "load.load_3159": {
         "kva": 10.742857142667113,
@@ -2261,11 +2261,11 @@
         "distance_from_source": 10922,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 6.163523883709332,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 7.201178926143851,
         "base crit index": 0.90625,
-        "locational crit index": 0.84375
+        "locational crit index": 0.8333333333333334
     },
     "load.load_3160": {
         "kva": 4.475789473615351,
@@ -2273,11 +2273,11 @@
         "distance_from_source": 11165,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 2.567904883470706,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 3.0002224182284354,
         "base crit index": 0.5052083333333334,
-        "locational crit index": 0.4166666666666667
+        "locational crit index": 0.3802083333333333
     },
     "load.load_3161": {
         "kva": 2.7717171717852787,
@@ -2285,11 +2285,11 @@
         "distance_from_source": 11402,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 1.5902236025587266,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 1.8579444017195446,
         "base crit index": 0.23958333333333334,
-        "locational crit index": 0.20833333333333334
+        "locational crit index": 0.18229166666666666
     },
     "load.load_3162": {
         "kva": 3.8265306121697735,
@@ -2297,10 +2297,10 @@
         "distance_from_source": 11578,
         "section": 7,
         "blockgroup": "120070001001",
-        "oip score": 0.286866138209631,
-        "oip index": 0.23076923076923078,
-        "locational crit score": 2.1954041189081566,
+        "oip score": 0.3351612532174111,
+        "oip index": 0.15384615384615385,
+        "locational crit score": 2.565009590899217,
         "base crit index": 0.390625,
-        "locational crit index": 0.3385416666666667
+        "locational crit index": 0.3229166666666667
     }
 }

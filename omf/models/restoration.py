@@ -267,11 +267,11 @@ def utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cos
 	return utilityOutageHtml
 
 def customerCost1(duration, season, averagekWperhr, businessType):
-	'function to determine customer outage cost based on season, annual kWh usage, and business type'
+	''' Function to determine customer outage cost based on season, annual kWh usage, and business type.
+		Only works for outages with duration of up to 25 hrs. 
+	'''
 	duration = float(duration)
 	averagekW = float(averagekWperhr)
-
-	times = np.array([0,1,2,3,4,5,6,7,8])
 	# load the customer outage cost data (compared with average kW/hr usage) from the 2009 survey
 	kWTemplate = {}
 
@@ -288,7 +288,6 @@ def customerCost1(duration, season, averagekWperhr, businessType):
 		kWTemplate[3.0] = np.array([500,900,1400,2050,2700,3500,3900,4600,5000,5666,6289,7053,7869,8802,9832,10990,12280,13723,15334,17134,19145,21392,23902,26706,29839,33339])
 		kWTemplate[1.0] = np.array([400,750,1200,1900,2600,3200,3600,4000,4100,4379,4582,4844,5094,5371,5655,5958,6275,6610,6962,7333,7723,8134,8566,9021,9500,10004])
 		kWTemplate[0.25] = np.array([350,700,1100,1700,2400,3000,3300,3500,3600,3760,3897,4054,4209,4374,4543,4719,4901,5090,5286,5489,5700,5919,6146,6381,6625,6878])
-	
 	else:
 		kWTemplate[100.0] = np.array([4,6,7,9,12,14,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33])
 		kWTemplate[8.0] = np.array([4,6,7,9,12,14,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33])
@@ -299,33 +298,37 @@ def customerCost1(duration, season, averagekWperhr, businessType):
 	# NOTE: We set a minimum average kWperhr value so the model doesn't crash for low values.
 	kWTemplate[0] = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
-	def kWhApprox(kWDict, averagekWperhr, iterate):
-		'helper function for approximating customer outage cost based on annual kWh by iteratively "averaging" the curves'
+	def kWhApprox(kWDict, averagekWperhr, iterations):
+		'''
+		Helper function for approximating the customer outage cost for an averageKWperhr based on annual kWh by iteratively averaging the curves. 
+		Each iteration, averages the curves for the kWperhr values directly above and below the averagekWperhr input, adding a new entry to the kWDict.
+		With successive iterations, the kWDict becomes more granular, allowing for a more accurate estimate of the customer outage cost for the given averagekWperhr.
+		'''
 		step = 0
 		# iterate the process a set number of times
-		while step < iterate:
+		while step < iterations:
 			#sort the current kWh values for which we have customer outage costs
 			keys = list(kWDict.keys())
 			keys.sort()
 			# find the current kWh values estimated that are closest to the average kW/hr input...
 			# ...then, estimate the outage costs for the kW/hr value directly between these
-			key = 0
+			keyCounter = 0
 			newEntry = 0
-			while key < len(keys)-1:
-				if key == len(keys)-2:
-					newEntry = (keys[key] + keys[key+1])/2
-					averageCost = (kWDict[keys[key]] + kWDict[keys[key+1]])/2
+			while keyCounter < len(keys)-1:
+				if keyCounter == len(keys)-2:
+					newEntry = (keys[keyCounter] + keys[keyCounter+1])/2
+					averageCost = (kWDict[keys[keyCounter]] + kWDict[keys[keyCounter+1]])/2
 					kWDict[newEntry] = averageCost
 					break
-				if float(averagekWperhr) > keys[key+1]:
-					key+=1
+				if float(averagekWperhr) > keys[keyCounter+1]:
+					keyCounter+=1
 				else:
-					newEntry = (keys[key] + keys[key+1])/2
-					averageCost = (kWDict[keys[key]] + kWDict[keys[key+1]])/2
+					newEntry = (keys[keyCounter] + keys[keyCounter+1])/2
+					averageCost = (kWDict[keys[keyCounter]] + kWDict[keys[keyCounter+1]])/2
 					kWDict[newEntry] = averageCost
 					break
 			step+=1
-			if step == iterate:
+			if step == iterations:
 				return(kWDict[newEntry])
 
 	# estimate customer outage cost based on annualkWh
@@ -407,19 +410,19 @@ def customerCost1(duration, season, averagekWperhr, businessType):
 		kWperhrEstimate = kWperhrEstimate * businessMultiplier
 
 	# adjust for inflation from 2008 to 2020 using the CPI
-	kWperhrEstimate = 1.21 * kWperhrEstimate
+	# TODO: update to grab inflation rate dynamically for most recent year. As an intermediate, updated with value for Oct 2025 (from 2003 since that's when the lawton survey was published) from https://www.bls.gov/data/inflation_calculator.htm
+	kWperhrEstimate = 1.78 * kWperhrEstimate
 	# find the estimated customer outage cost for the customer in question, given the duration of the outage
-	times = np.array([0,1,2,3,4,5,6,7,8])
 	wholeHours = int(math.floor(duration))
 	partialHour = duration - wholeHours
-	outageCost = (kWperhrEstimate[wholeHours] + (kWperhrEstimate[wholeHours+1] - kWperhrEstimate[wholeHours])*partialHour) * (duration>0)
-	localMax = 0
-	row = 0
-	while row < 9:
-		if kWperhrEstimate[row] > localMax:
-			localMax = kWperhrEstimate[row]
-		row+=1
-	return outageCost, kWperhrEstimate, times, localMax
+	try:
+		outageCost = (kWperhrEstimate[wholeHours] + (kWperhrEstimate[wholeHours+1] - kWperhrEstimate[wholeHours])*partialHour) * (duration>0)
+	except IndexError as e:
+		if wholeHours == 25:
+			outageCost = kWperhrEstimate[25]
+		else:
+			raise e
+	return outageCost, kWperhrEstimate
 
 def makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList):
 	''' Helper function to create 2 dataframes:
@@ -906,9 +909,9 @@ def makeTaofiAndTaodiHist(outputTimeline, startTime, numTimeSteps, loadList):
 		numLoadSheds = dfLoadSheds.shape[0]
 		timeOfFirstLoadShed = dfLoadSheds['time'].min()
 		timeOfLastLoadShed = dfLoadSheds['time'].max()
-		TAOFI[loadName] = (numLoadSheds-1)/((timeOfLastLoadShed-timeOfFirstLoadShed)*60)
+		#TODO: Multiply denomenator for TAOFI by the time step size if not 1 hour
+		TAOFI[loadName] = (numLoadSheds-1)/(timeOfLastLoadShed-timeOfFirstLoadShed)
 		TAODI[loadName] = 100*dfStatus[loadName].sum()/numTimeSteps
-		#TODO: Replace 60 with resolution of step size if it's ever possible not to have a resolution of 60 min
 	minVals = (min(list(TAOFI.values())), 0)
 	maxVals = (max(list(TAOFI.values())), 100)
 	numBins = 45
@@ -1081,9 +1084,13 @@ def getResComInfo(modelDir, pathToOmd, useLci, rescomOutputFilePath):
 		for loadName in completeLoadList:
 			loadData = rescomLoadDict.get(f'load.{loadName}')
 			if loadData != None:
-				lciDict[loadName] = loadData.get('locational crit index')
-				lcsDict[loadName] = loadData.get('locational crit score')
-				bcsDict[loadName] = loadData.get('base crit score')
+				try:
+					lciDict[loadName] = loadData['locational crit index']
+					lcsDict[loadName] = loadData['locational crit score']
+					bcsDict[loadName] = loadData['base crit score']
+				except KeyError as e:
+					errorString = f'ERROR: Missing expected key {e} in Load LCI Data (.json file) for load {loadName}. Data found: {loadData}'
+					raise KeyError(errorString)	
 	return completeLoadList, lciDict, lcsDict, bcsDict
 
 def combineLoadPriorityWithLCI(modelDir, loadList, loadPriorityFilePath, loadLciDict, lciImpact):
@@ -1297,7 +1304,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 		numTimeSteps = len(simTimeStepsRaw)
 		stepSize = simTimeStepsRaw[1]-simTimeStepsRaw[0]
 		voltages = data['Voltages']
-		outageDuration = stepSize * numTimeSteps
+		simulationDuration = stepSize * numTimeSteps
 		loadServed = data['Load served']
 		storageSOC = data['Storage SOC (%)']
 		deviceActionTimeline = data['Device action timeline']
@@ -1337,10 +1344,10 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 		# Load timeline actions
 		loadActions = []
 		allShed = deviceActions['Shedded loads']
+		cumulativeLoadsShed = cumulativeLoadsShed + allShed
 		loadsPickedUp = [load for load in prevLoadsShed if load not in allShed]
 		newShed = [load for load in allShed if load not in prevLoadsShed]
 		for load in newShed:
-			cumulativeLoadsShed.append(load)
 			loadActions.append({
 					'device':		load,
 					'time':			str(timestep),
@@ -1536,7 +1543,6 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			feederMap['features'].append(dev_dict)
 		except:
 			print('MESSED UP MAPPING on', device, full_data)
-
 	shutil.copy(omf.omfDir + '/templates/geoJsonMap.html', modelDir)
 	with open(pJoin(modelDir,'geoJsonFeatures.js'),'w') as outFile:
 		outFile.write('var geojson =')
@@ -1544,6 +1550,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	# Save geojson dict to then read into outdata in work function below
 	with open(pJoin(modelDir,'geoDict.js'),'w') as outFile:
 		json.dump(feederMap, outFile, indent=4)
+
 	# Generate customer outage outputs
 	try:
 		# TODO: this should not be customerOutageData... this is the input of customer info. It's later turned into customerOutageData by adding more info, but this same variable should NOT be used for the same thing
@@ -1561,12 +1568,9 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 				avgLoad = float(elementDict['kw'])/2.5
 				busType = 'residential'*(avgLoad<=10) + 'retail'*(avgLoad>10)*(avgLoad<=20) + 'agriculture'*(avgLoad>20)*(avgLoad<=39) + 'public'*(avgLoad>39)*(avgLoad<=50) + 'services'*(avgLoad>50)*(avgLoad<=100) + 'manufacturing'*(avgLoad>100)
 				customerOutageData.loc[len(customerOutageData.index)] =[loadName,'summer',busType,loadName]
-	numberRows = max(math.ceil(customerOutageData.shape[0]/2),1)
-	fig, axs = plt.subplots(numberRows, 2)
 	row = 0
 	average_lost_kwh = []
 	outageCost = []
-	globalMax = 0
 	fig = go.Figure()
 	businessTypes = set(customerOutageData['Business Type'])
 	outageCostsByType = {busType: [] for busType in businessTypes}
@@ -1586,29 +1590,28 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 		loadName = str(customerOutageData.loc[row, 'Load Name'])
 		businessType = str(customerOutageData.loc[row, 'Business Type'])
 		duration = str(0)
+		# durationFloatCapAt25 capped at 25 hours for cost calculation purposes because it is used as an index to a 26-element cost list in customerCost1 function
+		durationFloatCapAt25 = 0.0
 		averagekWperhr = str(0)
 		for elementDict in dssTree:
 			if 'object' in elementDict and elementDict['object'].split('.')[0] == 'load' and elementDict['object'].split('.')[1] == loadName:
 				if 'daily' in elementDict: averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
 				else: averagekWperhr = float(elementDict['kw'])/2
 				duration = str(cumulativeLoadsShed.count(loadName) * stepSize)
+				durationFloatCapAt25 = min(float(duration), 25.0)
 		if float(duration) >= .1 and float(averagekWperhr) >= .1:
 			durationColumn.append(duration)
 			avgkWColumn.append(float(averagekWperhr))
 			season = str(customerOutageData.loc[row, 'Season'])
-			customerOutageCost, kWperhrEstimate, times, localMax = customerCost1(duration, season, averagekWperhr, businessType)
+			customerOutageCost, kWperhrEstimate = customerCost1(durationFloatCapAt25, season, averagekWperhr, businessType)
 			average_lost_kwh.append(float(averagekWperhr))
 			outageCost.append(customerOutageCost)
 			outageCostsByType[businessType].append(customerOutageCost)
-			if localMax > globalMax:
-				globalMax = localMax
-			# creating series
-			timesSeries = pd.Series(times)
-			kWperhrSeries = pd.Series(kWperhrEstimate)
-			trace = py.graph_objs.Scatter(
-				x = timesSeries,
-				y = kWperhrSeries,
+			trace = go.Scatter(
+				x = [*range(0,1+int(durationFloatCapAt25))],
+				y = [float(a) for a in kWperhrEstimate[:1+int(durationFloatCapAt25)]],
 				name = customerName,
+				mode='lines+markers',
 				hoverlabel = dict(namelength = -1),
 				hovertemplate = 
 				'<b>Duration</b>: %{x} h<br>' +
@@ -1639,9 +1642,13 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	totalCustomerCost = sum(outageCost)
 	meanCustomerCost = totalCustomerCost / len(outageCost)
 
-	fig.update_layout(xaxis_title = 'Duration (hours)',
+	durationWarning = None if maxDuration <= 25.0 else 'Some durations exceed 25 hours but cost calculations are capped there because of available data.'
+	fig.update_layout(
+		title = durationWarning,
+		xaxis_title = 'Total Outage Duration (hours)',
 		yaxis_title = 'Cost ($)',
-		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+		)
+	
 	# Customer Outage Histogram
 	busColors = {'residential':'#0000ff', 'manufacturing':'#ff0000', 'mining':'#708090', 'construction':'#ff8c00', 'agriculture':'#008000', 'finance':'#d6b600', 'retail':'#ff69b4', 'services':'#191970', 'utilities':'#8b4513', 'public':'#9932cc'}
 	custHist = go.Figure()
@@ -1713,8 +1720,8 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	profit_on_energy_sales = float(profit_on_energy_sales)
 	restoration_cost = int(restoration_cost)
 	hardware_cost = int(hardware_cost)
-	outageDuration = int(outageDuration)
-	utilityOutageHtml = utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration, modelDir)
+	simulationDuration = int(simulationDuration)
+	utilityOutageHtml = utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, simulationDuration, modelDir)
 	try: customerOutageCost = customerOutageCost
 	except: customerOutageCost = 0
 	return {'utilityOutageHtml': 	utilityOutageHtml, 
