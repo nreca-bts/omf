@@ -208,9 +208,12 @@
 				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
-		<div id="utilityOutageCostCalc" class="tightContent">
-			{{ allOutputDataDict['utilityOutageHtml'] }}
+		<p class="reportTitle" style="page-break-before:always">Utility Outage Plot</p>
+		<div id="utilOutFig" class="tightContent">
+			<div id="utilOutFigChart" style="width:1000px"></div>
+			<script type="text/javascript">
+				plotGraph("utilOutFigChart", allOutputData["utilOutFigData"], allOutputData["utilOutFigLayout"])
+			</script>
 		</div>
 		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in hours) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
 		<div id="taofiHist" class="tightContent">

@@ -233,41 +233,54 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 		customerOutageFile.write(customerOutageHtml)
 	return customerOutageHtml
 
-def utilityOutageTable(average_lost_kwh, outageDuration, modelDir):
-	'''generate html table of customer outages'''
-	'''# TODO: update table after calculating outage stats
-	def utilityOutageStats(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration):
-		new_html_str = """
-			<table cellpadding="0" cellspacing="0">
-				<thead>
-					<tr>
-						<th>Lost kWh Sales</th>
-						<th>Restoration Labor Cost</th>
-						<th>Restoration Hardware Cost</th>
-						<th>Utility Outage Cost</th>
-					</tr>
-				</thead>
-				<tbody>"""
-		
-		new_html_str += '<tr><td>' + str(int(sum(average_lost_kwh))*profit_on_energy_sales*outageDuration) + '</td><td>' + "${:,.2f}".format(restoration_cost*outageDuration) + '</td><td>' + "${:,.2f}".format(hardware_cost) + '</td><td>' + "${:,.2f}".format(int(sum(average_lost_kwh))*profit_on_energy_sales*outageDuration + restoration_cost*outageDuration + hardware_cost) + '</td></tr>'
-
-		new_html_str +="""</tbody></table>"""
-
-		return new_html_str
-
-	# print business information and estimated customer outage costs
-	utilityOutageHtml = utilityOutageStats(
-		average_lost_kwh = average_lost_kwh,
-		profit_on_energy_sales = profit_on_energy_sales,
-		restoration_cost = restoration_cost,
-		hardware_cost = hardware_cost,
-		outageDuration = outageDuration)
+def utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeSteps, stepSize):
+	''' Generates a graph of utility lost kWh sales over time and saves it as an html file.
+		The graph contains two lines: lost kWh sales at each timestep and cumulative lost kWh sales.
 	'''
-	utilityOutageHtml = '<!-- placeholder -->' 
-	# TODO: replace with graph of lost kWh sales over time and change function name and docstring accordingly
-	with open(pJoin(modelDir, 'utilityOutageTable.html'), 'w') as utilityOutageFile:
-		utilityOutageFile.write(utilityOutageHtml)
-	return utilityOutageHtml
+	
+	loadList = list(loadShapesPerLoad.keys())
+	timeList = [*range(startTime, numTimeSteps+startTime)]
+	dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList)	
+	outLoadStatusDict = dfStatus.loc[:, (dfStatus == 0).any(axis=0)].to_dict(orient='list')
+	kWLost = []
+	kWLostCumulative = []
+	for i in range(numTimeSteps):
+		kWLostInTimestep = 0
+		for loadName, statusList in outLoadStatusDict.items():
+			experiencingOutage = 1-statusList[i]
+			kW = loadShapesPerLoad[loadName][i]
+			kWLostInTimestep += experiencingOutage * kW
+		kWLost.append(kWLostInTimestep)
+		if i == 0:
+			kWLostCumulative.append(kWLostInTimestep)
+		else:
+			kWLostCumulative.append(kWLostCumulative[i-1] + kWLostInTimestep)
+	
+	# Create Graph
+	utilOutFig = go.Figure()
+	for varName, kWVals in [('kWh Sales Lost at Timestep', kWLost), ('kWh Sales Lost Cumulative', kWLostCumulative)]:
+		trace = go.Scatter(
+			x = timeList,
+			y = kWVals,
+			name = varName,
+			mode = 'lines',
+			line_shape='hv',
+			hovertemplate = 
+			'<b>Time Step</b>: %{x}<br>' +
+			'<b>Lost kWh Sales</b>: %{y:.2f} kWh'
+		)
+		utilOutFig.add_trace(trace)
+	utilOutFig.update_layout(
+		xaxis_title = 'Time (Hours)',
+		xaxis_range=[timeList[0],timeList[-1]],
+		xaxis={
+			'tickmode':'linear',
+			'dtick':stepSize
+		},
+		yaxis_title = 'Lost kWh Sales (kWh)',
+		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+	)
+	return utilOutFig
 
 def customerCost1(duration, season, averagekWperhr, businessType):
 	''' Function to determine customer outage cost based on season, annual kWh usage, and business type.
@@ -1583,15 +1596,20 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	dssTree = dssToTree(pJoin(modelDir,'circuit_simplified.dss'))
 	loadShapeMeanMultiplier = {}
 	loadShapeMeanActual = {}
+	loadShapesActual = {}
+	loadShapesMult = {}
+	loadShapesPerLoad = {}
 	for dssLine in dssTree:
 		if 'object' in dssLine and dssLine['object'].split('.')[0] == 'loadshape':
 			loadShape = dssLine['mult'].replace('[','').replace('(','').replace(']','').replace(')','').split(',')
 			loadShape = [float(y) for y in loadShape]
-			if 'useactual' in dssLine and dssLine['useactual'] == 'yes': 
+			if str(dssLine.get('useactual')).lower() in ['yes', 'true', 'y']: 
 				loadShapeMeanActual[dssLine['object'].split('.')[1]] = np.mean(loadShape)
+				loadShapesActual[dssLine['object'].split('.')[1]] = loadShape
 			else: 
-				# TODO: Inquire to Lisa about whether there should be the division at all. If mult is already supposed to be a multiplier, why divide by max?
+				# TODO: Inquire to Lisa about whether there should be the division at all. If mult is already supposed to be a multiplier, why divide by max? If this is correct, divide the line below it.
 				loadShapeMeanMultiplier[dssLine['object'].split('.')[1]] = np.mean(loadShape)/np.max(loadShape)
+				loadShapesMult[dssLine['object'].split('.')[1]] = loadShape
 	while row < customerOutageData.shape[0]:
 		customerName = str(customerOutageData.loc[row, 'Customer Name'])
 		loadName = str(customerOutageData.loc[row, 'Load Name'])
@@ -1606,6 +1624,11 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 					averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
 				else: 
 					averagekWperhr = float(elementDict['kw'])/2
+				# TODO: Once Lisa confirms whether the above should have a no 'daily' case, update accordingly.
+				if loadShapesActual.get(elementDict['daily']) != None:
+					loadShapesPerLoad[loadName] = loadShapesActual[elementDict['daily']] 
+				else:
+					loadShapesPerLoad[loadName] = [x * float(elementDict['kw']) for x in loadShapesMult[elementDict['daily']]]
 				duration = str(cumulativeLoadsShed.count(loadName) * stepSize)
 				durationFloatCapAt25 = min(float(duration), 25.0)
 				# TODO: Verify with Lisa that the break is good i.e. each object should only be defined once and this won't be skipping an expected second definition.
@@ -1729,11 +1752,10 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
 	simulationDuration = int(simulationDuration)
-	utilityOutageHtml = utilityOutageTable(average_lost_kwh, simulationDuration, modelDir)
-	# TODO: Replace the Utility Outage Table with a graph of lost kWh sales over time
+	utilOutFig = utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeSteps, stepSize)
 	try: customerOutageCost = customerOutageCost
 	except: customerOutageCost = 0
-	return {'utilityOutageHtml': 	utilityOutageHtml, 
+	return {'utilOutFig': 	utilOutFig, 
 			'customerOutageHtml': 	customerOutageHtml, 
 			'timelineStatsHtml': 	timelineStatsHtml,
 			'tradMetricsHtml':		tradMetricsHtml,
@@ -1999,9 +2021,6 @@ def work(modelDir, inputDict):
 	# Textual outputs of customer cost statistic
 	with open(pJoin(modelDir,'customerOutageTable.html')) as inFile:
 		outData['customerOutageHtml'] = inFile.read()
-	# Textual outputs of utility cost statistic
-	with open(pJoin(modelDir,'utilityOutageTable.html')) as inFile:
-		outData['utilityOutageHtml'] = inFile.read()
 	# Textual outputs of traditional metrics table
 	with open(pJoin(modelDir,'mgTradMetricsTable.html')) as inFile:
 		outData['tradMetricsHtml'] = inFile.read()
@@ -2030,6 +2049,8 @@ def work(modelDir, inputDict):
 	outData['fig4Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig5Data'] = json.dumps(plotOuts.get('custHist',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig5Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
+	outData['utilOutFigData'] = json.dumps(plotOuts.get('utilOutFig',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['utilOutFigLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Data'] = json.dumps(plotOuts.get('outageIncidenceFig',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['mgOIFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgOIFigs',{}).items()}
