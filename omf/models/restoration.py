@@ -1461,7 +1461,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			'tickmode':'linear',
 			'dtick':stepSize
 		},
-		yaxis_title='Demand Served (% kW)',
+		yaxis_title='Demand Served (%)',
 		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 	
 	timelineStatsHtml = microgridTimeline(outputTimeline, modelDir)
@@ -1868,7 +1868,7 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 			outStr = ''
 			for line in inputLines:
 				line = line.lower()
-				if 'object=fuse.' not in line and 'show' not in line:
+				if 'object=fuse.' not in line and 'show ' not in line:
 					if 'kwhstored' in line and 'kwhrated' in line and maxBessCharge == True:
 						itemDict = {}
 						for item in line.split(' '):
