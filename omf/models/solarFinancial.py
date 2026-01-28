@@ -137,11 +137,11 @@ def work(modelDir, inputDict):
 		results_df = results_df.set_index( results_df["timestamp"])
 		simLengthUnits = inputDict['simLengthUnits']
 		if simLengthUnits == "minutes":
-				freq = "T"
+				freq = "t"
 		elif simLengthUnits == "hours":
-				freq = "H"
+				freq = "h"
 		elif simLengthUnits == "days":
-				freq = "D"
+				freq = "d"
 		else:
 				raise Exception()
 		agg_df = results_df.resample(freq).sum(numeric_only=True)

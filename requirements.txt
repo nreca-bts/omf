@@ -28,7 +28,6 @@ flask_compress>=1.4.0
 plotly>=4.0.0
 scikit-learn>=0.23.0
 gevent
-iso3166
 pyproj
 gunicorn
 Pillow
