@@ -278,7 +278,8 @@ def utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeStep
 			'dtick':stepSize
 		},
 		yaxis_title = 'Lost kWh Sales (kWh)',
-		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+		title = 'Note: Output is in kWh. To convert to $, multiply by $/kWh for your co-op at the particular time and day.'
 	)
 	return utilOutFig
 
@@ -1455,10 +1456,10 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	
 	loads = go.Figure()
 	loadsKeysAndNames = [
-		('Total load (%)', 'Total Demand'),
-		('Feeder load (%)','Feeder Demand'),
-		('Microgrid load (%)','Microgrid Demand'),
-		('Bonus load via microgrid (%)','Bonus Demand via Microgrid')]
+		('Total load (%)', '% Total Demand Served'),
+		('Feeder load (%)','% Demand Served by Grid'),
+		('Microgrid load (%)','% Demand in Microgrids Served'),
+		('Bonus load via microgrid (%)','% Additional Demand Servable via Microgrids')]
 	for deviceActions,name in loadsKeysAndNames:
 		loads.add_trace(go.Scatter(
 			x=simTimeSteps,
