@@ -40,15 +40,19 @@
 				<p class="inputSectionHeader">Solar System Parameters</p>
 			</div>
 			<hr>
-			<div class="shortInput">
-				<label class="tooltip">Zip Code<span class="classic">Zip code of the planned array's geographical location.</span></label>
-				<input type="text" id="zipCode" name="zipCode" value="{{allInputDataDict.zipCode}}" pattern="^\d{5}(?:[-\s]\d{4})?$" required="required">
+			<div class="shorterInput">
+				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
+				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
+				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
+				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shorterInput">
 				<label class="tooltip">System Size (kWp-DC)<span class="classic">Average residential PV system size in your service territory, in kilowatts-DC.</span></label>
 				<input type="text" id="systemSize" name="systemSize" value="{{allInputDataDict.systemSize}}" pattern="^\d+\.?\d*$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
 				<label class="tooltip">Residential Customers With Solar (%)<span class="classic">Percentage of residential customers who own PV systems. A value of five percent is entered as a "5".</span></label>
 				<input type="text" id="resPenetration" name="resPenetration" value="{{allInputDataDict.resPenetration}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required">
 			</div>

@@ -14,7 +14,8 @@ try:
 	from geolite2 import geolite2
 except:
 	pass
-from iso3166 import countries
+#from iso3166 import countries
+from omf.solvers import iso3166
 from dateutil.parser import parse as parseDt
 from jinja2 import Template
 import omf
@@ -180,7 +181,7 @@ def trafficLogStats(logsPath, outFilePath):
 			if ip.country == 'XK':
 				IPCount["Kosovo"] += 1
 			else:
-				nation = countries.get(ip.country)
+				nation = iso3166.countries.get(ip.country)
 				IPCount[nation.name] += 1
 		# Browser Type
 		if "Chrome" in line:

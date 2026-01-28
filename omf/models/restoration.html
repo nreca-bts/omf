@@ -224,7 +224,11 @@
 				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
-		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in minutes) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
+		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
+		<div id="utilityOutageCostCalc" class="tightContent">
+			{{ allOutputDataDict['utilityOutageHtml'] }}
+		</div>
+		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in hours) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
 		<div id="taofiHist" class="tightContent">
 			<div id="taofiHistChart" style="width:1000px"></div>
 			<script type="text/javascript">
@@ -256,10 +260,6 @@
 			</script>
 		</div>
 		{% endif %}
-		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
-		<div id="utilityOutageCostCalc" class="tightContent">
-			{{ allOutputDataDict['utilityOutageHtml'] }}
-		</div>
 		<p class="reportTitle"><label class="tooltip">Outage Incidence for Full System<span class="classic">Outage Incidence is the percent of loads in a system that are experiencing an outage at a given time. A load is considered to be experiencing an outage at a given time if its "After" status in the Timeline below is "offline".</span></label></p>
 		<div id="fig6" class="tightContent">
 			<div id="fig6Chart" style="width:1000px"></div>
@@ -278,10 +278,6 @@
 			}
 			</script>
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Timeline</p>
-		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
-			{{ allOutputDataDict['timelineStatsHtml'] }}
-		</div>
 		<p class="reportTitle" style="page-break-before:always"><label class="tooltip">Simulation-Constrained Metrics by Microgrid<span class="classic">LCI related metrics only consider loads in each microgrid that have LCI values.</span></label></p>
 		<div id="tradMetricsCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
 			{{ allOutputDataDict['tradMetricsHtml'] }}
@@ -292,6 +288,10 @@
 			{{ allOutputDataDict['lciQuartTradMetricsHtml'] }}
 		</div>
 		{% endif %}
+		<p class="reportTitle" style="page-break-before:always">Timeline</p>
+		<div id="outageCostCalc" class="tightContent sorttable" style="max-height:500px; overflow-y:scroll">
+			{{ allOutputDataDict['timelineStatsHtml'] }}
+		</div>
 		<!-- Leaflet map directly inline with model-->
 		<p class="reportTitle">Outage Map and Time Slider</p>
 		<div class="tightContent" style="margin-bottom:-1px">

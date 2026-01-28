@@ -54,16 +54,20 @@
 				<input type="text" id="feederName1" name="feederName1" value="{{allInputDataDict.feederName1}}" style="display:none">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">AMI Data Input File <span class="classic">Upload a .csv file of meter data. Format for input columns: busname, datetime, w, v, var.</span></label>
+				<label class="tooltip">AMI Data Input File <span class="classic">Upload a .csv file of meter data. Format for input columns: busname, datetime, v, kW, kVAR.</span></label>
 				<div>{{ file_upload('AmiDataFile', 'AmiUIDisplay', 'AmiDataFileName') }}</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">SCADA Data Input File <span class="classic">Upload a .csv file of scada data. Format for input columns: busname, datetime, w, v, var.</span></label>
+				<label class="tooltip">SCADA Data Input File <span class="classic">Upload a .csv file of scada data. Format for input columns: busname, datetime, kVa, kVb, kVc, MWa, MWb, MWc, MVARa, MVARb, MVARc.</span></label>
 				<div>{{ file_upload('ScadaDataFile', 'ScadaUIDisplay', 'ScadaDataFileName') }}</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">DER Pipeline Input File <span class="classic">Upload a .csv file of scada data. Format for input columns: busname, type, va.</span></label>
+				<label class="tooltip">DER Pipeline Input File <span class="classic">Upload a .csv file. Format for input columns: busname, kVA, tdb_solar_settings.</span></label>
 				<div>{{ file_upload('derPipelineDataFile', 'derPipelineUIDisplay', 'derPipelineDataFileName') }}</div>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">New Interconnection Input File <span class="classic">Upload a .csv file. Format for input columns: busname, kVA, tbd_solar_settings.</span></label>
+				<div>{{ file_upload('newInterconnDataFile', 'newInterconnUIDisplay', 'newInterconnDataFileName') }}</div>
 			</div>
 			{{ omfModelButtons }}
 		</form>
@@ -87,6 +91,17 @@
 				<strong>Output</strong>
 				<p id="sumOut">{{allOutputDataDict.output}}</p>
 			</div>
+			<p class="reportTitle" style="page-break-before:always">Hosting Capacity Map</p>
+				<div id="hostingCapacityMap" class="tightContent"></div>
+				<script>
+					var mapContent = allOutputData["hostingCapacityMap"]
+					var iframe = document.createElement('iframe');
+					iframe.style = 'width:1000px; height:800px; border-radius:8px;'
+					document.getElementById('hostingCapacityMap').appendChild(iframe);
+					iframe.contentWindow.document.open();
+					iframe.contentWindow.document.write(mapContent);
+					iframe.contentWindow.document.close();
+				</script>
 		</div>
 		{{ rawOutputFiles }}
 	</div>
