@@ -279,7 +279,7 @@ def utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeStep
 		},
 		yaxis_title = 'Lost kWh Sales (kWh)',
 		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-		title = 'Note: Output is in kWh. To convert to $, multiply by $/kWh for your co-op at the particular time and day.'
+		title = 'Output is in kWh. To convert to $, multiply by $/kWh for your co-op at the particular time and day.'
 	)
 	return utilOutFig
 
@@ -1235,8 +1235,11 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 	pfTypes.sort()
 	pfDataAggregated = {mgID:pd.DataFrame(0, index=simTimeSteps, columns=pfTypes) for mgID in mgIDs.union({'no MG'})}
 	pfDataSystemwide = pd.DataFrame(0, index=simTimeSteps, columns=pfTypes)
+	pfMaxTotalAtAnyT = float('-inf')
+	pfMinTotalAtAnyT = float('inf')
 	
 	for timestepIndex in range(len(powerflow)):
+		pfTotalAtT = 0
 		for pfType in pfTypes:
 			for obName, obData in powerflow[timestepIndex][pfType].items():
 				obPf = sum(obData.get('real power setpoint (kW)',[0]))
@@ -1244,15 +1247,17 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 				obMg = obMgDict.get(obName, 'no MG')
 				pfDataAggregated[obMg].at[simTimeSteps[timestepIndex],pfType] += obPf
 				pfDataSystemwide.at[simTimeSteps[timestepIndex],pfType] += obPf
+				pfTotalAtT += obPf
+		pfMaxTotalAtAnyT = max(pfMaxTotalAtAnyT, pfTotalAtT)
+		pfMinTotalAtAnyT = min(pfMinTotalAtAnyT, pfTotalAtT)
 
-	minVal = float('inf')
-	maxVal = float('-inf')
+	# Account for a single var having a lower val than the total (e.g. storage having negative val while total is positive)
+	minVal = pfMinTotalAtAnyT
 	for df in pfDataAggregated.values():
 		minVal = min(minVal, df.min().min())
-		maxVal = max(maxVal, df.max().max())
-	axisPadding = 0.05*(maxVal-minVal)
+	axisPadding = 0.05*(pfMaxTotalAtAnyT-minVal)
 	graphMin = minVal-axisPadding
-	graphMax = maxVal+axisPadding
+	graphMax = pfMaxTotalAtAnyT+axisPadding
 	
 	pfTypeNameMap = {
 		'voltage_source':'Grid',
@@ -1264,6 +1269,8 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 	for pfType in pfTypes:
 		pfTypeRenamed = pfTypeNameMap.get(pfType,pfType)
 		gensFigure.add_trace(go.Scatter(
+			fill='tonexty',
+			stackgroup='group1',
 			x=simTimeSteps,
 			y=pfDataSystemwide[pfType].to_list(),
 			mode='lines',
@@ -1289,6 +1296,8 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 		for pfType in pfTypes:
 			pfTypeRenamed = pfTypeNameMap.get(pfType,pfType)
 			mgGensFigures[mgID].add_trace(go.Scatter(
+				fill='tonexty',
+				stackgroup='group1',
 				x=simTimeSteps,
 				y=pfDataAggregated[mgID][pfType].to_list(),
 				mode='lines',
