@@ -233,30 +233,51 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 		customerOutageFile.write(customerOutageHtml)
 	return customerOutageHtml
 
-def utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeSteps, stepSize):
-	''' Generates a graph of utility lost kWh sales over time and saves it as an html file.
-		The graph contains two lines: lost kWh sales at each timestep and cumulative lost kWh sales.
+def collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps):
 	'''
+	Collects kW lost data over the course of the simulation using load shapes and whether each load was shed or not at each timestep.
 	
+	:param mgIDs: List of microgrid IDs
+	:param obMgDict: Dictionary mapping load names to microgrid IDs
+	:param loadShapesPerLoad: Dictionary of load shapes for each load
+	:param outputTimeline: DataFrame containing timeline data for each load
+	:param startTime: Start time of the simulation
+	:param numTimeSteps: Number of time steps in the simulation
+	:return timeList: List of time steps
+	:return kWLost: List of kW lost at each time step
+	:return kWLostCumulative: List of cumulative kW at each time step
+	:return kWLostPerMg: Dictionary containing lists of kW lost per microgrid at each time step
+	'''
 	loadList = list(loadShapesPerLoad.keys())
 	timeList = [*range(startTime, numTimeSteps+startTime)]
 	dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList)	
 	outLoadStatusDict = dfStatus.loc[:, (dfStatus == 0).any(axis=0)].to_dict(orient='list')
 	kWLost = []
 	kWLostCumulative = []
+	kWLostPerMg = {mgID: [] for mgID in mgIDs}
 	for i in range(numTimeSteps):
 		kWLostInTimestep = 0
+		kWLostInTimestepPerMg = {mgID: 0 for mgID in mgIDs}
 		for loadName, statusList in outLoadStatusDict.items():
 			experiencingOutage = 1-statusList[i]
 			kW = loadShapesPerLoad[loadName][i]
-			kWLostInTimestep += experiencingOutage * kW
+			kWLostHere = experiencingOutage * kW
+			kWLostInTimestep += kWLostHere
+			kWLostInTimestepPerMg[obMgDict.get(loadName, 'no MG')] += kWLostHere
 		kWLost.append(kWLostInTimestep)
 		if i == 0:
 			kWLostCumulative.append(kWLostInTimestep)
 		else:
 			kWLostCumulative.append(kWLostCumulative[i-1] + kWLostInTimestep)
+		for mgID, kW in kWLostInTimestepPerMg.items():
+			kWLostPerMg[mgID].append(kW)
 	
-	# Create Graph
+	return timeList, kWLost, kWLostCumulative, kWLostPerMg
+
+def utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize):
+	''' Generates a graph of utility lost kWh sales over time and saves it as an html file.
+		The graph contains two lines: lost kWh sales at each timestep and cumulative lost kWh sales.
+	'''
 	utilOutFig = go.Figure()
 	for varName, kWVals in [('kWh Sales Lost at Timestep', kWLost), ('kWh Sales Lost Cumulative', kWLostCumulative)]:
 		trace = go.Scatter(
@@ -1218,10 +1239,11 @@ def runMicrogridControlSim(modelDir, solFidelity, eventsFilename, loadPriorityFi
 		else:
 			time.sleep(waitTime)
 
-def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
+def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg):
 	''' Aggregates powerflow data by powerflow circuit object type to create generation profiles.
 		Aggregated powerflow data is separated based on the microgrid in which each pf circuit object is located.
 		Generation profiles for the entire system are also calculated alongside gen profiles for each microgrid. 
+		Also adds demand not served to the stacked area plots to visualize total demand.
 
 		Outputs a touple containing two elements: gensFigure, mgGensFigures
 
@@ -1235,8 +1257,7 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 	pfTypes.sort()
 	pfDataAggregated = {mgID:pd.DataFrame(0, index=simTimeSteps, columns=pfTypes) for mgID in mgIDs.union({'no MG'})}
 	pfDataSystemwide = pd.DataFrame(0, index=simTimeSteps, columns=pfTypes)
-	pfMaxTotalAtAnyT = float('-inf')
-	pfMinTotalAtAnyT = float('inf')
+	pfTotalsAtEachT = []
 	
 	for timestepIndex in range(len(powerflow)):
 		pfTotalAtT = 0
@@ -1248,16 +1269,17 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 				pfDataAggregated[obMg].at[simTimeSteps[timestepIndex],pfType] += obPf
 				pfDataSystemwide.at[simTimeSteps[timestepIndex],pfType] += obPf
 				pfTotalAtT += obPf
-		pfMaxTotalAtAnyT = max(pfMaxTotalAtAnyT, pfTotalAtT)
-		pfMinTotalAtAnyT = min(pfMinTotalAtAnyT, pfTotalAtT)
+		pfTotalsAtEachT.append(pfTotalAtT)
 
-	# Account for a single var having a lower val than the total (e.g. storage having negative val while total is positive)
-	minVal = pfMinTotalAtAnyT
+	minVal = min(pfTotalsAtEachT)
 	for df in pfDataAggregated.values():
 		minVal = min(minVal, df.min().min())
-	axisPadding = 0.05*(pfMaxTotalAtAnyT-minVal)
+	maxVal = float('-inf')
+	for i, val in enumerate(pfTotalsAtEachT):
+		maxVal = max(maxVal, val+kWLost[i])
+	axisPadding = 0.05*(maxVal-minVal)
 	graphMin = minVal-axisPadding
-	graphMax = pfMaxTotalAtAnyT+axisPadding
+	graphMax = maxVal+axisPadding
 	
 	pfTypeNameMap = {
 		'voltage_source':'Grid',
@@ -1279,6 +1301,17 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 			hovertemplate=
 			'<b>Time Step</b>: %{x}<br>' +
 			f'<b>{pfTypeRenamed}</b>: %{{y:.3f}}kW'))
+	gensFigure.add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group1',
+		x=simTimeSteps,
+		y=kWLost,
+		mode='lines',
+		line_shape='hv',
+		name='Demand Not Served',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Demand Not Served</b>: %{{y:.3f}}kW'))
 	gensFigure.update_layout(
 		xaxis_title='Time (Hours)',
 		xaxis_range=[simTimeSteps[0],simTimeSteps[-1]],
@@ -1306,6 +1339,17 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 				hovertemplate=
 				'<b>Time Step</b>: %{x}<br>' +
 				f'<b>{pfTypeRenamed} for Microgrid {mgID}</b>: %{{y:.3f}}kW'))
+		mgGensFigures[mgID].add_trace(go.Scatter(
+			fill='tonexty',
+			stackgroup='group1',
+			x=simTimeSteps,
+			y=kWLostPerMg[mgID],
+			mode='lines',
+			line_shape='hv',
+			name='Demand Not Served',
+			hovertemplate=
+			'<b>Time Step</b>: %{x}<br>' +
+			f'<b>Demand Not Served</b>: %{{y:.3f}}kW'))
 		mgGensFigures[mgID].update_layout(
 			xaxis_title='Time (Hours)',
 			xaxis_range=[simTimeSteps[0],simTimeSteps[-1]],
@@ -1435,7 +1479,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	outputTimeline = pd.DataFrame(timelineActions, columns=['time','device','action','loadBefore','loadAfter']).sort_values('time')
 
 	# Create traces
-	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime)
+	# generation profiles code moved to bottom of this file to use data gathered later
 
 	volts = go.Figure()
 	voltsKeysAndNames = [
@@ -1762,7 +1806,11 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
 	simulationDuration = int(simulationDuration)
-	utilOutFig = utilityOutageGraph(loadShapesPerLoad, outputTimeline, startTime, numTimeSteps, stepSize)
+	timeList, kWLost, kWLostCumulative, kWLostPerMg = collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps)
+	utilOutFig = utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize)
+	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg)
+
+
 	try: customerOutageCost = customerOutageCost
 	except: customerOutageCost = 0
 	return {'utilOutFig': 	utilOutFig, 
