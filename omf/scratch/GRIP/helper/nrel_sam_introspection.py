@@ -1,5 +1,7 @@
 # https://sam.nrel.gov/images/web_page_files/ssc_guide.pdf#subsection.3.4
 
+''' As of January 2026 - nrelsam2013 is removed from the OMF. Please use PySAM'''
+
 
 import omf.solvers.nrelsam2013 as sam # This import takes a long time (15 seconds)
 
