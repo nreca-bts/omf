@@ -1271,12 +1271,18 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, 
 				pfTotalAtT += obPf
 		pfTotalsAtEachT.append(pfTotalAtT)
 
-	minVal = min(pfTotalsAtEachT)
-	for df in pfDataAggregated.values():
-		minVal = min(minVal, df.min().min())
+	# minVal is defined as the lowest total of stacked vals (without adding in kWLost since it's never negative) and individual vals
+	# 	This is to account for if the graph has multiple negative vals stacking bringing things lower than any individual val would.
+	# maxVal is defined as the highest total of stacked vals (including kWLost) and individual vals
+	# 	This is to account for the case where the graph goes higher than the total stacked vals because of order of stacked layers
+	#	I.e. a very high positive val layer is drawn before a very large negative val layer is drawn "atop" it. The total is lower than the graph is drawn since the high pos val was drawn first.
 	maxVal = float('-inf')
 	for i, val in enumerate(pfTotalsAtEachT):
 		maxVal = max(maxVal, val+kWLost[i])
+	minVal = min(pfTotalsAtEachT)
+	for df in pfDataAggregated.values():
+		minVal = min(minVal, df.min().min())
+		maxVal = max(maxVal, df.max().max())
 	axisPadding = 0.05*(maxVal-minVal)
 	graphMin = minVal-axisPadding
 	graphMax = maxVal+axisPadding
