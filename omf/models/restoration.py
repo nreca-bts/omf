@@ -1599,6 +1599,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 		'Battery Control':'FFFF00',
 		'Generator Control':'E0FFFF',
 	}
+	hr4Popup = '_____________________________________________'
 	for row in range(row_count_timeline):
 		full_data = pullDataForGraph(tree, feederMap, outputTimeline, row)
 		device, coordLis, coordStr, time, action, loadBefore, loadAfter = full_data
@@ -1614,7 +1615,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 				'loadAfter': loadAfter,
 				'popupContent': f'''Location: <b>{coordStrFormatter(str(coordStr))}</b><br>
 									Device: <b>{str(device)}</b><br>
-									Latest Action: <b>{str(action)}</b><br>
+									{hr4Popup}<br>Latest Action: <b>{str(action)}</b><br>
 									Timestep: <b>{str(time)}</b><br>
 									Before: <b>{str(smartRound(loadBefore,3))}{units}</b><br>
 									After: <b>{str(smartRound(loadAfter,3))}{units}</b>''' }
@@ -1627,11 +1628,11 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 				if obMgDict != None:
 					mgID = obMgDict.get(str(device),'no MG ID')
 					dev_dict['properties']['microgrid_id'] = mgID
-					dev_dict['properties']['popupContent'] += f'<br>Microgrid ID: <b>{mgID}</b>'
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'Microgrid ID: <b>{mgID}</b><br>{hr4Popup}<br>Latest Action')
 				obkW = kWPropDict.get(device)
 				if obkW != None:
 					dev_dict['properties']['kW'] = obkW
-					dev_dict['properties']['popupContent'] += f'<br>kW: <b>{smartRound(obkW,3)}</b>'
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'kW: <b>{smartRound(obkW,3)}</b><br>{hr4Popup}<br>Latest Action')
 			feederMap['features'].append(dev_dict)
 		except:
 			print('MESSED UP MAPPING on', device, full_data)
