@@ -39,14 +39,36 @@ def pyVbat(modelDir, i):
 		ambient = np.array([[i]*60 for i in list(variables[0])]).reshape(365*24*60, 1)
 		variables[0] = ambient
 		variables.append(ambient)
-		file = pJoin(__neoMetaModel__._omfDir,'static','testFiles',"Flow_raw_1minute_BPA.csv")
+		file = pJoin(__neoMetaModel__._omfDir,'static','testFiles',"Flow_raw_1minute_BPA.csv") ## 19 columns, 525600 rows
 		water = np.genfromtxt(file, delimiter=',')
 		variables.append(water)
+
+		## Input the water heater random number settings
+		if i['set_random_numbers'] == 'Yes': ## Use the user-provided .csv file to set the water heater random numbers in the VB solver
+			rows = i['randomNumbers'].strip().split('\n') ## Separate the string input data into rows first (there are 3 random numbers per row)
+			random_numbers = [[float(num) for num in row.split(',')] for row in rows] ## Convert each string row to a list of floats
+		else: ## If none provided by the user, allow the VB solver to generate and return the water heater random numbers
+			random_numbers = None
+		variables.append(random_numbers)
+		
 		return VB.WH(*variables).generate() # water heater
 
 def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 	### Di's Modified dispatch code	
 	alpha = 1-(1/(float(inputDict["capacitance"])*float(inputDict["resistance"])))  #1-(deltaT/(C*R)) hourly self discharge rate
+
+	## Set the random seed in PuLP optimizer. See https://github.com/coin-or/pulp/issues/545#issuecomment-1355737609
+	if inputDict['set_random_numbers'] == 'Yes': ## Use the user-provided random seed
+		random_seed_PuLP = inputDict['random_seed_PuLP']
+	else: ## Randomly generate the random seed
+		random_seed_PuLP = str(np.random.randint(0,1000000)) ## arbitrarily chose 1,000,000 as the max
+	
+	cbc_solver = pulp.PULP_CBC_CMD(keepFiles=False,
+				msg=True,
+				threads=8,
+				options= [f"RandomS " + random_seed_PuLP]
+				)
+
 	# LP Variables
 	model = pulp.LpProblem("Demand charge minimization problem", pulp.LpMinimize)
 	VBpower = pulp.LpVariable.dicts("ChargingPower", range(8760)) # decision variable of VB charging power; dim: 8760 by 1
@@ -72,20 +94,30 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 		for i in range(s, f):
 			model += pDemand[month] >= demand[i] + VBpower[i]
 
-	model.solve()
+	model.solve(cbc_solver)
 
-	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)]
+	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)], random_seed_PuLP
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory.'''
 
 	out = {}
+	
+	## Remove old input files if necessary
+	inputFileNames = ['water_heater_random_numbers.csv']
+	for FileName in inputFileNames:
+		try:
+			os.remove(pJoin(modelDir, FileName))
+		except OSError:
+			pass
+
+	## Process the demand and temperature curve data
 	with open(pJoin(modelDir, 'demand.csv'), 'w') as f:
 		f.write(inputDict['demandCurve'].replace('\r', ''))
 	with open(pJoin(modelDir, 'demand.csv'), newline='') as f:
 		demand = [float(r[0]) for r in csv.reader(f)]
 		assert len(demand) == 8760
-	
+
 	with open(pJoin(modelDir, 'temperature.csv'), 'w') as f:
 		lines = inputDict['temperatureCurve'].split('\n')
 		out["temperatureData"] = [float(x) if x != '999.0' else float(inputDict['setpoint']) for x in lines if x != '']
@@ -108,7 +140,16 @@ def work(modelDir, inputDict):
 					(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
 					(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
 
-	P_lower, P_upper, E_UL = pyVbat(modelDir, inputDict)
+	if inputDict['load_type'] == '4': ## Water Heater
+		## The water heater code in the VB solver will additionally return an array of random numbers used to describe the water draw rate
+		P_lower, P_upper, E_UL, wh_random_numbers = pyVbat(modelDir, inputDict)
+		
+		## Save the random numbers to the model directory. This allows the user to reuse the same random numbers to reproduce the water heater results, if desired.
+		df_random_numbers = pd.DataFrame(wh_random_numbers)
+		df_random_numbers.to_csv(modelDir+'/water_heater_random_numbers.csv', index=False, header=False)
+	else:
+		P_lower, P_upper, E_UL = pyVbat(modelDir, inputDict)
+
 	P_lower, P_upper, E_UL = list(P_lower), list(P_upper), list(E_UL)
 
 	out["minPowerSeries"] = [-1*x for x in P_lower]
@@ -116,9 +157,12 @@ def work(modelDir, inputDict):
 	out["minEnergySeries"] = [-1*x for x in E_UL]
 	out["maxEnergySeries"] = E_UL
 	
-	VBpower, out["VBenergy"] = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
+	VBpower, out["VBenergy"], random_seed_PuLP = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
 	
-	## Flip sign of VBpower values (positive now = discharging and negative = charging)
+	## Save the PuLP optimizer random seed to the output
+	out['random_seed_PuLP'] = random_seed_PuLP
+	
+	## Flip sign of VBpower values (positive value = discharging, negative value = charging)
 	VBpower = [i * -1. for i in VBpower]
 
 	out["VBpower"] = VBpower
@@ -184,17 +228,19 @@ def new(modelDir):
 		energy_rate_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","utility_monthly_demand_charges.csv")) as f:
 		monthly_demand_charges = f.read()
-		
+	with open(pJoin(__neoMetaModel__._omfDir,"static","testFiles","vbatDispatch","water_heater_random_numbers.csv")) as f:
+		random_numbers = f.read()
+
 	defaultInputs = {
 		"user": "admin",
-		"load_type": "1",
-		"number_devices": "2000",
-		"power": "5.6",
-		"capacitance": "2",
-		"resistance": "2",
-		"cop": "2.5",
-		"setpoint": "22.5",
-		"deadband": "0.625",
+		"load_type": "4",
+		"number_devices": "1",
+		"power": "4.5",
+		"capacitance": "0.4",
+		"resistance": "230",
+		"cop": "1",
+		"setpoint": "48.5",
+		"deadband": "3",
 		#"demandChargeCost":"25",
 		"projectionLength":"15",
 		"discountRate":"2",
@@ -209,6 +255,10 @@ def new(modelDir):
 		'energyRateCurve': energy_rate_curve,
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
+		'set_random_numbers': 'No',
+		'random_seed_PuLP': '1000000',
+		'randomNumbersFileName': 'water_heater_random_numbers.csv',
+		'randomNumbers': random_numbers,
 	}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
