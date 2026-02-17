@@ -157,7 +157,11 @@ def work(modelDir, inputDict):
 	## Handle and save user input files
 	########################################################################################################################
 	## Remove old input files if necessary
-	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_wholesale_energy_rate_structure.json','input_wholesale_rate_curve.csv','input_monthly_demand_charges.csv']
+	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_wholesale_energy_rate_structure.json',
+				'input_wholesale_rate_curve.csv','input_monthly_demand_charges.csv',
+				'vbatDispatch_inputs_ac.json', 'vbatDispatch_results_ac.json', 
+				'vbatDispatch_inputs_hp.json', 'vbatDispatch_results_hp.json',
+				'vbatDispatch_inputs_wh.json', 'vbatDispatch_results_wh.json']
 	for FileName in inputFileNames:
 		try:
 			os.remove(pJoin(modelDir, FileName))
@@ -445,8 +449,12 @@ def work(modelDir, inputDict):
 		'demandCurve': inputDict['demandCurve'],
 		'temperatureCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f"{rate:.2f}" for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
+		'set_random_numbers': inputDict['set_random_numbers'],
+		'random_seed_PuLP': inputDict['random_seed_PuLP'],
+		'randomNumbersFileName': inputDict['randomNumbersFileName'],
+		'randomNumbers': inputDict['randomNumbers'],
 	}
-	
+
 	## Define thermal variables that change depending on the thermal technology(ies) enabled by the user
 	thermal_suffixes = ['_hp', '_ac', '_wh'] ## heat pump, air conditioner, water heater - (Add more suffixes here after establishing inputs in the defaultInputs and derUtilityCost.html)
 	thermal_variables=['load_type','number_devices','power','capacitance','resistance','cop','setpoint','deadband','TESS_subsidy_ongoing','TESS_subsidy_onetime']
@@ -463,24 +471,30 @@ def work(modelDir, inputDict):
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
 			## Create a model subdirectory for each thermal device and store the vbatDispatch results there
-			newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
-			os.makedirs(newDir, exist_ok=True)
-			os.chdir(newDir) ##jump into the newly created subdirectory
+			#newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
+			#os.makedirs(newDir, exist_ok=True)
+			#os.chdir(newDir) ##jump into the newly created subdirectory
 
+			## Save the vbatDispatch inputs
+			with open(pJoin(modelDir, 'vbatDispatch_inputs'+suffix+'.json'), 'w') as jsonFile:
+				json.dump(inputDict_vbatDispatch, jsonFile)
+			
 			## Run vbatDispatch for the thermal device
 			vbatResults = vb.work(modelDir,inputDict_vbatDispatch)
-			with open(pJoin(newDir, 'vbatResults.json'), 'w') as jsonFile:
-				json.dump(vbatResults, jsonFile)
 			
 			## Update the vbatResults to include subsidies (for easier usage later)
 			vbatResults['TESS_subsidy_onetime'] = float(inputDict_vbatDispatch['TESS_subsidy_onetime'])*float(inputDict['number_devices'+suffix])
 			vbatResults['TESS_subsidy_ongoing'] = float(inputDict_vbatDispatch['TESS_subsidy_ongoing'])*float(inputDict['number_devices'+suffix])
 
+			## Save the vbatDispatch results
+			with open(pJoin(modelDir, 'vbatDispatch_results'+suffix+'.json'), 'w') as jsonFile:
+				json.dump(vbatResults, jsonFile)
+			
 			## Store the results in all_device_results dictionary
 			single_device_results['vbatResults'+suffix] = vbatResults
 
 			## Go back to the main derUtilityCost model directory and continue on
-			os.chdir(modelDir)
+			#os.chdir(modelDir)
 	
 
 	########################################################################################################################
@@ -1571,6 +1585,8 @@ def new(modelDir):
 	#responseFilename = 'TOUrate5b311c595457a3496d8367be.json' ## TOU rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','utility_monthly_demand_charges.csv')) as f:
 		monthly_demand_charges = f.read()
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','water_heater_random_numbers.csv')) as f:
+		random_numbers = f.read()
 
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
@@ -1631,6 +1647,9 @@ def new(modelDir):
 		'operationalCosts_ongoing': '1000.0',
 		'operationalCosts_onetime': '20000.0',
 
+		## Thermal Technology Random Seed Settings
+		'random_seed_PuLP': '1000000',
+		
 		## Home Air Conditioner inputs (for vbatDispatch):
 		'load_type_ac': '1', 
 		'number_devices_ac': '33000',
@@ -1653,6 +1672,9 @@ def new(modelDir):
 
 		## Home Water Heater inputs (for vbatDispatch):
 		'load_type_wh': '4', 
+		'set_random_numbers': 'Yes',
+		'randomNumbersFileName': 'water_heater_random_numbers.csv',
+		'randomNumbers': random_numbers,
 		'number_devices_wh': '33000',
 		'power_wh': '4.5',
 		'capacitance_wh': '0.4',
