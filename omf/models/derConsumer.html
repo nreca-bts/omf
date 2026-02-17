@@ -324,6 +324,17 @@
 				<input type="text" id="inverter_replacement_year" name="inverter_replacement_year" value="{{allInputDataDict.inverter_replacement_year}}" required="required"/>
 			</div>
 
+			<!-- Random Seed for Thermal Technologies -->
+			<div class="wideInput"> 
+				<p class="inputSectionHeader">Thermal Technology Random Seed Settings</p>
+			</div>
+			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
+
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed<span class="classic">A deterministic random seed number for the PuLP optimizer used by all thermal technologies (WH, HP, AC). Must be a positive integer between 0 and 1000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP" name="random_seed_PuLP" value="{{allInputDataDict.random_seed_PuLP}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+
 			<!-- Air Conditioner (vbatDispatch) Inputs -->
 			<div class="wideInput"> 
 				<p class="inputSectionHeader">Home Air Conditioner Device Inputs</p>
@@ -425,6 +436,22 @@
 					<option value="4" {{ 'selected' if allInputDataDict.load_type_wh == '4' }}>Yes</option>
 					<option value="0" {{ 'selected' if allInputDataDict.load_type_wh == '0' }}>No</option>
 				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Use the user-provided random numbers?<span class="classic">If 'Yes' model will use all user-provided random numbers including the Random Numbers for Water Heater (.csv) file and the PuLP Random Seed input. If 'No' the model will generate all numbers needed and save them in the outputs at the bottom of the model. Please see the documentation at the help link for more information.</span></label>
+				<select id="set_random_numbers" name="set_random_numbers" value="{{allInputDataDict.set_random_numbers}}">
+					<option value='Yes' {{ 'selected' if allInputDataDict.set_random_numbers == 'Yes' }}>Yes</option>
+					<option value='No' {{ 'selected' if allInputDataDict.set_random_numbers == 'No' }}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A file with random numbers that will help determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save a water_heater_random_numbers.csv file in the ouput files, which the user can re-upload here. Please see the documentation at the help link for the required format and example file.</span></label>
+				<input id="randomNumbersFile" type="file" style="display:none" onchange="handle_files(this.files,'randomNumbers','randomNumbersFileName')">
+				<input id="randomNumbers" name="randomNumbers" value="{{allInputDataDict.randomNumbers}}" type="hidden">
+				<div>
+					<label for="randomNumbersFile" class="fileButton">Choose File</label>
+					<input id="randomNumbersFileName" name="randomNumbersFileName" value="{{allInputDataDict.randomNumbersFileName}}" value='' readonly class="uploadFileName">
+				</div>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Rated Power (kW)<span class="classic">Maximum input power of the water heater. Must be a positive rational number between 0.1 and 7.2.</span></label>
