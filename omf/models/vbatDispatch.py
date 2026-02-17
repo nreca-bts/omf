@@ -58,15 +58,10 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 	alpha = 1-(1/(float(inputDict["capacitance"])*float(inputDict["resistance"])))  #1-(deltaT/(C*R)) hourly self discharge rate
 
 	## Set the random seed in PuLP optimizer. See https://github.com/coin-or/pulp/issues/545#issuecomment-1355737609
-	if inputDict['set_random_numbers'] == 'Yes': ## Use the user-provided random seed
-		random_seed_PuLP = inputDict['random_seed_PuLP']
-	else: ## Randomly generate the random seed
-		random_seed_PuLP = str(np.random.randint(0,1000000)) ## arbitrarily chose 1,000,000 as the max
-	
 	cbc_solver = pulp.PULP_CBC_CMD(keepFiles=False,
 				msg=True,
 				threads=8,
-				options= [f"RandomS " + random_seed_PuLP]
+				options= [f"RandomS " + inputDict['random_seed_PuLP']]
 				)
 
 	# LP Variables
@@ -96,7 +91,7 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 
 	model.solve(cbc_solver)
 
-	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)], random_seed_PuLP
+	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)]
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory.'''
@@ -157,10 +152,10 @@ def work(modelDir, inputDict):
 	out["minEnergySeries"] = [-1*x for x in E_UL]
 	out["maxEnergySeries"] = E_UL
 	
-	VBpower, out["VBenergy"], random_seed_PuLP = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
+	VBpower, out["VBenergy"] = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
 	
 	## Save the PuLP optimizer random seed to the output
-	out['random_seed_PuLP'] = random_seed_PuLP
+	out['random_seed_PuLP'] = inputDict['random_seed_PuLP']
 	
 	## Flip sign of VBpower values (positive value = discharging, negative value = charging)
 	VBpower = [i * -1. for i in VBpower]
