@@ -35,6 +35,9 @@ def new(modelDir):
 	ScadaFilePath = Path(omf.omfDir,'static','testFiles', 'hostingExpansion', ScadaFileName)
 	derPipelineFileName = "input_derPipelineData.csv"
 	derPipelineFilePath = Path(omf.omfDir,'static','testFiles', 'hostingExpansion', derPipelineFileName)
+	newInterconnFileName = "input_newInterconnData.csv"
+	newInterconnFilePath = Path(omf.omfDir,'static','testFiles', 'hostingExpansion', newInterconnFileName)
+	
 	defaultInputs = {
 		"user" : "admin",
 		"modelType": modelName,
@@ -45,7 +48,10 @@ def new(modelDir):
 		"ScadaUIDisplay": ScadaFileName,
 		"ScadaDataFileName": ScadaFileName,
 		"derPipelineUIDisplay": derPipelineFileName,
-		"derPipelineDataFileName": derPipelineFileName
+		"derPipelineDataFileName": derPipelineFileName,
+		"newInterconnUIDisplay": newInterconnFileName,
+		"newInterconnDataFileName": newInterconnFileName
+	
 	}
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	# Copy files from the test directory ( or respective places ) and put them in the model for use
@@ -56,6 +62,7 @@ def new(modelDir):
 		shutil.copyfile( amiFilePath, Path(modelDir, amiFileName) )
 		shutil.copyfile( ScadaFilePath, Path(modelDir, ScadaFileName) )
 		shutil.copyfile( derPipelineFilePath, Path(modelDir, derPipelineFileName))
+		shutil.copyfile( newInterconnFilePath, Path(modelDir, newInterconnFileName))
 	except:
 		return False
 	return creationCode

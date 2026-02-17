@@ -5,9 +5,14 @@ from os.path import join as pJoin
 
 # OMF imports
 from omf import weather
-from omf.solvers import nrelsam2013
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
+
+# Python imports
+from pathlib import Path
+import numpy as np
+import requests
+import datetime
 
 # Model metadata:
 modelName, template = __neoMetaModel__.metadata(__file__)
@@ -16,24 +21,105 @@ hidden = False
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
-	inputDict["climateName"] = weather.zipCodeToClimateName(inputDict["zipCode"])
-	shutil.copy(pJoin(__neoMetaModel__._omfDir, "data", "Climate", inputDict["climateName"] + ".tmy2"),
-		pJoin(modelDir, "climate.tmy2"))
-	# Set up SAM data structures.
-	ssc = nrelsam2013.SSCAPI()
-	dat = ssc.ssc_data_create()
-	# Required user inputs.
-	ssc.ssc_data_set_string(dat, b'file_name', bytes(modelDir + '/climate.tmy2', 'ascii'))
-	systemSize = max(float(inputDict.get('systemSize', 0)), .1)
-	ssc.ssc_data_set_number(dat, b'system_size', systemSize)
-	# SAM options where we take defaults.
-	ssc.ssc_data_set_number(dat, b'derate', 0.97)
-	ssc.ssc_data_set_number(dat, b'track_mode', 0)
-	ssc.ssc_data_set_number(dat, b'azimuth', 180)
-	ssc.ssc_data_set_number(dat, b'tilt_eq_lat', 1)
-	# Run PV system simulation.
-	mod = ssc.ssc_module_create(b'pvwattsv1')
-	ssc.ssc_module_exec(mod, dat)
+
+	### Get inputs for system design parameters
+	lat = float( inputDict['latitude'] )
+	long = float( inputDict['longitude'] )
+
+	# Constants
+	azimuth = 180
+	trackingMode = 0
+	inv_eff = 97.5
+	losses = 15.53
+	sys_cap = 750
+	tilt = 45
+
+	### Set up system design parameter dict for PySAM pvWatts Model
+	sys_design = {
+		"ModelParams": {
+				"SystemDesign": {
+						"array_type": trackingMode,
+						"azimuth": azimuth,
+						"inv_eff": inv_eff,
+						"losses": losses,
+						"module_type": 2.0,
+						"system_capacity": sys_cap,
+						"tilt": tilt
+				},
+				"SolarResource": {
+				}
+		},
+		"Other": {
+				"lat": lat,
+				"lon": long,
+		}
+	}
+
+	# We need DNI, DHI, GHI, windspeed, and temp
+	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
+	requestSuccess = weather.nrel_getTMYData(modelDir=modelDir, attributes=attributes, longitude=long, latitude=lat)
+
+	# If getting the data was successful:
+	# - Combine data + system parameters into pvwatts model and execute
+	if requestSuccess:
+		import PySAM.Pvwattsv8 as pvwatts
+		pvwatts_model = pvwatts.new()
+		full_data = pd.read_csv(Path(modelDir,"output_tmy_data.csv"))
+		metadata = full_data.iloc[0:1].copy()
+		wind_data = full_data.iloc[2:].copy()
+		wind_data.columns = full_data.iloc[1]
+		# We can snag elevation from the NSRDB Data we pulled out of the request
+		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
+		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
+		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
+		datetime_components_dict = {
+			'year': wind_data['Year'],
+			'month': wind_data['Month'],
+			'day': wind_data['Day'],
+			'hour': wind_data['Hour'],
+			'minute': wind_data['Minute'],
+		}
+		wind_data['datetime'] = pd.to_datetime(datetime_components_dict)
+		wind_data = wind_data.set_index(wind_data["datetime"])
+		solar_resource_data = {
+			'lat': float( metadata["Latitude"][0] ),
+			'lon': float( metadata["Longitude"][0] ),
+			'tz': int( metadata["Time Zone"][0] ),
+			'elev':  int( metadata["Elevation"][0] ),
+			'year': [int(x) for x in wind_data['Year']],
+			'month': [int(x) for x in wind_data['Month']],
+			'day': [int(x) for x in wind_data['Day']],
+			'hour': [int(x) for x in wind_data['Hour']],
+			'minute': [int(x) for x in wind_data['Minute']],
+			'dn': [float(x) for x in wind_data['DNI']],
+			'df': [float(x) for x in wind_data['DHI']],
+			'gh': [float(x) for x in wind_data['GHI']],
+			'wspd': [float(x) for x in wind_data['Wind Speed']],
+			'tdry': [float(x) for x in wind_data['Temperature']],
+		}
+		pvwatts_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
+		model_params = sys_design['ModelParams']
+		pvwatts_model.assign(model_params)
+		resource = pvwatts_model.SolarResource.export()
+		# Convert and write JSON object to file
+		with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
+				json.dump(resource, outfile)
+		pvwatts_model.execute()
+
+		poa = np.array( pvwatts_model.Outputs.poa, dtype=float)
+		dn = np.array( pvwatts_model.Outputs.dn, dtype=float)
+		df = np.array( pvwatts_model.Outputs.df, dtype=float)
+		tamb = np.array( pvwatts_model.Outputs.tamb, dtype=float)
+		tcell = np.array( pvwatts_model.Outputs.tcell, dtype=float)
+		wspd = np.array( pvwatts_model.Outputs.wspd, dtype=float)
+		ac = np.array( pvwatts_model.Outputs.ac, dtype=float) / 1000
+
+		results_df = pd.DataFrame(
+			{'timestamp': wind_data.index, 'poa': poa, 'dn': dn, 'df': df, 'tamb': tamb, 'tcell': tcell, 'wspd': wspd, 'ac': ac},
+			columns=['timestamp', 'poa', 'dn', 'df', 'tamb', 'tcell', 'wspd', 'ac']
+		)
+		results_df = results_df.set_index( results_df["timestamp"])
+
 	# Set the timezone to be UTC, it won't affect calculation and display, relative offset handled in pvWatts.html
 	startDateTime = "2013-01-01 00:00:00 UTC"
 	# Timestamp output.
@@ -41,21 +127,19 @@ def work(modelDir, inputDict):
 	outData["timeStamps"] = [datetime.datetime.strftime(
 		datetime.datetime.strptime(startDateTime[0:19],"%Y-%m-%d %H:%M:%S") +
 		datetime.timedelta(**{"hours":x}),"%Y-%m-%d %H:%M:%S") + " UTC" for x in range(int(8760))]
+	
 	# Geodata output.
-	outData['city'] 	= ssc.ssc_data_get_string(dat, b'city').decode()
-	outData['state'] 	= ssc.ssc_data_get_string(dat, b'state').decode()
-	outData['lat'] 		= ssc.ssc_data_get_number(dat, b'lat')
-	outData['lon'] 		= ssc.ssc_data_get_number(dat, b'lon')
-	outData['elev'] 	= ssc.ssc_data_get_number(dat, b'elev')
+	outData['lat'] = lat
+	outData['lon'] = long
 	# Weather output.
 	outData["climate"] = {}
-	outData['climate']['Global Horizontal Radiation (W/m^2)'] = ssc.ssc_data_get_array(dat, b'gh')
-	outData['climate']['Plane of Array Irradiance (W/m^2)'] = ssc.ssc_data_get_array(dat, b'poa')
-	outData['climate']['Ambient Temperature (F)'] = ssc.ssc_data_get_array(dat, b'tamb')
-	outData['climate']['Cell Temperature (F)'] = ssc.ssc_data_get_array(dat, b'tcell')
-	outData['climate']['Wind Speed (m/s)'] = ssc.ssc_data_get_array(dat, b'wspd')
+	outData['climate']['Global Horizontal Radiation (W/m^2)'] = results_df["gh"].tolist() if "gh" in results_df else []
+	outData['climate']['Plane of Array Irradiance (W/m^2)'] = results_df["poa"].tolist() if "poa" in results_df else []
+	outData['climate']['Ambient Temperature (F)'] = results_df["tamb"].tolist() if "tamb" in results_df else []
+	outData['climate']['Cell Temperature (F)'] = results_df["tcell"].tolist() if "tcell" in results_df else []
+	outData['climate']['Wind Speed (m/s)'] = results_df["wspd"].tolist() if "wspd" in results_df else []
 	# Power generation.
-	outData['powerOutputAc'] = ssc.ssc_data_get_array(dat, b'ac')
+	outData['powerOutputAc'] = results_df["ac"].tolist() if "ac" in results_df else []
 	solarFraction = float(inputDict.get("resPenetration", .05))/100
 	fossilFraction = max(1 - solarFraction, 10**-6)
 	# Monthly aggregation outputs.
@@ -360,7 +444,8 @@ def new(modelDir):
 	"decSale": "47081", "decKWh": "53354283", "decRev": "7014717", "decKWhT": "73335526", "decRevT": "9385203" }
 	defaultInputs = {
 		"modelType": modelName,
-		"zipCode": "64735",
+		"latitude": "33.2164",
+		"longitude": "-97.1292",
 		"runTime": "",
 		# Single data point
 		"systemSize": "5",
