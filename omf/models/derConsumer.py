@@ -408,6 +408,84 @@ def work(modelDir, inputDict):
 			#os.chdir(modelDir)
 	
 	########################################################################################################################
+	## Enact prioritization of TESS devices when there is competition for charge time 
+	## NOTE: Competing charge of TESS technologies can potentially cause a higher, more expensive monthly peak demand.
+	## The TESS results are decoupled from each other, since each technology is ran separately with omf.models.vbatDispatch.
+	########################################################################################################################
+	vbat_power_df = pd.DataFrame(index=None)
+	charging_devices = []
+
+	## Separate out the charging and discharging arrays for each TESS device enabled by the user
+	for device_name in single_device_results:
+		single_device_vbatPower = single_device_results[device_name]['VBpower']
+		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
+		single_device_vbatPower_series.replace(-0.0, 0.0, inplace=True)
+		charge_component = single_device_vbatPower_series.where(single_device_vbatPower_series < 0.0, 0.0) * -1.0
+		discharge_component = single_device_vbatPower_series.where(single_device_vbatPower_series > 0.0, 0.0)
+		vbat_power_df[device_name + '_totalpower'] = single_device_vbatPower_series
+		vbat_power_df[device_name + '_charging'] = charge_component.replace(-0.0, 0.0)
+		vbat_power_df[device_name + '_discharging'] = discharge_component
+		charging_devices.append(device_name + '_charging') ## record the names of the TESS technologies that will be charging
+
+	#vbat_power_df_copy = vbat_power_df.copy(deep=True) ## Verify this copy with the adjusted df below to ensure prioritization is working
+	
+	priority_tech = ['vbatResults_wh_charging', 'vbatResults_ac_charging', 'vbatResults_hp_charging'] ## This is hard-coded for the TESS tech priority order (WH > AC > HP). TODO: allow the user to specify their own priority order in the future
+	available_priority_tech = [tech for tech in priority_tech if tech in charging_devices] ## Among the TESS devices available to charge, sort the devices according to the priority order.
+
+	## Create a priority order mapping between the tech name (str) and an integer (0,1,2) so Python can work with it
+	priority_order = {key: i for i, key in enumerate(priority_tech)}
+
+	## Define a function to adjust charges and discharges
+	def adjust_charging_and_discharging(df, priority_order):
+		"""
+		Adjusts the charging and discharging arrays for TESS technologies that compete for charge time.
+		When two or more TESS technologies compete for charge time at a given hour, the highest priority tech will prevail. All other low priority tech will have the charge (kW) set to zero, and subsequent discharge will be removed to reflect the amount of charge that was removed.
+		Inputs:
+		- df (dataFrame): Contains the hourly charging, discharging, and total power columns for each TESS technology for an entire year.
+		- priority_order (dict): Priority order mapping between the tech name and the priority number with 0 corresponding to the highest priority technology (e.g. {vbatResults_wh_charging: 0, vbatResults_ac_charging: 1}).
+
+		"""
+		for index in df.index:
+			competing_technologies = [tech for tech in available_priority_tech if df.at[index, tech] > 0]
+
+			if len(competing_technologies) > 1:
+				## Identify the highest priority technology
+				highest_priority_tech = sorted(competing_technologies, key=lambda x: priority_order[x])[0]
+				charge_removal_amounts = {tech: df.at[index, tech] for tech in competing_technologies if tech != highest_priority_tech}
+
+				## Process lower priority technologies
+				for tech, amount in charge_removal_amounts.items():
+					discharge_col_name = tech.replace('charging', 'discharging')
+					df.at[index, tech] = 0  ## Set charge to zero at the current index
+
+					## Accumulate the amount of discharge to be removed
+					total_charge_removed = amount
+
+					## Iterate through subsequent indices to remove the discharge up to and including the amount of charge that was removed
+					next_index = index + 1
+					while total_charge_removed > 0 and next_index < len(df):
+						current_discharging = df.at[next_index, discharge_col_name]
+						if current_discharging > 0:
+							if current_discharging <= total_charge_removed:
+								total_charge_removed -= current_discharging
+								df.at[next_index, discharge_col_name] = 0  ## Remove all discharge
+							else:
+								df.at[next_index, discharge_col_name] -= total_charge_removed
+								total_charge_removed = 0  ## Discharge removal met
+						next_index += 1
+
+		## Update the total power for each technology
+		for tech in available_priority_tech:
+			discharge_col_name = tech.replace('charging', 'discharging')
+			total_power_col_name = tech.replace('charging', 'totalpower')
+			df[total_power_col_name] = df[discharge_col_name] - df[tech]  ## New total power (after priority adjustments) = discharge - charge 
+		return df
+
+	## The adjusted dataframe for all TESS technolgies based on the priority charging order
+	## NOTE: This method is used to account for the TESS tech being decoupled from each other and causing new, expensive peak demands due to technologies charging at the same time.
+	adjusted_vbat_power_df = adjust_charging_and_discharging(vbat_power_df, priority_order)
+
+	########################################################################################################################
 	## TESS technology combined and individual calculations
 	########################################################################################################################
 	## Define the consumption rate compensation ($/kWh) paid to member-consumers
@@ -441,7 +519,7 @@ def work(modelDir, inputDict):
 	thermal_device_savings = {}
 	## Combine all thermal device variable data for plotting
 	for device_result in single_device_results:
-		single_device_vbatPower = single_device_results[device_result]['VBpower']
+		single_device_vbatPower = adjusted_vbat_power_df[device_result+'_totalpower']
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
 		combined_device_results['vbatPower'] = [sum(x) for x in zip(combined_device_results['vbatPower'], single_device_vbatPower)]
 		combined_device_results['vbatMinEnergyCapacity'] = [sum(x) for x in zip(combined_device_results['vbatMinEnergyCapacity'], single_device_results[device_result]['minEnergySeries'])]
@@ -469,7 +547,7 @@ def work(modelDir, inputDict):
 	## Calculate the subsidies, compensation rate, and consumption cost (kWh) for each individual thermal tech device
 	## NOTE: This loop must come after the calculation of the combined TESS devices in order to correctly calculate the single_device_vbat_discharge/charge components
 	for device_result in single_device_results:
-		single_device_vbatPower = single_device_results[device_result]['VBpower']
+		single_device_vbatPower = adjusted_vbat_power_df[device_result+'_totalpower']
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
 		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging 
 		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
