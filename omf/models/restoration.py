@@ -1252,9 +1252,10 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, 
 		mgGensFigures is a dictionary with strings containing microgrid IDs as the keys and plotly figures visualizing corresponding generation profiles as values. 
 	'''
 
-	#Conversion to list and sort is conducted so that they are ordered the same on every run. Otherwise, they take on different colors in the graph between runs
-	pfTypes = list(set(powerflow[0].keys())-{'switch','bus','protection'})
-	pfTypes.sort()
+	# We want these specific types of powerflow (IFF they're in the output.json) in this order for the sake of the order that they're drawn on the stacked area chart later.
+	# Intentionally omitted bus, switch, and protection
+	ordDesiredTypes = ['storage','solar','generator','voltage_source']
+	pfTypes = [type for type in ordDesiredTypes if type in powerflow[0]]
 	pfDataAggregated = {mgID:pd.DataFrame(0, index=simTimeSteps, columns=pfTypes) for mgID in mgIDs.union({'no MG'})}
 	pfDataSystemwide = pd.DataFrame(0, index=simTimeSteps, columns=pfTypes)
 	pfTotalsAtEachT = []
