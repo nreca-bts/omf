@@ -158,10 +158,12 @@
 				<label class="tooltip">Financial Projection Length (years)<span class="classic">Number of years to project out estimated savings. Must be between 1 and 75 years.</span></label>
 				<input type="text" id="projectionLength" name="projectionLength" value="{{allInputDataDict.projectionLength}}" step="1" min="1" max="75" required="required">
 			</div>
+			<!--
 			<div class="shortInput">
 				<label class="tooltip">Energy Compensation Rate ($/kWh)<span class="classic">The dollar amount paid to you by the utility for each kWh borrowed.</span></label>
 				<input type="text" id="rateCompensation" name="rateCompensation" value="{{allInputDataDict.rateCompensation}}" pattern="^\d+\.?\d*?$" min="0" required="required"/>
 			</div>
+			-->
 			<div class="shortInput">
 				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront dollars paid to you by the utility for enrolling your home battery (not including any recurring subsidies).</span></label>
 				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
@@ -322,17 +324,6 @@
 			<div class="shortInput">
 				<label class="tooltip">Inverter Lifetime (years)<span class="classic">Specify after how many years in which the battery inverter will be replaced at the cost specified in Inverter Replacement Cost. Input is an integer less than or equal to the analysis period in years.</span></label>
 				<input type="text" id="inverter_replacement_year" name="inverter_replacement_year" value="{{allInputDataDict.inverter_replacement_year}}" required="required"/>
-			</div>
-
-			<!-- Random Seed for Thermal Technologies -->
-			<div class="wideInput"> 
-				<p class="inputSectionHeader">Thermal Technology Random Seed Settings</p>
-			</div>
-			<hr style="border-style: solid; border-color: #196b12; margin-top: 10px;">
-
-			<div class="shortInput">
-				<label class="tooltip">PuLP Random Seed<span class="classic">A deterministic random seed number for the PuLP optimizer used by all thermal technologies (WH, HP, AC). Must be a positive integer between 0 and 1000000. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_PuLP" name="random_seed_PuLP" value="{{allInputDataDict.random_seed_PuLP}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 
 			<!-- Air Conditioner (vbatDispatch) Inputs -->
@@ -575,7 +566,7 @@
 					insertMetric("monthlySummaryTable","Adjusted Total Cost of Service ($)", allOutputData.monthlyTotalCostAdjustedService)
 					insertMetric("monthlySummaryTable","Generator Fuel Cost ($)", allOutputData.monthly_gen_fuel_cost)
 					insertMetric("monthlySummaryTable","Utility Subsidies Paid ($)", allOutputData.allDevices_subsidy_year1)
-					insertMetric("monthlySummaryTable","Per-kWh Compensation ($)", allOutputData.allDevices_compensation_year1)
+					//insertMetric("monthlySummaryTable","Per-kWh Compensation ($)", allOutputData.allDevices_compensation_year1)
 					insertMetric("monthlySummaryTable","Total Consumer Savings ($)", allOutputData.savings_year1_monthly_array)
 					insertMetric("monthlySummaryTable","Total Consumer Costs ($)", allOutputData.costs_year1_array)
 					insertMetric("monthlySummaryTable","Net Consumer Savings ($)", allOutputData.net_savings_year1_array)

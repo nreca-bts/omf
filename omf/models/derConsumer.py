@@ -490,7 +490,7 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	## Define the consumption rate compensation ($/kWh) paid to member-consumers
 	#consumptionCost = float(inputDict['electricityCost'])
-	rateCompensation = float(inputDict['rateCompensation'])
+	#rateCompensation = float(inputDict['rateCompensation'])
 
 	## Initialize an empty dictionary to hold all thermal device results added together
 	## Length 8760 represents hourly data for one year, length 12 is monthly data for a year
@@ -562,9 +562,9 @@ def work(modelDir, inputDict):
 		single_device_subsidy_allyears_array[0] += single_device_subsidy_onetime
 
 		## Calculate the consumer compensation for each thermal DER technology
-		single_device_compensation_year1_array = np.array([sum(single_device_vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
-		single_device_compensation_year1_total = np.sum(single_device_compensation_year1_array)
-		single_device_compensation_allyears_array = np.full(projectionLength, single_device_compensation_year1_total)
+		#single_device_compensation_year1_array = np.array([sum(single_device_vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
+		#single_device_compensation_year1_total = np.sum(single_device_compensation_year1_array)
+		#single_device_compensation_allyears_array = np.full(projectionLength, single_device_compensation_year1_total)
 
 		## Calculate the consumption cost savings for each DER tech using the input rate structure (hourly data for the whole year)
 		single_device_consumption_cost_year1 = [float(a) * float(b) for a, b in zip(single_device_vbatPower, energy_rate_array)]
@@ -1168,33 +1168,33 @@ def work(modelDir, inputDict):
 	allDevices_subsidy_allyears_array[0] += allDevices_subsidy_onetime
 
 	## Calculate the compensation per kWh for BESS, TESS, and GEN technologies
-	BESS_compensation_year1_monthly_array = np.array([sum(BESS[s:f])*rateCompensation for s, f in monthHours])
-	BESS_compensation_year1_total = np.sum(BESS_compensation_year1_monthly_array)
-	BESS_compensation_allyears_array = np.full(projectionLength, BESS_compensation_year1_total)
-	GEN_compensation_year1_monthly_array = np.array([sum(generator[s:f])*rateCompensation for s, f in monthHours])
-	GEN_compensation_year1_total = np.sum(GEN_compensation_year1_monthly_array)
-	GEN_compensation_allyears_array = np.full(projectionLength, GEN_compensation_year1_total)
-	TESS_compensation_year1_monthly_array = np.array([sum(vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
-	TESS_compensation_year1_total = np.sum(TESS_compensation_year1_monthly_array)
-	TESS_compensation_allyears_array = np.full(projectionLength, TESS_compensation_year1_total)
-	allDevices_compensation_year1_monthly_array = BESS_compensation_year1_monthly_array + GEN_compensation_year1_monthly_array + TESS_compensation_year1_monthly_array
-	allDevices_compensation_year1_total = np.sum(allDevices_compensation_year1_monthly_array)
-	allDevices_compensation_allyears_array = BESS_compensation_allyears_array + GEN_compensation_allyears_array + TESS_compensation_allyears_array
+	#BESS_compensation_year1_monthly_array = np.array([sum(BESS[s:f])*rateCompensation for s, f in monthHours])
+	#BESS_compensation_year1_total = np.sum(BESS_compensation_year1_monthly_array)
+	#BESS_compensation_allyears_array = np.full(projectionLength, BESS_compensation_year1_total)
+	#GEN_compensation_year1_monthly_array = np.array([sum(generator[s:f])*rateCompensation for s, f in monthHours])
+	#GEN_compensation_year1_total = np.sum(GEN_compensation_year1_monthly_array)
+	#GEN_compensation_allyears_array = np.full(projectionLength, GEN_compensation_year1_total)
+	#TESS_compensation_year1_monthly_array = np.array([sum(vbat_discharge_component[s:f])*rateCompensation for s, f in monthHours])
+	#TESS_compensation_year1_total = np.sum(TESS_compensation_year1_monthly_array)
+	#TESS_compensation_allyears_array = np.full(projectionLength, TESS_compensation_year1_total)
+	#allDevices_compensation_year1_monthly_array = BESS_compensation_year1_monthly_array + GEN_compensation_year1_monthly_array + TESS_compensation_year1_monthly_array
+	#allDevices_compensation_year1_total = np.sum(allDevices_compensation_year1_monthly_array)
+	#allDevices_compensation_allyears_array = BESS_compensation_allyears_array + GEN_compensation_allyears_array + TESS_compensation_allyears_array
 
 	## Calculate total costs for BESS, TESS, and GEN
-	totalSavings_BESS_allyears_array = BESS_subsidy_allyears_array + BESS_compensation_allyears_array
-	totalSavings_TESS_allyears_array = combinedTESS_subsidy_allyears_array + TESS_compensation_allyears_array
-	totalSavings_GEN_allyears_array = GEN_subsidy_allyears_array + GEN_compensation_allyears_array
+	totalSavings_BESS_allyears_array = BESS_subsidy_allyears_array #+ BESS_compensation_allyears_array
+	totalSavings_TESS_allyears_array = combinedTESS_subsidy_allyears_array #+ TESS_compensation_allyears_array
+	totalSavings_GEN_allyears_array = GEN_subsidy_allyears_array #+ GEN_compensation_allyears_array
 
 	## Calculate total savings
 	allDevices_peakDemand_savings_year1_monthly = BESS_monthly_demand_savings + TESS_monthly_demand_savings + GEN_monthly_demand_savings
 	#allDevices_consumption_savings_year1_monthly = np.array(BESS_consumption_savings_monthly)+np.array(TESS_consumption_savings_monthly)+np.array(GEN_consumption_savings_monthly)
 	allDevices_totalService_savings_year1_monthly = allDevices_peakDemand_savings_year1_monthly + monthlyEnergyConsumptionSavings
-	savings_year1_monthly_array = allDevices_subsidy_year1_monthly_array + allDevices_compensation_year1_monthly_array + allDevices_totalService_savings_year1_monthly
+	savings_year1_monthly_array = allDevices_subsidy_year1_monthly_array + allDevices_totalService_savings_year1_monthly #+ allDevices_compensation_year1_monthly_array
 	savings_year1_total = sum(savings_year1_monthly_array)
 	savings_consumption_allyears_array = np.full(projectionLength, sum(monthlyEnergyConsumptionSavings))
 	savings_demand_allyears_array = np.full(projectionLength, sum(allDevices_peakDemand_savings_year1_monthly))
-	savings_allyears_array = savings_consumption_allyears_array + allDevices_subsidy_allyears_array + allDevices_compensation_allyears_array + savings_demand_allyears_array
+	savings_allyears_array = savings_consumption_allyears_array + allDevices_subsidy_allyears_array + savings_demand_allyears_array #+ allDevices_compensation_allyears_array 
 	savings_allyears_total = sum(savings_allyears_array)
 
 	## Calculate net savings = savings - costs
@@ -1213,7 +1213,7 @@ def work(modelDir, inputDict):
 	outData['monthlyEnergyConsumptionSavings'] = list(monthlyEnergyConsumptionSavings)
 	outData['monthly_gen_fuel_cost'] = list(monthly_fuel_cost)
 	outData['allDevices_subsidy_year1'] = list(allDevices_subsidy_year1_monthly_array)
-	outData['allDevices_compensation_year1'] = list(allDevices_compensation_year1_monthly_array)
+	#outData['allDevices_compensation_year1'] = list(allDevices_compensation_year1_monthly_array)
 	outData['savings_year1_monthly_array'] = list(savings_year1_monthly_array)
 	outData['costs_year1_array'] = list(costs_year1_array)
 	outData['net_savings_year1_array'] = list(net_savings_year1_array)
