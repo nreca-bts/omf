@@ -1511,9 +1511,9 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 	loads = go.Figure()
 	loadsKeysAndNames = [
 		('Total load (%)', '% Total Demand Served'),
-		('Feeder load (%)','% Demand Served by Grid'),
-		('Microgrid load (%)','% Demand in Microgrids Served'),
-		('Bonus load via microgrid (%)','% Additional Demand Servable via Microgrids')]
+		('Feeder load (%)','% Non-Microgrid Demand Served By Grid'),
+		('Microgrid load (%)','% Microgrid Demand Served'),
+		('Bonus load via microgrid (%)','% Non-Microgrid Demand Served By Microgrids')]
 	for deviceActions,name in loadsKeysAndNames:
 		loads.add_trace(go.Scatter(
 			x=simTimeSteps,
