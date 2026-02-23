@@ -44,10 +44,12 @@ def pyVbat(modelDir, i):
 		variables.append(water)
 
 		## Input the water heater random number settings
-		if i['set_random_numbers'] == 'Yes': ## Use the user-provided .csv file to set the water heater random numbers in the VB solver
+		if i['set_random_numbers'] == 'Yes': 
+			## Use the user-provided .csv file to set the water heater random numbers in the VB solver
 			rows = i['randomNumbers'].strip().split('\n') ## Separate the string input data into rows first (there are 3 random numbers per row)
 			random_numbers = [[float(num) for num in row.split(',')] for row in rows] ## Convert each string row to a list of floats
-		else: ## If none provided by the user, allow the VB solver to generate and return the water heater random numbers
+		else: 
+			## If none provided by the user, allow the VB solver to generate and return the water heater random numbers
 			random_numbers = None
 		variables.append(random_numbers)
 		
@@ -58,10 +60,17 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 	alpha = 1-(1/(float(inputDict["capacitance"])*float(inputDict["resistance"])))  #1-(deltaT/(C*R)) hourly self discharge rate
 
 	## Set the random seed in PuLP optimizer. See https://github.com/coin-or/pulp/issues/545#issuecomment-1355737609
+	if inputDict['set_random_numbers'] == 'Yes':
+		## Use the user-provided random seed
+		PuLP_random_seed = inputDict['random_seed_PuLP']
+	else: 
+		## Generate the random seed value
+		PuLP_random_seed = str(np.random.randint(0,1000000))
+
 	cbc_solver = pulp.PULP_CBC_CMD(keepFiles=False,
 				msg=True,
 				threads=8,
-				options= [f"RandomS " + inputDict['random_seed_PuLP']]
+				options= [f"RandomS " + PuLP_random_seed]
 				)
 
 	# LP Variables
@@ -91,7 +100,7 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 
 	model.solve(cbc_solver)
 
-	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)]
+	return [VBpower[i].varValue for i in range(8760)], [VBenergy[i].varValue for i in range(8760)], PuLP_random_seed
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory.'''
@@ -152,10 +161,7 @@ def work(modelDir, inputDict):
 	out["minEnergySeries"] = [-1*x for x in E_UL]
 	out["maxEnergySeries"] = E_UL
 	
-	VBpower, out["VBenergy"] = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
-	
-	## Save the PuLP optimizer random seed to the output
-	out['random_seed_PuLP'] = inputDict['random_seed_PuLP']
+	VBpower, out["VBenergy"], out['random_seed_PuLP'] = pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours)
 	
 	## Flip sign of VBpower values (positive value = discharging, negative value = charging)
 	VBpower = [i * -1. for i in VBpower]
