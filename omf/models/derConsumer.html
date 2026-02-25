@@ -35,13 +35,15 @@
 	{% if allOutputDataDict.thermalDataCheck == 0 %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 				$("#thermalBatPowerPlot").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 			});
 		</script>
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				plotGraph('thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout']);
+				plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
+				plotGraph( 'thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout'] );
 			});
 		</script>
 	{% endif %}
@@ -489,11 +491,25 @@
 	
 	<!-- Output tables, graphs, etc -->
 	<div id="output">
+		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
+		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+
 		<p class="reportTitle" style="page-break-before:always">DER Serving Load Overview</p>
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
-		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
-		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
+		{% if allOutputDataDict.thermalDataCheck == 0 %}
+			<div id="ThermalDEROverviewData" class="tightContent"></div>
+			<script type="text/javascript">    
+				$(window).on('pageshow', function(){
+					$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
+				});
+			</script>
+		{% else %}
+			<div class="tightContent" style="width: 1000px; height: 25px;"> 
+				Note: Any BESS or GEN technologies are not represented in this plot.</div>
+			<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% endif %}
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
@@ -566,6 +582,7 @@
 					insertMetric("monthlySummaryTable","Energy Cost Savings ($)", allOutputData.monthlyEnergyConsumptionSavings)
 					insertMetric("monthlySummaryTable","Demand Charge ($)", allOutputData.monthlyPeakDemandCost)
 					insertMetric("monthlySummaryTable","Adjusted Demand Charge ($)", allOutputData.monthlyAdjustedPeakDemandCost)
+					insertMetric("monthlySummaryTable","Demand Cost Savings ($)", allOutputData.monthlyPeakDemandSavings)
 					insertMetric("monthlySummaryTable","Total Cost of Service ($)", allOutputData.monthlyTotalCostService)
 					insertMetric("monthlySummaryTable","Adjusted Total Cost of Service ($)", allOutputData.monthlyTotalCostAdjustedService)
 					insertMetric("monthlySummaryTable","Generator Fuel Cost ($)", allOutputData.monthly_gen_fuel_cost)

@@ -365,12 +365,12 @@ def work(modelDir, inputDict):
 	## Add a Battery Energy Storage System (BESS) section to REopt input scenario, if enabled 
 	if inputDict['enableBESS'] == 'Yes' and float(inputDict['number_devices_BESS']) > 0:
 		BESScheck = 'enabled'
-		utility_control_percentage = float(inputDict['utility_BESS_portion'])/100. ## convert percentage to decimal (e.g. 20% -> 0.20)
+		utility_BESS_fraction = float(inputDict['utility_BESS_portion'])/100. ## convert percentage to decimal (e.g. 20% -> 0.20)
 		scenario['ElectricStorage'] = {
-			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
-			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
-			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
-			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_control_percentage,
+			'min_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
+			'max_kw': float(inputDict['BESS_kw']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
+			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
+			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
 			'can_grid_charge': True,
 			'total_rebate_per_kw': 0,
 			'macrs_option_years': 0,
@@ -641,12 +641,9 @@ def work(modelDir, inputDict):
 	for device_result in single_device_results:
 		single_device_vbatPower = adjusted_vbat_power_df[device_result+'_totalpower']
 		single_device_vbatPower_series = pd.Series(single_device_vbatPower)
-		single_device_vbatPower_series.replace(-0.0, 0.0, inplace=True) ## replace negative zeros with positive zeros
-		
-		## select out the individual TESS discharge/charge values where the sum total TESS discharge/charge is collectively discharging/charging
-		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0.0, 0.0) ##positive values = discharging 
-		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0.0, 0.0) ##negative values = charging
-		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1.0)
+		single_device_vbat_discharge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series >= 0, 0) ##positive values = discharging 
+		single_device_vbat_charge_component = single_device_vbatPower_series.where(combined_TESS_vbatPower_series < 0, 0) ##negative values = charging
+		single_device_vbat_charge_component_flipsign = single_device_vbat_charge_component.mul(-1)
 		## select out the original individual TESS discharge/charge values
 		orig_single_device_vbat_discharge_component = single_device_vbatPower_series.where(single_device_vbatPower_series > 0.0, 0.0) ##positive values = discharging 
 		orig_single_device_vbat_charge_component_flipsign = single_device_vbatPower_series.where(single_device_vbatPower_series < 0.0, 0.0) * -1.0 ##negative values = charging. multiply by -1 for plotting purposes
