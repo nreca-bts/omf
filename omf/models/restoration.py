@@ -81,6 +81,13 @@ def makeCicuitTraversalDict(pathToOmd):
 				ob['downlineLoads'].add(circObKey)
 	return obDict
 
+def smartRound(val,decPl):
+	'helper function to convert a value to a float and then round it if possible, otherwise just return the original value'
+	try:
+		return round(float(val),decPl)
+	except ValueError:
+		return val
+
 def coordsFromString(entry):
 	'helper function to take a location string to two integer values'
 	p = re.compile(r'-?\d+\.\d+')  # Compile a pattern to capture float values
@@ -1271,12 +1278,18 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, 
 				pfTotalAtT += obPf
 		pfTotalsAtEachT.append(pfTotalAtT)
 
-	minVal = min(pfTotalsAtEachT)
-	for df in pfDataAggregated.values():
-		minVal = min(minVal, df.min().min())
+	# minVal is defined as the lowest total of stacked vals (without adding in kWLost since it's never negative) and individual vals
+	# 	This is to account for if the graph has multiple negative vals stacking bringing things lower than any individual val would.
+	# maxVal is defined as the highest total of stacked vals (including kWLost) and individual vals
+	# 	This is to account for the case where the graph goes higher than the total stacked vals because of order of stacked layers
+	#	I.e. a very high positive val layer is drawn before a very large negative val layer is drawn "atop" it. The total is lower than the graph is drawn since the high pos val was drawn first.
 	maxVal = float('-inf')
 	for i, val in enumerate(pfTotalsAtEachT):
 		maxVal = max(maxVal, val+kWLost[i])
+	minVal = min(pfTotalsAtEachT)
+	for df in pfDataAggregated.values():
+		minVal = min(minVal, df.min().min())
+		maxVal = max(maxVal, df.max().max())
 	axisPadding = 0.05*(maxVal-minVal)
 	graphMin = minVal-axisPadding
 	graphMax = maxVal+axisPadding
@@ -1552,16 +1565,19 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 					newCoordString = newCoordString + ", \n"
 			count = count+1
 		return newCoordString
-
+	
+	kWPropDict = {}
 	for i in range(len(feederMap['features'])):
 		props = feederMap['features'][i]['properties']
 		name = props.get('name',0)
 		if name:
 			rawCoords = feederMap['features'][i]['geometry']['coordinates']
 			mgID = None
+			kW = None
 			if isinstance(rawCoords[0], float):
 				coordStr = f'({rawCoords[0]},{rawCoords[1]})'
 				mgID = obMgDict.get(name, busMgDict.get(name,'no MG ID'))
+				kW = props.get('kw')
 			else:
 				coordStr = f'({rawCoords[0][0]},{rawCoords[0][1]}), ({rawCoords[1][0]},{rawCoords[1][1]})'
 			props['popupContent'] =	f'''Location: <b>{coordStr}</b><br>
@@ -1569,7 +1585,9 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 										''' 
 			if mgID: 
 				props['popupContent'] += f'Microgrid ID: <b>{mgID}</b>'
-		# TODO: Add nicely formatted coordinates & indicate microgrid
+			if kW:
+				props['popupContent'] += f'<br>kW: <b>{smartRound(kW,3)}</b>'
+				kWPropDict[name] = kW
 
 	row = 0
 	row_count_timeline = outputTimeline.shape[0]
@@ -1581,6 +1599,7 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 		'Battery Control':'FFFF00',
 		'Generator Control':'E0FFFF',
 	}
+	hr4Popup = '_____________________________________________'
 	for row in range(row_count_timeline):
 		full_data = pullDataForGraph(tree, feederMap, outputTimeline, row)
 		device, coordLis, coordStr, time, action, loadBefore, loadAfter = full_data
@@ -1596,10 +1615,10 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 				'loadAfter': loadAfter,
 				'popupContent': f'''Location: <b>{coordStrFormatter(str(coordStr))}</b><br>
 									Device: <b>{str(device)}</b><br>
-									Latest Action: <b>{str(action)}</b><br>
+									{hr4Popup}<br>Latest Action: <b>{str(action)}</b><br>
 									Timestep: <b>{str(time)}</b><br>
-									Before: <b>{str(loadBefore)}{units}</b><br>
-									After: <b>{str(loadAfter)}{units}</b>''' }
+									Before: <b>{str(smartRound(loadBefore,3))}{units}</b><br>
+									After: <b>{str(smartRound(loadAfter,3))}{units}</b>''' }
 			if len(coordLis) != 2:
 				dev_dict['geometry'] = {'type': 'LineString', 'coordinates': [[coordLis[0], coordLis[1]], [coordLis[2], coordLis[3]]]}
 				dev_dict['properties']['edgeColor'] = f'#{colormap[action]}'
@@ -1609,7 +1628,11 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 				if obMgDict != None:
 					mgID = obMgDict.get(str(device),'no MG ID')
 					dev_dict['properties']['microgrid_id'] = mgID
-					dev_dict['properties']['popupContent'] += f'<br>Microgrid ID: <b>{mgID}</b>'
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'Microgrid ID: <b>{mgID}</b><br>{hr4Popup}<br>Latest Action')
+				obkW = kWPropDict.get(device)
+				if obkW != None:
+					dev_dict['properties']['kW'] = obkW
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'kW: <b>{smartRound(obkW,3)}</b><br>{hr4Popup}<br>Latest Action')
 			feederMap['features'].append(dev_dict)
 		except:
 			print('MESSED UP MAPPING on', device, full_data)
