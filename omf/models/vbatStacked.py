@@ -54,7 +54,16 @@ def work(modelDir, ind):
 		f.write(ind["inputCsv"].replace('\r', ''))
 
 	input_df = pd.read_csv(pJoin(modelDir, 'inputCsv.csv'), index_col=['Hour'])
-	P_lower, P_upper, E_UL = pyVbat(tempCurve, modelDir, ind)
+
+	if ind['load_type'] == '4': ## Water Heater
+		## The water heater code in the VB solver will additionally return an array of random numbers used to describe the water draw rate
+		P_lower, P_upper, E_UL, wh_random_numbers = pyVbat(tempCurve, modelDir, ind)
+		
+		## Save the random numbers to the model directory.
+		#df_random_numbers = pd.DataFrame(wh_random_numbers)
+		#df_random_numbers.to_csv(modelDir+'/water_heater_random_numbers.csv', index=False, header=False)
+	else:
+		P_lower, P_upper, E_UL = pyVbat(tempCurve, modelDir, ind)
 
 	input_df['VB Power upper (kW)'] = P_upper
 	input_df['VB Power lower (kW)'] = [-x for x in P_lower]

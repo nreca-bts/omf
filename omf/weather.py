@@ -1677,6 +1677,41 @@ def cds_windpowerlib_getWind(weather_dataset):
 	wind_output_ds.reset_index(drop=True, inplace=True)
 	return wind_output_ds
 
+##################### developer.nrel.gov Functions #####################
+
+def nrel_getTMYData(modelDir, attributes, longitude: float, latitude: float, tmy_file_name: str="output_tmy_data.csv", utc: str="false", leap_day: str="true") -> bool:
+	'''
+	https://developer.nrel.gov/docs/solar/nsrdb/nsrdb-GOES-tmy-v4-0-0-download/
+	
+
+	returns:
+		True/False if request was successful
+		.csv file is created with the data for parsing
+	'''
+
+	requestSuccess = False
+	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
+	email = "admin@omf.coop"
+	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
+	lat_long_to_wkt = nsrbd_latlon_to_wkt(longitude=longitude, latitude=latitude) # "POINT({lon_str} {lat_str})"
+	attributesStr = ",".join(attributes)
+	attributesStr = f"{attributesStr}"
+	# 	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
+	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={attributesStr}&names=tmy&utc={utc}&leap_day={leap_day}&email={email}&api_key={nrel_key}"
+	response = requests.get(modified_url)
+	if response.status_code == 400:
+		print(f"url: {modified_url}")
+		raise Exception(f"nrel_getTMYData(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	else:
+		text = response.text
+		lines = text.splitlines()
+		clean_text = "\n".join(lines)
+		with open( Path(modelDir, tmy_file_name), "w") as text_file:
+			text_file.write(clean_text)
+			requestSuccess = True
+	return requestSuccess
+	
+
 def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
 	'''
 
@@ -1686,7 +1721,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 	successFlag = False
 	filesInModelDir = os.listdir(modelDir)
 	for file in filesInModelDir:
-		if file == "output_NREL_wind_data.csv":
+		if file == "output_NREL_winddata.csv":
 			successFlag = True
 			return successFlag 
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
@@ -1699,7 +1734,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 		raise Exception(f"nrel_getWindData: API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
 	else:
 		text = response.text
-		with open( Path(modelDir,"output_NREL_wind_data.csv"), "w") as text_file:
+		with open( Path(modelDir,"output_NREL_winddata.csv"), "w") as text_file:
 			text_file.write(text)
 		successFlag = True
 	return successFlag
@@ -1723,7 +1758,7 @@ def nrel_pySam_getWind(modelDir, year: int, longitude: float, latitude: float):
 
 	successFlag = _nrel_getWindData(modelDir, year, longitude, latitude)
 	if successFlag:
-		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_wind_data.csv')
+		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_winddata.csv')
 	else:
 		raise Exception(f"nrel_pysamWin: API Request Failed")
 	wind_turbine_model.value('wind_resource_shear', 0.14)
@@ -1777,7 +1812,7 @@ def weatherGov_GridPointRequest(latitude: float, longitude: float) -> tuple:
 
 	# if gridx and gridy are null it wasn't valid lat/long coordinates?
 
-def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code=""):
+def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code="") -> pd.DataFrame:
 	'''
 		Pulls hourly data from the National Weather Service
 		Docs: https://weather-gov.github.io/api/
@@ -1817,6 +1852,7 @@ def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code
 			dict_list.append(item)
 	df = pd.DataFrame(dict_list)
 	return df
+
 
 def _tests():
 	# import traceback

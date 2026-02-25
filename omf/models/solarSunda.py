@@ -67,40 +67,22 @@ def work(modelDir, inputDict):
 	}
 
 	### Get the data from NSRDB API
-	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
-	email = "admin@omf.coop"
-	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
-	# We need DNI, DHI, GHI, windspeed, and temp
-	requestSuccess = False
-	lat_long_to_wkt = weather.nsrbd_latlon_to_wkt(longitude=long, latitude=lat) # "POINT({lon_str} {lat_str})"
-	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	response = requests.get(modified_url)
-	if response.status_code == 400:
-		# print(f"url: {modified_url}")
-		raise Exception(f"pvwatts work(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
-	else:
-		text = response.text
-		lines = text.splitlines()[2:]
-		nsrdb_data = text.splitlines()[:2]
-		clean_text = "\n".join(lines)
-		with open( Path(modelDir,"output_tmy_wind_data.csv"), "w") as text_file:
-			text_file.write(clean_text)
-			requestSuccess = True
+	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
+	requestSuccess = weather.nrel_getTMYData(modelDir=modelDir, attributes=attributes, longitude=long, latitude=lat)
 
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
 	if requestSuccess:
 		import PySAM.Pvwattsv8 as pvwatts
 		pvwatts_model = pvwatts.new()
-		wind_data = pd.read_csv(Path(modelDir,"output_tmy_wind_data.csv"))
-
+		full_data = pd.read_csv(Path(modelDir,"output_tmy_data.csv"))
+		metadata = full_data.iloc[0:1].copy()
+		wind_data = full_data.iloc[2:].copy()
+		wind_data.columns = full_data.iloc[1]
 		# We can snag elevation from the NSRDB Data we pulled out of the request
 		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
 		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
-
-		elevation = int( nsrdb_data[1].split(",")[8] )
-		sys_design["Other"]["elev"] = elevation
-
+		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
 		datetime_components_dict = {
 			'year': wind_data['Year'],
 			'month': wind_data['Month'],
@@ -108,28 +90,26 @@ def work(modelDir, inputDict):
 			'hour': wind_data['Hour'],
 			'minute': wind_data['Minute'],
 		}
-
 		wind_data['datetime'] = pd.to_datetime(datetime_components_dict)
 		wind_data = wind_data.set_index(wind_data["datetime"])
-
 		solar_resource_data = {
-			'lat': lat,
-			'lon': long,
-			'tz': -7,
-			'elev': elevation,
-			'year': wind_data['Year'].tolist(),
-			'month': wind_data['Month'].tolist(),
-			'day': wind_data['Day'].tolist(),
-			'hour': wind_data['Hour'].tolist(),
-			'minute': wind_data['Minute'].tolist(),
-			'dn': wind_data['DNI'].tolist(),
-			'df': wind_data['DHI'].tolist(),
-			'gh': wind_data['GHI'].tolist(),
-			'wspd': wind_data['Wind Speed'].tolist(),
-			'tdry': wind_data['Temperature'].tolist(),
+			'lat': float( metadata["Latitude"][0] ),
+			'lon': float( metadata["Longitude"][0] ),
+			'tz': int( metadata["Time Zone"][0] ),
+			'elev':  int( metadata["Elevation"][0] ),
+			'year': [int(x) for x in wind_data['Year']],
+			'month': [int(x) for x in wind_data['Month']],
+			'day': [int(x) for x in wind_data['Day']],
+			'hour': [int(x) for x in wind_data['Hour']],
+			'minute': [int(x) for x in wind_data['Minute']],
+			'dn': [float(x) for x in wind_data['DNI']],
+			'df': [float(x) for x in wind_data['DHI']],
+			'gh': [float(x) for x in wind_data['GHI']],
+			'wspd': [float(x) for x in wind_data['Wind Speed']],
+			'tdry': [float(x) for x in wind_data['Temperature']],
 		}
-
-		pvwatts_model.SolarResource.solar_resource_data = solar_resource_data
+		
+		pvwatts_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
 		model_params = sys_design['ModelParams']
 		pvwatts_model.assign(model_params)
 		resource = pvwatts_model.SolarResource.export()
@@ -155,15 +135,10 @@ def work(modelDir, inputDict):
 			{'timestamp': wind_data.index, 'poa': poa, 'dn': dn, 'df': df, 'tamb': tamb, 'tcell': tcell, 'wspd': wspd, 'ac': ac},
 			columns=['timestamp', 'poa', 'dn', 'df', 'tamb', 'tcell', 'wspd', 'ac']
 		)
-		results_df = results_df.set_index(["timestamp"])
-		#sim_df = results_df.loc[start:end]
-		#results_df = sim_df.resample("H").sum(numeric_only=True) # Hard coded frequency is H, so set this as H
+		results_df = results_df.set_index( results_df["timestamp"])
 
 		# Timestamp output.
 		outData = {}
-		outData["timeStamps"] = [dt.datetime.strftime(
-			dt.datetime.strptime(startDateTime[0:19],"%Y-%m-%d %H:%M:%S") +
-			dt.timedelta(**{simLengthUnits:x}),"%Y-%m-%d %H:%M:%S") + " UTC" for x in range(simLength)]
 		# Geodata output.
 		outData["minLandSize"] = round((arraySizeDC/1390.8*5 + 1)*math.cos(math.radians(22.5))/math.cos(math.radians(30.0)),0)
 		landAmount = float(inputDict.get("landAmount", 6.0))
@@ -171,7 +146,6 @@ def work(modelDir, inputDict):
 		# outData['state'] = ssc.ssc_data_get_string(dat, b'state').decode()
 		outData['lat'] = lat
 		outData['lon'] = long
-		outData['elev'] = elevation
 		# Weather output.
 		outData['climate'] = {}
 		outData['climate']['Global Horizontal Radiation (W/m^2)'] = results_df["gh"].tolist() if "gh" in results_df else []

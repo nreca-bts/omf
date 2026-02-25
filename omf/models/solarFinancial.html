@@ -34,8 +34,12 @@
 			</div>
 			<hr>
 			<div class="shortInput">
-				<label class="tooltip">Zip Code<span class="classic">Zip code of the planned array's geographical location.</span></label>
-				<input type="text" id="zipCode" name="zipCode" value="{{allInputDataDict.zipCode}}" pattern="^\d{5}(?:[-\s]\d{4})?$" required="required">
+				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
+				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
+				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">System Size (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
@@ -148,15 +152,15 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Simulation Start Date (YYYY-MM-DD)<span class="classic">Currently we only support a yearlong analysis starting on 1 Jan; the year has no effect on the results.</span></label>
-				<input type="text" id="simStartDate" name="simStartDate" value="{{allInputDataDict.simStartDate}}" pattern="^\d\d\d\d-\d\d-\d\d$" readonly/>
+				<input type="text" id="simStartDate" name="simStartDate" value="{{allInputDataDict.simStartDate}}" pattern="^\d\d\d\d-\d\d-\d\d$"/>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Simulation Length<span class="classic">Currently we only support a yearlong analysis, i.e. 8760 hours.</span></label>
-				<input type="text" id="simLength" name="simLength" value="{{allInputDataDict.simLength}}" pattern="^\d+$" readonly />
+				<input type="text" id="simLength" name="simLength" value="{{allInputDataDict.simLength}}" pattern="^\d+$"/>
 			</div>
 			<div class="shortInput">
 				<label>Length Units</label>
-				<select id="simLengthUnits" name="simLengthUnits" value="{{allInputDataDict.simLengthUnits}}" disabled="true">
+				<select id="simLengthUnits" name="simLengthUnits" value="{{allInputDataDict.simLengthUnits}}">
 					<option value="minutes" {% if allInputDataDict.simLengthUnits == 'minutes' %}selected{% endif %}>Minutes</option>
 					<option value="hours" {% if allInputDataDict.simLengthUnits == 'hours' %}selected{% endif %}>Hours</option>
 					<option value="days" {% if allInputDataDict.simLengthUnits == 'days' %}selected{% endif %}>Days</option>
