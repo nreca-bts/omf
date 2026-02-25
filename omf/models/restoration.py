@@ -11,6 +11,7 @@ import networkx as nx
 from scipy.stats import percentileofscore
 import time
 from collections import OrderedDict
+import opendssdirect as dss
 # from statistics import quantiles
 
 # OMF imports
@@ -253,18 +254,22 @@ def collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startT
 	dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList)	
 	outLoadStatusDict = dfStatus.loc[:, (dfStatus == 0).any(axis=0)].to_dict(orient='list')
 	kWLost = []
+	kWTotal = []
 	kWLostCumulative = []
 	kWLostPerMg = {mgID: [] for mgID in mgIDs}
 	for i in range(numTimeSteps):
 		kWLostInTimestep = 0
+		kWTotalInTimestep = 0
 		kWLostInTimestepPerMg = {mgID: 0 for mgID in mgIDs}
 		for loadName, statusList in outLoadStatusDict.items():
 			experiencingOutage = 1-statusList[i]
 			kW = loadShapesPerLoad[loadName][i]
 			kWLostHere = experiencingOutage * kW
 			kWLostInTimestep += kWLostHere
+			kWTotalInTimestep += kW
 			kWLostInTimestepPerMg[obMgDict.get(loadName, 'no MG')] += kWLostHere
 		kWLost.append(kWLostInTimestep)
+		kWTotal.append(kWTotalInTimestep)
 		if i == 0:
 			kWLostCumulative.append(kWLostInTimestep)
 		else:
@@ -272,7 +277,7 @@ def collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startT
 		for mgID, kW in kWLostInTimestepPerMg.items():
 			kWLostPerMg[mgID].append(kW)
 	
-	return timeList, kWLost, kWLostCumulative, kWLostPerMg
+	return timeList, kWLost, kWLostCumulative, kWLostPerMg, kWTotal
 
 def utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize):
 	''' Generates a graph of utility lost kWh sales over time and saves it as an html file.
@@ -1239,7 +1244,7 @@ def runMicrogridControlSim(modelDir, solFidelity, eventsFilename, loadPriorityFi
 		else:
 			time.sleep(waitTime)
 
-def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg):
+def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg, kWTotal):
 	''' Aggregates powerflow data by powerflow circuit object type to create generation profiles.
 		Aggregated powerflow data is separated based on the microgrid in which each pf circuit object is located.
 		Generation profiles for the entire system are also calculated alongside gen profiles for each microgrid. 
@@ -1313,6 +1318,19 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, 
 		hovertemplate=
 		'<b>Time Step</b>: %{x}<br>' +
 		f'<b>Demand Not Served</b>: %{{y:.3f}}kW'))
+	"""
+	gensFigure.add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group3',
+		x=simTimeSteps,
+		y=kWTotal,
+		mode='lines',
+		line_shape='hv',
+		name='Total Demand Scheduled',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total Demand Scheduled</b>: %{{y:.3f}}kW'))
+	"""
 	gensFigure.update_layout(
 		xaxis_title='Time (Hours)',
 		xaxis_range=[simTimeSteps[0],simTimeSteps[-1]],
@@ -1807,9 +1825,9 @@ def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile,
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
 	simulationDuration = int(simulationDuration)
-	timeList, kWLost, kWLostCumulative, kWLostPerMg = collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps)
+	timeList, kWLost, kWLostCumulative, kWLostPerMg, kWTotal = collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps)
 	utilOutFig = utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize)
-	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg)
+	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg, kWTotal)
 
 
 	try: customerOutageCost = customerOutageCost
@@ -2017,6 +2035,44 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 	with open(outDss,'w') as outfile:
 		outfile.write(outStr)
 
+"""
+def sanityCheck(dssLocation):
+	textCommands = 	f'''Compile "{dssLocation}"
+						new object=monitor.feederHead element=transformer.sub_xfmr terminal=1 mode=1 ppolar=no
+						set maxiterations=1000
+						set maxcontroliter=1000
+						set mode=daily
+						set stepsize=1h
+						set number=24'''.replace('\t','').split('\n')
+	for tc in textCommands:
+		dss.Text.Command(tc)
+	dss.Solution.Solve()
+	dss.Monitors.Name('feederHead')
+	p1 = np.array(dss.Monitors.Channel(1))
+	p2 = np.array(dss.Monitors.Channel(3))
+	p3 = np.array(dss.Monitors.Channel(5))
+	s = lambda p,q: (p**2 + q**2)**0.5
+	ch = lambda a: dss.Monitors.Channel(a)
+	pTotal = p1+p2+p3
+	sTotal = s(ch(1),ch(2))+s(ch(3),ch(4))+s(ch(5),ch(6))
+	# Recompile freshly and Sum power for all loads individually as a sanity check on the sanity check
+	loadProfile=[]
+	textCommands = 	f'''Compile "{dssLocation}"
+						set mode=daily
+						set stepsize=1h
+						set number=1'''.replace('\t','').split('\n')
+	for tc in textCommands:
+		dss.Text.Command(tc)
+	for i in range(24):
+		dss.Solution.Solve()
+		totalLoadkW = 0
+		for load in dss.Loads.AllNames():
+			dss.Loads.Name(load)
+			totalLoadkW += sum(dss.CktElement.Powers()[::2])
+		loadProfile.append(totalLoadkW)
+	return [p.item() for p in pTotal], [s.item() for s in sTotal], loadProfile
+"""
+
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
 	outData = {}
@@ -2076,6 +2132,44 @@ def work(modelDir, inputDict):
 		loadBcsDict				= loadBcsDict,
 		useLci					= inputDict['useLci']
 	)
+	"""
+	p,s,l = sanityCheck(pJoin(modelDir,'circuit_simplified.dss'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group2',
+		x=[*range(1,25)],
+		y=p,
+		mode='lines',
+		line_shape='hv',
+		name='Total p (sum of P\'s monitoring line after ssxfrmr)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total p</b>: %{{y:.3f}}kW'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group4',
+		x=[*range(1,25)],
+		y=s,
+		mode='lines',
+		line_shape='hv',
+		name='Total s (sum of s\'s monitoring line after ssxfrmr)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total s</b>: %{{y:.3f}}kW'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group5',
+		x=[*range(1,25)],
+		y=s,
+		mode='lines',
+		line_shape='hv',
+		name='loadProfile (sum of solved power of each load at each timestep)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>loadProfile</b>: %{{y:.3f}}kW'))
+	"""
+
+
 	# Textual outputs of outage timeline
 	with open(pJoin(modelDir,'timelineStats.html')) as inFile:
 		outData['timelineStatsHtml'] = inFile.read()
