@@ -24,7 +24,7 @@ tooltip = ('The derUtilityCost model evaluates the financial costs of controllin
 	'distributed energy resources (DERs) using the NREL Renewable Energy Optimization Tool (REopt) and '
 	'the OMF virtual battery dispatch module (vbatDispatch).')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = True ## Keep the model hidden=True during active development
+hidden = False ## Keep the model hidden=True during active development
 
 def calculate_fval(peak_demands, adjusted_peak_demands, DER_contribution):
 	""" 
@@ -147,6 +147,51 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 
 	return monthly_demand_charge_cost, monthly_total_kW, period_max_dollar_indices #period_max_kw_indices
 
+def adjust_charging_and_discharging(df, priority_order, available_priority_tech):
+	"""
+	Adjusts the charging and discharging arrays for TESS technologies that compete for charge time.
+	When two or more TESS technologies compete for charge time at a given hour, the highest priority tech will prevail. All other low priority tech will have the charge (kW) set to zero, and subsequent discharge will be removed to reflect the amount of charge that was removed.
+	Inputs:
+	- df (dataFrame): Contains the hourly charging, discharging, and total power columns for each TESS technology for an entire year.
+	- priority_order (dict): Priority order mapping between the tech name and the priority number with 0 corresponding to the highest priority technology (e.g. {vbatResults_wh_charging: 0, vbatResults_ac_charging: 1}).
+
+	"""
+	for index in df.index:
+		competing_technologies = [tech for tech in available_priority_tech if df.at[index, tech] > 0]
+
+		if len(competing_technologies) > 1:
+			## Identify the highest priority technology
+			highest_priority_tech = sorted(competing_technologies, key=lambda x: priority_order[x])[0]
+			charge_removal_amounts = {tech: df.at[index, tech] for tech in competing_technologies if tech != highest_priority_tech}
+
+			## Process lower priority technologies
+			for tech, amount in charge_removal_amounts.items():
+				discharge_col_name = tech.replace('charging', 'discharging')
+				df.at[index, tech] = 0  ## Set charge to zero at the current index
+
+				## Accumulate the amount of discharge to be removed
+				total_charge_removed = amount
+
+				## Iterate through subsequent indices to remove the discharge up to and including the amount of charge that was removed
+				next_index = index + 1
+				while total_charge_removed > 0 and next_index < len(df):
+					current_discharging = df.at[next_index, discharge_col_name]
+					if current_discharging > 0:
+						if current_discharging <= total_charge_removed:
+							total_charge_removed -= current_discharging
+							df.at[next_index, discharge_col_name] = 0  ## Remove all discharge
+						else:
+							df.at[next_index, discharge_col_name] -= total_charge_removed
+							total_charge_removed = 0  ## Discharge removal met
+					next_index += 1
+
+	## Update the total power for each technology
+	for tech in available_priority_tech:
+		discharge_col_name = tech.replace('charging', 'discharging')
+		total_power_col_name = tech.replace('charging', 'totalpower')
+		df[total_power_col_name] = df[discharge_col_name] - df[tech]  ## New total power (after priority adjustments) = discharge - charge 
+	return df
+
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
 	
@@ -194,9 +239,9 @@ def work(modelDir, inputDict):
 	
 	## Check if the demand and temperature curves are the correct length and account for leap years by removing Dec 31 data.
 	if len(demand) != 8760:
-		raise Exception(f"Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.")
+		raise Exception(f'Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.')
 	if len(temperatures_degF) != 8760:
-		raise Exception(f"Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure that there are 8760 elements.")
+		raise Exception(f'Temperature Curve must have exactly 8760 elements, but got {len(temperatures_degF)}. If this is a leap year, remove December 31 and ensure that there are 8760 elements.')
 
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
@@ -227,7 +272,7 @@ def work(modelDir, inputDict):
 	timestamps = pd.date_range(start=start_date, end=end_date, freq='h')
 
 	if len(timestamps) != 8760: ## Ensure 8760 elements
-		raise Exception(f"The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.")
+		raise Exception(f'The timestamp array should be 8760 elements long. Instead, got {len(timestamps)} elements.')
 	
 	########################################################################################################################################################
 	## Construct the wholesale energy and demand rate arrays using either the Wholesale Tariff JSON response file or user-provided .csv files
@@ -243,7 +288,7 @@ def work(modelDir, inputDict):
 				fixed = inputDict['wholesaleRateStructure'].replace("'", '"')
 				response_file = json.loads(fixed)
 			except json.JSONDecodeError:
-				raise Exception("Try re-uploading the JSON file and running the model again.")
+				raise Exception('Try re-uploading the JSON file and running the model again.')
 		except TypeError:
 			## If the wholesale_rate_curve is already a Python dictionary, use it directly
 			if isinstance(inputDict['wholesaleRateStructure'], dict):
@@ -289,7 +334,7 @@ def work(modelDir, inputDict):
 
 				## Get the tier thresholds for the current rate period
 				if period_number >= len(tier_thresholds_by_period):
-					raise ValueError(f"Period number {period_number} not found in energyratestructure in the Wholesale Energy & Demand Rate Structure (.json) file.")
+					raise ValueError(f'Period number {period_number} not found in energyratestructure in the Wholesale Energy & Demand Rate Structure (.json) file.')
 
 				thresholds = tier_thresholds_by_period[period_number]
 				monthly_kwh = energy_monthly_cumulative_sum[hour_index]
@@ -306,13 +351,13 @@ def work(modelDir, inputDict):
 		energy_rate_array = np.array([float(value) for value in inputDict['wholesaleRateCurve'].split('\n') if value.strip()])
 		#demand_rate_array = np.fill(12,inputDict['demandChargeCost'])
 		if len(energy_rate_array) != 8760:
-			raise ValueError(f"Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.")
+			raise ValueError(f'Energy Rate Curve must have exactly 8760 values, but got {len(energy_rate_array)}.')
 		
 		peakDemandCharge = np.array([float(value) for value in inputDict['monthlyDemandCharges'].split('\n') if value.strip()])
 		if np.sum(peakDemandCharge) == 0.0:
-			warnings.warn("The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.")
+			warnings.warn('The Monthly Demand Charges CSV file contains all zeros. This will cause the DER demand charge savings to be zero as well.')
 		if len(peakDemandCharge) != 12:
-			raise ValueError(f"The Monthly Demand Charges CSV file must have 12 values, but got {len(peakDemandCharge)} instead.")
+			raise ValueError(f'The Monthly Demand Charges CSV file must have 12 values, but got {len(peakDemandCharge)} instead.')
 
 	########################################################################################################################
 	## Run REopt.jl solver
@@ -372,10 +417,10 @@ def work(modelDir, inputDict):
 			'min_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
 			'max_kwh': float(inputDict['BESS_kwh']) * float(inputDict['number_devices_BESS']) * utility_BESS_fraction,
 			'can_grid_charge': True,
-			'total_rebate_per_kw': 0,
+			'total_rebate_per_kw': 0.0,
 			'macrs_option_years': 0,
-			'installed_cost_per_kw': 0,
-			'installed_cost_per_kwh': 0,
+			'installed_cost_per_kw': 0.0,
+			'installed_cost_per_kwh': 0.0,
 			'battery_replacement_year': 0,
 			'inverter_replacement_year': 0,
 			'replace_cost_per_kwh': 0.0,
@@ -394,7 +439,7 @@ def work(modelDir, inputDict):
 	########################################################################################################################
 	## Run REopt.jl
 	########################################################################################################################
-	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False)#, tolerance=10.0)#, random_seed=420)
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False)
 
 	## Load the REopt results once it is finished running
 	try: 
@@ -441,14 +486,14 @@ def work(modelDir, inputDict):
 		'deadband': '',
 		'unitDeviceCost': '0.0', ## set to zero: assuming utility does not pay for this
 		'unitUpkeepCost': '0.0', ## set to zero: assuming utility does not pay for this
-		'monthlyDemandCharges': inputDict['monthlyDemandCharges'], ## NOTE: This is for the CSV input file only, not the JSON response file. vbatDispatch only calculates the peakDeamndCharge and adjustedPeakDemandCharge with this info.
+		'monthlyDemandCharges': inputDict['monthlyDemandCharges'], ## NOTE: This is for the CSV input file only, not the JSON response file. vbatDispatch only calculates the peakDeamndCharge and adjustedPeakDemandCharge with this info (it is not used in the optimization and should not affect the thermal technology dispatch behavior)
 		'projectionLength': inputDict['projectionLength'],
 		'discountRate': inputDict['discountRate'],
 		'fileName': inputDict['fileName'],
 		'temperatureFileName': inputDict['temperatureFileName'],
 		'demandCurve': inputDict['demandCurve'],
-		'temperatureCurve': '\n'.join(f"{temperature:.2f}" for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
-		'energyRateCurve': '\n'.join(f"{rate:.2f}" for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
+		'temperatureCurve': '\n'.join(f'{temperature:.2f}' for temperature in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
+		'energyRateCurve': '\n'.join(f'{rate:.2f}' for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 		'set_random_numbers': inputDict['set_random_numbers'],
 		'random_seed_PuLP': inputDict['random_seed_PuLP'],
 		'randomNumbersFileName': inputDict['randomNumbersFileName'],
@@ -525,56 +570,9 @@ def work(modelDir, inputDict):
 	## Create a priority order mapping between the tech name (str) and an integer (0,1,2) so Python can work with it
 	priority_order = {key: i for i, key in enumerate(priority_tech)}
 
-	## Define a function to adjust charges and discharges
-	def adjust_charging_and_discharging(df, priority_order):
-		"""
-		Adjusts the charging and discharging arrays for TESS technologies that compete for charge time.
-		When two or more TESS technologies compete for charge time at a given hour, the highest priority tech will prevail. All other low priority tech will have the charge (kW) set to zero, and subsequent discharge will be removed to reflect the amount of charge that was removed.
-		Inputs:
-		- df (dataFrame): Contains the hourly charging, discharging, and total power columns for each TESS technology for an entire year.
-		- priority_order (dict): Priority order mapping between the tech name and the priority number with 0 corresponding to the highest priority technology (e.g. {vbatResults_wh_charging: 0, vbatResults_ac_charging: 1}).
-
-		"""
-		for index in df.index:
-			competing_technologies = [tech for tech in available_priority_tech if df.at[index, tech] > 0]
-
-			if len(competing_technologies) > 1:
-				## Identify the highest priority technology
-				highest_priority_tech = sorted(competing_technologies, key=lambda x: priority_order[x])[0]
-				charge_removal_amounts = {tech: df.at[index, tech] for tech in competing_technologies if tech != highest_priority_tech}
-
-				## Process lower priority technologies
-				for tech, amount in charge_removal_amounts.items():
-					discharge_col_name = tech.replace('charging', 'discharging')
-					df.at[index, tech] = 0  ## Set charge to zero at the current index
-
-					## Accumulate the amount of discharge to be removed
-					total_charge_removed = amount
-
-					## Iterate through subsequent indices to remove the discharge up to and including the amount of charge that was removed
-					next_index = index + 1
-					while total_charge_removed > 0 and next_index < len(df):
-						current_discharging = df.at[next_index, discharge_col_name]
-						if current_discharging > 0:
-							if current_discharging <= total_charge_removed:
-								total_charge_removed -= current_discharging
-								df.at[next_index, discharge_col_name] = 0  ## Remove all discharge
-							else:
-								df.at[next_index, discharge_col_name] -= total_charge_removed
-								total_charge_removed = 0  ## Discharge removal met
-						next_index += 1
-
-		## Update the total power for each technology
-		for tech in available_priority_tech:
-			discharge_col_name = tech.replace('charging', 'discharging')
-			total_power_col_name = tech.replace('charging', 'totalpower')
-			df[total_power_col_name] = df[discharge_col_name] - df[tech]  ## New total power (after priority adjustments) = discharge - charge 
-		return df
-
 	## The adjusted dataframe for all TESS technolgies based on the priority charging order
-	## NOTE: This method is used to account for the TESS tech being decoupled from each other and causing new, expensive peak demands due to technologies charging at the same time.
-	adjusted_vbat_power_df = adjust_charging_and_discharging(vbat_power_df, priority_order)
-
+	## NOTE: This method is used to account for the TESS tech creating new, expensive peak demands due to decoupled thermal technologies charging at the same time.
+	adjusted_vbat_power_df = adjust_charging_and_discharging(vbat_power_df, priority_order, available_priority_tech)
 
 	########################################################################################################################
 	## Individual and combined Thermal Energy Storage System (TESS) technology calculations 
@@ -924,7 +922,7 @@ def work(modelDir, inputDict):
 
 			fval_hourly = calculate_fval(demand_baseP, demand_adjP, totalDER_at_baseP_dollars)
 
-			## Apply Fval to each 
+			## Apply Fval to each DER peak demand savings
 			DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly
 
 			## Assemble the monthly demand savings array for each DER technology using the fval-corrected hourly window demand costs

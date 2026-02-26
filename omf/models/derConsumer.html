@@ -525,7 +525,7 @@
 		{% endif %}
 
 		<!-- Include the ChargeLevelBattery plot only when BESS exists in the model -->
-		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge</p>
+		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge (Consumer Portion)</p>
 		{% if allOutputDataDict.chargeLevelBattery|sum == 0 %}
 			<div id="batteryChargePlotly" class="tightContent"></div>
 			<script type="text/javascript">    
