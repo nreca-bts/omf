@@ -11,6 +11,7 @@ import networkx as nx
 from scipy.stats import percentileofscore
 import time
 from collections import OrderedDict
+import opendssdirect as dss
 # from statistics import quantiles
 
 # OMF imports
@@ -80,6 +81,13 @@ def makeCicuitTraversalDict(pathToOmd):
 			if circObType == 'load':
 				ob['downlineLoads'].add(circObKey)
 	return obDict
+
+def smartRound(val,decPl):
+	'helper function to convert a value to a float and then round it if possible, otherwise just return the original value'
+	try:
+		return round(float(val),decPl)
+	except ValueError:
+		return val
 
 def coordsFromString(entry):
 	'helper function to take a location string to two integer values'
@@ -207,7 +215,7 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 						<th>Customer Name</th>
 						<th>Duration</th>
 						<th>Season</th>
-						<th>Average kW/hr</th>
+						<th>Time Average kW</th>
 						<th>Business Type</th>
 						<th>Load Name</th>
 						<th>Outage Cost</th>
@@ -216,7 +224,7 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 				<tbody>"""
 		row = 0
 		while row < len(customerOutageData):
-			new_html_str += '<tr><td>' + str(customerOutageData.loc[row, 'Customer Name']) + '</td><td>' + str(customerOutageData.loc[row, 'Duration']) + '</td><td>' + str(customerOutageData.loc[row, 'Season']) + '</td><td>' + '{0:.2f}'.format(customerOutageData.loc[row, 'Average kW/hr']) + '</td><td>' + str(customerOutageData.loc[row, 'Business Type']) + '</td><td>' + str(customerOutageData.loc[row, 'Load Name']) + '</td><td>' + "${:,.2f}".format(outageCost[row])+ '</td></tr>'
+			new_html_str += '<tr><td>' + str(customerOutageData.loc[row, 'Customer Name']) + '</td><td>' + str(customerOutageData.loc[row, 'Duration']) + '</td><td>' + str(customerOutageData.loc[row, 'Season']) + '</td><td>' + '{0:.2f}'.format(customerOutageData.loc[row, 'Time Average kW']) + '</td><td>' + str(customerOutageData.loc[row, 'Business Type']) + '</td><td>' + str(customerOutageData.loc[row, 'Load Name']) + '</td><td>' + "${:,.2f}".format(outageCost[row])+ '</td></tr>'
 			row += 1
 		new_html_str +="""</tbody></table>"""
 		return new_html_str
@@ -233,38 +241,80 @@ def customerOutageTable(customerOutageData, outageCost, modelDir):
 		customerOutageFile.write(customerOutageHtml)
 	return customerOutageHtml
 
-def utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration, modelDir):
-	'''generate html table of customer outages'''
-	# TODO: update table after calculating outage stats
-	def utilityOutageStats(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration):
-		new_html_str = """
-			<table cellpadding="0" cellspacing="0">
-				<thead>
-					<tr>
-						<th>Lost kWh Sales</th>
-						<th>Restoration Labor Cost</th>
-						<th>Restoration Hardware Cost</th>
-						<th>Utility Outage Cost</th>
-					</tr>
-				</thead>
-				<tbody>"""
-		
-		new_html_str += '<tr><td>' + str(int(sum(average_lost_kwh))*profit_on_energy_sales*outageDuration) + '</td><td>' + "${:,.2f}".format(restoration_cost*outageDuration) + '</td><td>' + "${:,.2f}".format(hardware_cost) + '</td><td>' + "${:,.2f}".format(int(sum(average_lost_kwh))*profit_on_energy_sales*outageDuration + restoration_cost*outageDuration + hardware_cost) + '</td></tr>'
+def collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps):
+	'''
+	Collects kW lost data over the course of the simulation using load shapes and whether each load was shed or not at each timestep.
+	
+	:param mgIDs: List of microgrid IDs
+	:param obMgDict: Dictionary mapping load names to microgrid IDs
+	:param loadShapesPerLoad: Dictionary of load shapes for each load
+	:param outputTimeline: DataFrame containing timeline data for each load
+	:param startTime: Start time of the simulation
+	:param numTimeSteps: Number of time steps in the simulation
+	:return timeList: List of time steps
+	:return kWLost: List of kW lost at each time step
+	:return kWLostCumulative: List of cumulative kW at each time step
+	:return kWLostPerMg: Dictionary containing lists of kW lost per microgrid at each time step
+	'''
+	loadList = list(loadShapesPerLoad.keys())
+	timeList = [*range(startTime, numTimeSteps+startTime)]
+	dfLoadTimeln, dfStatus = makeLoadOutTimelnAndStatusMap(outputTimeline, loadList, timeList)	
+	outLoadStatusDict = dfStatus.loc[:, (dfStatus == 0).any(axis=0)].to_dict(orient='list')
+	kWLost = []
+	kWTotal = []
+	kWLostCumulative = []
+	kWLostPerMg = {mgID: [] for mgID in mgIDs}
+	for i in range(numTimeSteps):
+		kWLostInTimestep = 0
+		kWTotalInTimestep = 0
+		kWLostInTimestepPerMg = {mgID: 0 for mgID in mgIDs}
+		for loadName, statusList in outLoadStatusDict.items():
+			experiencingOutage = 1-statusList[i]
+			kW = loadShapesPerLoad[loadName][i]
+			kWLostHere = experiencingOutage * kW
+			kWLostInTimestep += kWLostHere
+			kWTotalInTimestep += kW
+			kWLostInTimestepPerMg[obMgDict.get(loadName, 'no MG')] += kWLostHere
+		kWLost.append(kWLostInTimestep)
+		kWTotal.append(kWTotalInTimestep)
+		if i == 0:
+			kWLostCumulative.append(kWLostInTimestep)
+		else:
+			kWLostCumulative.append(kWLostCumulative[i-1] + kWLostInTimestep)
+		for mgID, kW in kWLostInTimestepPerMg.items():
+			kWLostPerMg[mgID].append(kW)
+	
+	return timeList, kWLost, kWLostCumulative, kWLostPerMg, kWTotal
 
-		new_html_str +="""</tbody></table>"""
-
-		return new_html_str
-
-	# print business information and estimated customer outage costs
-	utilityOutageHtml = utilityOutageStats(
-		average_lost_kwh = average_lost_kwh,
-		profit_on_energy_sales = profit_on_energy_sales,
-		restoration_cost = restoration_cost,
-		hardware_cost = hardware_cost,
-		outageDuration = outageDuration)
-	with open(pJoin(modelDir, 'utilityOutageTable.html'), 'w') as utilityOutageFile:
-		utilityOutageFile.write(utilityOutageHtml)
-	return utilityOutageHtml
+def utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize):
+	''' Generates a graph of utility lost kWh sales over time and saves it as an html file.
+		The graph contains two lines: lost kWh sales at each timestep and cumulative lost kWh sales.
+	'''
+	utilOutFig = go.Figure()
+	for varName, kWVals in [('kWh Sales Lost at Timestep', kWLost), ('kWh Sales Lost Cumulative', kWLostCumulative)]:
+		trace = go.Scatter(
+			x = timeList,
+			y = kWVals,
+			name = varName,
+			mode = 'lines',
+			line_shape='hv',
+			hovertemplate = 
+			'<b>Time Step</b>: %{x}<br>' +
+			'<b>Lost kWh Sales</b>: %{y:.2f} kWh'
+		)
+		utilOutFig.add_trace(trace)
+	utilOutFig.update_layout(
+		xaxis_title = 'Time (Hours)',
+		xaxis_range=[timeList[0],timeList[-1]],
+		xaxis={
+			'tickmode':'linear',
+			'dtick':stepSize
+		},
+		yaxis_title = 'Lost kWh Sales (kWh)',
+		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+		title = 'Output is in kWh. To convert to $, multiply by $/kWh for your co-op at the particular time and day.'
+	)
+	return utilOutFig
 
 def customerCost1(duration, season, averagekWperhr, businessType):
 	''' Function to determine customer outage cost based on season, annual kWh usage, and business type.
@@ -1197,14 +1247,15 @@ def runMicrogridControlSim(modelDir, solFidelity, eventsFilename, loadPriorityFi
 			print('output.json successfully generated by PowerModelsONM')
 			break
 		elif i >= maxIters-1:
-			raise Exception(f'ERROR - output.json still not written {maxWait//60}m {maxWait%60}s after PowerModelsONM finished running. This exceeds the maximum allotted wait time.')
+			raise Exception(f'ERROR - output.json still not written {maxWait//60}m {maxWait%60}s after PowerModelsONM finished running. This exceeds the maximum allotted wait time. PowerModelsONM may have encountered an error during the simulation. You can try running your feeder through the feeder reduction code before uploading it again to see if that resolves the issue.')
 		else:
 			time.sleep(waitTime)
 
-def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
+def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg, kWTotal):
 	''' Aggregates powerflow data by powerflow circuit object type to create generation profiles.
 		Aggregated powerflow data is separated based on the microgrid in which each pf circuit object is located.
 		Generation profiles for the entire system are also calculated alongside gen profiles for each microgrid. 
+		Also adds demand not served to the stacked area plots to visualize total demand.
 
 		Outputs a touple containing two elements: gensFigure, mgGensFigures
 
@@ -1213,13 +1264,16 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 		mgGensFigures is a dictionary with strings containing microgrid IDs as the keys and plotly figures visualizing corresponding generation profiles as values. 
 	'''
 
-	#Conversion to list and sort is conducted so that they are ordered the same on every run. Otherwise, they take on different colors in the graph between runs
-	pfTypes = list(set(powerflow[0].keys())-{'switch','bus','protection'})
-	pfTypes.sort()
+	# We want these specific types of powerflow (IFF they're in the output.json) in this order for the sake of the order that they're drawn on the stacked area chart later.
+	# Intentionally omitted bus, switch, and protection
+	ordDesiredTypes = ['storage','solar','generator','voltage_source']
+	pfTypes = [type for type in ordDesiredTypes if type in powerflow[0]]
 	pfDataAggregated = {mgID:pd.DataFrame(0, index=simTimeSteps, columns=pfTypes) for mgID in mgIDs.union({'no MG'})}
 	pfDataSystemwide = pd.DataFrame(0, index=simTimeSteps, columns=pfTypes)
+	pfTotalsAtEachT = []
 	
 	for timestepIndex in range(len(powerflow)):
+		pfTotalAtT = 0
 		for pfType in pfTypes:
 			for obName, obData in powerflow[timestepIndex][pfType].items():
 				obPf = sum(obData.get('real power setpoint (kW)',[0]))
@@ -1227,9 +1281,18 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 				obMg = obMgDict.get(obName, 'no MG')
 				pfDataAggregated[obMg].at[simTimeSteps[timestepIndex],pfType] += obPf
 				pfDataSystemwide.at[simTimeSteps[timestepIndex],pfType] += obPf
+				pfTotalAtT += obPf
+		pfTotalsAtEachT.append(pfTotalAtT)
 
-	minVal = float('inf')
+	# minVal is defined as the lowest total of stacked vals (without adding in kWLost since it's never negative) and individual vals
+	# 	This is to account for if the graph has multiple negative vals stacking bringing things lower than any individual val would.
+	# maxVal is defined as the highest total of stacked vals (including kWLost) and individual vals
+	# 	This is to account for the case where the graph goes higher than the total stacked vals because of order of stacked layers
+	#	I.e. a very high positive val layer is drawn before a very large negative val layer is drawn "atop" it. The total is lower than the graph is drawn since the high pos val was drawn first.
 	maxVal = float('-inf')
+	for i, val in enumerate(pfTotalsAtEachT):
+		maxVal = max(maxVal, val+kWLost[i])
+	minVal = min(pfTotalsAtEachT)
 	for df in pfDataAggregated.values():
 		minVal = min(minVal, df.min().min())
 		maxVal = max(maxVal, df.max().max())
@@ -1247,6 +1310,8 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 	for pfType in pfTypes:
 		pfTypeRenamed = pfTypeNameMap.get(pfType,pfType)
 		gensFigure.add_trace(go.Scatter(
+			fill='tonexty',
+			stackgroup='group1',
 			x=simTimeSteps,
 			y=pfDataSystemwide[pfType].to_list(),
 			mode='lines',
@@ -1255,6 +1320,30 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 			hovertemplate=
 			'<b>Time Step</b>: %{x}<br>' +
 			f'<b>{pfTypeRenamed}</b>: %{{y:.3f}}kW'))
+	gensFigure.add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group1',
+		x=simTimeSteps,
+		y=kWLost,
+		mode='lines',
+		line_shape='hv',
+		name='Demand Not Served',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Demand Not Served</b>: %{{y:.3f}}kW'))
+	"""
+	gensFigure.add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group3',
+		x=simTimeSteps,
+		y=kWTotal,
+		mode='lines',
+		line_shape='hv',
+		name='Total Demand Scheduled',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total Demand Scheduled</b>: %{{y:.3f}}kW'))
+	"""
 	gensFigure.update_layout(
 		xaxis_title='Time (Hours)',
 		xaxis_range=[simTimeSteps[0],simTimeSteps[-1]],
@@ -1272,6 +1361,8 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 		for pfType in pfTypes:
 			pfTypeRenamed = pfTypeNameMap.get(pfType,pfType)
 			mgGensFigures[mgID].add_trace(go.Scatter(
+				fill='tonexty',
+				stackgroup='group1',
 				x=simTimeSteps,
 				y=pfDataAggregated[mgID][pfType].to_list(),
 				mode='lines',
@@ -1280,6 +1371,17 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 				hovertemplate=
 				'<b>Time Step</b>: %{x}<br>' +
 				f'<b>{pfTypeRenamed} for Microgrid {mgID}</b>: %{{y:.3f}}kW'))
+		mgGensFigures[mgID].add_trace(go.Scatter(
+			fill='tonexty',
+			stackgroup='group1',
+			x=simTimeSteps,
+			y=kWLostPerMg[mgID],
+			mode='lines',
+			line_shape='hv',
+			name='Demand Not Served',
+			hovertemplate=
+			'<b>Time Step</b>: %{x}<br>' +
+			f'<b>Demand Not Served</b>: %{{y:.3f}}kW'))
 		mgGensFigures[mgID].update_layout(
 			xaxis_title='Time (Hours)',
 			xaxis_range=[simTimeSteps[0],simTimeSteps[-1]],
@@ -1294,7 +1396,7 @@ def genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime):
 
 	return gensFigure, mgGensFigures
 
-def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost, hardware_cost, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadLciDict, loadLcsDict, loadBcsDict, useLci):
+def graphMicrogrid(modelDir, pathToOmd, pathToJson, pathToCsv, loadPriorityFile, loadMgDict, obMgDict, busMgDict, mgIDs, loadLciDict, loadLcsDict, loadBcsDict, useLci):
 	''' Run full microgrid control process. '''
 	# Gather output data.
 	with open(pJoin(modelDir,'output.json')) as inFile:
@@ -1409,7 +1511,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	outputTimeline = pd.DataFrame(timelineActions, columns=['time','device','action','loadBefore','loadAfter']).sort_values('time')
 
 	# Create traces
-	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime)
+	# generation profiles code moved to bottom of this file to use data gathered later
 
 	volts = go.Figure()
 	voltsKeysAndNames = [
@@ -1439,10 +1541,10 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	
 	loads = go.Figure()
 	loadsKeysAndNames = [
-		('Total load (%)', 'Total Demand'),
-		('Feeder load (%)','Feeder Demand'),
-		('Microgrid load (%)','Microgrid Demand'),
-		('Bonus load via microgrid (%)','Bonus Demand via Microgrid')]
+		('Total load (%)', '% Total Demand Served'),
+		('Feeder load (%)','% Non-Microgrid Demand Served By Grid'),
+		('Microgrid load (%)','% Microgrid Demand Served'),
+		('Bonus load via microgrid (%)','% Non-Microgrid Demand Served By Microgrids')]
 	for deviceActions,name in loadsKeysAndNames:
 		loads.add_trace(go.Scatter(
 			x=simTimeSteps,
@@ -1461,7 +1563,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			'tickmode':'linear',
 			'dtick':stepSize
 		},
-		yaxis_title='Demand Served (% kW)',
+		yaxis_title='Demand Served (%)',
 		legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 	
 	timelineStatsHtml = microgridTimeline(outputTimeline, modelDir)
@@ -1482,16 +1584,19 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 					newCoordString = newCoordString + ", \n"
 			count = count+1
 		return newCoordString
-
+	
+	kWPropDict = {}
 	for i in range(len(feederMap['features'])):
 		props = feederMap['features'][i]['properties']
 		name = props.get('name',0)
 		if name:
 			rawCoords = feederMap['features'][i]['geometry']['coordinates']
 			mgID = None
+			kW = None
 			if isinstance(rawCoords[0], float):
 				coordStr = f'({rawCoords[0]},{rawCoords[1]})'
 				mgID = obMgDict.get(name, busMgDict.get(name,'no MG ID'))
+				kW = props.get('kw')
 			else:
 				coordStr = f'({rawCoords[0][0]},{rawCoords[0][1]}), ({rawCoords[1][0]},{rawCoords[1][1]})'
 			props['popupContent'] =	f'''Location: <b>{coordStr}</b><br>
@@ -1499,7 +1604,9 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 										''' 
 			if mgID: 
 				props['popupContent'] += f'Microgrid ID: <b>{mgID}</b>'
-		# TODO: Add nicely formatted coordinates & indicate microgrid
+			if kW:
+				props['popupContent'] += f'<br>kW: <b>{smartRound(kW,3)}</b>'
+				kWPropDict[name] = kW
 
 	row = 0
 	row_count_timeline = outputTimeline.shape[0]
@@ -1511,6 +1618,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 		'Battery Control':'FFFF00',
 		'Generator Control':'E0FFFF',
 	}
+	hr4Popup = '_____________________________________________'
 	for row in range(row_count_timeline):
 		full_data = pullDataForGraph(tree, feederMap, outputTimeline, row)
 		device, coordLis, coordStr, time, action, loadBefore, loadAfter = full_data
@@ -1526,10 +1634,10 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 				'loadAfter': loadAfter,
 				'popupContent': f'''Location: <b>{coordStrFormatter(str(coordStr))}</b><br>
 									Device: <b>{str(device)}</b><br>
-									Latest Action: <b>{str(action)}</b><br>
+									{hr4Popup}<br>Latest Action: <b>{str(action)}</b><br>
 									Timestep: <b>{str(time)}</b><br>
-									Before: <b>{str(loadBefore)}{units}</b><br>
-									After: <b>{str(loadAfter)}{units}</b>''' }
+									Before: <b>{str(smartRound(loadBefore,3))}{units}</b><br>
+									After: <b>{str(smartRound(loadAfter,3))}{units}</b>''' }
 			if len(coordLis) != 2:
 				dev_dict['geometry'] = {'type': 'LineString', 'coordinates': [[coordLis[0], coordLis[1]], [coordLis[2], coordLis[3]]]}
 				dev_dict['properties']['edgeColor'] = f'#{colormap[action]}'
@@ -1539,7 +1647,11 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 				if obMgDict != None:
 					mgID = obMgDict.get(str(device),'no MG ID')
 					dev_dict['properties']['microgrid_id'] = mgID
-					dev_dict['properties']['popupContent'] += f'<br>Microgrid ID: <b>{mgID}</b>'
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'Microgrid ID: <b>{mgID}</b><br>{hr4Popup}<br>Latest Action')
+				obkW = kWPropDict.get(device)
+				if obkW != None:
+					dev_dict['properties']['kW'] = obkW
+					dev_dict['properties']['popupContent'] = dev_dict['properties']['popupContent'].replace(f'{hr4Popup}<br>Latest Action', f'kW: <b>{smartRound(obkW,3)}</b><br>{hr4Popup}<br>Latest Action')
 			feederMap['features'].append(dev_dict)
 		except:
 			print('MESSED UP MAPPING on', device, full_data)
@@ -1554,6 +1666,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	# Generate customer outage outputs
 	try:
 		# TODO: this should not be customerOutageData... this is the input of customer info. It's later turned into customerOutageData by adding more info, but this same variable should NOT be used for the same thing
+		# Below variable starts as dataframe of Customer Information File data
 		customerOutageData = pd.read_csv(pathToCsv)
 	except:
 		# TODO: Needs to be updated to provide info for all loads, not just shed loads. Outage Incidence plot is dependent on all loads
@@ -1579,12 +1692,20 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	dssTree = dssToTree(pJoin(modelDir,'circuit_simplified.dss'))
 	loadShapeMeanMultiplier = {}
 	loadShapeMeanActual = {}
+	loadShapesActual = {}
+	loadShapesMult = {}
+	loadShapesPerLoad = {}
 	for dssLine in dssTree:
 		if 'object' in dssLine and dssLine['object'].split('.')[0] == 'loadshape':
-			shape = dssLine['mult'].replace('[','').replace('(','').replace(']','').replace(')','').split(',')
-			shape = [float(y) for y in shape]
-			if 'useactual' in dssLine and dssLine['useactual'] == 'yes': loadShapeMeanActual[dssLine['object'].split('.')[1]] = np.mean(shape)
-			else: loadShapeMeanMultiplier[dssLine['object'].split('.')[1]] = np.mean(shape)/np.max(shape)
+			loadShape = dssLine['mult'].replace('[','').replace('(','').replace(']','').replace(')','').split(',')
+			loadShape = [float(y) for y in loadShape]
+			if str(dssLine.get('useactual')).lower() in ['yes', 'true', 'y']: 
+				loadShapeMeanActual[dssLine['object'].split('.')[1]] = np.mean(loadShape)
+				loadShapesActual[dssLine['object'].split('.')[1]] = loadShape
+			else: 
+				# TODO: Inquire to Lisa about whether there should be the division at all. If mult is already supposed to be a multiplier, why divide by max? If this is correct, divide the line below it.
+				loadShapeMeanMultiplier[dssLine['object'].split('.')[1]] = np.mean(loadShape)/np.max(loadShape)
+				loadShapesMult[dssLine['object'].split('.')[1]] = loadShape
 	while row < customerOutageData.shape[0]:
 		customerName = str(customerOutageData.loc[row, 'Customer Name'])
 		loadName = str(customerOutageData.loc[row, 'Load Name'])
@@ -1595,10 +1716,19 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 		averagekWperhr = str(0)
 		for elementDict in dssTree:
 			if 'object' in elementDict and elementDict['object'].split('.')[0] == 'load' and elementDict['object'].split('.')[1] == loadName:
-				if 'daily' in elementDict: averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
-				else: averagekWperhr = float(elementDict['kw'])/2
+				if 'daily' in elementDict: 
+					averagekWperhr = float(loadShapeMeanMultiplier.get(elementDict['daily'],0)) * float(elementDict['kw']) + float(loadShapeMeanActual.get(elementDict['daily'],0))
+				else: 
+					averagekWperhr = float(elementDict['kw'])/2
+				# TODO: Once Lisa confirms whether the above should have a no 'daily' case, update accordingly.
+				if loadShapesActual.get(elementDict['daily']) != None:
+					loadShapesPerLoad[loadName] = loadShapesActual[elementDict['daily']] 
+				else:
+					loadShapesPerLoad[loadName] = [x * float(elementDict['kw']) for x in loadShapesMult[elementDict['daily']]]
 				duration = str(cumulativeLoadsShed.count(loadName) * stepSize)
 				durationFloatCapAt25 = min(float(duration), 25.0)
+				# TODO: Verify with Lisa that the break is good i.e. each object should only be defined once and this won't be skipping an expected second definition.
+				break
 		if float(duration) >= .1 and float(averagekWperhr) >= .1:
 			durationColumn.append(duration)
 			avgkWColumn.append(float(averagekWperhr))
@@ -1622,7 +1752,7 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 			customerOutageData = customerOutageData.drop(index=row)
 			customerOutageData = customerOutageData.reset_index(drop=True)
 	customerOutageData.insert(1, "Duration", durationColumn, True)
-	customerOutageData.insert(3, "Average kW/hr", avgkWColumn, True)
+	customerOutageData.insert(3, "Time Average kW", avgkWColumn, True)
 	durations = customerOutageData.get('Duration',['0'])
 	try:
 		maxDuration = max([float(x) for x in durations])
@@ -1717,14 +1847,15 @@ def graphMicrogrid(modelDir, pathToOmd, profit_on_energy_sales, restoration_cost
 	tradMetricsHtml, lciQuartTradMetricsHtml = tradMetricsByMgTable(outputTimeline, loadMgDict, startTime, numTimeSteps, modelDir, loadLciDict, loadLcsDict, loadBcsDict, loadPriorityFile, useLci)
 
 	customerOutageHtml = customerOutageTable(customerOutageData, outageCost, modelDir)
-	profit_on_energy_sales = float(profit_on_energy_sales)
-	restoration_cost = int(restoration_cost)
-	hardware_cost = int(hardware_cost)
 	simulationDuration = int(simulationDuration)
-	utilityOutageHtml = utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, simulationDuration, modelDir)
+	timeList, kWLost, kWLostCumulative, kWLostPerMg, kWTotal = collectkWLostData(mgIDs, obMgDict, loadShapesPerLoad, outputTimeline, startTime, numTimeSteps)
+	utilOutFig = utilityOutageGraph(timeList, kWLost, kWLostCumulative, stepSize)
+	gens, mgGensFigs = genProfilesByMicrogrid(mgIDs, obMgDict, powerflow, simTimeSteps, startTime, kWLost, kWLostPerMg, kWTotal)
+
+
 	try: customerOutageCost = customerOutageCost
 	except: customerOutageCost = 0
-	return {'utilityOutageHtml': 	utilityOutageHtml, 
+	return {'utilOutFig': 	utilOutFig, 
 			'customerOutageHtml': 	customerOutageHtml, 
 			'timelineStatsHtml': 	timelineStatsHtml,
 			'tradMetricsHtml':		tradMetricsHtml,
@@ -1862,14 +1993,14 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 			maxBessCharge: If True, each BESS will be defined as fully charged by setting the value of kwhstored to the value of kwhrated.
 	'''
 	with tempfile.TemporaryDirectory() as tempDir:
-		# remove fuses & set kwhstored equal to kwhrated
+		# remove fuses & set kwhstored equal to kwhrated + remove show commands 
 		with open(inDss, 'r') as infile:
 			inputLines = infile.readlines()
 			outStr = ''
 			for line in inputLines:
 				line = line.lower()
-				if 'object=fuse.' not in line:
-					if 'kwhstored' in line and 'kwhrated' in line and maxBessCharge:
+				if 'object=fuse.' not in line and 'show ' not in line:
+					if 'kwhstored' in line and 'kwhrated' in line and maxBessCharge == True:
 						itemDict = {}
 						for item in line.split(' '):
 							try:
@@ -1886,6 +2017,7 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 			outfile.write(outStr)		
 		print('\nRemoved fuses and set kwhstored to kwhrated\n')
 		# reduce feeder size
+		'''
 		tree = dssToTree(pJoin(tempDir,'rm_fuses_max_storage.dss'))
 		oldsz = len(tree)
 		tree = reduceCircuit(tree)
@@ -1893,9 +2025,10 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 		cutsz = oldsz-newsz
 		treeToDss(tree, pJoin(tempDir,'rm_fuses_max_storage_resized.dss'))
 		print(f'\nPerformed feeder reduction, reducing the size of the feeder by {cutsz} objects (oldsz={oldsz}, newsz={newsz})\n')
+		'''
 		# clean file
-		srcDss = pJoin(tempDir,'rm_fuses_max_storage_resized.dss')
-		cleanDss = pJoin(tempDir,'rm_fuses_max_storage_resized_clean.dss')
+		srcDss = pJoin(tempDir,'rm_fuses_max_storage.dss')
+		cleanDss = pJoin(tempDir,'rm_fuses_max_storage_clean.dss')
 		dss_to_clean_via_save(srcDss, cleanDss)
 		print('\nCleaned file formatting\n')
 		# strip out tcc_curves, spectrum, growthshape, and default objects + calcv related things that were addded by cleaning function
@@ -1925,6 +2058,44 @@ def simplifyFeeder(inDss, outDss, maxBessCharge=True):
 	with open(outDss,'w') as outfile:
 		outfile.write(outStr)
 
+"""
+def sanityCheck(dssLocation):
+	textCommands = 	f'''Compile "{dssLocation}"
+						new object=monitor.feederHead element=transformer.sub_xfmr terminal=1 mode=1 ppolar=no
+						set maxiterations=1000
+						set maxcontroliter=1000
+						set mode=daily
+						set stepsize=1h
+						set number=24'''.replace('\t','').split('\n')
+	for tc in textCommands:
+		dss.Text.Command(tc)
+	dss.Solution.Solve()
+	dss.Monitors.Name('feederHead')
+	p1 = np.array(dss.Monitors.Channel(1))
+	p2 = np.array(dss.Monitors.Channel(3))
+	p3 = np.array(dss.Monitors.Channel(5))
+	s = lambda p,q: (p**2 + q**2)**0.5
+	ch = lambda a: dss.Monitors.Channel(a)
+	pTotal = p1+p2+p3
+	sTotal = s(ch(1),ch(2))+s(ch(3),ch(4))+s(ch(5),ch(6))
+	# Recompile freshly and Sum power for all loads individually as a sanity check on the sanity check
+	loadProfile=[]
+	textCommands = 	f'''Compile "{dssLocation}"
+						set mode=daily
+						set stepsize=1h
+						set number=1'''.replace('\t','').split('\n')
+	for tc in textCommands:
+		dss.Text.Command(tc)
+	for i in range(24):
+		dss.Solution.Solve()
+		totalLoadkW = 0
+		for load in dss.Loads.AllNames():
+			dss.Loads.Name(load)
+			totalLoadkW += sum(dss.CktElement.Powers()[::2])
+		loadProfile.append(totalLoadkW)
+	return [p.item() for p in pTotal], [s.item() for s in sTotal], loadProfile
+"""
+
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
 	outData = {}
@@ -1938,7 +2109,7 @@ def work(modelDir, inputDict):
 	# Output a .dss file, which will be needed for ONM.
 	niceDss = evilGldTreeToDssTree(tree)
 	treeToDss(niceDss, pJoin(modelDir,'circuit.dss'))
-	simplifyFeeder(pJoin(modelDir,'circuit.dss'),pJoin(modelDir,'circuit_simplified.dss'))
+	simplifyFeeder(pJoin(modelDir,'circuit.dss'),pJoin(modelDir,'circuit_simplified.dss'), maxBessCharge=False)
 
 	omdFilePath = f'{modelDir}/{feederName}.omd'
 	
@@ -1972,9 +2143,6 @@ def work(modelDir, inputDict):
 	plotOuts = graphMicrogrid(
 		modelDir				= modelDir, 
 		pathToOmd				= omdFilePath, 
-		profit_on_energy_sales	= inputDict['profit_on_energy_sales'],
-		restoration_cost		= inputDict['restoration_cost'],
-		hardware_cost			= inputDict['hardware_cost'],
 		pathToJson				= pathToLocalFile['event'],
 		pathToCsv				= pathToLocalFile['customerInfo'],
 		loadPriorityFile		= pathToMergedPriorities,
@@ -1987,15 +2155,50 @@ def work(modelDir, inputDict):
 		loadBcsDict				= loadBcsDict,
 		useLci					= inputDict['useLci']
 	)
+	"""
+	p,s,l = sanityCheck(pJoin(modelDir,'circuit_simplified.dss'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group2',
+		x=[*range(1,25)],
+		y=p,
+		mode='lines',
+		line_shape='hv',
+		name='Total p (sum of P\'s monitoring line after ssxfrmr)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total p</b>: %{{y:.3f}}kW'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group4',
+		x=[*range(1,25)],
+		y=s,
+		mode='lines',
+		line_shape='hv',
+		name='Total s (sum of s\'s monitoring line after ssxfrmr)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>Total s</b>: %{{y:.3f}}kW'))
+	plotOuts['gens'].add_trace(go.Scatter(
+		fill='tonexty',
+		stackgroup='group5',
+		x=[*range(1,25)],
+		y=s,
+		mode='lines',
+		line_shape='hv',
+		name='loadProfile (sum of solved power of each load at each timestep)',
+		hovertemplate=
+		'<b>Time Step</b>: %{x}<br>' +
+		f'<b>loadProfile</b>: %{{y:.3f}}kW'))
+	"""
+
+
 	# Textual outputs of outage timeline
 	with open(pJoin(modelDir,'timelineStats.html')) as inFile:
 		outData['timelineStatsHtml'] = inFile.read()
 	# Textual outputs of customer cost statistic
 	with open(pJoin(modelDir,'customerOutageTable.html')) as inFile:
 		outData['customerOutageHtml'] = inFile.read()
-	# Textual outputs of utility cost statistic
-	with open(pJoin(modelDir,'utilityOutageTable.html')) as inFile:
-		outData['utilityOutageHtml'] = inFile.read()
 	# Textual outputs of traditional metrics table
 	with open(pJoin(modelDir,'mgTradMetricsTable.html')) as inFile:
 		outData['tradMetricsHtml'] = inFile.read()
@@ -2024,6 +2227,8 @@ def work(modelDir, inputDict):
 	outData['fig4Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig5Data'] = json.dumps(plotOuts.get('custHist',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig5Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
+	outData['utilOutFigData'] = json.dumps(plotOuts.get('utilOutFig',{}), cls=py.utils.PlotlyJSONEncoder)
+	outData['utilOutFigLayout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Data'] = json.dumps(plotOuts.get('outageIncidenceFig',{}), cls=py.utils.PlotlyJSONEncoder)
 	outData['fig6Layout'] = json.dumps(layoutOb, cls=py.utils.PlotlyJSONEncoder)
 	outData['mgOIFigsData'] = {mg:json.dumps(figData, cls=py.utils.PlotlyJSONEncoder) for mg,figData in plotOuts.get('mgOIFigs',{}).items()}
@@ -2129,9 +2334,6 @@ def new(modelDir):
 		'modelType': modelName,
 		'feederName1': feeder_file_path[-1][0:-4],
 		'outageDuration': '5',
-		'profit_on_energy_sales': '0.03',
-		'restoration_cost': '100',
-		'hardware_cost': '550',
 		'customerFileName': customerInfo_file_path[-1],
 		'customerData': customerInfo_file_data,
 		'eventFileName': event_file_path[-1],

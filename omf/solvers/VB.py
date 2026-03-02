@@ -107,7 +107,7 @@ class WH(VirtualBattery):
     """ Derived class for specifically Water Heater Virtual Battery. """
     N_wh = 50
 
-    def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number,Tout, water):
+    def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number,Tout, water, random_numbers=None):
         super(WH, self).__init__(theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number)
 
         self.C_wh = self.C*np.ones((self.N_wh, 1))  # thermal capacitance, set in parent class
@@ -117,6 +117,7 @@ class WH(VirtualBattery):
         self.theta_s_wh = self.theta_s*np.ones((self.N_wh, 1)) # temperature setpoint
         self.Tout=Tout
         self.water = water
+        self.random_numbers = random_numbers ## for determining the water draw rate
         # self.N = self.para[6] # number of TCL
 
     def calculate_twat(self,tout_avg,tout_madif):
@@ -176,7 +177,7 @@ class WH(VirtualBattery):
         # with 1 minute time discretization
         T = len(theta_a)
         tou_avg,maxdiff=self.prepare_pare_for_calculate_twat(self.Tout)
-        twat=self.calculate_twat(tou_avg,maxdiff);
+        twat=self.calculate_twat(tou_avg,maxdiff)
         # print twat
         
         # theta_lower is the temperature lower bound
@@ -188,19 +189,27 @@ class WH(VirtualBattery):
         m_water = self.water#np.genfromtxt("Flow_raw_1minute_BPA.csv", delimiter=',')[1:, 1:]
         where_are_NaNs = isnan(m_water)
         m_water[where_are_NaNs] = 0	
-
         m_water = m_water *0.00378541178*1000/h
+        m_water_row, m_water_col = m_water.shape    
 
-        m_water_row, m_water_col = m_water.shape
-        water_draw = np.zeros((m_water_row, int(self.N_wh)))
+        ## Calculate the water draw rate using "Flow_raw_1minute_BPA.csv" file and the use of random numbers
+        water_draw = np.zeros((m_water_row, int(self.N_wh)))    
+        if self.random_numbers is None: ## If no user-provided random numbers .csv file, model-generate them
+            ## Create an array of 3 columns for all the random numbers needed for the water draw matrix
+            ## NOTE: The three types of random numbers below are remnants from how the previous vbatDispatch code was written
+            col_random_number_1 = np.random.randint(m_water_col, size=self.N_wh)
+            col_random_number_2 = np.random.randint(-14, 1, size=self.N_wh)
+            col_random_number_3 = np.random.random(size=self.N_wh)
+            wh_random_numbers = np.column_stack((col_random_number_1, col_random_number_2, col_random_number_3))
+        else: ## Use the user-provided random numbers file
+            wh_random_numbers = np.array(self.random_numbers)
 
+        ## Generate the water draw matrix using the random numbers that were either generated or user-provided
+        random_numbers_1 = wh_random_numbers[:, 0].astype(int)
+        random_numbers_2 = wh_random_numbers[:, 1].astype(int)
+        random_numbers_3 = wh_random_numbers[:, 2].astype(float)
         for i in range(int(self.N_wh)):
-            k = np.random.randint(m_water_col)
-            water_draw[:, i] = np.roll(m_water[:, k], (1, np.random.randint(-14, 1))) + m_water[:, k] * 0.1 * (np.random.random() - 0.5)
-        #            k = m_water_col - 1
-            # print(k)
-            # raise(ArgumentError, "Stop here")
-        #            water_draw[:, i] = m_water[:, k]
+            water_draw[:, i] = (np.roll(m_water[:, random_numbers_1[i]], (1, random_numbers_2[i])) + m_water[:, random_numbers_1[i]] * 0.1 * (random_numbers_3[i] - 0.5))
 
         first = -(
             np.matmul(theta_a, np.ones((1, self.N_wh)))
@@ -280,7 +289,7 @@ class WH(VirtualBattery):
         p_lower_wh = np.mean(p_lower_wh1, axis=1)*float(self.N)/float(self.N_wh)
         # extract hourly data from minute output for energy
         e_ul_wh = e_ul_wh1[59:len(e_ul_wh1):60]*float(self.N)/float(self.N_wh)
-        return p_lower_wh, p_upper_wh, e_ul_wh
+        return p_lower_wh, p_upper_wh, e_ul_wh, wh_random_numbers
 
 # ------------------------STACKED CODE FROM PNNL----------------------------- #
 

@@ -1,3 +1,5 @@
+''' As of January 2026 - nrelsam2013 is removed from the OMF. Please use PySAM'''
+
 ''' Web server exposing HTTP API for GRIP. '''
 import os, traceback, tempfile, platform, zipfile, subprocess, time, shutil, sys, datetime, numbers
 from functools import wraps

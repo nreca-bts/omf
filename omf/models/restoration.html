@@ -80,6 +80,15 @@
 				<input type="text" id="feederName1" name="feederName1" value="{{allInputDataDict.feederName1}}" style="display:none">
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Customer Information (.csv file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
+				<input id="customerFile" type="file" style="display:none" onchange="handle_files(this.files,'customerData','customerFileName')">
+				<input id="customerData" name="customerData" value='{{allInputDataDict.customerData}}' type="hidden">
+				<div>
+					<label for="customerFile" class="fileButton">Choose File</label>
+					<input id="customerFileName" name="customerFileName" value="{{allInputDataDict.customerFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			<div class="shortInput">
 				<label class="tooltip">Event Information (.json file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
 				<input id="eventFile" type="file" style="display:none" onchange="handle_files(this.files,'eventData','eventFileName')">
 				<input id="eventData" name="eventData" value='{{allInputDataDict.eventData}}' type="hidden">
@@ -113,31 +122,6 @@
 					<label for="microgridTaggingFile" class="fileButton">Choose File</label>
 					<input id="microgridTaggingFileName" name="microgridTaggingFileName" value="{{allInputDataDict.microgridTaggingFileName}}" value='' readonly class="uploadFileName">
 				</div>
-			</div>
-			<div class="wideInput">
-				<p class="inputSectionHeader">Outage Cost Parameters</p>
-			</div>
-			<hr>
-			<div class="shortInput">
-				<label class="tooltip">Customer Information (.csv file)<span class="classic">Please see the documentation at the help link for the required format.</span></label>
-				<input id="customerFile" type="file" style="display:none" onchange="handle_files(this.files,'customerData','customerFileName')">
-				<input id="customerData" name="customerData" value='{{allInputDataDict.customerData}}' type="hidden">
-				<div>
-					<label for="customerFile" class="fileButton">Choose File</label>
-					<input id="customerFileName" name="customerFileName" value="{{allInputDataDict.customerFileName}}" value='' readonly class="uploadFileName">
-				</div>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Restoration Cost ($/hr)<span class="classic">Restoration cost parameter for calculating outage costs.</span></label>
-				<input type="text" id="restoration_cost" name="restoration_cost" value="{{allInputDataDict.restoration_cost}}" pattern="^\d+\.?\d*$" required="required">
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Hardware Cost ($)<span class="classic">Hardware cost parameter for calculating outage costs.</span></label>
-				<input type="text" id="hardware_cost" name="hardware_cost" value="{{allInputDataDict.hardware_cost}}" pattern="^\d+\.?\d*$" required="required">
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Energy Sales Margin<span class="classic">Decimal representing the percentage of profit on energy sales.</span></label>
-				<input type="text" id="profit_on_energy_sales" name="profit_on_energy_sales" value="{{allInputDataDict.profit_on_energy_sales}}" pattern="^\d{1,3}(\.\d*?)?$" required="required">
 			</div>
 			<div class="wideInput">
 				<p class="inputSectionHeader">Include Locational Data in Analysis</p>
@@ -224,9 +208,12 @@
 				plotGraph("fig5Chart", allOutputData["fig5Data"], allOutputData["fig5Layout"])
 			</script>
 		</div>
-		<p class="reportTitle" style="page-break-before:always">Utility Outage Cost</p>
-		<div id="utilityOutageCostCalc" class="tightContent">
-			{{ allOutputDataDict['utilityOutageHtml'] }}
+		<p class="reportTitle" style="page-break-before:always">Utility Outage Plot</p>
+		<div id="utilOutFig" class="tightContent">
+			<div id="utilOutFigChart" style="width:1000px"></div>
+			<script type="text/javascript">
+				plotGraph("utilOutFigChart", allOutputData["utilOutFigData"], allOutputData["utilOutFigLayout"])
+			</script>
 		</div>
 		<p class="reportTitle"><label class="tooltip">TAOFI Histogram<span class="classic">Time Average Outage Frequency Index (TAOFI) is calculated as 1/(the average period between the onset of outages in hours) for a given load. A lower TAOFI value indicates more time between outages on average for a load.</span></label></p>
 		<div id="taofiHist" class="tightContent">
