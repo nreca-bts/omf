@@ -12,7 +12,7 @@ from jinja2 import Template
 import dateutil
 from subprocess import Popen
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlsplit
 from werkzeug.utils import secure_filename
 from pathlib import Path
 try:
@@ -181,30 +181,22 @@ def load_user(username):
 
 
 def _is_safe_url(target: str) -> bool:
-	"""Return True if the target URL is a local URL we can safely redirect to.
-
-	Rules:
-	- Allow empty -> treated as '/'
-	- Allow relative paths starting with single '/'
-	- Allow same-origin absolute URLs (scheme http/https, netloc matches request.host)
-	- Disallow protocol-relative ('//example.com'), different host, or control chars.
-	"""
+	''' Return True only for redirects that stay inside this app. '''
 	if not target:
 		return True
-	# Strip surrounding whitespace / control chars
-	target = target.strip()
-	# Reject obvious protocol-relative or backslash escapes
-	if target.startswith('//') or target.startswith('\\'):
+	if not isinstance(target, str):
 		return False
-	# Simple relative path
-	if target.startswith('/'):
+	target = target.strip()
+	if not target:
 		return True
-	# For absolute URLs, ensure same host
-	ref = urlparse(request.host_url)
-	test = urlparse(urljoin(request.host_url, target))
-	if test.scheme in ('http', 'https') and ref.netloc == test.netloc:
-		return True
-	return False
+	if any(ord(ch) < 32 or ord(ch) == 127 for ch in target): # reject URLs with control characters
+		return False
+	if '\\' in target:
+		return False
+	parts = urlsplit(target)
+	if parts.scheme or parts.netloc:
+		return False
+	return target.startswith('/') and not target.startswith('//')
 
 
 def safe_redirect(target: str):
