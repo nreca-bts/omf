@@ -67,6 +67,7 @@
 		<div class='subContainer' id='login'>
 			<p id='loginTitle'>Open Modeling Framework</p>
 			<form id='loginForm' name='loginForm' method='POST' action='login'>
+				<input type='hidden' name='_csrf_token' value='{{ csrf_token() }}' />
 				<input type='hidden' id='next' name='next' value='{{ next }}' />
 				<input type='text' placeholder='Email' name='username' id='username' required autofocus><br/>
 				<input type='password' placeholder='Password' name='password' id='password'><br/>

@@ -375,6 +375,38 @@
         </style>
         <link rel="stylesheet" href="/static/jquery-ui.css">
         <script type="text/javascript" src="/static/jquery.js"></script>
+        <script type="text/javascript">
+            const csrfToken = "{{ csrf_token() }}";
+            function ensureCsrfToken(form) {
+                if (!form) {
+                    return;
+                }
+                const method = String(form.getAttribute('method') || form.method || '').toLowerCase();
+                if (method !== 'post' || !csrfToken) {
+                    return;
+                }
+                let tokenInput = form.querySelector("input[name='_csrf_token']");
+                if (!tokenInput) {
+                    tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_csrf_token';
+                    form.appendChild(tokenInput);
+                }
+                tokenInput.value = csrfToken;
+            }
+            $(function() {
+                $('form').each(function() { ensureCsrfToken(this); });
+                $(document).on('submit', 'form', function() { ensureCsrfToken(this); });
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        const method = String((settings && (settings.type || settings.method)) || 'GET').toUpperCase();
+                        if (!/^(GET|HEAD|OPTIONS|TRACE)$/.test(method) && csrfToken) {
+                            xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                        }
+                    }
+                });
+            });
+        </script>
         <script type="text/javascript" src="/static/jquery-ui.js"></script>
         <script type="text/javascript" src="/static/svg-pan-zoom.js"></script>
         <script type="text/javascript" src="/static/geoJsonMap/v3/lib/chroma.js"></script>

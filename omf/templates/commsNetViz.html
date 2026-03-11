@@ -8,6 +8,19 @@
 	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js" integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg=="
 		crossorigin=""></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script>
+		const csrfToken = "{{ csrf_token() }}";
+		$(function() {
+			$.ajaxSetup({
+				beforeSend: function(xhr, settings) {
+					const method = String((settings && (settings.type || settings.method)) || 'GET').toUpperCase();
+					if (!/^(GET|HEAD|OPTIONS|TRACE)$/.test(method) && csrfToken) {
+						xhr.setRequestHeader('X-CSRFToken', csrfToken);
+					}
+				}
+			});
+		});
+	</script>
 </head>
 	<style>html, body {
 		width: 100%;

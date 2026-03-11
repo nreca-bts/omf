@@ -94,6 +94,28 @@ def _is_same_origin():
 	referer = request.headers.get("Referer", "")
 	return any(referer.startswith(o + "/") for o in ALLOWED_ORIGINS)
 
+
+def _get_request_csrf_token():
+	'''Return a CSRF token supplied via header, form body, or JSON body.'''
+	token = request.headers.get('X-CSRFToken') or request.headers.get('X-CSRF-Token')
+	if token:
+		return token
+	token = request.form.get('_csrf_token')
+	if token:
+		return token
+	if request.is_json:
+		payload = request.get_json(silent=True)
+		if isinstance(payload, dict):
+			return payload.get('_csrf_token')
+	return None
+
+
+def _csrf_failure_response():
+	'''Return a JSON error for AJAX/API requests, otherwise abort with 403.'''
+	if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+		return jsonify(error='CSRF validation failed.'), 403
+	abort(403)
+
 @app.before_request
 def only_same_origin():
 	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
@@ -141,6 +163,32 @@ def csrf_token():
 	return session['_csrf_token']
 
 app.jinja_env.globals['csrf_token'] = csrf_token
+
+
+@app.before_request
+def protect_against_csrf():
+	'''Require a valid CSRF token on all state-changing requests.'''
+	if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+		return
+	expected_token = session.get('_csrf_token')
+	provided_token = _get_request_csrf_token()
+	if not expected_token or not provided_token or not secrets.compare_digest(str(provided_token), str(expected_token)):
+		return _csrf_failure_response()
+
+
+@app.after_request
+def set_csrf_cookie(response):
+	'''Expose the CSRF token to same-origin JavaScript for AJAX/header submission.'''
+	token = csrf_token()
+	response.set_cookie(
+		'_csrf_token',
+		token,
+		samesite='Lax',
+		secure=request.is_secure,
+		httponly=False,
+		path='/'
+	)
+	return response
 
 def _send_email(recipient, subject, message):
 	c = boto3.client('ses', region_name='us-east-1')

@@ -8,6 +8,79 @@ function updateFileNameDisplay(fileInputID, userFileDisplayNameID, dataFileNameI
 	}
 }
 
+function getCsrfToken() {
+	// Read the CSRF token from a same-origin cookie set by the server.
+	if (typeof window !== 'undefined' && window.CSRF_TOKEN) {
+		return window.CSRF_TOKEN
+	}
+	var cookieName = '_csrf_token='
+	var cookies = document.cookie ? document.cookie.split(';') : []
+	for (var i = 0; i < cookies.length; i++) {
+		var cookie = cookies[i].trim()
+		if (cookie.indexOf(cookieName) === 0) {
+			return decodeURIComponent(cookie.substring(cookieName.length))
+		}
+	}
+	return ''
+}
+
+function ensureFormHasCsrfToken(form) {
+	// Ensure normal HTML POST forms submit the CSRF token.
+	if (!form || !form.getAttribute) {
+		return
+	}
+	var method = (form.getAttribute('method') || form.method || '').toLowerCase()
+	if (method !== 'post') {
+		return
+	}
+	var token = getCsrfToken()
+	if (!token) {
+		return
+	}
+	var existingField = form.querySelector("input[name='_csrf_token']")
+	if (!existingField) {
+		existingField = document.createElement('input')
+		existingField.setAttribute('type', 'hidden')
+		existingField.setAttribute('name', '_csrf_token')
+		form.appendChild(existingField)
+	}
+	existingField.setAttribute('value', token)
+}
+
+function initializeCsrfProtection() {
+	// Add CSRF protection to all regular POST forms and jQuery AJAX calls.
+	if (typeof document === 'undefined') {
+		return
+	}
+	Array.prototype.forEach.call(document.getElementsByTagName('form'), ensureFormHasCsrfToken)
+	if (!window.__omfCsrfFormHookRegistered) {
+		document.addEventListener('submit', function(event) {
+			ensureFormHasCsrfToken(event.target)
+		}, true)
+		window.__omfCsrfFormHookRegistered = true
+	}
+	if (window.jQuery && !window.__omfCsrfAjaxSetup) {
+		window.jQuery.ajaxSetup({
+			beforeSend: function(xhr, settings) {
+				var method = String((settings && (settings.type || settings.method)) || 'GET').toUpperCase()
+				if (!/^(GET|HEAD|OPTIONS|TRACE)$/.test(method)) {
+					var token = getCsrfToken()
+					if (token) {
+						xhr.setRequestHeader('X-CSRFToken', token)
+					}
+				}
+			}
+		})
+		window.__omfCsrfAjaxSetup = true
+	}
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', initializeCsrfProtection)
+} else {
+	initializeCsrfProtection()
+}
+
 function handle_files(files, contentsId, nameId) {
 	// Helper function to pull file contents in to an allInputData data structure.
 	// Read the file
@@ -81,6 +154,10 @@ function delimitNumbers(nStr) {
 function post_to_url(path, params, method) {
 	// helper function for cancelModel, deleteModel, shareModel, duplicateModel, createModelName.
 	method = method || 'post' // Set method to post by default, if not specified.
+	params = params || {}
+	if (String(method).toUpperCase() === 'POST' && !params.hasOwnProperty('_csrf_token')) {
+		params._csrf_token = getCsrfToken()
+	}
 	var form = document.createElement('form')
 	form.setAttribute('method', method)
 	form.setAttribute('action', path)
