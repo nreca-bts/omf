@@ -43,7 +43,8 @@ def work(modelDir, inputDict):
 	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_residential_rate_structure.json','input_urdbLabel_responseFile.json',
 				'vbatDispatch_inputs_ac.json', 'vbatDispatch_results_ac.json', 
 				'vbatDispatch_inputs_hp.json', 'vbatDispatch_results_hp.json',
-				'vbatDispatch_inputs_wh.json', 'vbatDispatch_results_wh.json']
+				'vbatDispatch_inputs_wh.json', 'vbatDispatch_results_wh.json',
+				'PuLP_random_seeds.csv']
 	for FileName in inputFileNames:
 		try:
 			os.remove(pJoin(modelDir, FileName))
@@ -346,14 +347,14 @@ def work(modelDir, inputDict):
 		'temperatureCurve': '\n'.join(f'{temp:.2f}' for temp in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f'{rate:.2f}' for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 		'set_random_numbers': inputDict['set_random_numbers'],
-		'random_seed_PuLP': inputDict['random_seed_PuLP'],
+		#'random_seed_PuLP': inputDict['random_seed_PuLP'],
 		'randomNumbersFileName': inputDict['randomNumbersFileName'],
 		'randomNumbers': inputDict['randomNumbers'],
 	}
 	
 	## Define thermal variables that change depending on the thermal technology(ies) enabled by the user
-	thermal_suffixes = ['_hp', '_ac', '_wh'] ## heat pump, air conditioner, water heater - (Add more suffixes here after establishing inputs in the defaultInputs and derUtilityCost.html)
-	thermal_variables=['load_type','power','capacitance','resistance','cop','setpoint','deadband','TESS_subsidy_ongoing','TESS_subsidy_onetime','unitDeviceCost','unitUpkeepCost']
+	thermal_suffixes = ['_ac', '_hp', '_wh'] ## heat pump, air conditioner, water heater - (Add more suffixes here after establishing inputs in the defaultInputs and derUtilityCost.html)
+	thermal_variables=['load_type','power','capacitance','resistance','cop','setpoint','deadband','TESS_subsidy_ongoing','TESS_subsidy_onetime','unitDeviceCost','unitUpkeepCost','random_seed_PuLP']
 
 	all_device_suffixes = []
 	single_device_results = {} 
@@ -386,6 +387,16 @@ def work(modelDir, inputDict):
 			with open(pJoin(modelDir, 'vbatDispatch_results'+suffix+'.json'), 'w') as jsonFile:
 				json.dump(vbatResults, jsonFile)
 			
+			## Save the PuLP random seed to the ouput file
+			if suffix == '_hp':
+				tech_name = 'Heat Pump'
+			if suffix == '_wh':
+				tech_name = 'Water Heater'
+			if suffix == '_ac':
+				tech_name = 'Air Conditioner'
+			with open(pJoin(modelDir, 'PuLP_random_seeds.csv'), 'a') as f:
+				f.write(tech_name + ': ' + str(vbatResults['random_seed_PuLP'] + '\n'))
+
 			## Store the results in all_device_results dictionary
 			single_device_results['vbatResults'+suffix] = vbatResults
 
@@ -1313,12 +1324,20 @@ def new(modelDir):
 		random_numbers = f.read()
 
 	defaultInputs = {
-		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
+		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings?
 
 		## OMF inputs:
 		'user' : 'admin',
 		'modelType': modelName,
 		'created': str(datetime.datetime.now()),
+
+		## General Model Inputs:
+		'set_random_numbers': 'Yes',
+		'randomNumbersFileName': 'water_heater_random_numbers.csv',
+		'randomNumbers': random_numbers,
+		'random_seed_PuLP_ac': '8713811505', #max=10000000000
+		'random_seed_PuLP_hp': '138882212', #max=10000000000
+		'random_seed_PuLP_wh': '1152741934', #max=10000000000
 
 		## REopt inputs:
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
@@ -1404,10 +1423,6 @@ def new(modelDir):
 
 		## Home Water Heater inputs (vbatDispatch):
 		'load_type_wh': '4',
-		'set_random_numbers': 'Yes',
-		'randomNumbersFileName': 'water_heater_random_numbers.csv',
-		'randomNumbers': random_numbers,
-		'random_seed_PuLP': '1000000',
 		'unitDeviceCost_wh': '175',
 		'unitUpkeepCost_wh': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_wh': '4.5',

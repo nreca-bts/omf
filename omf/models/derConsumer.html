@@ -126,8 +126,16 @@
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">PuLP Random Seed<span class="classic">A deterministic random seed number for the PuLP optimizer used by all thermal technologies (WH, HP, AC). Must be a positive integer between 0 and 1000000. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_PuLP" name="random_seed_PuLP" value="{{allInputDataDict.random_seed_PuLP}}" pattern="^\d+\.?\d*?$" required="required">
+				<label class="tooltip">PuLP Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A file with random numbers that will help determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save a water_heater_random_numbers.csv file in the ouput files, which the user can re-upload here. Please see the documentation at the help link for the required format and example file.</span></label>
@@ -668,12 +676,12 @@
 						//{"name":"Water Heater Savings", "data": allOutputData.vbatResults_wh_savings_allyears, "color": "rgb(16,101,171)"},
 						//{"name":"Heat Pump Savings", "data": allOutputData.vbatResults_hp_savings_allyears, "color": "rgb(58,147,195)"},
 						//{"name":"Air Conditioner Savings", "data": allOutputData.vbatResults_ac_savings_allyears, "color": "rgb(142,196,222)"},
-						{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 						{"name":"Water Heater Peak Demand Savings","data":allOutputData.vbatResults_wh_peakDemand_savings_allyears, "color": "rgba(16,101,171,0.5)"},
-						{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
+						{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 						{"name":"Heat Pump Peak Demand Savings","data":allOutputData.vbatResults_hp_peakDemand_savings_allyears, "color": "rgba(58,147,195,0.5)"},
-						{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
+						{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
 						{"name":"Air Conditioner Peak Demand Savings","data":allOutputData.vbatResults_ac_peakDemand_savings_allyears,"color":"rgba(142,196,222,0.5)"},
+						{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
 						{"name":"Water Heater Costs", "data": allOutputData.costs_allyears_wh, "color": "rgb(179,21,41)"},
 						{"name":"Heat Pump Costs", "data": allOutputData.costs_allyears_hp, "color": "rgb(215,95,76)"},
 						{"name":"Air Conditioner Costs", "data": allOutputData.costs_allyears_ac, "color": "rgb(246,164,130)"},
