@@ -1,6 +1,6 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal
+import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
@@ -134,6 +134,13 @@ login_manager.init_app(app)
 login_manager.login_view = "login_page"
 app.secret_key = cryptoRandomString()
 
+def csrf_token():
+	'''Return the current session CSRF token, creating it if needed.'''
+	if '_csrf_token' not in session:
+		session['_csrf_token'] = secrets.token_urlsafe(32)
+	return session['_csrf_token']
+
+app.jinja_env.globals['csrf_token'] = csrf_token
 
 def _send_email(recipient, subject, message):
 	c = boto3.client('ses', region_name='us-east-1')
