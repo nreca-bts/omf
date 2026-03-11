@@ -986,7 +986,7 @@ def rawImport(owner):
 		conFile.write("WORKING")
 	networkName = str(request.form.get('networkNameR', 'network1'))
 	networkNum = request.form.get("networkNum", 1)
-	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, networkName + '.raw')
+	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'import.raw')
 	request.files['rawFile'].save(network_filepath)
 	importProc = Process(target=rawImportBackground, args=[owner, modelName, networkName, networkNum])
 	importProc.start()
@@ -996,7 +996,7 @@ def rawImportBackground(owner, modelName, networkName, networkNum):
 	''' Function to run in the background for Raw import. '''
 	try:
 		network_filepath, model_dir, pid_filepath = [
-			os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in [networkName + '.raw', '', 'ZPID.txt']
+			os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ['import.raw', '', 'ZPID.txt']
 		]
 		newNet = transmission.parseRaw(network_filepath, filePath=True)
 		transmission.layout(newNet)
@@ -1016,7 +1016,6 @@ def rawImportBackground(owner, modelName, networkName, networkNum):
 			errorFile.write('octaveError')
 	finally:
 		os.remove(pid_filepath)
-
 
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
 @flask_login.login_required
