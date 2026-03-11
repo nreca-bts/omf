@@ -65,7 +65,7 @@ def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 		PuLP_random_seed = inputDict['random_seed_PuLP']
 	else: 
 		## Generate the random seed value
-		PuLP_random_seed = str(np.random.randint(0,1000000))
+		PuLP_random_seed = str(np.random.randint(0,10000000000))
 
 	cbc_solver = pulp.PULP_CBC_CMD(keepFiles=False,
 				msg=True,
@@ -257,7 +257,7 @@ def new(modelDir):
 		'monthlyDemandChargesFileName': 'utility_monthly_demand_charges.csv',
 		'monthlyDemandCharges': monthly_demand_charges,
 		'set_random_numbers': 'No',
-		'random_seed_PuLP': '1000000',
+		'random_seed_PuLP': '10000000000',
 		'randomNumbersFileName': 'water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
 	}
