@@ -1326,19 +1326,6 @@ def new(modelDir):
 	#	energy_rates_per_kwh = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','water_heater_random_numbers.csv')) as f:
 		random_numbers = f.read()
-	"""
-
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/scaledDown_by_81545meters_8760_Flathead-SystemDemand_kw_1Jan2024-31Dec2024.csv') as f:
-		demand_curve = f.read()
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/8760_Flathead_Temperature_degF_1Jan2024-31Dec2024.csv') as f:
-		temperature_curve = f.read()
-	#with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/Flathead-residential_energy-demand_tariff.json') as jsonFile:
-	#	residential_rate_curve = json.load(jsonFile)
-	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/newFINAL_water_heater_random_numbers.csv') as f:
-		random_numbers = f.read()
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
-		residential_rate_curve = json.load(jsonFile)
-	"""
 
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings?
@@ -1349,7 +1336,7 @@ def new(modelDir):
 		'created': str(datetime.datetime.now()),
 
 		## General Model Inputs:
-		'set_random_numbers': 'Yes',
+		'set_random_numbers': 'No',
 		'randomNumbersFileName': 'water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
 		'random_seed_PuLP_ac': '9116648159', #max=10000000000
