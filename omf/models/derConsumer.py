@@ -143,15 +143,18 @@ def work(modelDir, inputDict):
 	else: ## If the Residential Response File (.json) is chosen and provided, use the user-provided .json response file instead
 		try:
 			## Try to normally parse the JSON file
-			response_file = json.loads(inputDict['residentialRateStructureFile'])
+			response_file = json.loads(inputDict['residentialRateStructure'])
 		except json.JSONDecodeError:
 			## Convert single quotes to double quotes for proper JSON formatting
-			fixed = inputDict['residentialRateStructureFile'].replace("'", '"')
-			response_file = json.loads(fixed)
+			try:
+				fixed = inputDict['residentialRateStructure'].replace("'", '"')
+				response_file = json.loads(fixed)
+			except json.JSONDecodeError:
+				raise Exception('Try re-uploading the JSON file and running the model again.')
 		except TypeError:
-			## Use the residential_rate_curve if it is already a Python dictionary
-			if isinstance(inputDict['residentialRateStructureFile'], dict):
-				response_file = inputDict['residentialRateStructureFile']
+			## Use the residential_rate_structure if it is already a Python dictionary
+			if isinstance(inputDict['residentialRateStructure'], dict):
+				response_file = inputDict['residentialRateStructure']
 
 		## Save response file to modelDir
 		with open(pJoin(modelDir, 'input_residential_rate_structure.json'), 'w') as jsonFile:
@@ -238,7 +241,7 @@ def work(modelDir, inputDict):
 	if inputDict.get('urdbLabelBool'):
 		scenario['ElectricTariff']['urdb_label'] = inputDict['urdbLabel']
 	else:
-		scenario['ElectricTariff']['urdb_response'] = response_file #inputDict['residentialRateStructureFile']
+		scenario['ElectricTariff']['urdb_response'] = response_file #inputDict['residentialRateStructure']
 
 	## Add a Battery Energy Storage System (BESS) section if enabled 
 	if inputDict['enableBESS'] == 'Yes':
@@ -1310,18 +1313,32 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	
+
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load_tenX.csv')) as f:
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
-		residential_rate_curve = json.load(jsonFile)
+		residential_rate_structure = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
 	#	residential_rate_curve = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','TOU_rate_schedule.csv')) as f:
 	#	energy_rates_per_kwh = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','water_heater_random_numbers.csv')) as f:
 		random_numbers = f.read()
+	"""
+
+	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/scaledDown_by_81545meters_8760_Flathead-SystemDemand_kw_1Jan2024-31Dec2024.csv') as f:
+		demand_curve = f.read()
+	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/8760_Flathead_Temperature_degF_1Jan2024-31Dec2024.csv') as f:
+		temperature_curve = f.read()
+	#with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/Flathead-residential_energy-demand_tariff.json') as jsonFile:
+	#	residential_rate_curve = json.load(jsonFile)
+	with open('/Users/astronobri/Documents/CIDER/FLATHEAD_RUNS/derConsumer/newFINAL_water_heater_random_numbers.csv') as f:
+		random_numbers = f.read()
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
+		residential_rate_curve = json.load(jsonFile)
+	"""
 
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings?
@@ -1335,11 +1352,12 @@ def new(modelDir):
 		'set_random_numbers': 'Yes',
 		'randomNumbersFileName': 'water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
-		'random_seed_PuLP_ac': '8713811505', #max=10000000000
-		'random_seed_PuLP_hp': '138882212', #max=10000000000
-		'random_seed_PuLP_wh': '1152741934', #max=10000000000
+		'random_seed_PuLP_ac': '9116648159', #max=10000000000
+		'random_seed_PuLP_hp': '3507489931', #max=10000000000
+		'random_seed_PuLP_wh': '5538962301', #max=10000000000
 
 		## REopt inputs:
+
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
 		'urdbLabel': '66a13566e90ecdb7d40581d2', ## Brighton, CO Residential Time of Day residential rate https://apps.openei.org/USURDB/rate/view/66a13566e90ecdb7d40581d2#3__Energy
@@ -1352,24 +1370,22 @@ def new(modelDir):
 		'temperatureCurve': temperature_curve,
 		'urdbLabelBool': False,
 		'residentialRateStructureFileName': 'example_residential_tariff.json',
-		'residentialRateStructureFile': residential_rate_curve,
+		'residentialRateStructure': residential_rate_structure,
 
 		## Financial Inputs
 		'projectionLength': '25',
 		'discountRate': '1',
-		'rateCompensation': '0.02', ## unit: $/kWh
-		'subsidyUpfront': '50',
-		'subsidyOngoing': '10',
-		'BESS_subsidy_onetime': '100.0',
-		'BESS_subsidy_ongoing': '55.0',
-		'TESS_subsidy_onetime_ac': '25.0',
-		'TESS_subsidy_ongoing_ac': '5.0',
-		'TESS_subsidy_onetime_hp': '25.0',
-		'TESS_subsidy_ongoing_hp': '5.0',
-		'TESS_subsidy_onetime_wh': '25.0',
-		'TESS_subsidy_ongoing_wh': '5.0',
-		'GEN_subsidy_onetime': '25.0',
-		'GEN_subsidy_ongoing': '5.0',
+		#'rateCompensation': '0.02', ## unit: $/kWh
+		'BESS_subsidy_onetime': '0',
+		'BESS_subsidy_ongoing': '7.86',
+		'TESS_subsidy_onetime_ac': '0',
+		'TESS_subsidy_ongoing_ac': '1.06',
+		'TESS_subsidy_onetime_hp': '0',
+		'TESS_subsidy_ongoing_hp': '0.53',
+		'TESS_subsidy_onetime_wh': '0',
+		'TESS_subsidy_ongoing_wh': '2.60',
+		'GEN_subsidy_onetime': '0',
+		'GEN_subsidy_ongoing': '0',
 
 		## Chemical Battery Inputs
 		## Modeled after residential Tesla Powerwall 3 battery specs
@@ -1389,7 +1405,7 @@ def new(modelDir):
 
 		## Fossil Fuel Generator
 		## NOTE: Generac Guardian models range from 10-26 kW
-		'fossilGenerator': 'Yes',
+		'fossilGenerator': 'No',
 		'fuel_type': '3', 
 		'existing_gen_kw': '5',
 		'thermal_efficiency': '35',

@@ -162,8 +162,8 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">(Optional) Residential Rate Structure (.json file)<span class="classic">Please see the documentation at the help link for the required format and an example residential rate structure.</span></label>
-				<input id="residentialRateStructureFile" type="file" style="display:none" onchange="handle_files(this.files,'residentialRateStructureFile','residentialRateStructureFileName')">
-				<input id="residentialRateStructureFile" name="residentialRateStructureFile" value="{{allInputDataDict.residentialRateStructureFile}}" type="hidden">
+				<input id="residentialRateStructureFile" type="file" style="display:none" onchange="handle_files(this.files,'residentialRateStructure','residentialRateStructureFileName')">
+				<input id="residentialRateStructure" name="residentialRateStructure" value="{{allInputDataDict.residentialRateStructure}}" type="hidden">
 				<div>
 					<label for="residentialRateStructureFile" class="fileButton">Choose File</label>
 					<input id="residentialRateStructureFileName" name="residentialRateStructureFileName" value="{{allInputDataDict.residentialRateStructureFileName}}" value='' readonly class="uploadFileName">
