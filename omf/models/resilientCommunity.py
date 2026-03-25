@@ -282,15 +282,15 @@ def getDistribution():
 def testRunCalculations():
 	pathToOmd = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity/ieee37_LBL_simplified.omd"
 	modelDir = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity"
+	feederName = "ieee37_LBL_simplified"
 	custInfoPath = pJoin(omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv')
 	avgPeakDemand = 1
-	avgNumOccupants = 4
 	equipmentList = ['lines', 'transformers', 'fuses']
 	oipInputDict = {'oip_poverty':1, 'oip_employed':1, 'oip_income':1}
 	oipAggMethod = 'Average of Min-Max-Normalized'
-	runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccupants, equipmentList, oipInputDict, oipAggMethod)
+	runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, equipmentList, oipInputDict, oipAggMethod, feederName)
 
-def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccupants, equipmentList, oipInputDict, oipAggMethod):
+def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, equipmentList, oipInputDict, oipAggMethod, feederName):
 	'''
 	Runs computations on circuit for different loads and equipment.
 	Creates a CSV called resilientCommunityOutput.csv in the modelDir
@@ -320,12 +320,12 @@ def runCalculations(modelDir, pathToOmd, custInfoPath, avgPeakDemand, avgNumOccu
 	# create loadDicts
 	custInfoDF = pd.read_csv(custInfoPath)
 	restrictToResidential = useOipCustVars(oipInputDict)
-	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, avgPeakDemand, avgNumOccupants)
+	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential)
 	# create blockgroupDicts with Outage Impact Metric (OIP) for each blockgroup and provide messages about what variables had to be removed from the analysis
-	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict)
+	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict, feederName)
 	addOipToBlockgroups(blockgroupDict, oipInputDict, oipAggMethod)
 	# Add blockgroup info to loads and process it into new metrics in loadDict
-	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict)
+	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict, avgPeakDemand)
 	# Create equipmentDict with equipment metrics based on downline load metrics
 	equipmentDict = makeEquipmentDict(pathToOmd, omd, sectionsDict, loadDict, equipmentList)
 
@@ -613,12 +613,12 @@ def getPowerMeasures(ob):
 		raise Exception(f'Load {ob["name"]} does not have necessary information to calculate kw, kva, and kvar')
 	return kw, kvar, kva
 
-def makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, avgPeakDemand, avgNumOccupants):
+def makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential):
 	''' Constructs and returns loadDict and loadCoordsDict.
 		loadCoordsDict is a seprate dict because we don't want to carry coords along into places where loadDict is used later.
 
 		When returned, loadDict contains loads as keys and dictionaries as values for each load recorded with the following keys:
-		'kva', 'base crit score', 'distance_from_source', 'section'
+		'kva', 'distance_from_source', 'section'
 
 		When returned, loadCoordsDict contains loads as keys and dictionaries as values for each load recorded with the following keys:
 		'long', 'lat'
@@ -633,7 +633,6 @@ def makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResiden
 			loadDict[obKey] = {}
 			kw, kvar, kva = getPowerMeasures(ob)
 			loadDict[obKey]['kva'] = kva
-			loadDict[obKey]['base crit score'] = (kva / float(avgPeakDemand)) * float(avgNumOccupants)
 			loadDict[obKey]['distance_from_source'] = int(distanceDict.get(obName, 0))
 			loadDict[obKey]['section'] = sectionsDict.get(obName)
 			loadCoordsDict[obKey] = {
@@ -795,7 +794,7 @@ def buildBlockgroup(blockgroupFIPS):
 	#Socioeconomic, household composition, housing /transportation variables
 	pdb_vars = ['pct_Prs_Blw_Pov_Lev_ACS_16_20', 'avg_Agg_HH_INC_ACS_16_20','pct_Not_HS_Grad_ACS_16_20',
 				'Pop_65plus_ACS_16_20', 'Tot_Population_ACS_16_20',
-				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20', 'LAND_AREA']
+				'pct_MLT_U10p_ACS_16_20', 'pct_Mobile_Homes_ACS_16_20', 'pct_Crowd_Occp_U_ACS_16_20', 'ENG_VW_ACS_16_20', 'Tot_Occp_Units_ACS_16_20', 'LAND_AREA', 'avg_Tot_Prns_in_HHD_ACS_16_20']
 	# household composition / disability variables
 	acs_vars = ['B23008_021E', 'B23008_008E', 'B23008_001E',
 				'B08014_002E','B01001_001E']
@@ -848,7 +847,9 @@ def buildBlockgroup(blockgroupFIPS):
 		'oip_crowding': accountForNa(float, pdbDict['pct_Crowd_Occp_U_ACS_16_20']),
 		'oip_no_vehicle': accountForNa(lambda x,y: float(x)/float(y), acsDict['B08014_002E'], acsDict['B01001_001E']),
 		# Land Area in sq.mi. Not used for OIP but needed later for weather data calculations. Deleted after use before OIP calculation. 
-		'LAND_AREA': 	accountForNa(float, pdbDict['LAND_AREA'])
+		'LAND_AREA': 	accountForNa(float, pdbDict['LAND_AREA']),
+		# Average numer of occupants per household. Not used for OIP but needed later for calculating BCS
+		'avg_hh_occupants': accountForNa(float, pdbDict['avg_Tot_Prns_in_HHD_ACS_16_20'])
 	}
 	
 	# Define the base URL for the TIGERweb REST Services
@@ -903,25 +904,37 @@ def addWeatherToBlockgroups(blockgroupDict):
 			weatherCode = wt.replace('_AFREQ','').lower()
 			blockgroupDict[bg][f'oip_af_{weatherCode}'] = weatherData
 
-def makeBlockgroupDicts(modelDir, loadCoordsDict):
+def makeBlockgroupDicts(modelDir, loadCoordsDict, feederName):
 	''' Constructs and returns blockgroupDict and loads2BgDict.
 
 		When returned, blockgroupDict contains blockgroups as keys and dictionaries as values for each blockgroup recorded with the following keys:
 		'oip_poverty', 'oip_employed', 'oip_income', 'oip_nongrad', 'oip_age65', 'oip_below19', 'oip_disabled', 'oip_lim_eng', 'oip_multi', 'oip_mobile', 'oip_crowding',
 		'oip_no_vehicle', 'blockgroupFIPS', 'geometry', 'oip_af_avln', 'oip_af_cwav', 'oip_af_drgt', 'oip_af_erqk', 'oip_af_hail', 'oip_af_hwav', 'oip_af_hrcn', 
-		'oip_af_istm', 'oip_af_lnds', 'oip_af_ltng', 'oip_af_swnd', 'oip_af_wfir', 'oip_af_wntw'
+		'oip_af_istm', 'oip_af_lnds', 'oip_af_ltng', 'oip_af_swnd', 'oip_af_wfir', 'oip_af_wntw', 'avg_hh_occupants'
 
 		When returned, loads2BgDict contains loadKeys (e.g. load.s733) as keys and blockgroups as values.
+
+		Saves and loads blockgroupDict to/from a json file in modelDir to avoid redundant web calls across multiple runs. 
+		Does not load if feederName has changed between runs to avoid cross-feeder contamination when new feeder is used.
 
 	'''
 	blockgroupDict = {}
 	loads2BgDict = {}
-	
-	# Load blockgroupDict
+	# desired keys is all the non-weather keys that normally get pulled from the web.
+	desiredKeys = [	'oip_poverty', 'oip_employed', 'oip_income', 'oip_nongrad', 'oip_age65', 'oip_below19', 'oip_disabled', 'oip_lim_eng', 'oip_multi', 'oip_mobile', 
+					'oip_crowding','oip_no_vehicle', 'blockgroupFIPS', 'geometry', 'avg_hh_occupants']
+
+	# Load blockgroupDict (if the feederName hasn't changed since last run and if it has all the desired keys for each blockgroup)
 	blockgroupDictFilePath = pJoin(modelDir, 'blockgroupDictData.json')
 	if isfile(blockgroupDictFilePath):
 		with open(blockgroupDictFilePath, 'r') as f:
-			blockgroupDict = json.load(f)
+			bgAndFeederNameDict = json.load(f)
+		prevBgDict = bgAndFeederNameDict.get('blockgroupDict',{})
+		hasDesKeys = lambda inDict: all(key in inDict for key in desiredKeys)
+		desKeysInAllBg = all(hasDesKeys(bgProps) for bgProps in prevBgDict.values())
+		prevFeederName = bgAndFeederNameDict.get('feederName')
+		if feederName == prevFeederName and desKeysInAllBg:
+			blockgroupDict = prevBgDict
 	# Build blockgroup entries that aren't already populated
 	webDataUpdated = False
 	for loadKey, coordsDict in loadCoordsDict.items():
@@ -939,7 +952,11 @@ def makeBlockgroupDicts(modelDir, loadCoordsDict):
 	# Save blockgroupDict if web-sourced contents were updated
 	if webDataUpdated:
 		with open(blockgroupDictFilePath, 'w') as f:
-			json.dump(blockgroupDict, f)
+			bgAndFeederNameDict = {
+				'feederName': feederName,
+				'blockgroupDict': blockgroupDict
+			}
+			json.dump(bgAndFeederNameDict, f)
 	# Add weather data to blockgroupDict. Done here rather than in the loop because it loads and unloads a big file and we only want to do that once per run. 
 	addWeatherToBlockgroups(blockgroupDict)
 	return blockgroupDict, loads2BgDict
@@ -1110,20 +1127,29 @@ def addPctlToDict(inDict, varName, tieBreaker = None):
 			raise ValueError(f"Invalid load format for key '{k}'. Expected a dictionary.")
 		inDict[k][newVarName] = rankingDf.loc[i, 'pct_rank']
 
-def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict):
-	''' Add blockgroup, OIP Score, and OIP Index to loadDict for each load in each blockgroup, then calculate 'locational crit score', 
-		based on information about the load ('base crit score') and information about its blockgroup ('OIP Score').
+def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict, avgPeakDemand):
+	''' Add blockgroup, OIP Score, and OIP Index to loadDict for each load in each blockgroup.
+		Calculate 'base crit score' based on load kva, feeder avgPeakDemand, and blockgroup avgNumOccupants.
+		Calculate 'locational crit score' based on 'base crit score' and OIP Score.
 		Then calculate base crit index (bci) and locational crit index (lci)  and add them to loadDict. 
 	'''
-	# Add blockgroup values to loads and calculate locational crit score based on them
+	# Add blockgroup values to loads and calculate base and locational crit scores based on blockgroup values
 	for loadKey, loadData in loadDict.items():
 		blockgroup = loads2BgDict[loadKey]
-		oipScore = blockgroupDict[blockgroup]['OIP Score']
-		oipIndex = blockgroupDict[blockgroup]['OIP Index']
 		loadData['blockgroup'] = blockgroup
+		
+		avgNumOccupants = blockgroupDict[blockgroup]['avg_hh_occupants']
+		avgPeakDemand	= float(avgPeakDemand)
+		kva 			= loadData['kva']
+		BCS				= (kva / avgPeakDemand) * avgNumOccupants
+		loadData['base crit score'] = BCS
+		
+		oipScore 	= blockgroupDict[blockgroup]['OIP Score']
+		oipIndex 	= blockgroupDict[blockgroup]['OIP Index']
+		LCS			= BCS * oipScore
 		loadData['oip score'] = oipScore
 		loadData['oip index'] = oipIndex
-		loadData['locational crit score'] = loadData['base crit score'] * oipScore
+		loadData['locational crit score'] = LCS
 	addPctlToDict(loadDict, 'base crit score', 'distance_from_source')
 	addPctlToDict(loadDict, 'locational crit score', 'distance_from_source')
 
@@ -1159,6 +1185,7 @@ def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
 		('avg_LCS','Avg LCS'),
 		('avg_BCI','Avg BCI'),
 		('avg_LCI','Avg LCI'),
+		('avg_hh_occupants', 'Avg Household Occupants'),
 		('load_count','Load Count'),
 		('load_amount','Demand (kva)'),
 		('blockgroupFIPS','Blockgroup FIPS'),
@@ -1345,6 +1372,7 @@ def createColorCSVBlockGroup(modelDir, loadsDict, objectsDict):
 	newobjectsDict = {k.split('.')[1]:v for k,v in objectsDict.items()}
 	combined_dict = {**newloadsDict, **newobjectsDict}
 	new_df = pd.DataFrame.from_dict(combined_dict, orient='index')
+	new_df = new_df.fillna(-1)
 	new_df[['base crit score','locational crit score','base crit index','locational crit index','section']].to_csv(pJoin(modelDir, 'color_by.csv'), index=True)
 
 def copyInputFilesToModelDir(modelDir, inputDict):
@@ -1406,12 +1434,12 @@ def work(modelDir, inputDict):
 	# Create loadDict
 	custInfoDF = pd.read_csv(custInfoPath)
 	restrictToResidential = useOipCustVars(oipInputDict)
-	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential, inputDict['averageDemand'], inputDict['averageOccupants'])
+	loadDict, loadCoordsDict = makeLoadDicts(omd, sectionsDict, distanceDict, custInfoDF, restrictToResidential)
 	# Create blockgroupDict
-	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict)
+	blockgroupDict, loads2BgDict = makeBlockgroupDicts(modelDir, loadCoordsDict, feederName)
 	outData['rmMsgs'] = addOipToBlockgroups(blockgroupDict, oipInputDict, inputDict['oipAggMethod'])
 	# Add bg info to loads
-	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict)
+	addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict, inputDict['averageDemand'])
 	with open(pJoin(modelDir,'loadData4RestorationModel.json'), 'w') as f:
 		json.dump(loadDict,f,indent=4)
 	# Create DFs for model outputs
@@ -1524,12 +1552,13 @@ def work(modelDir, inputDict):
 	return outData
 
 def new(modelDir):
-	omdfileName = 'iowa240_in_Florida_copy2'
+	#omdfileName = 'iowa240_in_Florida_copy2'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	#omdfileName = 'ieee37_LBL_simplified'
-	
+	omdfileName = 'iowa240_in_Florida_copy2_no_show_voltage.dss'
+
 	# Establish Default Files
-	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads ORIGINAL.csv']
+	customerFileName = 	[omf.omfDir,'static','testFiles','resilientCommunity','restorationLoads.csv']
 	customerData = open(pJoin(*customerFileName)).read()
 	equipLifeFileName = [omf.omfDir,'static','testFiles','resilientCommunity','equipLifeExample.csv']
 	equipLifeData = open(pJoin(*equipLifeFileName)).read()
@@ -1542,7 +1571,6 @@ def new(modelDir):
 		"equipLifeFileName": equipLifeFileName[-1],
 		"equipLifeData": equipLifeData,
 		"averageDemand": 2.0,
-		"averageOccupants": 4.0,
 		"lines":'Yes',
 		"transformers":'Yes',
 		"fuses":'Yes',
@@ -1584,7 +1612,8 @@ def new(modelDir):
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	try:
 		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "publicFeeders", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
-		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
+		#shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles","resilientCommunity", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
+		shutil.copyfile(pJoin(__neoMetaModel__._omfDir, "static", "testFiles", defaultInputs["feederName1"]+'.omd'), pJoin(modelDir, defaultInputs["feederName1"]+'.omd'))
 		shutil.copyfile(pJoin(*customerFileName), pJoin(modelDir, defaultInputs["customerFileName"]))
 		shutil.copyfile(pJoin(*equipLifeFileName), pJoin(modelDir, defaultInputs["equipLifeFileName"]))
 	except:

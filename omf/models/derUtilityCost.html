@@ -15,7 +15,6 @@
 		$(window).on('pageshow',function(){
 			plotGraph('newDemandData', allOutputData['newDemandData'], allOutputData['newDemandLayout'] );
 			plotGraph('derOverviewData', allOutputData['derOverviewData'], allOutputData['derOverviewLayout'] );
-			plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 		});
 	</script>
 
@@ -38,12 +37,14 @@
 	{% if allOutputDataDict.thermalDataCheck == 0 %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 				$("#thermalBatPowerPlot").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 			});
 		</script>
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
 				plotGraph( 'thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout'] );
 			});
 		</script>
@@ -120,6 +121,35 @@
 				<label class="tooltip">Year<span class="classic">Specify the year that corresponds with the Demand Curve.</span></label>
 				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^\d{4}$" required="required"/>
 			</div>
+			<div class="shortInput">
+				<label class="tooltip">Use the user-provided random numbers?<span class="classic">If 'Yes' model will use all user-provided random numbers including the PuLP Random Seed and the Random Numbers for Water Heater (.csv) file. If 'No' the model will generate all numbers needed and save them in the model outputs. Please see the documentation at the help link for more information.</span></label>
+				<select id="set_random_numbers" name="set_random_numbers" value="{{allInputDataDict.set_random_numbers}}">
+					<option value='Yes' {{ 'selected' if allInputDataDict.set_random_numbers == 'Yes' }}>Yes</option>
+					<option value='No' {{ 'selected' if allInputDataDict.set_random_numbers == 'No' }}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A file with random numbers that will help determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save a water_heater_random_numbers.csv file in the ouput files, which the user can re-upload here. Please see the documentation at the help link for the required format and example file.</span></label>
+				<input id="randomNumbersFile" type="file" style="display:none" onchange="handle_files(this.files,'randomNumbers','randomNumbersFileName')">
+				<input id="randomNumbers" name="randomNumbers" value="{{allInputDataDict.randomNumbers}}" type="hidden">
+				<div>
+					<label for="randomNumbersFile" class="fileButton">Choose File</label>
+					<input id="randomNumbersFileName" name="randomNumbersFileName" value="{{allInputDataDict.randomNumbersFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+
 			<!-- Financial Inputs -->
 			<div class="wideInput">
 				<p class="inputSectionHeader">Financial Inputs</p>
@@ -160,10 +190,12 @@
 				<label class="tooltip">Financial Projection Length (years)<span class="classic">Number of years to project out estimated savings. Must be between 1 and 75 years.</span></label>
 				<input type="text" id="projectionLength" name="projectionLength" value="{{allInputDataDict.projectionLength}}" step="1" min="1" max="75" required="required">
 			</div>
+			<!-- 
 			<div class="shortInput">
 				<label class="tooltip">Energy Compensation Rate ($/kWh)<span class="classic">The dollar amount per kWh compensated to the member-consumer.</span></label>
 				<input type="text" id="rateCompensation" name="rateCompensation" value="{{allInputDataDict.rateCompensation}}" pattern="^\d+\.?\d*?$" min="0" required="required"/>
 			</div>
+			-->
 			<div class="shortInput">
 				<label class="tooltip">Discount Rate (%)<span class="classic">Discount rate used in financial analysis.</span></label>
 				<input type="text" id="discountRate" name="discountRate" value="{{allInputDataDict.discountRate}}" pattern="[1-9][0-9]{0,2}" required="required">
@@ -305,7 +337,6 @@
 				<label class="tooltip">Home Battery Energy Capacity (kWh)<span class="classic">Specify the home chemical battery energy capacity in kWh for each individual battery enrolled by a member-consumer.</span></label>
 				<input type="text" id="BESS_kwh" name="BESS_kwh" value="{{allInputDataDict.BESS_kwh}}" required="required"/>
 			</div>
-
 			<!-- Air Conditioner (vbatDispatch) Inputs -->
 			<div class="wideInput"> 
 				<p class="inputSectionHeader">Home Air Conditioner Device Inputs</p>
@@ -446,7 +477,18 @@
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
 		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
-		<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% if allOutputDataDict.thermalDataCheck == 0 %}
+			<div id="ThermalDEROverviewData" class="tightContent"></div>
+			<script type="text/javascript">    
+				$(window).on('pageshow', function(){
+					$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
+				});
+			</script>
+		{% else %}
+			<div class="tightContent" style="width: 1000px; height: 25px;"> 
+				Note: Any BESS or GEN technologies are not represented in this plot.</div>
+			<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% endif %}
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
@@ -581,7 +623,7 @@
 						//{"name":"Total Demand Charge Savings", "data": allOutputData.totalPeakDemandSavings_allDER_allyears, "color": "rgb(152,251,152)"},
 						//{"name":"Startup Costs", "data": allOutputData.startupCosts_allyears, "color": "rgb(240,128,128)"},
 						//{"name":"Operational Costs", "data": allOutputData.operationalCosts_allyears, "color": "rgb(246,164,130)"},
-						{"name":"Cumulative Savings", "type":"spline", "data": allOutputData.cumulativeSavings_total, "color": "black"}
+						//{"name":"Cumulative Savings", "type":"spline", "data": allOutputData.cumulativeSavings_total, "color": "black"}
 					],
 					"yAxis":{"title":{"text":"Income ($)","style":{"color":"gray"}}},
 					"chart":{"marginBottom":55,"zoomType":"x","renderTo":"cashFlowChartDiv2","type":"column","marginRight":20, "height":250,"width":1000},

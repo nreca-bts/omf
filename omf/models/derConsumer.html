@@ -35,13 +35,15 @@
 	{% if allOutputDataDict.thermalDataCheck == 0 %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
+				$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 				$("#thermalBatPowerPlot").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
 			});
 		</script>
 	{% else %}
 		<script type="text/javascript">    
 			$(window).on('pageshow', function(){
-				plotGraph('thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout']);
+				plotGraph('ThermalDEROverviewData', allOutputData['ThermalDEROverviewData'], allOutputData['ThermalDEROverviewLayout'] );
+				plotGraph( 'thermalBatPowerPlot', allOutputData['thermalBatPowerPlot'], allOutputData['thermalBatPowerPlotLayout'] );
 			});
 		</script>
 	{% endif %}
@@ -116,6 +118,34 @@
 				<label class="tooltip">Year<span class="classic">Specify the year to which the Demand Curve values corresond.</span></label>
 				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^\d{4}$" required="required"/>
 			</div>
+			<div class="shortInput">
+				<label class="tooltip">Use the user-provided random numbers?<span class="classic">If 'Yes' model will use all user-provided random numbers including the PuLP Random Seed and the Random Numbers for Water Heater (.csv) file. If 'No' the model will generate all numbers needed and save them in the model outputs. Please see the documentation at the help link for more information.</span></label>
+				<select id="set_random_numbers" name="set_random_numbers" value="{{allInputDataDict.set_random_numbers}}">
+					<option value='Yes' {{ 'selected' if allInputDataDict.set_random_numbers == 'Yes' }}>Yes</option>
+					<option value='No' {{ 'selected' if allInputDataDict.set_random_numbers == 'No' }}>No</option>
+				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">PuLP Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A file with random numbers that will help determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save a water_heater_random_numbers.csv file in the ouput files, which the user can re-upload here. Please see the documentation at the help link for the required format and example file.</span></label>
+				<input id="randomNumbersFile" type="file" style="display:none" onchange="handle_files(this.files,'randomNumbers','randomNumbersFileName')">
+				<input id="randomNumbers" name="randomNumbers" value="{{allInputDataDict.randomNumbers}}" type="hidden">
+				<div>
+					<label for="randomNumbersFile" class="fileButton">Choose File</label>
+					<input id="randomNumbersFileName" name="randomNumbersFileName" value="{{allInputDataDict.randomNumbersFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
 			
 			<!-- Financial Inputs -->
 			<div class="wideInput">
@@ -158,10 +188,12 @@
 				<label class="tooltip">Financial Projection Length (years)<span class="classic">Number of years to project out estimated savings. Must be between 1 and 75 years.</span></label>
 				<input type="text" id="projectionLength" name="projectionLength" value="{{allInputDataDict.projectionLength}}" step="1" min="1" max="75" required="required">
 			</div>
+			<!--
 			<div class="shortInput">
 				<label class="tooltip">Energy Compensation Rate ($/kWh)<span class="classic">The dollar amount paid to you by the utility for each kWh borrowed.</span></label>
 				<input type="text" id="rateCompensation" name="rateCompensation" value="{{allInputDataDict.rateCompensation}}" pattern="^\d+\.?\d*?$" min="0" required="required"/>
 			</div>
+			-->
 			<div class="shortInput">
 				<label class="tooltip">Home BESS - Upfront Subsidy Amount ($)<span class="classic">The total upfront dollars paid to you by the utility for enrolling your home battery (not including any recurring subsidies).</span></label>
 				<input type="text" id="BESS_subsidy_onetime" name="BESS_subsidy_onetime" value="{{allInputDataDict.BESS_subsidy_onetime}}" pattern="^\d+\.?\d*?$" required="required"/>
@@ -467,11 +499,25 @@
 	
 	<!-- Output tables, graphs, etc -->
 	<div id="output">
+		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
+		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+
 		<p class="reportTitle" style="page-break-before:always">DER Serving Load Overview</p>
 		<div id="derOverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
 
-		<p class="reportTitle" style="page-break-before:always">Impact to Demand</p>
-		<div id="newDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		<p class="reportTitle" style="page-break-before:always">Thermal DER Serving Load Overview</p>
+		{% if allOutputDataDict.thermalDataCheck == 0 %}
+			<div id="ThermalDEROverviewData" class="tightContent"></div>
+			<script type="text/javascript">    
+				$(window).on('pageshow', function(){
+					$("#ThermalDEROverviewData").html("<p>&#160;&#160;&#160;No Home TESS was specified or built by the model.</p>");
+				});
+			</script>
+		{% else %}
+			<div class="tightContent" style="width: 1000px; height: 25px;"> 
+				Note: Any BESS or GEN technologies are not represented in this plot.</div>
+			<div id="ThermalDEROverviewData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+		{% endif %}
 
 		<!-- Include the ThermalBatteryPower plot only when thermal data exists in the model -->
 		<p class="reportTitle" style="page-break-before:always">Home Thermal Battery Power Profile</p>
@@ -487,7 +533,7 @@
 		{% endif %}
 
 		<!-- Include the ChargeLevelBattery plot only when BESS exists in the model -->
-		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge</p>
+		<p class="reportTitle" style="page-break-before:always">Home Chemical BESS State of Charge (Consumer Portion)</p>
 		{% if allOutputDataDict.chargeLevelBattery|sum == 0 %}
 			<div id="batteryChargePlotly" class="tightContent"></div>
 			<script type="text/javascript">    
@@ -544,11 +590,12 @@
 					insertMetric("monthlySummaryTable","Energy Cost Savings ($)", allOutputData.monthlyEnergyConsumptionSavings)
 					insertMetric("monthlySummaryTable","Demand Charge ($)", allOutputData.monthlyPeakDemandCost)
 					insertMetric("monthlySummaryTable","Adjusted Demand Charge ($)", allOutputData.monthlyAdjustedPeakDemandCost)
+					insertMetric("monthlySummaryTable","Demand Cost Savings ($)", allOutputData.monthlyPeakDemandSavings)
 					insertMetric("monthlySummaryTable","Total Cost of Service ($)", allOutputData.monthlyTotalCostService)
 					insertMetric("monthlySummaryTable","Adjusted Total Cost of Service ($)", allOutputData.monthlyTotalCostAdjustedService)
 					insertMetric("monthlySummaryTable","Generator Fuel Cost ($)", allOutputData.monthly_gen_fuel_cost)
 					insertMetric("monthlySummaryTable","Utility Subsidies Paid ($)", allOutputData.allDevices_subsidy_year1)
-					insertMetric("monthlySummaryTable","Per-kWh Compensation ($)", allOutputData.allDevices_compensation_year1)
+					//insertMetric("monthlySummaryTable","Per-kWh Compensation ($)", allOutputData.allDevices_compensation_year1)
 					insertMetric("monthlySummaryTable","Total Consumer Savings ($)", allOutputData.savings_year1_monthly_array)
 					insertMetric("monthlySummaryTable","Total Consumer Costs ($)", allOutputData.costs_year1_array)
 					insertMetric("monthlySummaryTable","Net Consumer Savings ($)", allOutputData.net_savings_year1_array)
@@ -602,7 +649,7 @@
 						{"name":"BESS Costs", "data": allOutputData.costs_allyears_BESS, "color": "rgb(116,40,129)"},
 						{"name":"TESS Costs", "data": allOutputData.costs_allyears_TESS, "color": "rgb(152,110,172)"},
 						{"name":"Generator Costs", "data": allOutputData.costs_allyears_GEN, "color": "rgb(195,164,207)"},
-						{"name":"Cumulative Savings", "type":"spline", "data": allOutputData.cumulativeSavings_total, "color": "black", "visible": false}
+						//{"name":"Cumulative Savings", "type":"spline", "data": allOutputData.cumulativeSavings_total, "color": "black", "visible": false}
 					],
 					"yAxis":{"title":{"text":"Income ($)","style":{"color":"gray"}}},
 					"chart":{"marginBottom":55,"zoomType":"x","renderTo":"cashFlowChartDiv2","type":"column","marginRight":20, "height":250,"width":1000},
@@ -629,12 +676,12 @@
 						//{"name":"Water Heater Savings", "data": allOutputData.vbatResults_wh_savings_allyears, "color": "rgb(16,101,171)"},
 						//{"name":"Heat Pump Savings", "data": allOutputData.vbatResults_hp_savings_allyears, "color": "rgb(58,147,195)"},
 						//{"name":"Air Conditioner Savings", "data": allOutputData.vbatResults_ac_savings_allyears, "color": "rgb(142,196,222)"},
-						{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 						{"name":"Water Heater Peak Demand Savings","data":allOutputData.vbatResults_wh_peakDemand_savings_allyears, "color": "rgba(16,101,171,0.5)"},
-						{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
+						{"name":"Water Heater Consumption Savings","data":allOutputData.vbatResults_wh_consumption_savings_allyears, "color": "rgb(16,101,171)"},
 						{"name":"Heat Pump Peak Demand Savings","data":allOutputData.vbatResults_hp_peakDemand_savings_allyears, "color": "rgba(58,147,195,0.5)"},
-						{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
+						{"name":"Heat Pump Consumption Savings","data":allOutputData.vbatResults_hp_consumption_savings_allyears, "color": "rgb(58,147,195)"},
 						{"name":"Air Conditioner Peak Demand Savings","data":allOutputData.vbatResults_ac_peakDemand_savings_allyears,"color":"rgba(142,196,222,0.5)"},
+						{"name":"Air Conditioner Consumption Savings","data":allOutputData.vbatResults_ac_consumption_savings_allyears,"color":"rgb(142,196,222)"},
 						{"name":"Water Heater Costs", "data": allOutputData.costs_allyears_wh, "color": "rgb(179,21,41)"},
 						{"name":"Heat Pump Costs", "data": allOutputData.costs_allyears_hp, "color": "rgb(215,95,76)"},
 						{"name":"Air Conditioner Costs", "data": allOutputData.costs_allyears_ac, "color": "rgb(246,164,130)"},

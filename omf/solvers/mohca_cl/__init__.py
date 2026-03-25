@@ -4,9 +4,10 @@ from . import sandia_TCHC
 from . import ISU_PINNbasedHCA
 from . import transformer_customer_mapping_isu
 
-import fire
+import argparse
 import os
 from pathlib import Path
+import unittest
 
 mohca_dir = Path(__file__).parent
 
@@ -54,10 +55,83 @@ def run_all_tests():
   sandia.hosting_cap('./mohca_cl/test_data/loc1.csv', './mohca_cl/test_data/loc1_out.csv')
   sandia.sanity_check('./mohca_cl/test_data/HC_Results_model_based.csv', './mohca_cl/test_data/loc1_out.csv')
 
+  #test_sandia.py = 9 tests
+  #test_sandia_TCHC.py = 8 tests 
+
+  PROJ_ROOT = Path("__file__").parent.absolute()
+
+  testLoader = unittest.TestLoader()
+  testSuite = testLoader.discover(start_dir=str( str(PROJ_ROOT) + "/mohca_cl"), pattern='test_*.py')
+  runner = unittest.TextTestRunner(verbosity=2)
+  runner.run(testSuite)
+
 def init_cli():
-  fire.Fire({
-    'add': add,
-    'hello': hello,
-    'sandia1': sandia1,
-    'run_all_tests': run_all_tests
-  })
+  # Main Parser
+  parser = argparse.ArgumentParser(prog='MoHCA_CL', description='MoHCA Command Tool',
+                                   epilog="Example: mohca_cl add x y")
+  # Sub Parser
+  subparsers = parser.add_subparsers(dest='commands')
+  # Each function needs its own sub
+  # Add Function
+  add_parser = subparsers.add_parser('add')
+  add_parser.add_argument('x', help="First number")
+  add_parser.add_argument('y', help="Second number")
+  add_parser.set_defaults(func=add)
+  #hello
+  hello_parser = subparsers.add_parser('hello')
+  hello_parser.set_defaults(func=hello)
+  # sandia1 function
+  sandia1_parser = subparsers.add_parser("sandia1")
+  sandia1_parser.add_argument('in_path', help='Input Path for csv - check OMF hosting capacity wiki for .csv formatting')
+  sandia1_parser.add_argument('out_path', help='Output Path')
+  sandia1_parser.add_argument('der_pf', type=float, default=None, help='Optional DER Power Flow Input - Positive for capacitive, Negative for inductive')
+  sandia1_parser.add_argument('vv_x', type=list, default=None, help='x coords for volt_var curve')
+  sandia1_parser.add_argument('vv_y', type=list, default=None, help='y coords for volt_var curve')
+  sandia1_parser.add_argument('load_pf_est', type=float, default=None, help='estimated average power factor')
+  sandia1_parser.set_defaults(func=sandia1)
+  #sandiaTCHC
+  sandiaTCHC_parser = subparsers.add_parser("sandiaTCHC")
+  sandiaTCHC_parser.add_argument('in_path', help='Input Path for csv - check OMF hosting capacity wiki for .csv formatting')
+  sandiaTCHC_parser.add_argument('out_path', help='Output Path')
+  sandiaTCHC_parser.add_argument('final_results', help='dataframe: busname, Transformer Index, X, Y')
+  sandiaTCHC_parser.add_argument('der_pf', default=None, help='Optional DER Power Flow Input - Positive for capacitive, Negative for inductive')
+  sandiaTCHC_parser.add_argument('vv_x', default=None, help='x coords for volt_var curve')
+  sandiaTCHC_parser.add_argument('vv_y', default=None, help='y coords for volt_var curve')
+  sandiaTCHC_parser.add_argument('load_pf_est', default=None, help='estimated average power factor')
+  sandiaTCHC_parser.add_argument('overload_constraint', default=None, help='transformer thermal constraint')
+  sandiaTCHC_parser.add_argument('xf_lookup', default=None, help='Expected Columns are: "kVA", "R_ohms_LV", "X_ohms_LV"')
+  sandiaTCHC_parser.set_defaults(func=sandiaTCHC)
+  #isu_transformerCustMapping
+  isu_transcustmapping_parser = subparsers.add_parser('isu_transformerCustMapping')
+  isu_transcustmapping_parser.add_argument('input_meter_data_fp', help="input file path")
+  isu_transcustmapping_parser.add_argument('grouping_output_fp', help="output file path")
+  isu_transcustmapping_parser.add_argument('minimum_xfmr_n', type=int, default=None, help="Minimum transformer num")
+  isu_transcustmapping_parser.add_argument('fmr_n_is_exact,', type=bool, default=False, help="Bool - Transformer number exact")
+  isu_transcustmapping_parser.add_argument('bus_coords_fp', default=None)
+  isu_transcustmapping_parser.set_defaults(func=isu_transformerCustMapping)
+  #iastate
+  iastate_parser = subparsers.add_parser('iastate')
+  iastate_parser.add_argument('in_path', help="input .csv")
+  iastate_parser.add_argument('out_path')
+  iastate_parser.set_defaults(func=iastate)
+
+  #run tests
+  tests_parser = subparsers.add_parser('run_all_tests')
+  tests_parser.set_defaults(func=run_all_tests)
+  args = parser.parse_args()
+  if args.commands == 'add':
+    print( args.func(args.x, args.y) )
+  elif args.commands == 'hello':
+    print( args.func() )
+  elif args.commands == 'sandia1':
+    args.func( args.in_path, args.out_path, args.der_pf, args.vv_x, args.vv_y, args.load_pf_est )
+  elif args.commands == 'sandiaTCHC':
+    args.func( args.in_path, args.out_path, args.final_results, args.der_pf, args.vv_x, args.vv_y, args.load_pf_est, args.overload_constraint, args.xf_lookup )
+  elif args.commands == 'isu_tranformerCustMapping':
+    args.func( args.input_meter_data_fp, args.grouping_output_fp, args.minimum_xfmr_n, args.fmr_n_is_exact, args.bus_coords_fp )
+  elif args.commands == 'iastate':
+    args.func( args.in_path, args.out_path )
+  elif args.commands == 'run_all_tests':
+    args.func()
+  else:
+    print("Invalid Command")

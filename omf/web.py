@@ -1,6 +1,6 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal
+import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
@@ -12,7 +12,7 @@ from jinja2 import Template
 import dateutil
 from subprocess import Popen
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlsplit
 from werkzeug.utils import secure_filename
 from pathlib import Path
 try:
@@ -94,6 +94,28 @@ def _is_same_origin():
 	referer = request.headers.get("Referer", "")
 	return any(referer.startswith(o + "/") for o in ALLOWED_ORIGINS)
 
+
+def _get_request_csrf_token():
+	'''Return a CSRF token supplied via header, form body, or JSON body.'''
+	token = request.headers.get('X-CSRFToken') or request.headers.get('X-CSRF-Token')
+	if token:
+		return token
+	token = request.form.get('_csrf_token')
+	if token:
+		return token
+	if request.is_json:
+		payload = request.get_json(silent=True)
+		if isinstance(payload, dict):
+			return payload.get('_csrf_token')
+	return None
+
+
+def _csrf_failure_response():
+	'''Return a JSON error for AJAX/API requests, otherwise abort with 403.'''
+	if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+		return jsonify(error='CSRF validation failed.'), 403
+	abort(403)
+
 @app.before_request
 def only_same_origin():
 	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
@@ -134,6 +156,39 @@ login_manager.init_app(app)
 login_manager.login_view = "login_page"
 app.secret_key = cryptoRandomString()
 
+def csrf_token():
+	'''Return the current session CSRF token, creating it if needed.'''
+	if '_csrf_token' not in session:
+		session['_csrf_token'] = secrets.token_urlsafe(32)
+	return session['_csrf_token']
+
+app.jinja_env.globals['csrf_token'] = csrf_token
+
+
+@app.before_request
+def protect_against_csrf():
+	'''Require a valid CSRF token on all state-changing requests.'''
+	if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+		return
+	expected_token = session.get('_csrf_token')
+	provided_token = _get_request_csrf_token()
+	if not expected_token or not provided_token or not secrets.compare_digest(str(provided_token), str(expected_token)):
+		return _csrf_failure_response()
+
+
+@app.after_request
+def set_csrf_cookie(response):
+	'''Expose the CSRF token to same-origin JavaScript for AJAX/header submission.'''
+	token = csrf_token()
+	response.set_cookie(
+		'_csrf_token',
+		token,
+		samesite='Lax',
+		secure=request.is_secure,
+		httponly=False,
+		path='/'
+	)
+	return response
 
 def _send_email(recipient, subject, message):
 	c = boto3.client('ses', region_name='us-east-1')
@@ -174,30 +229,22 @@ def load_user(username):
 
 
 def _is_safe_url(target: str) -> bool:
-	"""Return True if the target URL is a local URL we can safely redirect to.
-
-	Rules:
-	- Allow empty -> treated as '/'
-	- Allow relative paths starting with single '/'
-	- Allow same-origin absolute URLs (scheme http/https, netloc matches request.host)
-	- Disallow protocol-relative ('//example.com'), different host, or control chars.
-	"""
+	''' Return True only for redirects that stay inside this app. '''
 	if not target:
 		return True
-	# Strip surrounding whitespace / control chars
-	target = target.strip()
-	# Reject obvious protocol-relative or backslash escapes
-	if target.startswith('//') or target.startswith('\\'):
+	if not isinstance(target, str):
 		return False
-	# Simple relative path
-	if target.startswith('/'):
+	target = target.strip()
+	if not target:
 		return True
-	# For absolute URLs, ensure same host
-	ref = urlparse(request.host_url)
-	test = urlparse(urljoin(request.host_url, target))
-	if test.scheme in ('http', 'https') and ref.netloc == test.netloc:
-		return True
-	return False
+	if any(ord(ch) < 32 or ord(ch) == 127 for ch in target): # reject URLs with control characters
+		return False
+	if '\\' in target:
+		return False
+	parts = urlsplit(target)
+	if parts.scheme or parts.netloc:
+		return False
+	return target.startswith('/') and not target.startswith('//')
 
 
 def safe_redirect(target: str):
@@ -979,7 +1026,7 @@ def rawImport(owner):
 		conFile.write("WORKING")
 	networkName = str(request.form.get('networkNameR', 'network1'))
 	networkNum = request.form.get("networkNum", 1)
-	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, networkName + '.raw')
+	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'import.raw')
 	request.files['rawFile'].save(network_filepath)
 	importProc = Process(target=rawImportBackground, args=[owner, modelName, networkName, networkNum])
 	importProc.start()
@@ -989,7 +1036,7 @@ def rawImportBackground(owner, modelName, networkName, networkNum):
 	''' Function to run in the background for Raw import. '''
 	try:
 		network_filepath, model_dir, pid_filepath = [
-			os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in [networkName + '.raw', '', 'ZPID.txt']
+			os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ['import.raw', '', 'ZPID.txt']
 		]
 		newNet = transmission.parseRaw(network_filepath, filePath=True)
 		transmission.layout(newNet)
@@ -1009,7 +1056,6 @@ def rawImportBackground(owner, modelName, networkName, networkNum):
 			errorFile.write('octaveError')
 	finally:
 		os.remove(pid_filepath)
-
 
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
 @flask_login.login_required
