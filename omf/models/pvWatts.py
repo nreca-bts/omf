@@ -18,6 +18,7 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 def work(modelDir, inputDict):
 
 	### Get inputs for system design parameters
+	systemSize = int( inputDict["systemSize"] )
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	azimuth = float( inputDict['azimuth'] )
@@ -26,11 +27,9 @@ def work(modelDir, inputDict):
 	tilt = float( inputDict['tilt'] )
 	start = pd.to_datetime(inputDict["simStartDate"])
 	trackingMode = int ( inputDict["trackingMode"] )
-
+	simStartDate = inputDict["simStartDate"]
 	# Defaults
 	losses = 15.53
-	sys_cap = 750
-
 	### Set up system design parameter dict for PySAM pvWatts Model
 	sys_design = {
 		"ModelParams": {
@@ -41,7 +40,7 @@ def work(modelDir, inputDict):
 						"losses": losses,
 						"rotlim": rotlim,
 						"module_type": 2.0,
-						"system_capacity": sys_cap,
+						"system_capacity": systemSize,
 						"tilt": tilt
 				},
 				"SolarResource": {
@@ -71,7 +70,7 @@ def work(modelDir, inputDict):
 		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
 		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
 		datetime_components_dict = {
-			'year': wind_data['Year'],
+			'year': simStartDate[0:4],
 			'month': wind_data['Month'],
 			'day': wind_data['Day'],
 			'hour': wind_data['Hour'],
@@ -123,13 +122,15 @@ def work(modelDir, inputDict):
 	tamb = np.array( pvwatts_model.Outputs.tamb, dtype=float)
 	tcell = np.array( pvwatts_model.Outputs.tcell, dtype=float)
 	wspd = np.array( pvwatts_model.Outputs.wspd, dtype=float)
-	ac = np.array( pvwatts_model.Outputs.ac, dtype=float) / 1000
+	ac = np.array( pvwatts_model.Outputs.ac, dtype=float)
 
 	results_df = pd.DataFrame(
 		{'timestamp': wind_data.index, 'poa': poa, 'dn': dn, 'df': df, 'tamb': tamb, 'tcell': tcell, 'wspd': wspd, 'ac': ac},
 		columns=['timestamp', 'poa', 'dn', 'df', 'tamb', 'tcell', 'wspd', 'ac']
 	)
+	results_df["timestamp"] = pd.to_datetime(results_df["timestamp"])
 	results_df = results_df.set_index( results_df["timestamp"])
+	results_df = results_df.drop( columns=["timestamp"] )
 	sim_df = results_df.loc[start:end]
 	simLengthUnits = inputDict['simLengthUnits']
 	if simLengthUnits == "minutes":
@@ -142,7 +143,6 @@ def work(modelDir, inputDict):
 			raise Exception()
 	agg_df = sim_df.resample(freq).sum(numeric_only=True)
 	simLengthUnits = inputDict.get("simLengthUnits","")
-	simStartDate = inputDict["simStartDate"]
 	startDateTime = simStartDate + " 00:00:00 UTC"
 	outData["timeStamps"] = [ datetime.datetime.strftime(
 	datetime.datetime.strptime(startDateTime[0:19],"%Y-%m-%d %H:%M:%S") + 
@@ -174,8 +174,8 @@ def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	defaultInputs = {
 		"modelType": modelName,
-		"longitude": "-97.1292",
-		"latitude": "33.2164",
+		"longitude": "-94.67",
+		"latitude": "39.10",
 		"azimuth":"180.0",
 		"rotlim": "45.0",
 		"trackingMode": "2",
@@ -184,7 +184,7 @@ def new(modelDir):
 		"inverterSize": "8",
 		"runTime": "",
 		"tilt":"45",
-		"simStartDate": "2023-07-01",
+		"simStartDate": "2013-07-01",
 		"simLengthUnits": "hours",
 		"simLength": "100",
 	}
