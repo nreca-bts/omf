@@ -171,15 +171,12 @@
 			<script>
 				function toggleInputs() {
 					const status = document.getElementById('custTransPairingPresent').value;
-					
-					// Get all elements to be toggled
 					const numOfXfmrs = document.getElementById('numOfXfmrs');
 					const exactXfmrs = document.getElementById('exactXfmrs');
-					
 					// For file uploads, we target the inputs inside the containers
+					// Line 1 of the macro is the actual file input. That is the first argument in the macro parameters, so that's what we have here.
 					const busCoordsFile = document.querySelector('#busCoordsDataFile');
 					const completedFile = document.querySelector('#completed_xfmrCustDataFile');
-
 					if (status === 'off') {
 						numOfXfmrs.disabled = true;
 						exactXfmrs.disabled = true;
