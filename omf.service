@@ -6,6 +6,7 @@ After=syslog.target network.target
 User=omf
 Group=omf
 WorkingDirectory=/omf/omf/
+EnvironmentFile=-/etc/omf/omf.env
 ExecStart=/usr/bin/python3 webProd.py
 ExecStop=
 Restart=on-failure

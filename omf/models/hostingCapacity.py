@@ -234,38 +234,54 @@ def run_AMIAlgorithm( modelDir, inputDict, outData ):
 		raise Exception(errorMessage)
 	outputPathVoltageHC = Path(modelDir, 'outputMohcaVoltageHC.csv')
 	outputPathThermalHC = Path(modelDir, 'outputMohcaThermalHC.csv')
+	custTransPairing = inputDict["custTransPairingPresent"]
 	hasKvar = checkKvar( inputPathAMIData )
-	# Thermal Hosting Capacity Variables
-	busCoords = None
-	xfLookup = None
+	processThermal = True
 	if hasKvar == False:
 		outData["reactivePowerWarningFlag"] = True
 		outData["reactivePowerWarningInfo"] = f"Reactive power not present in Meter Data Input File. Model-free voltage-constrained results will be estimated. No model-free thermal-constrained results available."
-	else: # Process all the inputs for Thermal-Constrained Hosting Capacity
+		processThermal = False
+		# Thermal Hosting Capacity Variables
+	if inputDict["custTransPairingPresent"] == "off":
+		outData["custTransPairingWarningFlag"] = True
+		outData["custTransPairingWarningInfo"] = f"Customer to Transformer Pairing either was not computed or provided. No model-free thermal contrained results available"
+		processThermal = False
+	if processThermal == True: # Process all the inputs for Thermal-Constrained Hosting Capacity
+		busCoords = None
+		xfLookup = None
+		completed_xfmrCustFlag = False
 		xfLookupPath = Path(modelDir, inputDict['xfLookupDataFileName']) 
 		xfLookupDF = pd.read_csv( xfLookupPath )
 		if xfLookupDF.empty:
 			xfLookup = None
 		else:
 			xfLookup = xfLookupDF
-		busCoords = Path(modelDir, inputDict['busCoordsDataFileName'])
-		completed_xfmrCustPath = Path(modelDir, inputDict['completed_xfmrCustDataFileName'])
-		completed_xfmrCustDF = pd.read_csv( completed_xfmrCustPath )
-		completed_xfmrCustFlag = False # We assume it has not been calculated
-		if completed_xfmrCustDF.empty == False:
-			# If it's not empty, then it has been completed and we do not need to calculate it
-			completed_xfmrCustFlag = True
-		numOfXfmr = int( inputDict['numOfXfmrs'])
-		exactXfmrs = getBool( inputDict['exactXfmrs'] )
-		# If numOfXfmrs = 0, the input for mohca_cl.isu_transformerCustMapping must be None, False, None
-		if numOfXfmr == 0:
-			numOfXfmr = None
-			exactXfmrs = False
-			busCoords = None
-			inputDict['exactXfmr'] = False
-			inputDict['busCoords'] = None
-			outData["xfmrWarningFlag"] = True
-			outData["xfmrWarningInfo"] = f"If the number of transformers ( numOfXFmrs ) is set to False, Exact Transformers ( exactXfmrs ) is set to False and no buscoords are used ( set to None )."
+		if custTransPairing == "compute":
+			busCoords = Path(modelDir, inputDict['busCoordsDataFileName'])
+			numOfXfmr = int( inputDict['numOfXfmrs'])
+			exactXfmrs = getBool( inputDict['exactXfmrs'] )
+			# If numOfXfmrs = 0, the input for mohca_cl.isu_transformerCustMapping must be None, False, None
+			if numOfXfmr == 0:
+				numOfXfmr = None
+				exactXfmrs = False
+				busCoords = None
+				inputDict['exactXfmr'] = False
+				inputDict['busCoords'] = None
+				outData["xfmrWarningFlag"] = True
+				outData["xfmrWarningInfo"] = f"If the number of transformers ( numOfXFmrs ) is set to False ( or 0 ), Exact Transformers ( exactXfmrs ) is set to False and no buscoords are used ( set to None )."
+				completed_xfmrCustFlag = False
+		elif custTransPairing == "completed":
+			completed_xfmrCustPath = Path(modelDir, inputDict['completed_xfmrCustDataFileName'])
+			completed_xfmrCustDF = pd.read_csv( completed_xfmrCustPath )
+			completed_xfmrCustFlag = False # We assume it has not been calculated
+			if completed_xfmrCustDF.empty == False:
+				# If it's not empty, then it has been completed and we do not need to calculate it
+				completed_xfmrCustFlag = True
+			else:
+				processThermal = False
+				outData["completedCustTransPairingWarningFlag"] = True
+				outData["completedCustTransPairingWarningInfo"] = f"User selected 'completed' for customer transformer pairing but the file inputted was empty. Will compute voltage-constrained hosting capacity only"
+	# end if processThermal
 	amiStartTime = time.time()
 	if inputDict[ "algorithm" ] == "sandia1":
 		if inputDict["dgInverterSetting"] == 'constantPF':
@@ -276,20 +292,18 @@ def run_AMIAlgorithm( modelDir, inputDict, outData ):
 			# Calculate Voltage Hosting Capacity
 			mohca_cl.sandia1( in_path=inputPathAMIData, out_path=outputPathVoltageHC, der_pf= float(inputDict['derPF']), vv_x=None, vv_y=None, load_pf_est=float(inputDict['load_pf_est'] ))
 			# Temp warning and catching if statement until fixed
-			if busCoords != None:
-				if hasKvar:
-					# Calculate Thermal Hosting Capacity
-					# Check if user inputted their own completed xfmr <-> customer mappings. If so, Calculate with theirs
-					if completed_xfmrCustFlag == True:
-						mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=completed_xfmrCustDF, der_pf=float(inputDict['derPF']), vv_x=None, vv_y=None, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
-					# If they did not include their own, calculate it as best as you can with ISU's function, then calculate thermal with the result gotten from ISU's algo
-					else:
-						outputPath_xfmrCustResults = Path(modelDir, 'output_IsuXfmrCustPairing.csv')
-						xfmrCustMapResult = mohca_cl.isu_transformerCustMapping(input_meter_data_fp=inputPathAMIData, grouping_output_fp=outputPath_xfmrCustResults, minimum_xfmr_n=numOfXfmr, fmr_n_is_exact=exactXfmrs, bus_coords_fp=busCoords )
-						mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=xfmrCustMapResult, der_pf=float(inputDict['derPF']), vv_x=None, vv_y=None, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
-					# end if completed_xfmrCustFlag
-				# end if hasKvar
-			# end if busCoords
+			if hasKvar and processThermal:
+				# Calculate Thermal Hosting Capacity
+				# Check if user inputted their own completed xfmr <-> customer mappings. If so, Calculate with theirs
+				if completed_xfmrCustFlag == True:
+					mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=completed_xfmrCustDF, der_pf=float(inputDict['derPF']), vv_x=None, vv_y=None, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
+				# If they did not include their own, calculate it as best as you can with ISU's function, then calculate thermal with the result gotten from ISU's algo
+				else:
+					outputPath_xfmrCustResults = Path(modelDir, 'output_IsuXfmrCustPairing.csv')
+					xfmrCustMapResult = mohca_cl.isu_transformerCustMapping(input_meter_data_fp=inputPathAMIData, grouping_output_fp=outputPath_xfmrCustResults, minimum_xfmr_n=numOfXfmr, fmr_n_is_exact=exactXfmrs, bus_coords_fp=busCoords )
+					mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=xfmrCustMapResult, der_pf=float(inputDict['derPF']), vv_x=None, vv_y=None, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
+				# end if completed_xfmrCustFlag
+			# end if hasKvar & processThermal
 		# end if constantPF
 		elif inputDict["dgInverterSetting"] == 'voltVar':
 			# Calculate Voltage Hosting Capacity
@@ -297,18 +311,16 @@ def run_AMIAlgorithm( modelDir, inputDict, outData ):
 			vv_x = [v for i,v in enumerate(vvPointsSplit) if i%2==0]
 			vv_y = [v for i,v in enumerate(vvPointsSplit) if i%2==1]
 			mohca_cl.sandia1( in_path=inputPathAMIData, out_path=outputPathVoltageHC, der_pf= float(inputDict['derPF']), vv_x=vv_x, vv_y=vv_y, load_pf_est=float(inputDict['load_pf_est'] ))
-			if busCoords != None:	
-				if hasKvar:
-					# Calculate Thermal Hosting Capacity
-					if completed_xfmrCustFlag == True:
-						mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=completed_xfmrCustDF, der_pf=float(inputDict['derPF']), vv_x=vv_x, vv_y=vv_y, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
-					else:
-						outputPath_xfmrCustResults = Path(modelDir, 'output_IsuXfmrCustPairing.csv')
-						xfmrCustMapResult = mohca_cl.isu_transformerCustMapping(input_meter_data_fp=inputPathAMIData, grouping_output_fp=outputPath_xfmrCustResults, minimum_xfmr_n=numOfXfmr, fmr_n_is_exact=exactXfmrs, bus_coords_fp=busCoords )
-						mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=xfmrCustMapResult, der_pf=float(inputDict['derPF']), vv_x=vv_x, vv_y=vv_y, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
-					# end if completed_xfmrCustFlag
-				# end if hasKvar
-			# end if busCoords
+			if hasKvar and processThermal:
+				# Calculate Thermal Hosting Capacity
+				if completed_xfmrCustFlag == True:
+					mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=completed_xfmrCustDF, der_pf=float(inputDict['derPF']), vv_x=vv_x, vv_y=vv_y, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
+				else:
+					outputPath_xfmrCustResults = Path(modelDir, 'output_IsuXfmrCustPairing.csv')
+					xfmrCustMapResult = mohca_cl.isu_transformerCustMapping(input_meter_data_fp=inputPathAMIData, grouping_output_fp=outputPath_xfmrCustResults, minimum_xfmr_n=numOfXfmr, fmr_n_is_exact=exactXfmrs, bus_coords_fp=busCoords )
+					mohca_cl.sandiaTCHC( in_path=inputPathAMIData, out_path=outputPathThermalHC, final_results=xfmrCustMapResult, der_pf=float(inputDict['derPF']), vv_x=vv_x, vv_y=vv_y, overload_constraint=float(inputDict['overloadConstraint']), xf_lookup=xfLookup )
+				# end if completed_xfmrCustFlag
+			# end if hasKvar & processThermal
 		# end if voltVar
 		else:
 			errorMessage = "DG Error - Should not happen. dgInverterSetting is not either of the 2 options it is supposed to be."
@@ -322,8 +334,7 @@ def run_AMIAlgorithm( modelDir, inputDict, outData ):
 	modelFreeResults = pd.read_csv( outputPathVoltageHC, index_col=False)
 	modelFreeResults.rename(columns={'kw_hostable': 'voltage_cap_kW'}, inplace=True)
 	modelFreeResultsSorted = modelFreeResults.sort_values(by='busname')
-	# Temp buscoords added here since its not working atm ( 2025-03-27 )
-	if hasKvar == True and busCoords != None:
+	if hasKvar == True and processThermal:
 		modelFreeThermalResults = pd.read_csv( outputPathThermalHC )
 		thermalKwResults = modelFreeThermalResults['TCHC (kW)']
 		modelFreeResultsSorted['thermal_cap_kW'] = thermalKwResults
@@ -441,7 +452,8 @@ def new(modelDir):
 		"completed_xfmrCustUIDisplay": completed_xfmrCustFileName,
 		"runModelBasedAlgorithm": 'on',
 		"modelBasedHCMaxTestKw": 50000,
-		"runDownlineAlgorithm": 'on'
+		"runDownlineAlgorithm": 'on',
+		'custTransPairingPresent': 'compute'
 	}
 	creationCode = __neoMetaModel__.new(modelDir, defaultInputs)
 	# Copy files from the test directory ( or respective places ) and put them in the model for use

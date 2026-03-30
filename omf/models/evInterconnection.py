@@ -16,7 +16,7 @@ from dateutil.relativedelta import *
 # OMF imports
 import omf
 from omf.models import voltageDrop, faultAnalysis
-import omf.solvers.REopt as REopt
+from omf.solvers import reopt_jl
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
 
@@ -295,30 +295,24 @@ def work(modelDir, inputDict):
 		outData["loadVoltageDrop"] = base64.standard_b64encode(inFile.read()).decode('ascii')
 	# Create the input JSON file for REopt
 	scenario = {
-		"Scenario": {
-			"Site": {
-				"latitude": latitudeValue,
-				"longitude": longitudeValue,
-				"LoadProfile": {
-					"loads_kw": combinedLoadShapeValue,		#8760 value list
-					"year": yearValue 						#MUST BE THE CORRECT YEAR CORRELATING TO loads_kw!!
-				},
-				"ElectricTariff": {
-					"urdb_rate_name": "custom",
-					"blended_annual_rates_us_dollars_per_kwh": energyCostValue,
-					"blended_annual_demand_charges_us_dollars_per_kw": demandCostValue
-				},
-				"Wind": {
-					"max_kw": 0,
-					"max_kwh": 0
-				}
-			}
+		"Site": {
+			"latitude": latitudeValue,
+			"longitude": longitudeValue,
+		},
+		"ElectricLoad": {
+			"loads_kw": combinedLoadShapeValue,		#8760 value list
+			"year": yearValue 										#MUST BE THE CORRECT YEAR CORRELATING TO loads_kw!!
+		},
+		"ElectricTariff": {
+			"urdb_rate_name": "custom",
+			"blended_annual_energy_rate": energyCostValue, # "blended_annual_rates_us_dollars_per_kwh" $/kWh.
+			"blended_annual_demand_rate": demandCostValue # "blended_annual_demand_charges_us_dollars_per_kw" $/kW/month
 		}
 	}
 	with open(pJoin(modelDir, "Scenario_test_POST.json"), "w") as jsonFile:
 		json.dump(scenario, jsonFile)
 	# Run REopt API script
-	REopt.run(pJoin(modelDir, 'Scenario_test_POST.json'), pJoin(modelDir, 'results.json'))
+	reopt_jl.run_reopt_jl(modelDir, "Scenario_test_POST.json", run_with_sysimage=False)
 
 	#read results from json generated from REopt
 	with open(pJoin(modelDir, "results.json"), "r") as REoptFile:
@@ -328,7 +322,7 @@ def work(modelDir, inputDict):
 	# ********* If testing, set test_results_on_fail to True **********
 	test_results_on_fail = False
 	#check to see if REopt worked correctly. If not, use a cached results file for testing or raise exception. 
-	if REopt_output["outputs"]["Scenario"]["status"] != "optimal":
+	if REopt_output["status"] != "optimal":
 		if test_results_on_fail:
 			print("Continuing simulation with cached results in dummyResults.json...")
 			with open(pJoin(omf.omfDir, "static", "testFiles", "REoptDummyResults.json"), "r") as dummyResults:
@@ -338,8 +332,10 @@ def work(modelDir, inputDict):
 		
 
 	#find the values for energy cost with and without microgrid
-	REopt_ev_energy_cost = REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_bill_bau_us_dollars"]
-	REopt_opt_energy_cost =	REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_bill_us_dollars"]
+	# REopt_ev_energy_cost = REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_bill_bau_us_dollars"] # 2026-03 commented
+	# REopt_opt_energy_cost =	REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_bill_us_dollars"]
+	REopt_ev_energy_cost = REopt_output["ElectricTariff"]["year_one_bill_before_tax_bau"]
+	REopt_opt_energy_cost = REopt_output["ElectricTariff"]["year_one_bill_before_tax"]
 	# REopt_ev_energy_cost = 100000
 	# REopt_opt_energy_cost =	90000
 
@@ -357,7 +353,9 @@ def work(modelDir, inputDict):
 
 	#get REopt's optimized load shape value list
 	# REoptLoadShape = REopt_output["outputs"]["Scenario"]["Site"]["LoadProfile"]["year_one_electric_load_series_kw"]
-	REoptLoadShape = REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_to_load_series_kw"]
+	# REoptLoadShape = REopt_output["outputs"]["Scenario"]["Site"]["ElectricTariff"]["year_one_to_load_series_kw"] - 2026-03 commented
+	REoptLoadShape = REopt_output["ElectricUtility"]["electric_to_load_series_kw"]
+	
 
 	#Create the maxLoadShape image and REopt carpet plot
 	maxLoadShapeImg, REoptCarpetPlotImg = plotMaxLoadShape(
