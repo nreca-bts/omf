@@ -66,8 +66,7 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	- monthly_demand_peak_kw (array of length 12, units: kW): The peak kW for each month.
 	- period_max_dollar_indices (list of lists, e.g. [[index of max $ in rate window 1, max $ of rate window 1, rate ($/kW) of window 1],[index of max $ of window 2, max $ of window 2, rate ($/kW) of window 2], etc]). 
 		where 'index of max $' is the index of the max (demand kW * rate $/kW = $ amount) for each window (consecutive 1's or 2's or whatever the rate period is, as defined in the JSON response file demandrateschedule), 
-		the 'max $ of the rate window' is the actual dollar amount corresponding to that index,
-		and the 'rate ($/kW) of the window' is the rate ($/kW) corresponding to that period window from which the maximum $ amount was determined.
+		the 'max $ of the rate window' is the actual dollar amount corresponding to that index, and the 'rate ($/kW) of the window' is the rate ($/kW) corresponding to that period window from which the maximum $ amount was determined.
 	"""
 
 	## --- Demand Rate Construction ---
@@ -234,7 +233,7 @@ def work(modelDir, inputDict):
 	## Convert user provided demand and temperature data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
-	temperatures_degC = [float(value)-32.0 * 5/9 for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
+	temperatures_degC = [(float(value)-32.0)/(9/5) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
 	demand[demand == -0.0] = 0.0 ## avoid sign errors
 	
@@ -516,6 +515,10 @@ def work(modelDir, inputDict):
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
+			## Convert setpoint and deadband from Fahrenheit to Celsius
+			inputDict_vbatDispatch['setpoint'] = str((float(inputDict_vbatDispatch['setpoint'])-32.0)/(9/5))
+			inputDict_vbatDispatch['deadband'] = str(float(inputDict_vbatDispatch['deadband'])/1.8)
+			
 			## Create a model subdirectory for each thermal device and store the vbatDispatch results there
 			#newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
 			#os.makedirs(newDir, exist_ok=True)
@@ -1606,7 +1609,7 @@ def new(modelDir):
 		'created': str(datetime.datetime.now()),
 
 		## General Model Inputs:
-		'set_random_numbers': 'Yes',
+		'set_random_numbers': 'No',
 		'randomNumbersFileName': 'water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
 		'random_seed_PuLP_ac': '2581590327', #max=10000000000
@@ -1671,8 +1674,8 @@ def new(modelDir):
 		'capacitance_ac': '2',
 		'resistance_ac': '2',
 		'cop_ac': '2.5',
-		'setpoint_ac': '22.5',
-		'deadband_ac': '0.625',
+		'setpoint_ac': '72.5',
+		'deadband_ac': '2',
 
 		## Home Heat Pump inputs (for vbatDispatch):
 		'load_type_hp': '2', 
@@ -1681,8 +1684,8 @@ def new(modelDir):
 		'capacitance_hp': '2',
 		'resistance_hp': '2',
 		'cop_hp': '3.5',
-		'setpoint_hp': '19.5',
-		'deadband_hp': '0.625',
+		'setpoint_hp': '65',
+		'deadband_hp': '2',
 
 		## Home Water Heater inputs (for vbatDispatch):
 		'load_type_wh': '4', 
@@ -1691,8 +1694,8 @@ def new(modelDir):
 		'capacitance_wh': '0.4',
 		'resistance_wh': '120',
 		'cop_wh': '1',
-		'setpoint_wh': '48.5',
-		'deadband_wh': '3',
+		'setpoint_wh': '125.0', 
+		'deadband_wh': '5.4',
 	}
 	
 	return __neoMetaModel__.new(modelDir, defaultInputs)
