@@ -64,7 +64,7 @@ def work(modelDir, inputDict):
 	## Convert user provided demand and temp data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
-	temperatures_degC = [float(value)-32.0 * 5/9 for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
+	temperatures_degC = [(float(value)-32.0)/(9/5) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
 	demand[demand == -0.0] = 0.0 ## avoid sign errors
 
@@ -370,6 +370,10 @@ def work(modelDir, inputDict):
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
+			## Convert setpoint and deadband from Fahrenheit to Celsius
+			inputDict_vbatDispatch['setpoint'] = str((float(inputDict_vbatDispatch['setpoint'])-32.0)/(9/5))
+			inputDict_vbatDispatch['deadband'] = str(float(inputDict_vbatDispatch['deadband'])/1.8)
+			
 			## Create a model subdirectory for each thermal device and store the vbatDispatch inputs and results
 			#newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
 			#os.makedirs(newDir, exist_ok=True)
@@ -613,7 +617,6 @@ def work(modelDir, inputDict):
 		withDERs_restacked = list(zip(*period_max_dollar_indices_withDERs))
 
 		index_withDERs = np.array(withDERs_restacked[0])
-
 		dollar_withDERs = np.array(withDERs_restacked[1]) ##this is the total demand charge cost in dollars per hourly period window for the demand curve with all DERs
 		rate_withDERs = np.array(withDERs_restacked[2])
 
@@ -633,6 +636,7 @@ def work(modelDir, inputDict):
 		#DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
 		totalDER_at_baseP_dollars = np.sum(DERs_at_baseP_dollars, axis=0)
 		fval_hourly = derUtilityCost.calculate_fval(demand_baseP, demand_adjP, totalDER_at_baseP_dollars)
+		#timestamps_index = timestamps[index_withDERs]
 
 		## Apply Fval to each DER peak demand savings
 		DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly
@@ -1313,7 +1317,6 @@ def work(modelDir, inputDict):
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	
-
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load_tenX.csv')) as f:
 		demand_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
@@ -1343,8 +1346,7 @@ def new(modelDir):
 		'random_seed_PuLP_hp': '3507489931', #max=10000000000
 		'random_seed_PuLP_wh': '5538962301', #max=10000000000
 
-		## REopt inputs:
-
+		## REopt inputs: 
 		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
 		#'residentialRateCurveFile': energy_rates_per_kwh,
 		'urdbLabel': '66a13566e90ecdb7d40581d2', ## Brighton, CO Residential Time of Day residential rate https://apps.openei.org/USURDB/rate/view/66a13566e90ecdb7d40581d2#3__Energy
@@ -1410,8 +1412,8 @@ def new(modelDir):
 		'capacitance_ac': '2',
 		'resistance_ac': '2',
 		'cop_ac': '2.5',
-		'setpoint_ac': '22.5',
-		'deadband_ac': '0.625',
+		'setpoint_ac': '72.5',
+		'deadband_ac': '2',
 
 		## Home Heat Pump inputs (vbatDispatch):
 		'load_type_hp': '2', 
@@ -1421,8 +1423,8 @@ def new(modelDir):
 		'capacitance_hp': '2',
 		'resistance_hp': '2',
 		'cop_hp': '3.5',
-		'setpoint_hp': '19.5',
-		'deadband_hp': '0.625',
+		'setpoint_hp': '65',
+		'deadband_hp': '2',
 
 		## Home Water Heater inputs (vbatDispatch):
 		'load_type_wh': '4',
@@ -1432,8 +1434,8 @@ def new(modelDir):
 		'capacitance_wh': '0.4',
 		'resistance_wh': '120',
 		'cop_wh': '1',
-		'setpoint_wh': '48.5',
-		'deadband_wh': '3',
+		'setpoint_wh': '125.0',
+		'deadband_wh': '5.4',
 	}
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
