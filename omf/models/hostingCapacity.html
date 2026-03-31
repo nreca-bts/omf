@@ -84,15 +84,15 @@
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Meter Data Input File <span class="classic">Upload a .csv file of meter data. Format for input columns: busname, datetime, v_reading, kw_reading, kvar_reading.</span></label>
-				<div>{{ file_upload('AmiDataFile', 'AmiUIDisplay', 'AmiDataFileName') }}</div>
-			</div>
-			<div class="shortInput">
 				<label class="tooltip">Algorithm <span class="classic">Apply physics based model (sandia) or machine learning model (iastate).</span></label>
 				<select id="algorithm" name="algorithm" value="{{allInputDataDict.algorithm}}" required>
 					<option value="sandia1" {% if allInputDataDict.algorithm == 'sandia1' %}selected{% endif %}>sandia1</option>
 					<option value="iastate" {% if allInputDataDict.algorithm == 'iastate' %}selected{% endif %}>iastate</option>
 				</select>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Meter Data Input File <span class="classic">Upload a .csv file of meter data. Format for input columns: busname, datetime, v_reading, kw_reading, kvar_reading.</span></label>
+				<div>{{ file_upload('AmiDataFile', 'AmiUIDisplay', 'AmiDataFileName') }}</div>
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Load Power Factor (pu)
@@ -131,8 +131,23 @@
 				<label class="tooltip">XF Lookup Table <span class="classic">Upload a .csv file of lookup table of known service transformer kVA readings & impedances. Expected Columns are: 'kVA', 'R_ohms_LV', 'X_ohms_LV'</span></label>
 				<div>{{ file_upload('xfLookupDataFile', 'xfLookupUIDisplay', 'xfLookupDataFileName') }}</div>
 			</div>
+			<br>
+			<label class="tooltip" style="font-size: 14pt;">Customer to Transformer Pairing Data - Thermal Constrained Only<span class="classic"> Customer Transformer Pairing data is required for thermal hosting capacity for the sandia1 algorithm. Can either input customer data to compute or completed mapping</span></label>
+			<br>
+			<br>
 			<div class="shortInput">
-				<label class="tooltip">Number of Transformers in the System
+				<label class="tooltip">Customer Transforming Pairing Available
+					<span class="classic">False if no data and will only compute voltage-constrained. Select compute to provide data for model to compute pairing. Select completed to upload completed mapping for model to use.</span>
+				</label>
+				<select id="custTransPairingPresent" name="custTransPairingPresent" value="{{allInputDataDict.custTransPairingPresent}}" onchange="toggleInputs()" required>
+					<option value="off" {% if allInputDataDict.custTransPairingPresent == 'off' %}selected{% endif %}>Not Available</option>
+					<option value="compute" {% if allInputDataDict.custTransPairingPresent == 'compute' %}selected{% endif %}>Compute</option>
+					<option value="completed" {% if allInputDataDict.custTransPairingPresent == 'completed' %}selected{% endif %}>Completed</option>
+				</select>
+			</div>
+			<br>
+			<div class="shortInput">
+				<label class="tooltip">Num of Transformers in System
 					<span class="classic">To calculate transformer customer mapping.</span>
 				</label>
 				<input type="text" id="numOfXfmrs" name="numOfXfmrs" value="{{allInputDataDict.numOfXfmrs}}" pattern="[+-]?([0-9]*[.])?[0-9]+"/>
@@ -145,13 +160,45 @@
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Transformer & Customer Bus Coords Inputs<span class="classic"> Expected Columns are: 'busname', 'X', 'Y'</span></label>
+				<label class="tooltip">Bus Coords<span class="classic"> Expected Columns are: 'busname', 'X', 'Y'</span></label>
 				<div>{{ file_upload('busCoordsDataFile', 'busCoordsUIDisplay', 'busCoordsDataFileName') }}</div>
 			</div>
+			<br>
 			<div class="shortInput">
 				<label class="tooltip">Completed Transformer Labeling Info<span class="classic"> If Transformer Customer mapping is already completed, can input the completed inputs here. Expected Columns are: 'busname', 'Transformer Index', 'X', 'Y'</span></label>
 				<div>{{ file_upload('completed_xfmrCustDataFile', 'completed_xfmrCustUIDisplay', 'completed_xfmrCustDataFileName') }}</div>
 			</div>
+			<script>
+				function toggleInputs() {
+					const status = document.getElementById('custTransPairingPresent').value;
+					const numOfXfmrs = document.getElementById('numOfXfmrs');
+					const exactXfmrs = document.getElementById('exactXfmrs');
+					// For file uploads, we target the inputs inside the containers
+					// Line 1 of the macro is the actual file input. That is the first argument in the macro parameters, so that's what we have here.
+					const busCoordsFile = document.querySelector('#busCoordsDataFile');
+					const completedFile = document.querySelector('#completed_xfmrCustDataFile');
+					if (status === 'off') {
+						numOfXfmrs.disabled = true;
+						exactXfmrs.disabled = true;
+						if(busCoordsFile) busCoordsFile.disabled = true;
+						if(completedFile) completedFile.disabled = true;
+					} 
+					else if (status === 'compute') {
+						numOfXfmrs.disabled = false;
+						exactXfmrs.disabled = false;
+						if(busCoordsFile) busCoordsFile.disabled = false;
+						if(completedFile) completedFile.disabled = true;
+					} 
+					else if (status === 'completed') {
+						numOfXfmrs.disabled = true;
+						exactXfmrs.disabled = true;
+						if(busCoordsFile) busCoordsFile.disabled = true;
+						if(completedFile) completedFile.disabled = false;
+					}
+				}
+				// Run once on page load to set initial state based on server-side values
+				window.onload = toggleInputs;
+			</script>
 			<div class="wideInput">
 				<p class="inputSectionHeader">Model-Based Hosting Capacity</p>
 			</div>
@@ -211,6 +258,20 @@
 			<p class="reportTitle" style="page-break-before: always"><b>Num of Transformers Note</b></p>
 				<div id="xfmrWarningInformation" class="tightContent">
 					<p style="font-size: 20px; padding: 8x;"><span style="color:cadetblue; font-weight: bold;"> NOTE: </span> {{ allOutputDataDict['xfmrWarningInfo'] }}</p>
+				</div>
+			</p>
+		{% endif %}
+		{% if allOutputDataDict['custTransPairingWarningFlag'] == True %}
+			<p class="reportTitle" style="page-break-before: always"><b>Customer to Transformer Pairing Note</b></p>
+				<div id="custTransPairingWarningInfo" class="tightContent">
+					<p style="font-size: 20px; padding: 8x;"><span style="color:cadetblue; font-weight: bold;"> NOTE: </span> {{ allOutputDataDict['custTransPairingWarningInfo'] }}</p>
+				</div>
+			</p>
+		{% endif %}
+				{% if allOutputDataDict['completedCustTransPairingWarningFlag'] == True %}
+			<p class="reportTitle" style="page-break-before:always;"><b>Map Display Warning</b></p>
+				<div id="mapWarningInformation" class="tightContent">
+						<p style="font-size: 20px; padding: 8px;"><span style="color: red; font-weight: bold;">WARNING: </span> {{ allOutputDataDict['completedCustTransPairingWarningInfo'] }} </p>
 				</div>
 			</p>
 		{% endif %}

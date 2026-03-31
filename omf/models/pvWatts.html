@@ -42,6 +42,18 @@
 				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">System Size (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
+				<input type="text" id="systemSize" name="systemSize" value="{{allInputDataDict.systemSize}}" pattern="^\d+\.?\d*$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Inverter Size (kW-AC)<span class="classic">Size of the total inverters in kW-AC for the system. If zero, it will be set to the system size.</span></label>
+				<input type="text" id="inverterSize" name="inverterSize" value="{{allInputDataDict.inverterSize}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Advanced Options</p>
+			</div>
+			<hr>
+			<div class="shortInput">
 				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
 				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
@@ -66,14 +78,6 @@
 			<div class="shortInput">
 				<label class="tooltip">Inverter Efficiency (%)<span class="classic">Inverter Efficiency in converting DC power to AC power. It can be obtained from the Weighted Efficiency (CEC) Method.</span></label>
 				<input type="text" id="inverterEfficiency" name="inverterEfficiency" value="{{allInputDataDict.inverterEfficiency}}" pattern="^(100|\d\d|\d)(\.\d+)?$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Inverter Size<span class="classic">Inverter Size</span></label>
-				<input type="text" id="inverterSize" name="inverterSize" value="{{allInputDataDict.inverterSize}}" pattern="^\d+\.?\d*$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">System Size<span class="classic">DC Output Rating of the solar panels in kilowatts</span></label>
-				<input type="text" id="systemSize" name="systemSize" value="{{allInputDataDict.systemSize}}" pattern="^\d+\.?\d*$" required="required">
 			</div>
 			<div class="wideInput">
 				<p class="inputSectionHeader">Simulation Specifications</p>
@@ -119,10 +123,10 @@
 			<div id="energyBalance"></div>
 			<script>
 				// Handle special case for inverter sizing:
-				if ({{allInputDataDict.inverterSize}} == 0) {
-					chartInverter = {{allInputDataDict.systemSize}}
-				}
-				else {chartInverter = {{allInputDataDict.inverterSize}}}
+				console.log("Inside Script")
+				var jinjaInverterSizekW = parseFloat("{{ allInputDataDict.inverterSize | default(0) }}");
+				var jinjaSystemSizekW = parseFloat("{{ allInputDataDict.systemSize | default(0) }}");
+				var chartInverterkW = (jinjaInverterSizekW === 0) ? jinjaSystemSizekW : jinjaInverterSizekW;
 				parseFloat({{allInputDataDict.systemSize}})*1000
 				power = {{allOutputDataDict.Consumption['Power']}}
 				powerSeries = [{"marker":{"enabled":false},"dataLabels":{"enabled":false}, "color":"red","data":power,"name":"Power Generated"}]
@@ -138,12 +142,12 @@
 							"dashStyle": "ShortDash",
 							"width": 2,
 							"label":{"text":"Panels Nameplate","align":"right","y":12,"x":0},
-							"value": systemSize,"zIndex": 10},
+							"value": (jinjaSystemSizekW*1000),"zIndex": 10},
 							{"color": "orange",
 							"dashStyle": "ShortDash",
 							"width": 2,
 							"label":{"text":"Inverter Nameplate","align":"left","y":12,"x":0},
-							"value": parseFloat(chartInverter)*1000,"zIndex": 10} ] },
+							"value": (chartInverterkW*1000),"zIndex": 10} ] },
 					"chart":{"zoomType":"x","marginBottom":35,"width":1000,"height":250,"marginRight":20,"renderTo":"powerTimeSeries","type":"line"},
 					"legend":false } )
 			</script>

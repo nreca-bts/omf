@@ -1,6 +1,6 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets
+import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
@@ -39,6 +39,13 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
 _omfDir = os.path.dirname(os.path.abspath(__file__))
+
+PASSWORD_DIGEST_SECRET_ENV = 'OMF_PASSWORD_DIGEST_KEY'
+PASSWORD_DIGEST_PREFIX = 'omf_pwd_v1$'
+PASSWORD_DIGEST_PBKDF2_ROUNDS = 200000
+PASSWORD_DIGEST_SALT_BYTES = 16
+PASSWORD_DIGEST_NONCE_BYTES = 16
+PASSWORD_DIGEST_TAG_BYTES = 32
 
 ###################################################
 # HELPER FUNCTIONS
@@ -125,6 +132,147 @@ def only_same_origin():
 ###################################################
 # AUTHENTICATION AND USER FUNCTIONS
 ###################################################
+
+
+def _get_password_digest_secret():
+	'''Return the password-digest encryption secret from runtime config, or None if encryption is disabled. '''
+	configured_secret = os.environ.get(PASSWORD_DIGEST_SECRET_ENV) or globals().get('PASSWORD_DIGEST_KEY')
+	if configured_secret:
+		return str(configured_secret).encode('utf-8')
+	return None
+
+
+def _password_digest_encryption_enabled():
+	return _get_password_digest_secret() is not None
+
+
+def _is_encrypted_password_digest(password_digest):
+	return isinstance(password_digest, str) and password_digest.startswith(PASSWORD_DIGEST_PREFIX)
+
+
+def _derive_password_digest_keys(salt):
+	secret = _get_password_digest_secret()
+	if secret is None:
+		raise ValueError('Password digest encryption secret is not configured.')
+	key_material = hashlib.pbkdf2_hmac(
+		'sha256',
+		secret,
+		salt,
+		PASSWORD_DIGEST_PBKDF2_ROUNDS,
+		dklen=64
+	)
+	return key_material[:32], key_material[32:]
+
+
+def _password_digest_keystream(enc_key, nonce, length):
+	stream = bytearray()
+	counter = 0
+	while len(stream) < length:
+		stream.extend(hmac.new(enc_key, nonce + counter.to_bytes(8, 'big'), hashlib.sha256).digest())
+		counter += 1
+	return bytes(stream[:length])
+
+
+def encrypt_password_digest(password_digest):
+	'''
+	Encrypt a stored password hash using an authenticated envelope built from PBKDF2-HMAC-SHA256 and HMAC-SHA256.
+	If no encryption secret is configured, the plaintext digest is returned unchanged.
+	'''
+	if not password_digest or _is_encrypted_password_digest(password_digest) or not _password_digest_encryption_enabled():
+		return password_digest
+	plaintext = str(password_digest).encode('utf-8')
+	salt = secrets.token_bytes(PASSWORD_DIGEST_SALT_BYTES)
+	nonce = secrets.token_bytes(PASSWORD_DIGEST_NONCE_BYTES)
+	enc_key, mac_key = _derive_password_digest_keys(salt)
+	keystream = _password_digest_keystream(enc_key, nonce, len(plaintext))
+	ciphertext = bytes(a ^ b for a, b in zip(plaintext, keystream))
+	payload = salt + nonce + ciphertext
+	tag = hmac.new(mac_key, payload, hashlib.sha256).digest()
+	return PASSWORD_DIGEST_PREFIX + base64.urlsafe_b64encode(payload + tag).decode('ascii')
+
+
+def decrypt_password_digest(password_digest):
+	'''Return the plaintext password hash from either a legacy plaintext value or an encrypted value. '''
+	if not password_digest or not _is_encrypted_password_digest(password_digest):
+		return password_digest
+	if not _password_digest_encryption_enabled():
+		raise ValueError('Encrypted password digest requires {} to be configured.'.format(PASSWORD_DIGEST_SECRET_ENV))
+	encoded_payload = password_digest[len(PASSWORD_DIGEST_PREFIX):].encode('ascii')
+	raw_payload = base64.urlsafe_b64decode(encoded_payload)
+	minimum_length = PASSWORD_DIGEST_SALT_BYTES + PASSWORD_DIGEST_NONCE_BYTES + PASSWORD_DIGEST_TAG_BYTES
+	if len(raw_payload) < minimum_length:
+		raise ValueError('Encrypted password digest is malformed.')
+	salt_end = PASSWORD_DIGEST_SALT_BYTES
+	nonce_end = salt_end + PASSWORD_DIGEST_NONCE_BYTES
+	tag_start = len(raw_payload) - PASSWORD_DIGEST_TAG_BYTES
+	salt = raw_payload[:salt_end]
+	nonce = raw_payload[salt_end:nonce_end]
+	ciphertext = raw_payload[nonce_end:tag_start]
+	tag = raw_payload[tag_start:]
+	enc_key, mac_key = _derive_password_digest_keys(salt)
+	expected_tag = hmac.new(mac_key, salt + nonce + ciphertext, hashlib.sha256).digest()
+	if not secrets.compare_digest(tag, expected_tag):
+		raise ValueError('Encrypted password digest failed integrity validation.')
+	keystream = _password_digest_keystream(enc_key, nonce, len(ciphertext))
+	plaintext = bytes(a ^ b for a, b in zip(ciphertext, keystream))
+	return plaintext.decode('utf-8')
+
+
+def verify_user_password(password, user_json):
+	'''Verify a login password against a legacy or encrypted stored password digest. '''
+	stored_digest = user_json.get('password_digest')
+	if not stored_digest:
+		return False
+	try:
+		return pbkdf2_sha512.verify(password, decrypt_password_digest(stored_digest))
+	except (TypeError, ValueError, UnicodeDecodeError, binascii.Error):
+		return False
+
+
+def set_user_password_digest(user_json, password):
+	'''Hash a password and store the resulting digest in encrypted form. '''
+	user_json['password_digest'] = encrypt_password_digest(pbkdf2_sha512.encrypt(password))
+
+
+def migrate_legacy_user_password_digests(usernames=None):
+	'''
+	Encrypt legacy plaintext password digests in data/User/*.json.
+	Pass a username string, an iterable of usernames, or leave usernames=None to migrate every user file.
+	Returns a summary dict with migrated, skipped, and failed usernames. If no secret is configured,
+	plaintext digests are left unchanged and reported as skipped.
+	'''
+	user_dir = os.path.join(_omfDir, 'data', 'User')
+	if usernames is None:
+		target_usernames = [filename[:-5] for filename in safeListdir(user_dir) if filename.endswith('.json')]
+	elif isinstance(usernames, str):
+		target_usernames = [usernames]
+	else:
+		target_usernames = list(usernames)
+	results = {'migrated': [], 'skipped': [], 'failed': []}
+	for username in target_usernames:
+		user_filepath = os.path.join(user_dir, username + '.json')
+		if not os.path.isfile(user_filepath):
+			results['failed'].append(username)
+			continue
+		try:
+			with locked_open(user_filepath) as f:
+				user_json = json.load(f)
+			stored_digest = user_json.get('password_digest')
+			if not stored_digest or _is_encrypted_password_digest(stored_digest):
+				results['skipped'].append(username)
+				continue
+			if not _password_digest_encryption_enabled():
+				results['skipped'].append(username)
+				continue
+			user_json['password_digest'] = encrypt_password_digest(stored_digest)
+			with locked_open(user_filepath, 'r+') as f:
+				f.seek(0)
+				f.truncate(0)
+				json.dump(user_json, f, indent=4)
+			results['migrated'].append(username)
+		except Exception:
+			results['failed'].append(username)
+	return results
 
 
 class User:
@@ -267,7 +415,7 @@ def login():
 			with locked_open(os.path.join(_omfDir, 'data', 'User', u)) as f:
 				userJson = json.load(f)
 			break
-	if userJson and pbkdf2_sha512.verify(password, userJson["password_digest"]):
+	if userJson and verify_user_password(password, userJson):
 		user = User(userJson)
 		flask_login.login_user(user, remember = remember == "on")
 	nextUrl = str(request.form.get("next","/") or "/")
@@ -342,7 +490,8 @@ def fastNewUser(email):
 		return "User with email {} already exists. Please log in or go back and use the 'Forgot Password' link. Or use a different email address.".format(email)
 	else:
 		randomPass = ''.join([random.choice('abcdefghijklmnopqrstuvwxyz') for x in range(15)])
-		user = {"username":email, "password_digest":pbkdf2_sha512.encrypt(randomPass)}
+		user = {"username":email}
+		set_user_password_digest(user, randomPass)
 		flask_login.login_user(User(user))
 		with locked_open(os.path.join(_omfDir, 'data', 'User', user['username'] + '.json'), 'w') as f:
 			json.dump(user, f, indent=4)
@@ -371,7 +520,7 @@ def register(email, reg_key):
 	password, confirm_password = map(request.form.get, ["password", "confirm_password"])
 	if password == confirm_password and request.form.get("legalAccepted","") == "on":
 		user["username"] = email
-		user["password_digest"] = pbkdf2_sha512.encrypt(password)
+		set_user_password_digest(user, password)
 		flask_login.login_user(User(user))
 		with locked_open(os.path.join(_omfDir, 'data', 'User', user['username'] + '.json'), 'w') as f: # Need 'w' mode to create new users? I would prefer r+ mode
 			json.dump(user, f, indent=4)
@@ -387,10 +536,11 @@ def changepwd():
 	user_filepath = os.path.join(_omfDir, 'data', 'User', User.cu() + '.json')
 	with locked_open(user_filepath) as f:
 		user = json.load(f)
-	if pbkdf2_sha512.verify(old_pwd, user["password_digest"]):
+	if verify_user_password(old_pwd, user):
 		if new_pwd == conf_pwd:
-			user["password_digest"] = pbkdf2_sha512.encrypt(new_pwd)
+			set_user_password_digest(user, new_pwd)
 			with locked_open(user_filepath, 'r+') as f:
+				f.seek(0)
 				f.truncate(0)
 				json.dump(user, f, indent=4)
 			return "Success"

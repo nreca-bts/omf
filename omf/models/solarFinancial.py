@@ -28,8 +28,9 @@ def work(modelDir, inputDict):
 	inv_eff = float( inputDict['inverterEfficiency'] )
 	rotlim = float( inputDict['rotlim'] )
 	tilt = float( inputDict['tilt'] )
+	systemSize = float(inputDict['systemSize'])
+	simStartDate = inputDict['simStartDate']
 	#Defaults
-	sys_cap = 750
 
 	derates = [
     float(inputDict.get("pvModuleDerate", 100)) / 100,
@@ -54,7 +55,7 @@ def work(modelDir, inputDict):
 						"losses": total_loss_percent,
 						"rotlim": rotlim,
 						"module_type": 2.0,
-						"system_capacity": sys_cap,
+						"system_capacity": systemSize,
 						"tilt": tilt,
 				},
 				"SolarResource": {
@@ -82,7 +83,7 @@ def work(modelDir, inputDict):
 		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
 		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
 		datetime_components_dict = {
-			'year': wind_data['Year'],
+			'year': simStartDate[0:4],
 			'month': wind_data['Month'],
 			'day': wind_data['Day'],
 			'hour': wind_data['Hour'],
