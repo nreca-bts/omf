@@ -47,22 +47,25 @@ PASSWORD_DIGEST_SALT_BYTES = 16
 PASSWORD_DIGEST_NONCE_BYTES = 16
 PASSWORD_DIGEST_TAG_BYTES = 32
 
+
 ###################################################
 # HELPER FUNCTIONS
 ###################################################
 
-def safeListdir(path):
+
+def _safe_list_dir(path):
 	''' Helper function that returns [] for dirs that don't exist. Otherwise new users can cause exceptions. '''
 	try: return [x for x in os.listdir(path) if not x.startswith(".")]
 	except:	return []
 
-def getDataNames():
+
+def _get_data_names():
 	''' Query the OMF datastore to get names of all objects.'''
 	try:
 		currUser = User.cu()
 	except:
 		currUser = "public"
-	climates = [x[:-5] for x in safeListdir("./data/Climate/")]
+	climates = [x[:-5] for x in _safe_list_dir("./data/Climate/")]
 	feeders = []
 	circuitFiles = []
 	for (dirpath, dirnames, filenames) in os.walk(os.path.join(_omfDir, "data","Model", currUser)):
@@ -86,12 +89,14 @@ def getDataNames():
 				publicFeeders.append({'name': fname[:-4], 'model': dirpath.split('/')[-1]})
 	return {"climates":sorted(climates), "feeders":feeders, "networks":networks, "publicFeeders":publicFeeders, "currentUser":currUser}
 
+
 ALLOWED_ORIGINS = {
 	"https://omf.coop",
 	"https://www.omf.coop",
 	"http://localhost:5001",
 	"http://127.0.0.1:5001"
 }
+
 
 def _is_same_origin():
 	origin = request.headers.get("Origin")
@@ -123,11 +128,13 @@ def _csrf_failure_response():
 		return jsonify(error='CSRF validation failed.'), 403
 	abort(403)
 
+
 @app.before_request
 def only_same_origin():
 	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
 		if not _is_same_origin():
 			abort(403)
+
 
 ###################################################
 # AUTHENTICATION AND USER FUNCTIONS
@@ -243,7 +250,7 @@ def migrate_legacy_user_password_digests(usernames=None):
 	'''
 	user_dir = os.path.join(_omfDir, 'data', 'User')
 	if usernames is None:
-		target_usernames = [filename[:-5] for filename in safeListdir(user_dir) if filename.endswith('.json')]
+		target_usernames = [filename[:-5] for filename in _safe_list_dir(user_dir) if filename.endswith('.json')]
 	elif isinstance(usernames, str):
 		target_usernames = [usernames]
 	else:
@@ -304,11 +311,13 @@ login_manager.init_app(app)
 login_manager.login_view = "login_page"
 app.secret_key = cryptoRandomString()
 
+
 def csrf_token():
 	'''Return the current session CSRF token, creating it if needed.'''
 	if '_csrf_token' not in session:
 		session['_csrf_token'] = secrets.token_urlsafe(32)
 	return session['_csrf_token']
+
 
 app.jinja_env.globals['csrf_token'] = csrf_token
 
@@ -338,6 +347,7 @@ def set_csrf_cookie(response):
 	)
 	return response
 
+
 def _send_email(recipient, subject, message):
 	c = boto3.client('ses', region_name='us-east-1')
 	email_content = {
@@ -349,6 +359,7 @@ def _send_email(recipient, subject, message):
 		}
 	}
 	c.send_email(**email_content)
+
 
 def send_link(email, message, u=None):
 	'''Send message to email using Amazon SES.'''
@@ -395,7 +406,7 @@ def _is_safe_url(target: str) -> bool:
 	return target.startswith('/') and not target.startswith('//')
 
 
-def safe_redirect(target: str):
+def _safe_redirect(target: str):
 	"""Redirect to target if safe, else fallback to '/'."""
 	if not _is_safe_url(target):
 		target = '/'
@@ -410,7 +421,7 @@ def login():
 	''' Authenticate a user and send them to the URL they requested. '''
 	username, password, remember = map(request.form.get, ["username", "password", "remember"])
 	userJson = None
-	for u in safeListdir(os.path.join(_omfDir, 'data', 'User')):
+	for u in _safe_list_dir(os.path.join(_omfDir, 'data', 'User')):
 		if u.lower() == username.lower() + ".json":
 			with locked_open(os.path.join(_omfDir, 'data', 'User', u)) as f:
 				userJson = json.load(f)
@@ -419,7 +430,7 @@ def login():
 		user = User(userJson)
 		flask_login.login_user(user, remember = remember == "on")
 	nextUrl = str(request.form.get("next","/") or "/")
-	return safe_redirect(nextUrl)
+	return _safe_redirect(nextUrl)
 
 
 @app.route("/login_page")
@@ -458,7 +469,7 @@ def deleteUser():
 def new_user():
 	email = request.form.get("email")
 	if email == "": return "EMPTY"
-	if email in [f[0:-5] for f in safeListdir(os.path.join(_omfDir, 'data', 'User'))]:
+	if email in [f[0:-5] for f in _safe_list_dir(os.path.join(_omfDir, 'data', 'User'))]:
 		with locked_open(os.path.join(_omfDir, 'data', 'User', email + '.json')) as f:
 			u = json.load(f)
 		if u.get("password_digest") or not request.form.get("resend"):
@@ -486,7 +497,7 @@ def forgotpwd(email):
 @app.route("/fastNewUser/<email>")
 def fastNewUser(email):
 	''' Create a new user, email them their password, and immediately create a new model for them.'''
-	if email in [f[0:-5] for f in safeListdir(os.path.join(_omfDir, 'data', 'User'))]:
+	if email in [f[0:-5] for f in _safe_list_dir(os.path.join(_omfDir, 'data', 'User'))]:
 		return "User with email {} already exists. Please log in or go back and use the 'Forgot Password' link. Or use a different email address.".format(email)
 	else:
 		randomPass = ''.join([random.choice('abcdefghijklmnopqrstuvwxyz') for x in range(15)])
@@ -498,7 +509,7 @@ def fastNewUser(email):
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
 		nextUrl = str(request.args.get("next","/") or "/")
-		return safe_redirect(nextUrl)
+		return _safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
@@ -556,7 +567,7 @@ def adminControls():
 	''' Render admin controls. '''
 	if User.cu() != "admin":
 		return redirect("/")
-	users = [{'username':f[0:-5]} for f in safeListdir(os.path.join(_omfDir, 'data', 'User')) if f not in ['admin.json', 'public.json']]
+	users = [{'username':f[0:-5]} for f in _safe_list_dir(os.path.join(_omfDir, 'data', 'User')) if f not in ['admin.json', 'public.json']]
 	for user in users:
 		with locked_open(os.path.join(_omfDir, 'data', 'User', user['username'] + '.json')) as f:
 			userDict = json.load(f)
@@ -673,7 +684,7 @@ def showModel(owner, modelName):
 	''' Render a model template with saved data. '''
 	modelType = get_model_metadata(owner, modelName).get('modelType', '')
 	thisModel = getattr(models, modelType)
-	return thisModel.renderTemplate(os.path.join(_omfDir, 'data', 'Model', owner, modelName), absolutePaths=False, datastoreNames=getDataNames())
+	return thisModel.renderTemplate(os.path.join(_omfDir, 'data', 'Model', owner, modelName), absolutePaths=False, datastoreNames=_get_data_names())
 
 
 @app.route("/newModel/<modelType>/<modelName>", methods=["POST","GET"])
@@ -685,6 +696,7 @@ def newModel(modelType, modelName):
 	thisModel = getattr(models, modelType)
 	thisModel.new(modelDir)
 	return redirect("/model/" + User.cu() + "/" + modelName)
+
 
 @app.route("/runModel/", methods=["POST"])
 @flask_login.login_required
@@ -906,7 +918,7 @@ def writeToInput(workDir, entry, key):
 @read_permission_function
 def feederGet(owner, modelName, feederNum):
 	''' Editing interface for feeders. '''
-	allData = getDataNames()
+	allData = _get_data_names()
 	yourFeeders = allData["feeders"]
 	publicFeeders = allData["publicFeeders"]
 	feederName = get_model_metadata(owner, modelName).get('feederName' + str(feederNum))
@@ -914,15 +926,15 @@ def feederGet(owner, modelName, feederNum):
 	return render_template(
 		"gridEdit.html", feeders=yourFeeders, publicFeeders=publicFeeders, modelName=modelName, feederName=feederName,
 		feederNum=feederNum, ref=request.referrer, is_admin=User.cu()=="admin", modelFeeder=False,
-		public=owner=="public", currUser=User.cu(), owner=owner
-	)
+		public=owner=="public", currUser=User.cu(), owner=owner)
+
 
 @app.route("/network/<owner>/<modelName>/<networkNum>")
 @flask_login.login_required
 @read_permission_function
 def networkGet(owner, modelName, networkNum):
 	''' Editing interface for networks. '''
-	allData = getDataNames()
+	allData = _get_data_names()
 	yourNetworks = allData["networks"]
 	publicNetworks = allData["networks"]
 	networkName = get_model_metadata(owner, modelName).get('networkName1')
@@ -954,7 +966,7 @@ def distribution_get(owner, modelName, feeder_num):
 		tests = helper.load_test_files(['spec_distNetVizInterface.js'])
 		jasmine = tests['jasmine']
 		spec = tests['spec']
-	all_data = getDataNames()
+	all_data = _get_data_names()
 	user_feeders = all_data['feeders']
 	# Must get rid of the 'u' for unicode strings before passing the strings to JavaScript
 	for dictionary in user_feeders:
@@ -970,8 +982,8 @@ def distribution_get(owner, modelName, feeder_num):
 	return render_template(
 		'distNetViz.html', thisFeederData=feeder, thisFeederName=feeder_name, thisFeederNum=feeder_num,
 		thisModelName=modelName, thisOwner=owner, components=component_json, jasmine=jasmine, spec=spec,
-		publicFeeders=public_feeders, userFeeders=user_feeders, showFileMenu=show_file_menu, currentUser=User.cu(), dssSchema=dssSchema
-	)
+		publicFeeders=public_feeders, userFeeders=user_feeders, showFileMenu=show_file_menu, currentUser=User.cu(), dssSchema=dssSchema)
+
 
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>/test')
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>')
@@ -993,7 +1005,7 @@ def distribution_text_get(owner, modelName, fileName):
 		tests = helper.load_test_files(['spec_distNetVizInterface.js'])
 		jasmine = tests['jasmine']
 		spec = tests['spec']
-	all_data = getDataNames()
+	all_data = _get_data_names()
 	user_files = all_data['feeders']
 	# Must get rid of the 'u' for unicode strings before passing the strings to JavaScript
 	for dictionary in user_files:
@@ -1004,8 +1016,7 @@ def distribution_text_get(owner, modelName, fileName):
 	return render_template(
 		'distText.html', thisFileData=file, thisFileName=fileName,
 		thisModelName=modelName, thisOwner=owner, jasmine=jasmine, spec=spec,
-		publicFiles=public_files, userFiles=user_files, showFileMenu=show_file_menu, currentUser=User.cu()
-	)
+		publicFiles=public_files, userFiles=user_files, showFileMenu=show_file_menu, currentUser=User.cu())
 
 
 @app.route("/getComponents/")
@@ -1059,7 +1070,7 @@ def milsoftImport(owner):
 	modelName = request.form.get("modelName","")
 	model_dir, error_filepath = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('', 'gridError.txt')]
 	# Delete exisitng .std and .seq, .glm files to not clutter model file
-	for filename in safeListdir(model_dir):
+	for filename in _safe_list_dir(model_dir):
 		if filename.endswith(".glm") or filename.endswith(".std") or filename.endswith(".seq"):
 			os.remove(os.path.join(model_dir, filename))
 	if os.path.isfile(error_filepath):
@@ -1069,12 +1080,12 @@ def milsoftImport(owner):
 	std_filepath, seq_filepath = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in (feederName + '.std', feederName + '.seq')]
 	request.files.get('stdFile').save(std_filepath)
 	request.files.get('seqFile').save(seq_filepath)
-	importProc = Process(target=milImportBackground, args=[owner, modelName, feederName, feederNum])
+	importProc = Process(target=_mil_import_background, args=[owner, modelName, feederName, feederNum])
 	importProc.start()
 	return 'Success'
 
 
-def milImportBackground(owner, modelName, feederName, feederNum):
+def _mil_import_background(owner, modelName, feederName, feederNum):
 	''' Function to run in the background for Milsoft import. '''
 	try:
 		std_filepath, seq_filepath, pid_filepath, feeder_filepath, model_dir, error_filepath = [
@@ -1118,7 +1129,7 @@ def matpowerImport(owner):
 	model_dir, con_file_path = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('', 'ZPID.txt')]
 	error_paths = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
 	# Delete existing .m files to not clutter model.
-	for filename in safeListdir(model_dir):
+	for filename in _safe_list_dir(model_dir):
 		if filename.endswith(".m"):
 			os.remove(os.path.join(model_dir, filename))
 	for error_path in error_paths:
@@ -1130,12 +1141,12 @@ def matpowerImport(owner):
 	networkNum = request.form.get("networkNum", 1)
 	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, networkName + '.m')
 	request.files['matFile'].save(network_filepath)
-	importProc = Process(target=matImportBackground, args=[owner, modelName, networkName, networkNum])
+	importProc = Process(target=_mat_import_background, args=[owner, modelName, networkName, networkNum])
 	importProc.start()
 	return 'Success'
 
 
-def matImportBackground(owner, modelName, networkName, networkNum):
+def _mat_import_background(owner, modelName, networkName, networkNum):
 	''' Function to run in the background for Matpower import. '''
 	try:
 		network_filepath, model_dir, pid_filepath = [
@@ -1157,6 +1168,7 @@ def matImportBackground(owner, modelName, networkName, networkNum):
 	except:
 		os.remove(pid_filepath)
 
+
 @app.route("/rawImport/<owner>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
@@ -1166,7 +1178,7 @@ def rawImport(owner):
 	model_dir, con_file_path = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('', 'ZPID.txt')]
 	error_paths = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
 	# Delete existing .raw and .m files to not clutter model.
-	for filename in safeListdir(model_dir):
+	for filename in _safe_list_dir(model_dir):
 		if filename.endswith(".raw") or filename.endswith(".m"):
 			os.remove(os.path.join(model_dir, filename))
 	for error_path in error_paths:
@@ -1178,11 +1190,12 @@ def rawImport(owner):
 	networkNum = request.form.get("networkNum", 1)
 	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'import.raw')
 	request.files['rawFile'].save(network_filepath)
-	importProc = Process(target=rawImportBackground, args=[owner, modelName, networkName, networkNum])
+	importProc = Process(target=_raw_import_background, args=[owner, modelName, networkName, networkNum])
 	importProc.start()
 	return 'Success'
 
-def rawImportBackground(owner, modelName, networkName, networkNum):
+
+def _raw_import_background(owner, modelName, networkName, networkNum):
 	''' Function to run in the background for Raw import. '''
 	try:
 		network_filepath, model_dir, pid_filepath = [
@@ -1207,6 +1220,7 @@ def rawImportBackground(owner, modelName, networkName, networkNum):
 	finally:
 		os.remove(pid_filepath)
 
+
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
@@ -1215,7 +1229,7 @@ def gridlabdImport(owner):
 	modelName = request.form.get("modelName","")
 	error_path, modelDir = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('gridError.txt', '')]
 	# Delete exisitng .std and .seq, .glm files to not clutter model file
-	for filename in safeListdir(modelDir):
+	for filename in _safe_list_dir(modelDir):
 		if filename.endswith(".glm") or filename.endswith(".std") or filename.endswith(".seq"):
 			os.remove(os.path.join(modelDir, filename))
 	if os.path.isfile(error_path):
@@ -1225,12 +1239,12 @@ def gridlabdImport(owner):
 	glm_path = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.glm')
 	request.files['glmFile'].save(glm_path)
 	feederNum = request.form.get("feederNum", 1)
-	importProc = Process(target=gridlabImportBackground, args=[owner, modelName, feederName, feederNum])
+	importProc = Process(target=_gridlab_import_background, args=[owner, modelName, feederName, feederNum])
 	importProc.start()
 	return 'Success'
 
 
-def gridlabImportBackground(owner, modelName, feederName, feederNum):
+def _gridlab_import_background(owner, modelName, feederName, feederNum):
 	''' Function to run in the background for Gridlabd import. '''
 	try:
 		feeder_path, glm_path, modelDir, pid_filepath = [
@@ -1266,7 +1280,7 @@ def dssImport(owner):
 	modelName = request.form.get("modelName","")
 	error_path, modelDir = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('gridError.txt', '')]
 	# Delete exisitng .std and .seq, .glm files to not clutter model file
-	for filename in safeListdir(modelDir):
+	for filename in _safe_list_dir(modelDir):
 		if filename.endswith(".dss"):
 			os.remove(os.path.join(modelDir, filename))
 	if os.path.isfile(error_path):
@@ -1275,12 +1289,12 @@ def dssImport(owner):
 	feederNum = request.form.get("feederNum", 1)
 	dss_path = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.dss')
 	request.files['dssFile'].save(dss_path)
-	importProc = Process(target=dssImportBackground, args=[owner, modelName, feederName, feederNum])
+	importProc = Process(target=_dss_import_background, args=[owner, modelName, feederName, feederNum])
 	importProc.start()
 	return 'Success'
 
 
-def dssImportBackground(owner, modelName, feederName, feederNum):
+def _dss_import_background(owner, modelName, feederName, feederNum):
 	''' Function to run in the background for OpenDSS import. '''
 	try:
 		feeder_path, dss_path, modelDir, pid_filepath = [
@@ -1332,12 +1346,12 @@ def scadaLoadshape(owner, feederName):
 	if not os.path.isdir(dirpath):
 		os.makedirs(dirpath)
 	# Run omf calibrate in background
-	importProc = Process(target=backgroundScadaLoadshape, args=[owner, modelName, feederName, loadName])
+	importProc = Process(target=_background_scada_loadshape, args=[owner, modelName, feederName, loadName])
 	importProc.start()
 	return 'Success'
 
 
-def backgroundScadaLoadshape(owner, modelName, feederName, loadName):
+def _background_scada_loadshape(owner, modelName, feederName, loadName):
 	# heavy lifting background process/omfCalibrate and then deletes PID file
 	try:
 		pid_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'CPID.txt')
@@ -1393,12 +1407,12 @@ def loadModelingAmi(owner, feederName):
 			os.remove(fp)
 	ami_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, loadName + '.csv')
 	request.files['amiFile'].save(ami_filepath)
-	importProc = Process(target=backgroundLoadModelingAmi, args=[owner, modelName, feederName, loadName])
+	importProc = Process(target=_background_load_modeling_ami, args=[owner, modelName, feederName, loadName])
 	importProc.start()
 	return 'Success'
 
 
-def backgroundLoadModelingAmi(owner, modelName, feederName, loadName):
+def _background_load_modeling_ami(owner, modelName, feederName, loadName):
 	try:
 		pid_filepath, ami_filepath, omdPath, outDir, error_filepath = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in 
 			['APID.txt', loadName + '.csv', feederName + '.omd', 'amiOutput', 'error.txt']
@@ -1428,12 +1442,12 @@ def cymeImport(owner):
 	mdb_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.mdb')
 	mdbFileObject.save(mdb_filepath)
 	print(mdbFileObject.filename)
-	importProc = Process(target=cymeImportBackground, args=[owner, modelName, feederNum, feederName])
+	importProc = Process(target=_cyme_import_background, args=[owner, modelName, feederNum, feederName])
 	importProc.start()
 	return 'Success'
 
 
-def cymeImportBackground(owner, modelName, feederNum, feederName):
+def _cyme_import_background(owner, modelName, feederNum, feederName):
 	''' Function to run in the background for Milsoft import. '''
 	try:
 		pid_filepath, error_filepath, mdb_filepath, feeder_filepath, modelDir = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in 
@@ -1514,6 +1528,7 @@ def newBlankFeeder(owner):
 	if request.form.get("referrer") == "distribution":
 		return redirect(url_for("distribution_get", owner=owner, modelName=modelName, feeder_num=feederNum))
 	return redirect(url_for('feederGet', owner=owner, modelName=modelName, feederNum=feederNum))
+
 
 # @app.route("/newBlankFile/<owner>", methods=["POST"])
 # @flask_login.login_required
@@ -1635,6 +1650,7 @@ def saveFeeder(owner, modelName, feederName, feederNum):
 			json.dump(payload, f, indent=4)
 	return 'Success'
 
+
 @app.route("/saveFile/<owner>/<modelName>/<fileName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
@@ -1731,6 +1747,7 @@ def renameNetwork(owner, modelName, oldName, networkName, networkNum):
 	writeToInput(model_dir, networkName, 'networkName' + str(networkNum))
 	return 'Success'
 
+
 def removeFeeder(owner, modelName, feederNum, feederName=None):
 	'''Remove a feeder from input data.'''
 	try:
@@ -1749,6 +1766,7 @@ def removeFeeder(owner, modelName, feederNum, feederName=None):
 	except:
 		return 'Failed'
 
+
 @app.route("/removeFeeder/<owner>/<modelName>/<feederNum>", methods=["GET", "POST"])
 @app.route("/removeFeeder/<owner>/<modelName>/<feederNum>/<feederName>", methods=["GET", "POST"])
 @flask_login.login_required
@@ -1756,6 +1774,7 @@ def removeFeeder(owner, modelName, feederNum, feederName=None):
 def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 	''' Remove feeder from web.'''
 	removeFeeder(owner, modelName, feederNum, feederName=None)
+
 
 @app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<feederNum>/<frUser>/<owner>", methods=["GET", "POST"])
 @flask_login.login_required
@@ -1780,6 +1799,7 @@ def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 	if request.form.get("referrer") == "distribution":
 		return redirect(url_for("distribution_get", owner=owner, modelName=modelName, feeder_num=feederNum))
 	return redirect(url_for('feederGet', owner=owner, modelName=modelName, feederNum=feederNum))
+
 
 @app.route("/loadFile/<frfileName>/<frmodelName>/<modelName>/<fileNum>/<frUser>/<owner>", methods=["GET", "POST"])
 @flask_login.login_required
@@ -1874,12 +1894,12 @@ def climateChange(owner, feederName):
 	zipCode = request.form.get('zipCode')
 	station = request.form.get("uscrnStation")
 	year_str = request.form.get("uscrnYear")
-	importProc = Process(target=backgroundClimateChange, args=[owner, model_name, feederName, importOption, zipCode, station, year_str])
+	importProc = Process(target=_background_climate_change, args=[owner, model_name, feederName, importOption, zipCode, station, year_str])
 	importProc.start()
 	return "Success"
 
 
-def backgroundClimateChange(owner, modelName, feederName, importOption, zipCode, station, year_str):
+def _background_climate_change(owner, modelName, feederName, importOption, zipCode, station, year_str):
 	try:
 		omdPath, pid_filepath, error_filepath = [
 			os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in [feederName + '.omd', 'WPID.txt', 'error.txt']
@@ -1947,12 +1967,12 @@ def anonymize(owner, feederName):
 	addNoise = request.form.get('addNoise')
 	scale = request.form.get('scale')
 	# start background process
-	importProc = Process(target=backgroundAnonymize, args=[modelDir, omdPath, owner, modelName, nameOption, locOption, new_center_coords, translationRight, translationUp, rotation, shufPerc, noisePerc, modifyLengthSize, smoothLoadGen, shuffleLoadGen, addNoise, scale])
+	importProc = Process(target=_background_anonymize, args=[modelDir, omdPath, owner, modelName, nameOption, locOption, new_center_coords, translationRight, translationUp, rotation, shufPerc, noisePerc, modifyLengthSize, smoothLoadGen, shuffleLoadGen, addNoise, scale])
 	importProc.start()
 	return 'Success'
 
 
-def backgroundAnonymize(modelDir, omdPath, owner, modelName, nameOption, locOption, new_center_coords, translationRight, translationUp, rotation, shufPerc, noisePerc, modifyLengthSize, smoothLoadGen, shuffleLoadGen, addNoise, scale):
+def _background_anonymize(modelDir, omdPath, owner, modelName, nameOption, locOption, new_center_coords, translationRight, translationUp, rotation, shufPerc, noisePerc, modifyLengthSize, smoothLoadGen, shuffleLoadGen, addNoise, scale):
 	try:
 		pid_filepath = os.path.join(_omfDir, "data/Model", owner, modelName, "NPID.txt")
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -2016,12 +2036,12 @@ def zillow_houses():
 	with locked_open(zpid_filepath, 'w'):
 		pass
 	triplex_objects = json.loads(request.form.get("triplexObjects"))
-	importProc = Process(target=background_zillow_houses, args=[model_dir, triplex_objects])
+	importProc = Process(target=_background_zillow_houses, args=[model_dir, triplex_objects])
 	importProc.start()
 	return ""
 
 
-def background_zillow_houses(model_dir, triplex_objects):
+def _background_zillow_houses(model_dir, triplex_objects):
 	try:
 		pid_filepath = os.path.join(model_dir, "ZPID.txt")
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -2085,7 +2105,7 @@ def anonymizeTran(owner, networkName):
 	noisePerc = request.form.get('noisePerc')
 	shuffleLoadGen = request.form.get('shuffleLoadGen')
 	addNoise = request.form.get('addNoise')
-	importProc = Process(target=backgroundAnonymizeTran, args = [modelDir, omtPath, nameOption, locOption, translationRight, translationUp, rotation, shufPerc, noisePerc, shuffleLoadGen, addNoise])
+	importProc = Process(target=_background_anonymizeTran, args = [modelDir, omtPath, nameOption, locOption, translationRight, translationUp, rotation, shufPerc, noisePerc, shuffleLoadGen, addNoise])
 	importProc.start()
 	pid = str(importProc.pid)
 	with locked_open(modelDir + '/TPPID.txt', 'w') as outFile:
@@ -2093,7 +2113,7 @@ def anonymizeTran(owner, networkName):
 	return 'Success'
 
 
-def backgroundAnonymizeTran(modelDir, omtPath, nameOption, locOption, translationRight, translationUp, rotation, shufPerc, noisePerc, shuffleLoadGen, addNoise):
+def _background_anonymizeTran(modelDir, omtPath, nameOption, locOption, translationRight, translationUp, rotation, shufPerc, noisePerc, shuffleLoadGen, addNoise):
 	with locked_open(omtPath, 'r') as inFile:
 		inNetwork = json.load(inFile)
 	# Name Options
@@ -2146,7 +2166,7 @@ def displayOmdMap(owner, modelName, feederNum):
 	components_collection = omf.geo.get_component_featurecollection()
 	componentsCollection = json.dumps(components_collection)
 	# - The csrf token is automatically passed to all template
-	all_data = getDataNames()
+	all_data = _get_data_names()
 	user_feeders = all_data['feeders']
 	# - Must get rid of the 'u' for unicode strings before passing the strings to JavaScript
 	for dictionary in user_feeders:
@@ -2185,6 +2205,7 @@ def omdToGeoJson(feederName, modelDir):
 		with locked_open(filepath, 'w') as errorFile:
 			errorFile.write(e)
 		os.remove(conFile)
+
 
 @app.route('/commsMap/<owner>/<modelName>/<feederNum>', methods=["GET"])
 @flask_login.login_required
@@ -2239,6 +2260,7 @@ def saveCommsMap(owner, modelName, feederName, feederNum):
 # OTHER FUNCTIONS
 ###################################################
 
+
 def _fast_input_scan(file_path):
 	# quickly get key info from input data.
 	keys = {'runTime':None, 'modelType':None, 'created':None}
@@ -2260,13 +2282,14 @@ def _fast_input_scan(file_path):
 		keys[key] = clean_val
 	return keys
 
+
 @app.route("/")
 @flask_login.login_required
 def root():
 	''' Render the home screen of the OMF. '''
 	# Gather object names.
-	publicModels = [{"owner":"public","name":x} for x in safeListdir("data/Model/public/")]
-	userModels = [{"owner":User.cu(), "name":x} for x in safeListdir("data/Model/" + User.cu())]
+	publicModels = [{"owner":"public","name":x} for x in _safe_list_dir("data/Model/public/")]
+	userModels = [{"owner":User.cu(), "name":x} for x in _safe_list_dir("data/Model/" + User.cu())]
 	allModels = publicModels + userModels
 	# Get models that have been shared with this user
 	filepath = os.path.join(_omfDir, "data/User", User.cu() + ".json")
@@ -2281,8 +2304,8 @@ def root():
 	# Allow admin to see all model instances.
 	isAdmin = User.cu() == "admin"
 	if isAdmin:
-		allModels = [{"owner":owner,"name":mod} for owner in safeListdir("data/Model/")
-			for mod in safeListdir("data/Model/" + owner)]
+		allModels = [{"owner":owner,"name":mod} for owner in _safe_list_dir("data/Model/")
+			for mod in _safe_list_dir("data/Model/" + owner)]
 	# Grab metadata for model instances.
 	for mod in allModels:
 		modPath = "data/Model/" + mod["owner"] + "/" + mod["name"]
@@ -2318,6 +2341,7 @@ def root():
 	modelNames.sort()
 	return render_template("home.html", models=allModels, current_user=User.cu(), is_admin=isAdmin, modelNames=modelNames, modelTips=modelTips)
 
+
 @app.route("/delete/<objectType>/<owner>/<objectName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
@@ -2351,6 +2375,7 @@ def downloadModelData(owner, modelName, fullPath):
 		shutil.make_archive(f'{dirPath}/{fileName}', 'zip', f'{dirPath}/{fileName}')
 		fileName =  pathPieces[-1] + '.zip'
 	return send_from_directory(dirPath, fileName)
+
 
 @app.route("/uniqObjName/<objtype>/<owner>/<name>")
 @app.route("/uniqObjName/<objtype>/<owner>/<name>/<modelName>")
@@ -2391,8 +2416,8 @@ if __name__ == "__main__":
 		os.environ['NO_PROXY'] = '*' # Workaround for above in python3.
 		import multiprocessing
 		multiprocessing.set_start_method('forkserver') # Workaround for new Catalina exec/fork behavior
-	template_files = ["templates/"+ x  for x in safeListdir("templates")]
-	model_files = ["models/" + x for x in safeListdir("models")]
+	template_files = ["templates/"+ x  for x in _safe_list_dir("templates")]
+	model_files = ["models/" + x for x in _safe_list_dir("models")]
 	print('App starting with gunicorn. Errors are going to omf.error.log.')
 	appProc = Popen(['gunicorn', '-w', '5', '-b', '0.0.0.0:5001', '--preload', 'web:app','--worker-class=sync', '--access-logfile', 'omf.access.log', '--error-logfile', 'omf.error.log', '--capture-output','--timeout=100'])
 	appProc.wait()
