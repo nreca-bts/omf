@@ -235,7 +235,7 @@ def new(modelDir):
 	defaultInputs = {
 		"user": "admin",
 		"load_type": "4",
-		"number_devices": "1",
+		"number_devices": "1000",
 		"power": "4.5",
 		"capacitance": "0.4",
 		"resistance": "230",

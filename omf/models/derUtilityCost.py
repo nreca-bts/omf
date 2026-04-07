@@ -1,5 +1,5 @@
 ''' Performs a cost-benefit analysis for a utility or cooperative member interested in 
-controlling behind-the-meter distributed energy resources (DERs).'''
+controlling behind-the-meter distributed energy resources (DERs). '''
 
 ## Python imports
 import warnings
@@ -20,30 +20,27 @@ from omf.models import vbatDispatch as vb
 from omf.solvers import reopt_jl
 
 ## Model metadata:
-tooltip = ('The derUtilityCost model evaluates the financial costs of controlling behind-the-meter '
-	'distributed energy resources (DERs) using the NREL Renewable Energy Optimization Tool (REopt) and '
-	'the OMF virtual battery dispatch module (vbatDispatch).')
+tooltip = ('Performs a cost-benefit analysis for a utility or cooperative member interested in controlling behind-the-meter distributed energy resources (DERs).')
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True ## Keep the model hidden=True during active development
 
-def calculate_fval(peak_demands, adjusted_peak_demands, DER_contribution):
+def calculate_fval(peak, adjusted_peak, DER_contribution):
 	""" 
 	Calculates linear scaling factor, Fval, to quantify the impact of DERs on the total peak demand savings when the peak is shifted by the contribution from DERs.
-	Fval is calculated as follows = (peak_demands - adjusted_peak_demands) / DER_contribution. Fval is set to zero except in cases where the DER_contribution is nonzero.
-	NOTE: See email with Lisa 9/3/2025 with the subject line "F_val validation calcs" for more explanation.
+	Fval is calculated as follows = (peak - adjusted_peak) / DER_contribution. Fval is set to zero in cases where the DER_contribution is zero.
 	
 	Inputs:
-	 - peak_demands (array): The peak demand (kW) or peak demand cost ($) for the demand curve without DERs.
-	 - adjusted_peak_demands (array): The adjusted peak demand (kW) or cost ($) for the demand curve with DERs.
-	 - DER_contribution: The contribution from all DERs at the location of the peak demand for the demand curve without DERs.
+	 - peak (array): The peak demand (e.g. kW) or peak demand cost ($) for the demand curve without DERs.
+	 - adjusted_peak (array): The adjusted peak demand (e.g. kW) or adjusted peak demand cost ($) for the demand curve including DERs.
+	 - DER_contribution (array): The contribution (in units of kW or $) from all DERs at the location of the peak demand for the demand curve without DERs.
 
 	Outputs:
 	 - fval (array): Returns an array of float values representing the scaling factor for each peak to be applied to each DER individually.
 	"""
 
-	numerator = peak_demands - adjusted_peak_demands
+	numerator = peak - adjusted_peak
 	denominator = DER_contribution
-	fval = np.zeros_like(peak_demands) ## Initialize monthly array for fval as all zeros
+	fval = np.zeros_like(peak) ## Initialize monthly array for fval as all zeros
 	nonzero_case = denominator != 0 ## If the DER contribution is nonzero, then calculate Fval
 	fval[nonzero_case] = numerator[nonzero_case] / denominator[nonzero_case]
 
@@ -55,19 +52,18 @@ def construct_monthly_demand_charge_array(response_file, timestamps, demand, mon
 	This function accounts for demand rate tiers on an hourly level (e.g. a weekday window of 2-8pm is charged at some $/kW rate, whereas a weekend window could be 5-10pm at a different $/kW rate, and so on).
 
 	Inputs:
-	- response_file (JSON): File generated from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new which contains information abou the TOU Energy Charges, TOU Demand Charges, and facility demand charges if applicable.
+	- response_file (dict): Dictionary representing the JSON output from the NREL REopt Custom Tariff Builder (requires a free account) https://reopt.nrel.gov/tool/custom_tariffs/new that contains information about the TOU Energy Charges, TOU Demand Charges, and facility demand charges, if applicable.
 	- timestamps (array, length 8760): Hourly timestamps for the year used to identify the proper weekdays and weekends when building the rate schedules.
-	- demand (array, length 8760): The hourly demand curve (kW) of the utility for the entire year.
-	- monthHours (list of tuples, length 12): A list of tuples defining the beginning hour index number and end hour index number for each month. For example, January would have monthHours=[(0,744)] where January 1 00:00:00 has index number 0 and January 31 23:59:00 has the index number 744. The monthHours is used to define the limits of each month in which to calculate the maximum peak kW.
+	- demand (array, length 8760): The hourly utility demand curve (kW) for the entire year.
+	- monthHours (list of tuples, length 12): A list of tuples defining the beginning hour index number and end hour index number for each month. For example, January would have monthHours=[(0,744)] where January 1 00:00:00 has index number 0 and January 31 23:59:00 has the index number 744. The monthHours is used to define the limits of each month in which to calculate the maximum monthly peak kW.
 
-	Returns:
+	Outputs:
 	- monthly_demand_charge (array of length 12, units: $/kW): The monthly demand charges ($/kW) for an entire year.
 	- monthly_demand_charge_cost (array of length 12, units: $): The resulting monthly cost ($) from the monthly demand charge ($/kW) x monthly peak demand (kW).
 	- monthly_demand_peak_kw (array of length 12, units: kW): The peak kW for each month.
 	- period_max_dollar_indices (list of lists, e.g. [[index of max $ in rate window 1, max $ of rate window 1, rate ($/kW) of window 1],[index of max $ of window 2, max $ of window 2, rate ($/kW) of window 2], etc]). 
 		where 'index of max $' is the index of the max (demand kW * rate $/kW = $ amount) for each window (consecutive 1's or 2's or whatever the rate period is, as defined in the JSON response file demandrateschedule), 
-		the 'max $ of the rate window' is the actual dollar amount corresponding to that index,
-		and the 'rate ($/kW) of the window' is the rate ($/kW) corresponding to that period window from which the maximum $ amount was determined.
+		the 'max $ of the rate window' is the actual dollar amount corresponding to that index, and the 'rate ($/kW) of the window' is the rate ($/kW) corresponding to that period window from which the maximum $ amount was determined.
 	"""
 
 	## --- Demand Rate Construction ---
@@ -151,10 +147,14 @@ def adjust_charging_and_discharging(df, priority_order, available_priority_tech)
 	"""
 	Adjusts the charging and discharging arrays for TESS technologies that compete for charge time.
 	When two or more TESS technologies compete for charge time at a given hour, the highest priority tech will prevail. All other low priority tech will have the charge (kW) set to zero, and subsequent discharge will be removed to reflect the amount of charge that was removed.
+
 	Inputs:
 	- df (dataFrame): Contains the hourly charging, discharging, and total power columns for each TESS technology for an entire year.
 	- priority_order (dict): Priority order mapping between the tech name and the priority number with 0 corresponding to the highest priority technology (e.g. {vbatResults_wh_charging: 0, vbatResults_ac_charging: 1}).
 
+	Outputs:
+	- df (dataFrame): Contains the adjusted hourly charging, discharging, and total power for each TESS technology based on the charge priorization scheme.
+	
 	"""
 	for index in df.index:
 		competing_technologies = [tech for tech in available_priority_tech if df.at[index, tech] > 0]
@@ -234,7 +234,7 @@ def work(modelDir, inputDict):
 	## Convert user provided demand and temperature data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
-	temperatures_degC = [float(value)-32.0 * 5/9 for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
+	temperatures_degC = [(float(value)-32.0)/(9/5) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
 	demand[demand == -0.0] = 0.0 ## avoid sign errors
 	
@@ -371,9 +371,6 @@ def work(modelDir, inputDict):
 			'longitude': longitude
 		},
 		'ElectricTariff': {
-			#'urdb_label': urdbLabel,
-			#'urdb_response': response_file,
-			#'tou_energy_rates_per_kwh': energy_rate_array.tolist(), ## This method produced some issues with REopt (e.g. no generator was present in the outputs)
 			'add_tou_energy_rates_to_urdb_rate': True
 		},
 		'ElectricLoad': {
@@ -509,17 +506,16 @@ def work(modelDir, inputDict):
 	single_device_results = {} 
 	for suffix in thermal_suffixes:
 		## Include only the thermal devices specified by the user
-		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: If thermal tech is not enabled by the user, the load_type_X variable will be set to 0
+		if float(inputDict['load_type'+suffix]) > 0: ## NOTE: The load_type_X variable will be 0 if the user has disabled that technology
 			all_device_suffixes.append(suffix)
 
 			## Add the appropriate thermal device variables to the inputDict_vbatDispatch dictionary
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
 
-			## Create a model subdirectory for each thermal device and store the vbatDispatch results there
-			#newDir = pJoin(modelDir,'vbatDispatch_results'+suffix)
-			#os.makedirs(newDir, exist_ok=True)
-			#os.chdir(newDir) ##jump into the newly created subdirectory
+			## Convert setpoint and deadband from Fahrenheit to Celsius
+			inputDict_vbatDispatch['setpoint'] = str((float(inputDict_vbatDispatch['setpoint'])-32.0)/(9/5))
+			inputDict_vbatDispatch['deadband'] = str(float(inputDict_vbatDispatch['deadband'])/1.8)
 
 			## Save the vbatDispatch inputs
 			with open(pJoin(modelDir, 'vbatDispatch_inputs'+suffix+'.json'), 'w') as jsonFile:
@@ -549,14 +545,12 @@ def work(modelDir, inputDict):
 			## Store the results in all_device_results dictionary
 			single_device_results['vbatResults'+suffix] = vbatResults
 
-			## Go back to the main derUtilityCost model directory and continue on
-			#os.chdir(modelDir)
-	
-
 	########################################################################################################################
-	## Enact prioritization of TESS devices when there is competition for charge time 
-	## NOTE: Competing charge of TESS technologies can potentially cause a higher, more expensive monthly peak demand.
-	## The TESS results are decoupled from each other, since each technology is ran separately with omf.models.vbatDispatch.
+	## Enact charge prioritization of TESS devices when there is competition for charge time
+	## NOTE: This is hard-coded for the following TESS tech priority order: WH > AC > HP
+	## NOTE: This prioritization is meant to account for the TESS tech competing for charge time (due to the decoupled 
+	## nature of vbatDispatch runs, where only one kind of thermal tech can be specified in a given run. This can create a 
+	## larger, more expensive peak demand when 2+ thermal technologies want to charge at the same time.
 	########################################################################################################################
 	vbat_power_df = pd.DataFrame(index=None)
 	charging_devices = []
@@ -572,17 +566,15 @@ def work(modelDir, inputDict):
 		vbat_power_df[device_name + '_charging'] = charge_component.replace(-0.0, 0.0)
 		vbat_power_df[device_name + '_discharging'] = discharge_component
 		charging_devices.append(device_name + '_charging') ## record the names of the TESS technologies that will be charging
-
-	#vbat_power_df_copy = vbat_power_df.copy(deep=True) ## Verify this copy with the adjusted df below to ensure prioritization is working
-	
-	priority_tech = ['vbatResults_wh_charging', 'vbatResults_ac_charging', 'vbatResults_hp_charging'] ## This is hard-coded for the TESS tech priority order (WH > AC > HP). TODO: allow the user to specify their own priority order in the future
-	available_priority_tech = [tech for tech in priority_tech if tech in charging_devices] ## Among the TESS devices available to charge, sort the devices according to the priority order.
+		
+	## Among the TESS devices available to charge, sort the devices according to the priority order.
+	priority_tech = ['vbatResults_wh_charging', 'vbatResults_ac_charging', 'vbatResults_hp_charging'] 
+	available_priority_tech = [tech for tech in priority_tech if tech in charging_devices]
 
 	## Create a priority order mapping between the tech name (str) and an integer (0,1,2) so Python can work with it
 	priority_order = {key: i for i, key in enumerate(priority_tech)}
 
 	## The adjusted dataframe for all TESS technolgies based on the priority charging order
-	## NOTE: This method is used to account for the TESS tech creating new, expensive peak demands due to decoupled thermal technologies charging at the same time.
 	adjusted_vbat_power_df = adjust_charging_and_discharging(vbat_power_df, priority_order, available_priority_tech)
 
 	########################################################################################################################
@@ -1606,7 +1598,7 @@ def new(modelDir):
 		'created': str(datetime.datetime.now()),
 
 		## General Model Inputs:
-		'set_random_numbers': 'Yes',
+		'set_random_numbers': 'No',
 		'randomNumbersFileName': 'water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
 		'random_seed_PuLP_ac': '2581590327', #max=10000000000
@@ -1671,8 +1663,8 @@ def new(modelDir):
 		'capacitance_ac': '2',
 		'resistance_ac': '2',
 		'cop_ac': '2.5',
-		'setpoint_ac': '22.5',
-		'deadband_ac': '0.625',
+		'setpoint_ac': '72.5',
+		'deadband_ac': '2',
 
 		## Home Heat Pump inputs (for vbatDispatch):
 		'load_type_hp': '2', 
@@ -1681,8 +1673,8 @@ def new(modelDir):
 		'capacitance_hp': '2',
 		'resistance_hp': '2',
 		'cop_hp': '3.5',
-		'setpoint_hp': '19.5',
-		'deadband_hp': '0.625',
+		'setpoint_hp': '65',
+		'deadband_hp': '2',
 
 		## Home Water Heater inputs (for vbatDispatch):
 		'load_type_wh': '4', 
@@ -1691,8 +1683,8 @@ def new(modelDir):
 		'capacitance_wh': '0.4',
 		'resistance_wh': '120',
 		'cop_wh': '1',
-		'setpoint_wh': '48.5',
-		'deadband_wh': '3',
+		'setpoint_wh': '125.0', 
+		'deadband_wh': '5.4',
 	}
 	
 	return __neoMetaModel__.new(modelDir, defaultInputs)
