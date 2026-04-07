@@ -643,7 +643,7 @@ def read_permission_function(func):
 
 def _is_authorized_model_viewer(owner, model_name):
 	"""Return True if the current user is authorized to view the specified model, else False."""
-	model_metadata = get_model_metadata(owner, model_name)
+	model_metadata = _get_model_metadata(owner, model_name)
 	authorized_viewers = model_metadata.get("viewers")
 	if authorized_viewers is not None and User.cu() in authorized_viewers:
 		return True
@@ -682,7 +682,7 @@ def write_permission_function(func):
 @read_permission_function
 def showModel(owner, modelName):
 	''' Render a model template with saved data. '''
-	modelType = get_model_metadata(owner, modelName).get('modelType', '')
+	modelType = _get_model_metadata(owner, modelName).get('modelType', '')
 	thisModel = getattr(models, modelType)
 	return thisModel.renderTemplate(os.path.join(_omfDir, 'data', 'Model', owner, modelName), absolutePaths=False, datastoreNames=_get_data_names())
 
@@ -795,7 +795,7 @@ def shareModel():
 	if status == 'running':
 		return ("The model cannot be shared while it is running. Please wait until the model finishes running.", 409)
 	# Load the list of old viewers
-	model_metadata = get_model_metadata(owner, model_name)
+	model_metadata = _get_model_metadata(owner, model_name)
 	old_viewers = model_metadata.get("viewers")
 	# If there are no new emails to add, and there are no old emails to remove, don't do anything
 	if emails is not None or old_viewers is not None:
@@ -811,17 +811,17 @@ def shareModel():
 		if old_viewers is not None:
 			for v in old_viewers:
 				if emails is None or v not in emails:
-					revoke_viewership(owner, model_name, v)
+					_revoke_viewership(owner, model_name, v)
 		# All viewers who were newly granted access to this model must have their JSON file updated
 		if emails is not None:
 			for e in emails:
-				grant_viewership(owner, model_name, e)
+				_grant_viewership(owner, model_name, e)
 	response = jsonify(emails)
 	response.status_code = 200
 	return response
 
 
-def revoke_viewership(owner, model_name, username):
+def _revoke_viewership(owner, model_name, username):
 	"""Given a model named <model_name> of <owner>, revoke the ability of <username> to view the model in the dashboard"""
 	filepath = os.path.join(_omfDir, 'data', 'User', username + ".json")
 	if os.path.isfile(filepath):
@@ -841,7 +841,7 @@ def revoke_viewership(owner, model_name, username):
 					json.dump(viewer_metadata, f)
 
 
-def grant_viewership(owner, model_name, username):
+def _grant_viewership(owner, model_name, username):
 	filepath = os.path.join(_omfDir, 'data', 'User', username + '.json')
 	if os.path.isfile(filepath):
 		with locked_open(filepath) as f:
@@ -859,7 +859,7 @@ def grant_viewership(owner, model_name, username):
 				json.dump(viewer_metadata, f, indent=4)
 
 
-def get_model_metadata(owner, model_name):
+def _get_model_metadata(owner, model_name):
 	filepath = os.path.join(_omfDir, "data/Model", owner, model_name, "allInputData.json")
 	with locked_open(filepath) as f:
 		model_metadata = json.load(f)
@@ -901,7 +901,7 @@ def locked_open(filepath, mode='r', timeout=180, **io_open_args):
 ###################################################
 
 
-def writeToInput(workDir, entry, key):
+def _write_to_input(workDir, entry, key):
 	try:
 		with locked_open(os.path.join(workDir, 'allInputData.json'), 'r+') as f:
 			allInput = json.load(f)
@@ -921,7 +921,7 @@ def feederGet(owner, modelName, feederNum):
 	allData = _get_data_names()
 	yourFeeders = allData["feeders"]
 	publicFeeders = allData["publicFeeders"]
-	feederName = get_model_metadata(owner, modelName).get('feederName' + str(feederNum))
+	feederName = _get_model_metadata(owner, modelName).get('feederName' + str(feederNum))
 	# MAYBEFIX: fix modelFeeder
 	return render_template(
 		"gridEdit.html", feeders=yourFeeders, publicFeeders=publicFeeders, modelName=modelName, feederName=feederName,
@@ -937,7 +937,7 @@ def networkGet(owner, modelName, networkNum):
 	allData = _get_data_names()
 	yourNetworks = allData["networks"]
 	publicNetworks = allData["networks"]
-	networkName = get_model_metadata(owner, modelName).get('networkName1')
+	networkName = _get_model_metadata(owner, modelName).get('networkName1')
 	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, networkName + '.omt')
 	with locked_open(network_filepath) as f:
 		data = json.load(f)
@@ -954,7 +954,7 @@ def networkGet(owner, modelName, networkNum):
 @read_permission_function
 def distribution_get(owner, modelName, feeder_num):
 	'''Render the editing interface for distribution networks.'''
-	feeder_dict = get_model_metadata(owner, modelName)
+	feeder_dict = _get_model_metadata(owner, modelName)
 	feeder_name = feeder_dict.get('feederName' + str(feeder_num))
 	feeder_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feeder_name + '.omd')
 	with locked_open(feeder_filepath) as f:
@@ -1113,8 +1113,8 @@ def _mil_import_background(owner, modelName, feederName, feederNum):
 			with locked_open(error_filepath, 'w') as errorFile:
 				errorFile.write('milError')
 		os.remove(pid_filepath)
-		removeFeeder(owner, modelName, feederNum)
-		writeToInput(model_dir, feederName, 'feederName' + str(feederNum))
+		_remove_feeder(owner, modelName, feederNum)
+		_write_to_input(model_dir, feederName, 'feederName' + str(feederNum))
 	except Exception: 
 		with locked_open(error_filepath, 'w') as errorFile:
 			errorFile.write("milError")
@@ -1159,7 +1159,7 @@ def _mat_import_background(owner, modelName, networkName, networkNum):
 		os.rename(network_filepath, os.path.join(model_dir, networkName + '.omt'))
 		os.remove(pid_filepath)
 		removeNetwork(owner, modelName, networkNum)
-		writeToInput(model_dir, networkName, 'networkName' + str(networkNum))
+		_write_to_input(model_dir, networkName, 'networkName' + str(networkNum))
 	except ValueError:
 		filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'matError.txt')
 		with locked_open(filepath, 'w') as errorFile:
@@ -1208,7 +1208,7 @@ def _raw_import_background(owner, modelName, networkName, networkNum):
 		os.rename(network_filepath, os.path.join(model_dir, networkName + '.omt'))
 		os.remove(pid_filepath)
 		removeNetwork(owner, modelName, networkNum)
-		writeToInput(model_dir, networkName, 'networkName' + str(networkNum))
+		_write_to_input(model_dir, networkName, 'networkName' + str(networkNum))
 	except ValueError:
 		filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'rawError.txt')
 		with locked_open(filepath, 'w') as errorFile:
@@ -1264,8 +1264,8 @@ def _gridlab_import_background(owner, modelName, feederName, feederNum):
 		with locked_open(feeder_path, 'w') as f: # Use 'w' mode because we're creating a new .omd file according to feederName
 			json.dump(newFeeder, f, indent=4)
 		os.remove(pid_filepath)
-		removeFeeder(owner, modelName, feederNum)
-		writeToInput(modelDir, feederName, 'feederName' + str(feederNum))
+		_remove_feeder(owner, modelName, feederNum)
+		_write_to_input(modelDir, feederName, 'feederName' + str(feederNum))
 	except Exception: 
 		filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'gridError.txt')
 		with locked_open(filepath, 'w') as errorFile:
@@ -1313,14 +1313,14 @@ def _dss_import_background(owner, modelName, feederName, feederNum):
 			json.dump(newFeeder, f, indent=4)
 		os.remove(pid_filepath)
 		# Remove a feeder from input data.
-		allInput = get_model_metadata(owner, modelName)
+		allInput = _get_model_metadata(owner, modelName)
 		oldFeederName = str(allInput.get('feederName'+str(feederNum)))
 		os.remove(os.path.join(modelDir, oldFeederName +'.omd'))
 		allInput.pop("feederName" + str(feederNum))
 		with locked_open(os.path.join(modelDir, 'allInputData.json'), 'r+') as f:
 			f.truncate(0)
 			json.dump(allInput, f, indent=4)
-		writeToInput(modelDir, feederName, 'feederName' + str(feederNum))
+		_write_to_input(modelDir, feederName, 'feederName' + str(feederNum))
 	except Exception: 
 		filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'gridError.txt')
 		with locked_open(filepath, 'w') as errorFile:
@@ -1463,8 +1463,8 @@ def _cyme_import_background(owner, modelName, feederNum, feederName):
 		with locked_open(feeder_filepath, 'w') as f: 
 			json.dump(newFeeder, f, indent=4)
 		os.remove(pid_filepath)
-		removeFeeder(owner, modelName, feederNum) # remove the old feeder file that had the same feeder number
-		writeToInput(modelDir, feederName, 'feederName' + str(feederNum))
+		_remove_feeder(owner, modelName, feederNum) # remove the old feeder file that had the same feeder number
+		_write_to_input(modelDir, feederName, 'feederName' + str(feederNum))
 	except Exception:
 		with locked_open(error_filepath, 'w') as errorFile:
 			errorFile.write('cymeError')
@@ -1485,7 +1485,7 @@ def newSimpleFeeder(owner, modelName, feederNum=1, writeInput=False, feederName=
 		else:
 			feederName = 'feeder' + str(i)
 	if writeInput:
-		writeToInput(modelDir, feederName, 'feederName' + str(feederNum))
+		_write_to_input(modelDir, feederName, 'feederName' + str(feederNum))
 	return 'Success'
 
 
@@ -1504,7 +1504,7 @@ def newSimpleNetwork(owner, modelName, networkNum=1, writeInput=False, networkNa
 		else:
 			networkName = 'network' + str(i)
 	if writeInput:
-		writeToInput(modelDir, networkName, 'networkName' + str(networkNum))
+		_write_to_input(modelDir, networkName, 'networkName' + str(networkNum))
 	return 'Success'
 
 
@@ -1522,9 +1522,9 @@ def newBlankFeeder(owner):
 		os.remove("data/Model/"+owner+"/"+modelName+'/' + "ZPID.txt")
 		print("removed, ", ("data/Model/"+owner+"/"+modelName+'/' + "ZPID.txt"))
 	except: pass
-	removeFeeder(owner, modelName, feederNum)
+	_remove_feeder(owner, modelName, feederNum)
 	newSimpleFeeder(owner, modelName, feederNum, False, feederName)
-	writeToInput(modelDir, feederName, 'feederName'+str(feederNum))
+	_write_to_input(modelDir, feederName, 'feederName'+str(feederNum))
 	if request.form.get("referrer") == "distribution":
 		return redirect(url_for("distribution_get", owner=owner, modelName=modelName, feeder_num=feederNum))
 	return redirect(url_for('feederGet', owner=owner, modelName=modelName, feederNum=feederNum))
@@ -1544,12 +1544,12 @@ def newBlankFeeder(owner):
 # 		os.remove("data/Model/"+owner+"/"+modelName+'/' + "ZPID.txt")
 # 		print("removed, ", ("data/Model/"+owner+"/"+modelName+'/' + "ZPID.txt"))
 # 	except: pass
-# 	removeFeeder(owner, modelName, feederNum)
+# 	_remove_feeder(owner, modelName, feederNum)
 # 	removeFile(owner, modelName, fileNum)
 # 	newSimpleFeeder(owner, modelName, feederNum, False, feederName)
 # 	newSimpleFile(owner, modelName, fileNum, False, fileName)
-# 	writeToInput(modelDir, feederName, 'feederName'+str(feederNum))
-# 	writeToInput(modelDir, fileName, 'feederName'+str(fileNum))
+# 	_write_to_input(modelDir, feederName, 'feederName'+str(feederNum))
+# 	_write_to_input(modelDir, fileName, 'feederName'+str(fileNum))
 # 	if request.form.get("referrer") == "distribution":
 # 		return redirect(url_for("distribution_text_get", owner=owner, modelName=modelName, file_num=fileNum))
 # 	return redirect(url_for('fileGet', owner=owner, modelName=modelName, feederNum=feederNum))
@@ -1571,7 +1571,7 @@ def newBlankNetwork(owner):
 	except: pass
 	removeNetwork(owner, modelName, networkNum)
 	newSimpleNetwork(owner, modelName, networkNum, False, networkName)
-	writeToInput(modelDir, networkName, 'networkName'+str(networkNum))
+	_write_to_input(modelDir, networkName, 'networkName'+str(networkNum))
 	return redirect(url_for('networkGet', owner=owner, modelName=modelName, networkNum=networkNum))
 
 
@@ -1635,7 +1635,7 @@ def saveFeeder(owner, modelName, feederName, feederNum):
 					pass
 				else:
 					raise
-	writeToInput(model_dir, feederName, 'feederName' + str(feederNum))
+	_write_to_input(model_dir, feederName, 'feederName' + str(feederNum))
 	payload = json.loads(request.form.get('feederObjectJson', '{}'))
 	if isinstance(payload, dict) and payload.get('type') == 'FeatureCollection':
 		payload = omf.geo.convert_featurecollection_to_omd(payload)
@@ -1688,7 +1688,7 @@ def saveFile(owner, modelName, fileName):
 					pass
 				else:
 					raise
-	writeToInput(model_dir, fileName, 'circuitFileNameDSS') # TODO: Incorporate other files, not just dss
+	_write_to_input(model_dir, fileName, 'circuitFileNameDSS') # TODO: Incorporate other files, not just dss
 	payload = request.form.get('fileContents', '')
 	file_file = os.path.join(model_dir, fileName)
 	if os.path.isfile(file_file):
@@ -1728,7 +1728,7 @@ def renameFeeder(owner, modelName, oldName, newName, feederNum):
 		return "Failure"
 	with locked_open(old_feeder_filepath, 'r+'):
 		os.rename(old_feeder_filepath, new_feeder_filepath)
-	writeToInput(model_dir_path, newName, 'feederName' + str(feederNum))
+	_write_to_input(model_dir_path, newName, 'feederName' + str(feederNum))
 	return 'Success'
 
 
@@ -1744,20 +1744,20 @@ def renameNetwork(owner, modelName, oldName, networkName, networkNum):
 		return "Failure"
 	with locked_open(old_network_filepath, 'r+'):
 		os.rename(old_network_filepath, new_network_filepath)
-	writeToInput(model_dir, networkName, 'networkName' + str(networkNum))
+	_write_to_input(model_dir, networkName, 'networkName' + str(networkNum))
 	return 'Success'
 
 
-def removeFeeder(owner, modelName, feederNum, feederName=None):
+def _remove_feeder(owner, modelName, feederNum, feederName=None):
 	'''Remove a feeder from input data.'''
 	try:
-		allInput = get_model_metadata(owner, modelName)
+		allInput = _get_model_metadata(owner, modelName)
 		modelDir = os.path.join(_omfDir, 'data', 'Model', owner, modelName)
 		try:
 			feederName = str(allInput.get('feederName'+str(feederNum)))
 			os.remove(os.path.join(modelDir, feederName +'.omd'))
 		except: 
-			print("Couldn't remove feeder file in web.removeFeeder().")
+			print("Couldn't remove feeder file in web._remove_feeder().")
 		allInput.pop("feederName" + str(feederNum))
 		with locked_open(os.path.join(modelDir, 'allInputData.json'), 'r+') as f:
 			f.truncate(0)
@@ -1767,13 +1767,13 @@ def removeFeeder(owner, modelName, feederNum, feederName=None):
 		return 'Failed'
 
 
-@app.route("/removeFeeder/<owner>/<modelName>/<feederNum>", methods=["GET", "POST"])
-@app.route("/removeFeeder/<owner>/<modelName>/<feederNum>/<feederName>", methods=["GET", "POST"])
+@app.route("/_remove_feeder/<owner>/<modelName>/<feederNum>", methods=["GET", "POST"])
+@app.route("/_remove_feeder/<owner>/<modelName>/<feederNum>/<feederName>", methods=["GET", "POST"])
 @flask_login.login_required
 @write_permission_function
-def removeFeederRequest(owner, modelName, feederNum, feederName=None):
+def _remove_feederRequest(owner, modelName, feederNum, feederName=None):
 	''' Remove feeder from web.'''
-	removeFeeder(owner, modelName, feederNum, feederName=None)
+	_remove_feeder(owner, modelName, feederNum, feederName=None)
 
 
 @app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<feederNum>/<frUser>/<owner>", methods=["GET", "POST"])
@@ -1792,7 +1792,7 @@ def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 	with locked_open(os.path.join(frmodelDir, frfeederName + '.omd')) as inFeeder:
 		feeder_string = inFeeder.read()
 	modelDir = os.path.join(_omfDir, 'data/Model', owner, modelName)
-	feederName = get_model_metadata(owner, modelName).get('feederName' + str(feederNum))
+	feederName = _get_model_metadata(owner, modelName).get('feederName' + str(feederNum))
 	with locked_open(os.path.join(modelDir, feederName + '.omd'), 'r+') as outFile:
 		outFile.truncate(0)
 		outFile.write(feeder_string)
@@ -1818,7 +1818,7 @@ def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 	with locked_open(os.path.join(frmodelDir, frfileName)) as inFile:
 		file_string = inFile.read()
 	modelDir = os.path.join(_omfDir, 'data/Model', owner, modelName)
-	fileName = get_model_metadata(owner, modelName).get('fileName' + str(fileNum))
+	fileName = _get_model_metadata(owner, modelName).get('fileName' + str(fileNum))
 	# with locked_open(os.path.join(modelDir, fileName + '.dss'), 'r+') as outFile:
 	with locked_open(os.path.join(modelDir, fileName), 'r+') as outFile:
 		outFile.truncate(0)
@@ -1834,7 +1834,7 @@ def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 @write_permission_function
 def cleanUpFeeders(owner, modelName):
 	'''Go through allInputData and fix feeder Name keys'''
-	allInput = get_model_metadata(owner, modelName)
+	allInput = _get_model_metadata(owner, modelName)
 	feeders = {}
 	feederKeys = ['feederName1', 'feederName2', 'feederName3', 'feederName4', 'feederName5']
 	import pprint as pprint
@@ -1861,7 +1861,7 @@ def cleanUpFeeders(owner, modelName):
 def removeNetwork(owner, modelName, networkNum, networkName=None):
 	'''Remove a network from input data.'''
 	try:
-		allInput = get_model_metadata(owner, modelName)
+		allInput = _get_model_metadata(owner, modelName)
 		modelDir = os.path.join(_omfDir, "data","Model", owner, modelName)
 		try:
 			networkName = str(allInput.get('networkName'+str(networkNum)))
@@ -2154,7 +2154,7 @@ def checkAnonymizeTran(owner, modelName):
 @read_permission_function
 def displayOmdMap(owner, modelName, feederNum):
 	'''API to render omd on a leaflet map using a new template '''
-	feeder_dict = get_model_metadata(owner, modelName)
+	feeder_dict = _get_model_metadata(owner, modelName)
 	feeder_name = feeder_dict.get('feederName' + str(feederNum))
 	feeder_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feeder_name + '.omd')
 	with locked_open(feeder_filepath) as f:
@@ -2216,7 +2216,7 @@ def commsMap(owner, modelName, feederNum):
 	if feederNum == 'commsGeoJson.js':
 		return ""
 	else:
-		feederDict = get_model_metadata(owner, modelName)
+		feederDict = _get_model_metadata(owner, modelName)
 		feederName = feederDict.get('feederName' + str(feederNum))
 		modelDir = os.path.join(_omfDir, "data","Model", owner, modelName)
 		feederFile = os.path.join(modelDir, feederName + ".omc")
@@ -2355,11 +2355,11 @@ def delete(objectType, objectName, owner):
 	elif objectType == "Model":
 		filepath = os.path.join(_omfDir, "data/Model", owner, objectName, "allInputData.json")
 		if os.path.isfile(filepath):
-			model_metadata = get_model_metadata(owner, objectName)
+			model_metadata = _get_model_metadata(owner, objectName)
 			old_viewers = model_metadata.get("viewers")
 			if old_viewers is not None:
 				for v in old_viewers:
-					revoke_viewership(owner, objectName, v)
+					_revoke_viewership(owner, objectName, v)
 			shutil.rmtree(os.path.join(_omfDir, 'data', 'Model', owner, objectName))
 	return redirect("/")
 
