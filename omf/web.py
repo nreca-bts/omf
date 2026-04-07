@@ -478,7 +478,7 @@ def new_user():
 	return _send_link(email, message)
 
 
-@app.route("/forgotPassword/<email>", methods=["GET"])
+@app.route("/forgotPassword/<email>", methods=["POST"])
 def forgotpwd(email):
 	try:
 		with locked_open(os.path.join(_omfDir, 'data', 'User', email + '.json')) as f:
@@ -1037,7 +1037,7 @@ def get_components(schema='gld'):
 	return json.dumps(components) # Turn the dictionary of objects into a string
 
 
-@app.route("/checkConversion/<modelName>/<owner>", methods=["POST","GET"])
+@app.route("/checkConversion/<modelName>/<owner>", methods=["GET"])
 @flask_login.login_required
 @read_permission_function # Viewers can load a feeder, and all feeders check for ongoing conversions, so this route must have read permissions
 def checkConversion(modelName, owner):
@@ -1470,7 +1470,7 @@ def _cyme_import_background(owner, modelName, feederNum, feederName):
 			errorFile.write('cymeError')
 
 
-@app.route("/newSimpleFeeder/<owner>/<modelName>/<feederNum>/<writeInput>", methods=["POST", "GET"])
+@app.route("/newSimpleFeeder/<owner>/<modelName>/<feederNum>/<writeInput>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def newSimpleFeeder(owner, modelName, feederNum=1, writeInput=False, feederName='feeder1'):
@@ -1489,7 +1489,7 @@ def newSimpleFeeder(owner, modelName, feederNum=1, writeInput=False, feederName=
 	return 'Success'
 
 
-@app.route("/newSimpleNetwork/<owner>/<modelName>/<networkNum>/<writeInput>", methods=["POST", "GET"])
+@app.route("/newSimpleNetwork/<owner>/<modelName>/<networkNum>/<writeInput>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def newSimpleNetwork(owner, modelName, networkNum=1, writeInput=False, networkName='network1'):
@@ -1716,7 +1716,7 @@ def saveNetwork(owner, modelName, networkName):
 	return 'Success'
 
 
-@app.route("/renameFeeder/<owner>/<modelName>/<oldName>/<newName>/<feederNum>", methods=["GET", "POST"])
+@app.route("/renameFeeder/<owner>/<modelName>/<oldName>/<newName>/<feederNum>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def renameFeeder(owner, modelName, oldName, newName, feederNum):
@@ -1767,16 +1767,17 @@ def _remove_feeder(owner, modelName, feederNum, feederName=None):
 		return 'Failed'
 
 
-@app.route("/_remove_feeder/<owner>/<modelName>/<feederNum>", methods=["GET", "POST"])
-@app.route("/_remove_feeder/<owner>/<modelName>/<feederNum>/<feederName>", methods=["GET", "POST"])
+
+@app.route("/removeFeeder/<owner>/<modelName>/<feederNum>", methods=["POST"])
+@app.route("/removeFeeder/<owner>/<modelName>/<feederNum>/<feederName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
-def _remove_feederRequest(owner, modelName, feederNum, feederName=None):
+def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 	''' Remove feeder from web.'''
 	_remove_feeder(owner, modelName, feederNum, feederName=None)
 
 
-@app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<feederNum>/<frUser>/<owner>", methods=["GET", "POST"])
+@app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<feederNum>/<frUser>/<owner>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
@@ -1801,7 +1802,7 @@ def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 	return redirect(url_for('feederGet', owner=owner, modelName=modelName, feederNum=feederNum))
 
 
-@app.route("/loadFile/<frfileName>/<frmodelName>/<modelName>/<fileNum>/<frUser>/<owner>", methods=["GET", "POST"])
+@app.route("/loadFile/<frfileName>/<frmodelName>/<modelName>/<fileNum>/<frUser>/<owner>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
@@ -1829,7 +1830,7 @@ def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 	# return redirect(url_for('fileGet', owner=owner, modelName=modelName, fileNum=fileNum))
 
 
-@app.route("/cleanUpFeeders/<owner>/<modelName>", methods=["GET", "POST"])
+@app.route("/cleanUpFeeders/<owner>/<modelName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def cleanUpFeeders(owner, modelName):
@@ -1854,8 +1855,8 @@ def cleanUpFeeders(owner, modelName):
 	return redirect(url_for('showModel', owner=owner, modelName=modelName))
 
 
-@app.route("/removeNetwork/<owner>/<modelName>/<networkNum>", methods=["GET","POST"])
-@app.route("/removeNetwork/<owner>/<modelName>/<networkNum>/<networkName>", methods=["GET","POST"])
+@app.route("/removeNetwork/<owner>/<modelName>/<networkNum>", methods=["POST"])
+@app.route("/removeNetwork/<owner>/<modelName>/<networkNum>/<networkName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def removeNetwork(owner, modelName, networkNum, networkName=None):
@@ -2139,7 +2140,7 @@ def _background_anonymizeTran(modelDir, omtPath, nameOption, locOption, translat
 		return newBusKey
 
 
-@app.route("/checkAnonymizeTran/<owner>/<modelName>", methods=["POST","GET"])
+@app.route("/checkAnonymizeTran/<owner>/<modelName>", methods=["GET"])
 @flask_login.login_required
 @write_permission_function
 def checkAnonymizeTran(owner, modelName):

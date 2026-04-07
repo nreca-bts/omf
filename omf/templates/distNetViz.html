@@ -3506,6 +3506,7 @@ async function renameFeeder(oldServerName, newName, showModal=true) {
         }
     }
     await $.ajax({
+        type: 'POST',
         url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${oldServerName}/${newName}/${gThisFeederNum}`
     }).done(function(data) {
         if (showModal === true) {

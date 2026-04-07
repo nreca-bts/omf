@@ -23,6 +23,7 @@
 		a {text-decoration:none;}
 	</style>
 	<link rel='shortcut icon' href='/static/favicon.ico'>
+	<script type='text/javascript' src='/static/omf.js'></script>
 	<script type='text/javascript'>
 		function validateEmail(email) {
 			var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -35,7 +36,7 @@
 				return
 			}
 			else if (validateEmail(email)) {
-				window.location.href = '/forgotPassword/' + email
+				post_to_url('/forgotPassword/' + email)
 			} else {
 				alert("Sorry, but that is not a valid email address.")
 			}

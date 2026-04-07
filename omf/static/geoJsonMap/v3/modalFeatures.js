@@ -546,7 +546,7 @@ function _getRenameTable(observable, controller) {
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
         const submitUrl = {
-            method: 'GET',
+            method: 'POST',
             url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}/${newName}/${gThisFeederNum}`
         }
         observable.setProperty('submitUrl', submitUrl, 'urlProps');
@@ -604,7 +604,7 @@ function getRenameButton(controller) {
                     url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
                 },
                 submitUrl: {
-                    method: 'GET',
+                    method: 'POST',
                     url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}/Default Name/${gThisFeederNum}`
                 }
             }
