@@ -263,6 +263,7 @@ class FeatureController { // implements ControllerInterface
                 data: formData,
                 processData: false,
                 contentType: false,
+                headers: {'X-CSRFToken': document.cookie.match('(^|;)\\s*_csrf_token=([^;]+)')?.pop() || ''},
             });
         } catch {
             loadingSpan.update({text: 'The server raised an internal exception during the operation. Please save before trying again.', showGif: false});
