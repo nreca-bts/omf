@@ -361,7 +361,7 @@ def _send_email(recipient, subject, message):
 	c.send_email(**email_content)
 
 
-def send_link(email, message, u=None):
+def _send_link(email, message, u=None):
 	'''Send message to email using Amazon SES.'''
 	if u is None:
 		u = {}
@@ -475,7 +475,7 @@ def new_user():
 		if u.get("password_digest") or not request.form.get("resend"):
 			return "Already Exists"
 	message = "Click the link below to register your account for the OMF.  This link will expire in 24 hours:\n\nreg_link"
-	return send_link(email, message)
+	return _send_link(email, message)
 
 
 @app.route("/forgotPassword/<email>", methods=["GET"])
@@ -484,7 +484,7 @@ def forgotpwd(email):
 		with locked_open(os.path.join(_omfDir, 'data', 'User', email + '.json')) as f:
 			user = json.load(f)
 		message = "Click the link below to reset your password for the OMF.  This link will expire in 24 hours.\n\nreg_link"
-		code = send_link(email, message, user)
+		code = _send_link(email, message, user)
 		if code == "Success":
 			return "We have sent a password reset link to " + email
 		else:
@@ -687,7 +687,7 @@ def showModel(owner, modelName):
 	return thisModel.renderTemplate(os.path.join(_omfDir, 'data', 'Model', owner, modelName), absolutePaths=False, datastoreNames=_get_data_names())
 
 
-@app.route("/newModel/<modelType>/<modelName>", methods=["POST","GET"])
+@app.route("/newModel/<modelType>/<modelName>", methods=["POST"])
 @flask_login.login_required
 @write_permission_function
 def newModel(modelType, modelName):
