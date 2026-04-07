@@ -1238,7 +1238,7 @@ function checkFeederName(newName) {
 	if (true) {
 		var modelName = "{{ modelName }}"
 		$.ajax({
-			url: "/uniqObjName/Feeder/" + "{{ owner }}" + "/" + newName + "/" + modelName
+			url: "/uniqObjName/Feeder/" + "{{ owner }}" + "/" + modelName + "/" + newName
 		}).done(function (data) {
 			if (data.exists) {
 				alert("You already have a Feeder named '" + newName + "', please choose a different name.")
@@ -1262,7 +1262,7 @@ function startConversion(elementName, nextAction) {
 	if (true) {
 		var modelName = "{{ modelName }}"
 		$.ajax({
-			url: "/uniqObjName/Feeder/" + "{{ owner }}" + "/" + newName + "/" + modelName
+			url: "/uniqObjName/Feeder/" + "{{ owner }}" + "/" + modelName + "/" + newName
 		}).done(function (data) {
 			if (data.exists) {
 				alert("You already have a Feeder named '" + newName + "', please choose a different name.")
@@ -1301,7 +1301,7 @@ function closeDiv(element){
 function loadFeeder(fromfeederName, frommodelName, fromuser){
 	var modelName = "{{ modelName }}"
 	$.ajax({
-		url: "/uniqObjName/Feeder/" + fromuser + "/" + fromfeederName + "/" + frommodelName
+		url: "/uniqObjName/Feeder/" + fromuser + "/" + frommodelName + "/" + fromfeederName
 	}).done(function (data) {
 		if (data.exists) {
 			post_to_url("/loadFeeder/" + fromfeederName + "/" + frommodelName + "/" + "{{ modelName }}" + "/" + "{{ feederNum }}" + "/" + fromuser + "/" + "{{ owner }}")

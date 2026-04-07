@@ -2379,7 +2379,7 @@ def downloadModelData(owner, modelName, fullPath):
 
 
 @app.route("/uniqObjName/<objtype>/<owner>/<name>")
-@app.route("/uniqObjName/<objtype>/<owner>/<name>/<modelName>")
+@app.route("/uniqObjName/<objtype>/<owner>/<modelName>/<name>")
 @flask_login.login_required
 @read_permission_function # This route needs read permissions because duplicate model uses it
 def uniqObjName(objtype, owner, name, modelName=False):

@@ -989,7 +989,7 @@ async function loadFile(serverFileName, serverModelName, owner) {
     }
     let submitForm = false;
     await $.ajax({ // I need to check if a user's file still exists.
-        url: `/uniqObjName/circuitFile/${owner}/${serverFileName}/${serverModelName}`// good
+        url: `/uniqObjName/circuitFile/${owner}/${serverModelName}/${serverFileName}`// good
     }).done(function(data) {
         if (data.exists) { 
             submitForm = true;
@@ -1076,7 +1076,7 @@ async function submitForm({formId, pollUrl, inputId}) {
         submitForm = false;
         const fileName = document.getElementById(inputId).value;
         await $.ajax({ // Check if the file exists, using the user-provided fileName
-            url: `/uniqObjName/circuitFile/${gThisOwner}/${fileName}/${gThisModelName}` // good
+            url: `/uniqObjName/circuitFile/${gThisOwner}/${gThisModelName}/${fileName}` // good
         }).done(function(data) {
             if (data.exists === true) {
                 modal.clearAndAddMessage(`You already have a file named "${fileName}". Please choose a different name.`);
