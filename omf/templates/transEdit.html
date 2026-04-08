@@ -1228,7 +1228,7 @@ async function startConversion(elementName, formId, nextAction) {
 	if (true) {
 		var modelName = '{{ modelName }}'
 		await $.ajax({
-			url: '/uniqObjName/Network/' + '{{ owner }}' + '/' + newName + '/' + modelName
+			url: '/uniqObjName/Network/' + '{{ owner }}' + '/' + modelName + '/' + newName
 		}).done(function (data) {
 			if (data.exists) {
 				alert('You already have a Network named "' + newName + '", please choose a different name.')
@@ -1351,7 +1351,7 @@ function checkNetworkName(newName) {
 	if (true) {
 		var modelName = "{{ modelName }}"
 		$.ajax({
-			url: "/uniqObjName/Network/" + "{{ owner }}" + "/" + newName + "/" + modelName
+			url: "/uniqObjName/Network/" + "{{ owner }}" + "/" + modelName + "/" + newName
 		}).done(function (data) {
 			if (data.exists) {
 				alert("You already have a Network named '" + newName + "', please choose a different name.")

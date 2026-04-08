@@ -101,7 +101,7 @@
 				</div>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Curve in &degC (.csv file)<span class="classic">Please see the documentation at the help link for the required format and an example temperature file.</span></label>
+				<label class="tooltip">Temperature Curve in &degF (.csv file)<span class="classic">Please see the documentation at the help link for the required format and an example temperature file.</span></label>
 				<input id="temperatureCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'temperatureCurve','temperatureFileName')">
 				<input id="temperatureCurve" name="temperatureCurve" value="{{allInputDataDict.temperatureCurve}}" type="hidden">
 				<div>
@@ -370,14 +370,13 @@
 				<input type="text" id="cop_ac" name="cop_ac" value="{{allInputDataDict.cop_ac}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Setpoint (&degC)<span class="classic">Setpoint for each home thermal device. Must be between 1.7 and 54.</span></label>
+				<label class="tooltip">Temperature Setpoint (&degF)<span class="classic">Setpoint for each home thermal device. Must be between 35.06 and 129.2.</span></label>
 				<input type="text" id="setpoint_ac" name="setpoint_ac" value="{{allInputDataDict.setpoint_ac}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Deadband (&degC)<span class="classic">Deadband for each home thermal device. Must be between 0.125 and 2.</span></label>
+				<label class="tooltip">Temperature Deadband (&degF)<span class="classic">Deadband for each home thermal device. Must be between 0.225 and 3.6.</span></label>
 				<input type="text" id="deadband_ac" name="deadband_ac" value="{{allInputDataDict.deadband_ac}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
-
 
 			<!-- Heat Pump (vbatDispatch) Inputs -->
 			<div class="wideInput"> 
@@ -400,23 +399,26 @@
 				<input type="text" id="power_hp" name="power_hp" value="{{allInputDataDict.power_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
+				<!-- <label class="tooltip">Thermal Capacitance (kWh/&degC)<span class="classic">Capacitance of each home thermal device. Must be between 0.2 and 2.5 with exactly one decimal digit.</span></label>-->
 				<label class="tooltip">Thermal Capacitance (kWh/&degC)<span class="classic">Capacitance of each home thermal device. Must be between 0.2 and 2.5 with exactly one decimal digit.</span></label>
 				<input type="text" id="capacitance_hp" name="capacitance_hp" value="{{allInputDataDict.capacitance_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
+				<!--<label class="tooltip">Thermal Resistance (&degC/kW)<span class="classic">Resistance of each home thermal device. Must be between 1.5 and 140.</span></label>-->
 				<label class="tooltip">Thermal Resistance (&degC/kW)<span class="classic">Resistance of each home thermal device. Must be between 1.5 and 140.</span></label>
 				<input type="text" id="resistance_hp" name="resistance_hp" value="{{allInputDataDict.resistance_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>			
 			<div class="shortInput">
+				<!--<label class="tooltip">Coefficient of Performance<span class="classic">Coefficient of performance of each home thermal device. Must be between 1 and 3.5</span></label>-->
 				<label class="tooltip">Coefficient of Performance<span class="classic">Coefficient of performance of each home thermal device. Must be between 1 and 3.5</span></label>
 				<input type="text" id="cop_hp" name="cop_hp" value="{{allInputDataDict.cop_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Setpoint (&degC)<span class="classic">Setpoint for each home thermal device. Must be between 1.7 and 54.</span></label>
+				<label class="tooltip">Temperature Setpoint (&degF)<span class="classic">Setpoint for each home thermal device. Must be between 35.06 and 129.2.</span></label>
 				<input type="text" id="setpoint_hp" name="setpoint_hp" value="{{allInputDataDict.setpoint_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Deadband (&degC)<span class="classic">Deadband for each home thermal device. Must be between 0.125 and 2.</span></label>
+				<label class="tooltip">Temperature Deadband (&degF)<span class="classic">Deadband for each home thermal device. Must be between 0.225 and 3.6.</span></label>
 				<input type="text" id="deadband_hp" name="deadband_hp" value="{{allInputDataDict.deadband_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 
@@ -453,11 +455,11 @@
 				<input type="text" id="cop_wh" name="cop_wh" value="{{allInputDataDict.cop_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Setpoint (&degC)<span class="classic">Setpoint for each home thermal device. Must be between 1.7 and 54.</span></label>
+				<label class="tooltip">Temperature Setpoint (&degF)<span class="classic">Setpoint for each home thermal device. Must be between 35.06 and 129.2.</span></label>
 				<input type="text" id="setpoint_wh" name="setpoint_wh" value="{{allInputDataDict.setpoint_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Temperature Deadband (&degC)<span class="classic">Deadband for each home thermal device. Must be between 0.125 and 3.</span></label>
+				<label class="tooltip">Temperature Deadband (&degF)<span class="classic">Deadband for each home thermal device. Must be between 0.225 and 5.4.</span></label>
 				<input type="text" id="deadband_wh" name="deadband_wh" value="{{allInputDataDict.deadband_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 

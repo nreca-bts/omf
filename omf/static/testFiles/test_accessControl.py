@@ -28,12 +28,12 @@ def client():
     # Create two test models that belong to the 'test' user
     with client as c:
         model_name = 'test_voltageDrop'
-        rv = c.get('/newModel/voltageDrop/' + model_name)
+        rv = c.post('/newModel/voltageDrop/' + model_name)
         assert rv.status_code == 302
         assert rv.headers.get("Location") == "http://localhost" + url_for('showModel', owner="test", modelName=model_name)
     with client as c:
         model_name = 'test_cvrDyn'
-        rv = c.get('/newModel/cvrDynamic/' + model_name)
+        rv = c.post('/newModel/cvrDynamic/' + model_name)
         assert rv.status_code == 302
         assert rv.headers.get("Location") == "http://localhost" + url_for('showModel', owner="test", modelName=model_name)
     # Create two new test users

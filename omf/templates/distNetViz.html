@@ -3231,7 +3231,7 @@ async function loadFeeder(serverFeederName, serverModelName, owner) {
     }
     let submitForm = false;
     await $.ajax({ // I need to check if a user's feeder still exists.
-        url: `/uniqObjName/Feeder/${owner}/${serverFeederName}/${serverModelName}`// good
+        url: `/uniqObjName/Feeder/${owner}/${serverModelName}/${serverFeederName}`// good
     }).done(function(data) {
         if (data.exists) { 
             submitForm = true;
@@ -3343,7 +3343,7 @@ async function submitForm({formId, pollUrl, inputId}) {
         submitForm = false;
         const fileName = document.getElementById(inputId).value;
         await $.ajax({ // Check if the file exists, using the user-provided fileName
-            url: `/uniqObjName/Feeder/${gThisOwner}/${fileName}/${gThisModelName}` // good
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${fileName}` // good
         }).done(function(data) {
             if (data.exists === true) {
                 modal.clearAndAddMessage(`You already have a feeder named "${fileName}". Please choose a different name.`);
@@ -3469,7 +3469,7 @@ async function getNewFeederName() {
     }
     if (newName != null) {
         await $.ajax({
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}` // good because of course I am renaming THIS feeder file
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}` // good because of course I am renaming THIS feeder file
         }).done(function(data) {
             if (data.exists) {
                 modal.clearAndAddMessage(`You already have a feeder named "${newName}". Please choose a different name.`);
@@ -3506,6 +3506,7 @@ async function renameFeeder(oldServerName, newName, showModal=true) {
         }
     }
     await $.ajax({
+        type: 'POST',
         url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${oldServerName}/${newName}/${gThisFeederNum}`
     }).done(function(data) {
         if (showModal === true) {

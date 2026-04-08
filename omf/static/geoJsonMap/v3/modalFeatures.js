@@ -337,7 +337,7 @@ function getAnonymizationButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisFeederName}/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -542,11 +542,11 @@ function _getRenameTable(observable, controller) {
     const input = _getNameInput(observable, function(newName) {
         const fileExistsUrl = {
             method: 'GET',
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}`
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}`
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
         const submitUrl = {
-            method: 'GET',
+            method: 'POST',
             url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}/${newName}/${gThisFeederNum}`
         }
         observable.setProperty('submitUrl', submitUrl, 'urlProps');
@@ -601,10 +601,10 @@ function getRenameButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/Default Name`
                 },
                 submitUrl: {
-                    method: 'GET',
+                    method: 'POST',
                     url: `/renameFeeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}/Default Name/${gThisFeederNum}`
                 }
             }
@@ -660,7 +660,7 @@ function _getLoadFeederTable(observable, controller) {
             modalInsert.removeEventListener('click', hideModalInsert);
             observable.setProperty('fileExistsUrl', {
                 method: 'GET', 
-                url: `/uniqObjName/Feeder/public/${obj.name}/${obj.model}`
+                url: `/uniqObjName/Feeder/public/${obj.model}/${obj.name}`
             }, 'urlProps');
             observable.setProperty('submitUrl', {
                 method: 'POST',
@@ -699,7 +699,7 @@ function _getLoadFeederTable(observable, controller) {
                 //   admin's feeders. Therefore, to see if the admin's feeders exist in order to load them, I need /uniqObjName to check the current
                 //   user's feeders, NOT the owner's feeders. Usually, gThisOwner === gCurrentUser, but this one special case is why this url is
                 //   different
-                url: `/uniqObjName/Feeder/${gCurrentUser}/${obj.name}/${obj.model}`
+                url: `/uniqObjName/Feeder/${gCurrentUser}/${obj.model}/${obj.name}`
             }, 'urlProps');
             observable.setProperty('submitUrl', {
                 method: 'POST',
@@ -847,7 +847,7 @@ function _getWindmilTable(observable, controller) {
         observable.setProperty('feederNameM', newName, 'formProps');
         const fileExistsUrl = {
             method: 'GET',
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}`
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}`
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
     });
@@ -926,7 +926,7 @@ function getWindmilButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/Default Name`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -975,7 +975,7 @@ function _getGridlabdTable(observable, controller) {
         observable.setProperty('feederNameG', newName, 'formProps');
         const fileExistsUrl = {
             method: 'GET',
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}`
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}`
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
     });
@@ -1040,7 +1040,7 @@ function getGridlabdButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/Default Name`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -1088,7 +1088,7 @@ function _getCymdistTable(observable, controller) {
         observable.setProperty('feederNameC', newName, 'formProps');
         const fileExistsUrl = {
             method: 'GET',
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}`
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}`
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
     });
@@ -1152,7 +1152,7 @@ function getCymdistButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/Default Name`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -1201,7 +1201,7 @@ function _getOpendssTable(observable, controller) {
         observable.setProperty('feederNameOpendss', newName, 'formProps');
         const fileExistsUrl = {
             method: 'GET',
-            url: `/uniqObjName/Feeder/${gThisOwner}/${newName}/${gThisModelName}`
+            url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${newName}`
         }
         observable.setProperty('fileExistsUrl', fileExistsUrl, 'urlProps');
     });
@@ -1265,7 +1265,7 @@ function getOpendssButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/Default Name/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/Default Name`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -1370,7 +1370,7 @@ function getAmiButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisFeederName}/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -1692,7 +1692,7 @@ function getClimateButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisFeederName}/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}`
                 },
                 pollUrl: {
                     method: 'GET',
@@ -1798,7 +1798,7 @@ function getScadaButton(controller) {
             urlProps: {
                 fileExistsUrl: {
                     method: 'GET',
-                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisFeederName}/${gThisModelName}`
+                    url: `/uniqObjName/Feeder/${gThisOwner}/${gThisModelName}/${gThisFeederName}`
                 },
                 pollUrl: {
                     method: 'GET',
