@@ -1075,8 +1075,8 @@ def milsoftImport(owner):
 			os.remove(os.path.join(model_dir, filename))
 	if os.path.isfile(error_filepath):
 		os.remove(error_filepath)
-	feederName = secure_filename(str(request.form.get('feederNameM', 'feeder')))
-	feederNum = secure_filename(request.form.get("feederNum",1))
+	feederName = secure_filename(str(request.form.get('feederNameM', 'feeder'))) or 'feeder'
+	feederNum = secure_filename(request.form.get("feederNum", '1'))
 	std_filepath, seq_filepath = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in (feederName + '.std', feederName + '.seq')]
 	request.files.get('stdFile').save(std_filepath)
 	request.files.get('seqFile').save(seq_filepath)
@@ -1137,8 +1137,8 @@ def matpowerImport(owner):
 			os.remove(error_path)
 	with locked_open(con_file_path, 'w') as conFile:
 		conFile.write("WORKING")
-	networkName = secure_filename(str(request.form.get('networkNameM', 'network1')))
-	networkNum = secure_filename(request.form.get("networkNum", 1))
+	networkName = secure_filename(str(request.form.get('networkNameM', 'network1'))) or 'network'
+	networkNum = secure_filename(request.form.get("networkNum", '1'))
 	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, networkName + '.m')
 	request.files['matFile'].save(network_filepath)
 	importProc = Process(target=_mat_import_background, args=[owner, modelName, networkName, networkNum])
@@ -1186,8 +1186,8 @@ def rawImport(owner):
 			os.remove(error_path)
 	with locked_open(con_file_path, 'w') as conFile:
 		conFile.write("WORKING")
-	networkName = secure_filename(str(request.form.get('networkNameR', 'network1')))
-	networkNum = secure_filename(request.form.get("networkNum", 1))
+	networkName = secure_filename(str(request.form.get('networkNameR', 'network1'))) or 'network'
+	networkNum = secure_filename(request.form.get("networkNum", '1'))
 	network_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'import.raw')
 	request.files['rawFile'].save(network_filepath)
 	importProc = Process(target=_raw_import_background, args=[owner, modelName, networkName, networkNum])
@@ -1235,10 +1235,10 @@ def gridlabdImport(owner):
 	if os.path.isfile(error_path):
 		os.remove(error_path)
 	# Handle request objects
-	feederName = secure_filename(str(request.form.get("feederNameG","")))
+	feederName = secure_filename(str(request.form.get("feederNameG",""))) or 'feeder'
 	glm_path = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.glm')
 	request.files['glmFile'].save(glm_path)
-	feederNum = secure_filename(request.form.get("feederNum", 1))
+	feederNum = secure_filename(request.form.get("feederNum", '1'))
 	importProc = Process(target=_gridlab_import_background, args=[owner, modelName, feederName, feederNum])
 	importProc.start()
 	return 'Success'
@@ -1285,8 +1285,8 @@ def dssImport(owner):
 			os.remove(os.path.join(modelDir, filename))
 	if os.path.isfile(error_path):
 		os.remove(error_path)
-	feederName = secure_filename(str(request.form.get("feederNameOpendss","")))
-	feederNum = secure_filename(request.form.get("feederNum", 1))
+	feederName = secure_filename(str(request.form.get("feederNameOpendss",""))) or 'feeder'
+	feederNum = secure_filename(request.form.get("feederNum", '1'))
 	dss_path = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.dss')
 	request.files['dssFile'].save(dss_path)
 	importProc = Process(target=_dss_import_background, args=[owner, modelName, feederName, feederNum])
@@ -1331,7 +1331,7 @@ def _dss_import_background(owner, modelName, feederName, feederNum):
 @flask_login.login_required
 @write_permission_function
 def scadaLoadshape(owner, feederName):
-	#feederNum = request.form.get("feederNum",1)
+	#feederNum = request.form.get("feederNum", '1')
 	loadName = 'calibration'
 	modelName = request.form.get("modelName","")
 	# delete calibration csv, calibration folder, and error file if they exist
@@ -1398,7 +1398,7 @@ def _background_scada_loadshape(owner, modelName, feederName, loadName):
 @flask_login.login_required
 @write_permission_function
 def loadModelingAmi(owner, feederName):
-	#feederNum = request.form.get('feederNum', 1)
+	#feederNum = request.form.get('feederNum', '1')
 	loadName = 'ami'
 	modelName = request.form.get('modelName', '')
 	filepaths = [os.path.join(_omfDir, 'data', 'Model', owner, modelName, filename) for filename in ('amiError.txt', 'amiLoad.csv')]
@@ -1436,8 +1436,8 @@ def cymeImport(owner):
 	error_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, 'gridError.txt')
 	if os.path.isfile(error_filepath):
 		os.remove(error_filepath)
-	feederNum = secure_filename(request.form.get("feederNum",1))
-	feederName = secure_filename(str(request.form.get("feederNameC","")))
+	feederNum = secure_filename(request.form.get("feederNum", '1'))
+	feederName = secure_filename(str(request.form.get("feederNameC",""))) or 'feeder'
 	mdbFileObject = request.files["mdbNetFile"]
 	mdb_filepath = os.path.join(_omfDir, 'data', 'Model', owner, modelName, feederName + '.mdb')
 	mdbFileObject.save(mdb_filepath)
