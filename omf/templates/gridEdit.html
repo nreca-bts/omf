@@ -921,7 +921,7 @@ var oldSearchTerm;
 
 // INIT FUNCTIONS FOLLOW:
 d3.json('/getComponents/', function (json){components=json;fillComponentMenu()})
-var apiAddress = "/feederData/{{ owner }}/{{ modelName }}/{{ feederName }}/{{ modelFeeder }}"
+var apiAddress = "/feederData/{{ owner }}/{{ modelName }}/{{ feederName }}/"
 d3.json(apiAddress, function (json) {
 	tree = json['tree']
 	attachments = json['attachments']
@@ -1005,22 +1005,19 @@ function checkConversion() {
 		$.ajax({
 			url: '/checkConversion/{{modelName}}/{{owner}}'
 		}).done(function (data) {
-			if (data.exists) {
+			if (data.error) {
+				var messages = {
+					'glmError': 'The glm file used is incorrectly formatted.',
+					'milError': 'The .std and .seq files used are incorrectly formatted.'
+				};
+				alert(messages[data.error] || data.error);
+				removeProgressDialog()
+				conversionStatus = 'done'
+				window.clearInterval(setInterval)
+				return false;
+			}
+			else if (data.exists) {
 				conversionStatus = 'converting'
-			}
-			else if (data == 'glmError') {
-				alert('The glm file used is incorrectly formatted.')
-				removeProgressDialog()
-				conversionStatus = 'done'
-				window.clearInterval(setInterval)
-				return false;
-			}
-			else if (data == 'milError') {
-				alert('The .std and .seq files used are incorrectly formatted.')
-				removeProgressDialog()
-				conversionStatus = 'done'
-				window.clearInterval(setInterval)
-				return false;
 			}
 			else {
 				conversionStatus = 'done';

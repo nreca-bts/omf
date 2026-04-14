@@ -1257,6 +1257,13 @@ async function startConversion(elementName, formId, nextAction) {
 	// Check for when the conversion is done
 	formRequest.done(function(data) {
 		checkConversion();
+	}).fail(function(jqXHR) {
+		hideProgressDialog();
+		if (jqXHR.status === 409) {
+			alert('A network with that name already exists. Please choose a different name.');
+		} else {
+			alert('The server raised an error during the import.');
+		}
 	});
 }
 
@@ -1269,35 +1276,24 @@ function checkConversion() {
 		$.ajax({
 			url: '/checkConversion/' + modelName + '/' + '{{ owner }}'
 		}).done(function (data) {
-
-			// Set conversion status depending on result of AJAX request
-			if (data.exists == null)
-				conversionStatus = data;
-			else if (data.exists)
+			if (data.error) {
+				var messages = {
+					'matError': 'The .m file does not contain any valid data.',
+					'rawError': 'The .raw file does not contain any valid data.',
+					'octaveError': 'Matpower/Octave setup is incorrect; please contact your system administrator.'
+				};
+				window.clearInterval(intervalId);
+				alert(messages[data.error] || data.error);
+				removeProgressDialog();
+			}
+			else if (data.exists) {
 				conversionStatus = 'converting'
-			else if (!data.exists)
+			}
+			else if (data.exists === false) {
 				conversionStatus = 'done';
-
-			// Deal with the conversion status
-			if (conversionStatus == 'done') {
 				window.clearInterval(intervalId);
 				alert('Conversion complete.')
 				window.location.reload();
-			}
-			else if (conversionStatus == 'matError') {
-				window.clearInterval(intervalId);
-				alert('The .m file does not contain any valid data.')
-				removeProgressDialog();
-			}
-			else if (conversionStatus == 'rawError') {
-				window.clearInterval(intervalId);
-				alert('The .raw file does not contain any valid data.')
-				removeProgressDialog();
-			}
-			else if (conversionStatus == 'octaveError') {
-				window.clearInterval(intervalId);
-				alert('Matpower/Octave setup is incorrect; please contact your system administrator.')
-				removeProgressDialog();
 			}
 		})
 		return pingAPI;
@@ -1327,7 +1323,7 @@ function savePoster(name, modelName, user) {
 		ref: "{{ ref }}"
 	}
 	unsavedChanges=false
-	post_to_url("/saveNetwork/" + user + "/" + modelName + "/" + name, payload)
+	post_to_url("/saveNetwork/" + user + "/" + modelName + "/" + name + "/{{ networkNum }}", payload)
 }
 
 function renameNetwork() {
