@@ -1,5 +1,4 @@
-''' Performs a cost-benefit analysis for a member-consumer enrolling distributed 
-energy resources (DERs) in a utility DER sharing program. '''
+''' Performs a cost-benefit analysis for a member-consumer enrolling distributed energy resources (DERs) in a utility DER sharing program.'''
 
 ## Python imports
 import warnings
@@ -35,11 +34,13 @@ def work(modelDir, inputDict):
 	## Handle and save user input files
 	########################################################################################################################
 	## Remove old input files if necessary
-	inputFileNames = ['input_demand.csv', 'input_temperature.csv', 'input_residential_rate_structure.json','input_urdbLabel_responseFile.json',
-				'vbatDispatch_inputs_ac.json', 'vbatDispatch_results_ac.json', 
-				'vbatDispatch_inputs_hp.json', 'vbatDispatch_results_hp.json',
-				'vbatDispatch_inputs_wh.json', 'vbatDispatch_results_wh.json',
-				'PuLP_random_seeds.csv']
+	inputFileNames = ['demand_input_derConsumer.csv', 'temperature_input_derConsumer.csv', 
+				   'residential_rate_structure_input_derConsumer.json',
+				   'urdbLabel_responseFile_input_derConsumer.json',
+				   'vbatDispatch_inputs_ac.json', 'vbatDispatch_results_ac.json', 
+				   'vbatDispatch_inputs_hp.json', 'vbatDispatch_results_hp.json',
+				   'vbatDispatch_inputs_wh.json', 'vbatDispatch_results_wh.json',
+				   'random_seeds.csv']
 	for FileName in inputFileNames:
 		try:
 			os.remove(pJoin(modelDir, FileName))
@@ -47,9 +48,9 @@ def work(modelDir, inputDict):
 			pass
 
 	## Save all input files, except the response file (later)
-	with open(pJoin(modelDir, 'input_demand.csv'), 'w') as f:
+	with open(pJoin(modelDir, 'demand_input_derConsumer.csv'), 'w') as f:
 		f.write(inputDict['demandCurve'].replace('\r', ''))
-	with open(pJoin(modelDir, 'input_temperature.csv'), 'w') as f:
+	with open(pJoin(modelDir, 'temperature_input_derConsumer.csv'), 'w') as f:
 		f.write(inputDict['temperatureCurve'].replace('\r', ''))
 
 	########################################################################################################################
@@ -59,9 +60,8 @@ def work(modelDir, inputDict):
 	## Convert user provided demand and temp data from str to float
 	## NOTE: assumes the input temperature curve is in degrees Fahrenheit. The degrees Celsius conversion is used later for vbatDispatch, which expects deg C. 
 	temperatures_degF = [float(value) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
-	temperatures_degC = [(float(value)-32.0)/(9/5) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
+	temperatures_degC = [(float(value)-32.0)*(5/9) for value in inputDict['temperatureCurve'].split('\n') if value.strip()]
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
-	demand[demand == -0.0] = 0.0 ## avoid sign errors
 
 	## Check if the demand and temperature curves are the correct length and account for leap years by removing Dec 31 data.
 	if len(demand) != 8760:
@@ -132,7 +132,7 @@ def work(modelDir, inputDict):
 			print(f'Request failed with status code: {response.status_code}')
 		
 		## Save response file to the model directory
-		with open(pJoin(modelDir, 'input_urdbLabel_responseFile.json'), 'w') as jsonFile:
+		with open(pJoin(modelDir, 'urdbLabel_responseFile_input_derConsumer.json'), 'w') as jsonFile:
 			json.dump(response_file, jsonFile)
 
 	else: ## If the Residential Response File (.json) is chosen and provided, use the user-provided .json response file instead
@@ -152,7 +152,7 @@ def work(modelDir, inputDict):
 				response_file = inputDict['residentialRateStructure']
 
 		## Save response file to modelDir
-		with open(pJoin(modelDir, 'input_residential_rate_structure.json'), 'w') as jsonFile:
+		with open(pJoin(modelDir, 'residential_rate_structure_input_derConsumer.json'), 'w') as jsonFile:
 			json.dump(response_file, jsonFile)
 
 	########################################################################################################################################################
@@ -208,7 +208,7 @@ def work(modelDir, inputDict):
 		raise Exception('No energy rate structure information was found in the Residential Rate Structure (.json) file. Please include this information when creating the JSON or select a different method for input.')
 
 	########################################################################################################################
-	## Run REopt.jl solver
+	## Inputs for REopt.jl solver
 	########################################################################################################################
 
 	## Create a REopt input dictionary called 'scenario' (required input for omf.solvers.reopt_jl)
@@ -249,6 +249,8 @@ def work(modelDir, inputDict):
 			'can_grid_charge': True,
 			'total_rebate_per_kw': 0.0,
 			'macrs_option_years': 0,
+			'installed_cost_per_kw': 0.0,
+			'installed_cost_per_kwh': 0.0,
 			'replace_cost_per_kw': float(inputDict['replace_cost_per_kw']),
 			'replace_cost_per_kwh': float(inputDict['replace_cost_per_kwh']),
 			'total_itc_fraction': 0.0,
@@ -282,11 +284,22 @@ def work(modelDir, inputDict):
 		json.dump(scenario, jsonFile)
 	
 	########################################################################################################################
-	## Run REopt.jl
+	## Run REopt.jl to model the BESS and GEN technologies
 	########################################################################################################################
-	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False)
+	## Set the random seed for the HiGHS solver https://ergo-code.github.io/HiGHS/dev/options/definitions/#option-random-seed
+	if inputDict['set_random_numbers'] == 'Yes':
+		random_seed_HiGHS = int(inputDict['random_seed_HiGHS_REopt'])
+	else:
+		random_seed_HiGHS = np.random.randint(0,2147483647)
+
+	## Save HiGHS random seed to the output with the rest of the random seeds (e.g. CBC MILP solver seeds for the thermal DERs)
+	with open(pJoin(modelDir, 'random_seeds.csv'), 'a') as f:
+		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
+		
+	## Run REopt
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False,  tolerance=0.0001, random_seed=random_seed_HiGHS)
 	
-	## Load the REopt results once it is finished running
+	## Load the REopt results
 	try: 
 		with open(pJoin(modelDir, 'results.json')) as jsonFile:
 			reoptResults = json.load(jsonFile)
@@ -315,9 +328,9 @@ def work(modelDir, inputDict):
 		generator = np.zeros_like(demand)
 
 	########################################################################################################################
-	## Run vbatDispatch model
+	## Run omf.models.vbatDispatch to model the thermal DERs (e.g. AC, HP, WH)
 	########################################################################################################################
-	demandCharges_temporary = np.zeros(12)	
+	demandCharges_temporary = np.zeros(12)
 	## NOTE: The demand charges variable is temporarily coded as zero here since vbatDispatch is expecting
 	## NOTE (cont.) a monthly demand charge array, but derConsumer does not ingest a monthly demand charge input yet. 
 	## NOTE (cont.) The vbatDispatch model only calculates the peakDeamndCharge and adjustedPeakDemandCharge with this info 
@@ -363,9 +376,9 @@ def work(modelDir, inputDict):
 			## Add the appropriate thermal device variables to the inputDict_vbatDispatch
 			for i in thermal_variables:
 				inputDict_vbatDispatch[i] = inputDict[i+suffix]
-
+				
 			## Convert setpoint and deadband from Fahrenheit to Celsius
-			inputDict_vbatDispatch['setpoint'] = str((float(inputDict_vbatDispatch['setpoint'])-32.0)/(9/5))
+			inputDict_vbatDispatch['setpoint'] = str((float(inputDict_vbatDispatch['setpoint'])-32.0)*(5/9))
 			inputDict_vbatDispatch['deadband'] = str(float(inputDict_vbatDispatch['deadband'])/1.8)
 
 			## Save the vbatDispatch inputs
@@ -390,8 +403,8 @@ def work(modelDir, inputDict):
 				tech_name = 'Water Heater'
 			if suffix == '_ac':
 				tech_name = 'Air Conditioner'
-			with open(pJoin(modelDir, 'PuLP_random_seeds.csv'), 'a') as f:
-				f.write(tech_name + ': ' + str(vbatResults['random_seed_PuLP'] + '\n'))
+			with open(pJoin(modelDir, 'random_seeds.csv'), 'a') as f:
+				f.write(tech_name + ': ' + str(vbatResults['random_seed_PuLP']) + '\n')
 
 			## Store the results in all_device_results dictionary
 			single_device_results['vbatResults'+suffix] = vbatResults
@@ -623,7 +636,6 @@ def work(modelDir, inputDict):
 		#DERs_at_adjP_dollars = DERs_at_adjP*rate_withDERs
 		totalDER_at_baseP_dollars = np.sum(DERs_at_baseP_dollars, axis=0)
 		fval_hourly = derUtilityCost.calculate_fval(demand_baseP, demand_adjP, totalDER_at_baseP_dollars)
-		#timestamps_index = timestamps[index_withDERs]
 
 		## Apply Fval to each DER peak demand savings
 		DERs_peakDemand_savings_year = DERs_at_baseP_dollars * fval_hourly
@@ -782,7 +794,7 @@ def work(modelDir, inputDict):
 		replacement_cost_GEN = float(inputDict['replace_cost_generator_per_kw']) * float(inputDict['existing_gen_kw']) ## units: $
 		replacement_year_GEN = int(inputDict['generator_replacement_year'])
 		for year in range(0, projectionLength): ## Apply the replacement costs for the specified replacement years
-			if year % replacement_year_GEN == 0 and year != 0:
+			if replacement_year_GEN != 0 and year % replacement_year_GEN == 0 and year != 0:
 				costs_allyears_array[year] += replacement_cost_GEN
 				costs_allyears_GEN[year] += replacement_cost_GEN
 
@@ -826,10 +838,10 @@ def work(modelDir, inputDict):
 		replacement_year_BESS = int(inputDict['battery_replacement_year'])
 		replacement_year_inverter = int(inputDict['inverter_replacement_year'])
 		for year in range(0, projectionLength): ## Apply the replacement costs for the specified replacement years
-			if year % replacement_year_BESS == 0 and year != 0:
+			if replacement_year_BESS != 0 and year % replacement_year_BESS == 0 and year != 0:
 				costs_allyears_array[year] += replacement_cost_BESS
 				costs_allyears_BESS[year] += replacement_cost_BESS
-			if year % replacement_year_inverter == 0 and year != 0:
+			if replacement_year_inverter != 0 and year % replacement_year_inverter == 0 and year != 0:
 				costs_allyears_array[year] += replacement_cost_inverter
 				costs_allyears_BESS[year] += replacement_cost_inverter
 
@@ -1302,66 +1314,65 @@ def work(modelDir, inputDict):
 	return outData
 
 def new(modelDir):
+
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
-	
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','residential_PV_load_tenX.csv')) as f:
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_load_consumer_10kW.csv')) as f:
 		demand_curve = f.read()
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','open-meteo-denverCO-noheaders.csv')) as f:
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_temperatures_open-meteo-denverCO-noheaders.csv')) as f:
 		temperature_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
 		residential_rate_structure = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
-	#	residential_rate_curve = json.load(jsonFile)
+	# residential_rate_curve = json.load(jsonFile)
 	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','TOU_rate_schedule.csv')) as f:
-	#	energy_rates_per_kwh = f.read()
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','water_heater_random_numbers.csv')) as f:
+	# energy_rates_per_kwh = f.read()
+	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_water_heater_random_numbers.csv')) as f:
 		random_numbers = f.read()
-
+	
 	defaultInputs = {
 		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings?
-
+		
 		## OMF inputs:
 		'user' : 'admin',
 		'modelType': modelName,
 		'created': str(datetime.datetime.now()),
-
+		
 		## General Model Inputs:
 		'set_random_numbers': 'No',
-		'randomNumbersFileName': 'water_heater_random_numbers.csv',
+		'randomNumbersFileName': 'example_water_heater_random_numbers.csv',
 		'randomNumbers': random_numbers,
-		'random_seed_PuLP_ac': '9116648159', #max=10000000000
-		'random_seed_PuLP_hp': '3507489931', #max=10000000000
-		'random_seed_PuLP_wh': '5538962301', #max=10000000000
-
-		## REopt inputs: 
-		#'residentialRateCurveFileName': 'TOU_rate_schedule.csv',
-		#'residentialRateCurveFile': energy_rates_per_kwh,
-		'urdbLabel': '66a13566e90ecdb7d40581d2', ## Brighton, CO Residential Time of Day residential rate https://apps.openei.org/USURDB/rate/view/66a13566e90ecdb7d40581d2#3__Energy
+		'random_seed_PuLP_ac': '2147483647', #max=2147483647
+		'random_seed_PuLP_hp': '2147483647', #max=2147483647
+		'random_seed_PuLP_wh': '2147483647', #max=2147483647
+		'random_seed_HiGHS_REopt': '2147483647', #max=2147483647
+		
+		## REopt inputs:
+		'urdbLabel': '66a13566e90ecdb7d40581d2',
 		'latitude': '39.969753', ## Brighton, CO
 		'longitude': '-104.812599', ## Brighton, CO
 		'year': '2018',
-		'demandFileName': 'residential_PV_load_tenX.csv',
+		'demandFileName': 'example_load_consumer_kW.csv',
 		'demandCurve': demand_curve,
-		'temperatureFileName': 'open-meteo-denverCO-noheaders.csv',
+		'temperatureFileName': 'example_temperatures_open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
 		'urdbLabelBool': False,
 		'residentialRateStructureFileName': 'example_residential_tariff.json',
 		'residentialRateStructure': residential_rate_structure,
-
+		
 		## Financial Inputs
 		'projectionLength': '25',
 		'discountRate': '1',
 		#'rateCompensation': '0.02', ## unit: $/kWh
-		'BESS_subsidy_onetime': '0',
-		'BESS_subsidy_ongoing': '7.86',
-		'TESS_subsidy_onetime_ac': '0',
-		'TESS_subsidy_ongoing_ac': '1.06',
-		'TESS_subsidy_onetime_hp': '0',
-		'TESS_subsidy_ongoing_hp': '0.53',
-		'TESS_subsidy_onetime_wh': '0',
-		'TESS_subsidy_ongoing_wh': '2.60',
-		'GEN_subsidy_onetime': '0',
-		'GEN_subsidy_ongoing': '0',
+		'BESS_subsidy_onetime': '50.0',
+		'BESS_subsidy_ongoing': '10.0',
+		'TESS_subsidy_onetime_ac': '10.0',
+		'TESS_subsidy_ongoing_ac': '5.0',
+		'TESS_subsidy_onetime_hp': '10.0',
+		'TESS_subsidy_ongoing_hp': '5.0',
+		'TESS_subsidy_onetime_wh': '10.0',
+		'TESS_subsidy_ongoing_wh': '5.0',
+		'GEN_subsidy_onetime': '0.0',
+		'GEN_subsidy_ongoing': '0.0',
 
 		## Chemical Battery Inputs
 		## Modeled after residential Tesla Powerwall 3 battery specs
@@ -1370,23 +1381,20 @@ def new(modelDir):
 		'BESS_kwh': '13.5',
 		'BESS_retrofit_cost': '0.0',
 		'utility_BESS_portion': '20',
-		'total_govt_rebate': '0.0', ## No incentives considered
-		'replace_cost_per_kw': '0.0', #'324.0', 
-		'replace_cost_per_kwh': '0.0', #'351.0', 
-		'battery_replacement_year': '10',  
-		'BESS_installed_cost': '0.0', 
-		'total_itc_fraction': '0.0', ## No ITC
+		'replace_cost_per_kw': '0.0', #'324.0',
+		'replace_cost_per_kwh': '0.0', #'351.0',
+		'battery_replacement_year': '10',
 		'inverter_replacement_year': '10',
 		'replace_cost_inverter': '0.0', #'2400',
 
 		## Fossil Fuel Generator
 		## NOTE: Generac Guardian models range from 10-26 kW
 		'fossilGenerator': 'No',
-		'fuel_type': '3', 
+		'fuel_type': '3',
 		'existing_gen_kw': '5',
 		'thermal_efficiency': '35',
 		'gen_retrofit_cost': '0.0',
-		'fuel_avail': '1000', 
+		'fuel_avail': '1000',
 		'fuel_cost': '3.80',
 		'replace_cost_generator_per_kw': '0.0', #'450',
 		'generator_replacement_year': '15',
@@ -1403,7 +1411,7 @@ def new(modelDir):
 		'deadband_ac': '2',
 
 		## Home Heat Pump inputs (vbatDispatch):
-		'load_type_hp': '2', 
+		'load_type_hp': '2',
 		'unitDeviceCost_hp': '150',
 		'unitUpkeepCost_hp': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_hp': '5.6',
@@ -1421,14 +1429,15 @@ def new(modelDir):
 		'capacitance_wh': '0.4',
 		'resistance_wh': '120',
 		'cop_wh': '1',
-		'setpoint_wh': '125.0',
+		'setpoint_wh': '119.3',
 		'deadband_wh': '5.4',
-	}
+		}
+
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
 @neoMetaModel_test_setup
-def _tests_disabled():
-	# Location
+def _tests():
+	# Model Location
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:
@@ -1436,6 +1445,7 @@ def _tests_disabled():
 	except:
 		# No previous test results.
 		pass
+
 	# Create New.
 	new(modelLoc)
 	# Pre-run.
@@ -1446,5 +1456,5 @@ def _tests_disabled():
 	__neoMetaModel__.renderAndShow(modelLoc)
 
 if __name__ == '__main__':
-	_tests_disabled() ## NOTE: Workaround for failing test. When model is ready, change back to just _tests()
+	_tests()
 	pass

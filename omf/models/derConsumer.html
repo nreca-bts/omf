@@ -119,26 +119,30 @@
 				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^\d{4}$" required="required"/>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Use the user-provided random numbers?<span class="classic">If 'Yes' model will use all user-provided random numbers including the PuLP Random Seed and the Random Numbers for Water Heater (.csv) file. If 'No' the model will generate all numbers needed and save them in the model outputs. Please see the documentation at the help link for more information.</span></label>
+				<label class="tooltip">Use the user-provided random numbers?<span class="classic">If 'Yes' model will use all user-provided inputs for the Random Seeds (BESS & GEN, AC, HP, WH) and the Random Numbers for Water Heater (.csv) file. If 'No' the model will generate all numbers needed and save them in the model outputs. Please see the documentation at the help link for more information.</span></label>
 				<select id="set_random_numbers" name="set_random_numbers" value="{{allInputDataDict.set_random_numbers}}">
 					<option value='Yes' {{ 'selected' if allInputDataDict.set_random_numbers == 'Yes' }}>Yes</option>
 					<option value='No' {{ 'selected' if allInputDataDict.set_random_numbers == 'No' }}>No</option>
 				</select>
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">PuLP Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<label class="tooltip">Random Seed - BESS & GEN<span class="classic">A deterministic random seed number for the HiGHS optimizer used for the BESS and GEN technologies. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
+				<input type="text" id="random_seed_HiGHS_REopt" name="random_seed_HiGHS_REopt" value="{{allInputDataDict.random_seed_HiGHS_REopt}}" pattern="^\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
 				<input type="text" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">PuLP Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<label class="tooltip">Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
 				<input type="text" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">PuLP Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 10000000000. Please see the documentation at the help link for more information.</span></label>
+				<label class="tooltip">Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
 				<input type="text" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" required="required">
 			</div>
 			<div class="shortInput">
-				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A file with random numbers that will help determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save a water_heater_random_numbers.csv file in the ouput files, which the user can re-upload here. Please see the documentation at the help link for the required format and example file.</span></label>
+				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A .csv file containing the random numbers to determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save the water heater random numbers to a .csv file in the output files. Please see the documentation at the help link for the required format and example file.</span></label>
 				<input id="randomNumbersFile" type="file" style="display:none" onchange="handle_files(this.files,'randomNumbers','randomNumbersFileName')">
 				<input id="randomNumbers" name="randomNumbers" value="{{allInputDataDict.randomNumbers}}" type="hidden">
 				<div>
@@ -576,7 +580,7 @@
 						newRow.insertCell().innerHTML = "<div id=\"metric\">" + name + "</div>"
 						for (i=0; i<vector.length; i++) {
 							cell = newRow.insertCell()
-							cell.innerHTML = delimitNumbers(vector[i].toFixed(2))
+							cell.innerHTML = delimitNumbers(vector[i].toFixed(0))
 						}
 					}
 				</script>
