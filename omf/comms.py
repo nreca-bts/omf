@@ -492,11 +492,11 @@ def omcToNxg(omc, fromFile=False):
 def showOnMap(geoJson):
 	'''Open a browser to display a geoJSON object on a map.'''
 	tempDir = tempfile.mkdtemp()
-	shutil.copy(omf.omfDir + '/templates/commsNetViz.html', tempDir)
-	with open(pJoin(tempDir,'commsGeoJson.js'),"w") as outFile:
-		outFile.write("var geojson =")
+	shutil.copy(pJoin(omf.omfDir, 'templates', 'commsNetViz.html'), tempDir)
+	with open(pJoin(tempDir, 'commsGeoJson.js'), 'w') as outFile:
+		outFile.write('var geojson =')
 		json.dump(geoJson, outFile, indent=4)
-	webbrowser.open('file://' + pJoin(tempDir,'commsNetViz.html'))
+	webbrowser.open('file://' + pJoin(tempDir, 'commsNetViz.html'))
 
 
 def saveOmc(geoJson, outputPath, fileName=None):

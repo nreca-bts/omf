@@ -262,17 +262,21 @@ function shareModel() {
 		}).fail(function(jqXHR, textStatus, errorThrown) {
 			resetInvalidFlags();
 			if (jqXHR.status === 409) {
-				// Notify user that model is running
 				alert(jqXHR.responseText);
 			} else if (jqXHR.status === 400) {
-				// Mark invalid usernames
-				const invalidEmails = JSON.parse(jqXHR.responseText)
-				Array.from(tbody.getElementsByTagName("input")).forEach(input => {
-					if (invalidEmails.includes(input.value)) {
-						const td = input.parentElement.nextElementSibling;
-						td.removeAttribute("style");
-					}
-				});
+				try {
+					// Blocked emails (self-share, admin) — mark specific inputs
+					const invalidEmails = JSON.parse(jqXHR.responseText);
+					Array.from(tbody.getElementsByTagName("input")).forEach(input => {
+						if (invalidEmails.includes(input.value)) {
+							const td = input.parentElement.nextElementSibling;
+							td.removeAttribute("style");
+						}
+					});
+				} catch (e) {
+					// Generic error (e.g., user not found) — show message
+					alert(jqXHR.responseText);
+				}
 			}
 
 		}).always(function() {

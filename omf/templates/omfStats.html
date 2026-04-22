@@ -3,7 +3,7 @@
 <body>
 	<h1>OMF Stats</h1>
 	<a href="/">Home</a>
-	<a href="/regenOmfStats">Regenerate Stats</a>
+	<form action="/regenOmfStats" method="POST" style="display:inline"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button type="submit">Regenerate Stats</button></form>
 	<a href="https://www.google.com/webmasters/tools/home?hl=en&authuser=0">Google Search Tools Dashboard</a> - 
 	<a href="https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:InstanceId=i-054cb5c41369df768;sort=tag:Name">AWS Monitoring Site</a> - 
 	<a href="https://uptimerobot.com/dashboard#780640327">Uptime Monitoring</a> - 

@@ -48,7 +48,16 @@
 				return
 			}
 			else if (validateEmail(email)) {
-				window.location.href = '/fastNewUser/' + email + window.location.search
+				var form = document.createElement('form');
+				form.method = 'POST';
+				form.action = '/fastNewUser/' + encodeURIComponent(email) + window.location.search;
+				var csrfInput = document.createElement('input');
+				csrfInput.type = 'hidden';
+				csrfInput.name = '_csrf_token';
+				csrfInput.value = '{{ csrf_token() }}';
+				form.appendChild(csrfInput);
+				document.body.appendChild(form);
+				form.submit();
 			} else {
 				alert('Sorry, but that is not a valid email address.')
 			}

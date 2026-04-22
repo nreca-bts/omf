@@ -45,7 +45,7 @@
 <body>
 	<div id="map"></div>
 	<script>var geojson={% if geojson %}{{geojson | tojson}}{% else %}null{% endif %}</script>
-	<script type="text/javascript" src="commsGeoJson.js"></script>
+	{% if not geojson %}<script type="text/javascript" src="commsGeoJson.js"></script>{% endif %}
 	<script type="text/javascript">
 
 	//Add popup to each node/edge with the properties
