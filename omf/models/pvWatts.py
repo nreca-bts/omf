@@ -28,6 +28,7 @@ def work(modelDir, inputDict):
 	start = pd.to_datetime(inputDict["simStartDate"])
 	trackingMode = int ( inputDict["trackingMode"] )
 	simStartDate = inputDict["simStartDate"]
+
 	# Defaults
 	losses = 15.53
 	### Set up system design parameter dict for PySAM pvWatts Model
@@ -103,19 +104,13 @@ def work(modelDir, inputDict):
 				json.dump(resource, outfile)
 		pvwatts_model.execute()
 	else:
-		raise Exception("model solarFinancial.py API request failed")
+		raise Exception("model pvwatts.py API request failed")
 
 	outData = {}
 	# Geodata output.
 	outData['latitude'] = pvwatts_model.Outputs.lat
 	outData['longitude'] = pvwatts_model.Outputs.lon
 	outData['elev'] = pvwatts_model.Outputs.elev
-
-	thirty_minute_start = pd.to_timedelta( 30, unit="minute")
-	start = start + thirty_minute_start
-	time_passed = pd.to_timedelta( int(inputDict['simLength']), unit=inputDict['simLengthUnits'])
-	end = start + time_passed
-
 	poa = np.array( pvwatts_model.Outputs.poa, dtype=float)
 	dn = np.array( pvwatts_model.Outputs.dn, dtype=float)
 	df = np.array( pvwatts_model.Outputs.df, dtype=float)
@@ -123,7 +118,6 @@ def work(modelDir, inputDict):
 	tcell = np.array( pvwatts_model.Outputs.tcell, dtype=float)
 	wspd = np.array( pvwatts_model.Outputs.wspd, dtype=float)
 	ac = np.array( pvwatts_model.Outputs.ac, dtype=float)
-
 	results_df = pd.DataFrame(
 		{'timestamp': wind_data.index, 'poa': poa, 'dn': dn, 'df': df, 'tamb': tamb, 'tcell': tcell, 'wspd': wspd, 'ac': ac},
 		columns=['timestamp', 'poa', 'dn', 'df', 'tamb', 'tcell', 'wspd', 'ac']
@@ -131,6 +125,10 @@ def work(modelDir, inputDict):
 	results_df["timestamp"] = pd.to_datetime(results_df["timestamp"])
 	results_df = results_df.set_index( results_df["timestamp"])
 	results_df = results_df.drop( columns=["timestamp"] )
+	thirty_minute_start = pd.to_timedelta( 30, unit="minute") # The NSRDB data starts at 00:30 so everything is off by 30 minutes - that's what this is for.
+	start = start + thirty_minute_start
+	time_passed = pd.to_timedelta( int(inputDict['simLength']), unit=inputDict['simLengthUnits'])
+	end = start + time_passed
 	sim_df = results_df.loc[start:end]
 	simLengthUnits = inputDict['simLengthUnits']
 	if simLengthUnits == "minutes":
