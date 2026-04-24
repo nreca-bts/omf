@@ -6,7 +6,7 @@ set -e
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir/.."
 
-git remote add upstream https://github.com/nreca-bts/omf.git
+git remote add upstream https://github.com/nreca-bts/omf.git || true
 git fetch upstream
 git checkout master
 git reset --hard upstream/master
