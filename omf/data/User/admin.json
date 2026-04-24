@@ -1,9 +1,9 @@
 {
-    "username": "admin", 
-    "reg_key": "1c58c5160aa1a26694190bbdf218da73", 
-    "timestamp": "Mon Aug 17 15:11:45 2015", 
-    "registered": false, 
-    "csrf": "13ce25528d8556e9c6c80e832a872cee", 
-    "password_digest": "$pbkdf2-sha512$12000$DwEgZEyJMYaQ8v7/vxcCwA$Uxe/q19AwB4hK5S1W/S.3HbsdlJoOa..RzzsaVeb4opTHy.nMZXjQJAj/oEM3yQbu1jGgEhEliCADenX6buf1A", 
+    "username": "admin",
+    "reg_key": "1c58c5160aa1a26694190bbdf218da73",
+    "timestamp": "Mon Aug 17 15:11:45 2015",
+    "registered": false,
+    "csrf": "13ce25528d8556e9c6c80e832a872cee",
+    "password_digest": "omf_pwd_v1$GQPoOuzsGU2p2pzsAxMndvOH2DiqyUXs_Iu6es7ydPGonw-SLGexDjWluPV1s4cLmqLgs_Njtixrvpg4v77GdTfWX7gC3ilTtNcfmVvDNdivTblyWJZEnmwDgLqQxV0Lrd2FV4EFTl5Q2MB8lEMj7QgLOgv-DIiOBzfYOngOEs_mw_BU6G103rWFDrOx6QyMzBEf89Zr-NQJpF1EKU1yZHLAB-4_68eHuZMgXHWdptqBoKBBZTr_ScjDraFWSc2cA1k=",
     "email": "admin"
 }

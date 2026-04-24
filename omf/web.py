@@ -223,7 +223,7 @@ def _get_model_metadata(owner, model_name):
 
 
 def _get_password_digest_secret():
-	'''Return the password-digest encryption secret from runtime config, or None if encryption is disabled. '''
+	'''Return the password-digest encryption secret from runtime config, or None if it is missing. '''
 	configured_secret = os.environ.get(PASSWORD_DIGEST_SECRET_ENV) or globals().get('PASSWORD_DIGEST_KEY')
 	if configured_secret:
 		return str(configured_secret).encode('utf-8')
@@ -264,10 +264,11 @@ def _password_digest_keystream(enc_key, nonce, length):
 def encrypt_password_digest(password_digest):
 	'''
 	Encrypt a stored password hash using an authenticated envelope built from PBKDF2-HMAC-SHA256 and HMAC-SHA256.
-	If no encryption secret is configured, the plaintext digest is returned unchanged.
 	'''
-	if not password_digest or _is_encrypted_password_digest(password_digest) or not _password_digest_encryption_enabled():
+	if not password_digest or _is_encrypted_password_digest(password_digest):
 		return password_digest
+	if not _password_digest_encryption_enabled():
+		raise ValueError('Password digest encryption requires {} to be configured.'.format(PASSWORD_DIGEST_SECRET_ENV))
 	plaintext = str(password_digest).encode('utf-8')
 	salt = secrets.token_bytes(PASSWORD_DIGEST_SALT_BYTES)
 	nonce = secrets.token_bytes(PASSWORD_DIGEST_NONCE_BYTES)
@@ -280,9 +281,11 @@ def encrypt_password_digest(password_digest):
 
 
 def decrypt_password_digest(password_digest):
-	'''Return the plaintext password hash from either a legacy plaintext value or an encrypted value. '''
-	if not password_digest or not _is_encrypted_password_digest(password_digest):
+	'''Return the plaintext password hash from an encrypted stored password digest. '''
+	if not password_digest:
 		return password_digest
+	if not _is_encrypted_password_digest(password_digest):
+		raise ValueError('Legacy plaintext password digests are no longer supported. Run migrate_legacy_user_password_digests().')
 	if not _password_digest_encryption_enabled():
 		raise ValueError('Encrypted password digest requires {} to be configured.'.format(PASSWORD_DIGEST_SECRET_ENV))
 	encoded_payload = password_digest[len(PASSWORD_DIGEST_PREFIX):].encode('ascii')
@@ -307,7 +310,7 @@ def decrypt_password_digest(password_digest):
 
 
 def verify_user_password(password, user_json):
-	'''Verify a login password against a legacy or encrypted stored password digest. '''
+	'''Verify a login password against an encrypted stored password digest. '''
 	stored_digest = user_json.get('password_digest')
 	if not stored_digest:
 		return False
@@ -326,9 +329,10 @@ def migrate_legacy_user_password_digests(usernames=None):
 	'''
 	Encrypt legacy plaintext password digests in data/User/*.json.
 	Pass a username string, an iterable of usernames, or leave usernames=None to migrate every user file.
-	Returns a summary dict with migrated, skipped, and failed usernames. If no secret is configured,
-	plaintext digests are left unchanged and reported as skipped.
+	Returns a summary dict with migrated, skipped, and failed usernames.
 	'''
+	if not _password_digest_encryption_enabled():
+		raise ValueError('{} must be configured before migrating password digests.'.format(PASSWORD_DIGEST_SECRET_ENV))
 	user_dir = path_manager.join('data', 'User')
 	if usernames is None:
 		target_usernames = [filename[:-5] for filename in _safe_list_dir(user_dir) if filename.endswith('.json')]
@@ -347,9 +351,6 @@ def migrate_legacy_user_password_digests(usernames=None):
 				user_json = json.load(f)
 			stored_digest = user_json.get('password_digest')
 			if not stored_digest or _is_encrypted_password_digest(stored_digest):
-				results['skipped'].append(username)
-				continue
-			if not _password_digest_encryption_enabled():
 				results['skipped'].append(username)
 				continue
 			user_json['password_digest'] = encrypt_password_digest(stored_digest)

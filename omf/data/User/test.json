@@ -1,1 +1,4 @@
-{"username": "test", "password_digest": "$pbkdf2-sha512$12000$s7ZWag0hBIAwxrh3DkFICQ$8an4Xu2rg/35o.XcDFSm2scwEKAfYsOs4QTNwEeWaUbwgZMpUWA46ubft37E0ZoiJCv8Ypf0QncjpLBuhAmwhg"}
+{
+    "username": "test",
+    "password_digest": "omf_pwd_v1$B5PZeEYpGNreIeAgqaxoeNcKxO8EpAqArPcfZshil5QLgZGVKzvCFi_VELayH7cZKqenqjOAfnszCwab9nlaEgp_GB32ovWaSW_WIhKvXk05vC-1Es7YWnn14TMJ5z7BJePtxK4nQJMyzIwqTchvohqtWQpQa1XwcR3FwZqIYgEcfjJozM7vBI15zI-SiZad0dU-mO6nQ_MEbV4JacNPf84sjL2ery8j9k_eO-7BiNdqdc9dsHp7GK4dQFbS7iDmhH0="
+}
