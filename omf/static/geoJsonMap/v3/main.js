@@ -44,7 +44,12 @@ function main() {
     }
     // - Save before rendering the interface to remove any previous error files, but only in "online mode"
     if (gIsOnline) {
-        document.getElementById('saveDiv').click();
+        const saveDiv = document.getElementById('saveDiv');
+        if (saveDiv) {
+            saveDiv.click();
+        } else {
+            hideModalInsert();
+        }
     }
 }
 
