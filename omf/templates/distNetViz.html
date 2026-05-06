@@ -3098,7 +3098,7 @@ function startZillowHouses() {
     modal.clearAndAddMessage('Submitting your triplex objects for conversion...')
     const formData = new FormData();
     formData.set('triplexObjects', JSON.stringify(triplexObjects));
-    formData.set('owner', gThisOwner);
+    formData.set('user', gThisOwner);
     formData.set('modelName', gThisModelName);
     const request = $.ajax({
         type: "POST",
@@ -3133,7 +3133,7 @@ function pollZillowHouses() {
     });
     modal.clearAndAddMessage('Converting triplex objects into real-world Zillow houses. This could take many minutes...');
     const formData = new FormData();
-    formData.set('owner', gThisOwner);
+    formData.set('user', gThisOwner);
     formData.set('modelName', gThisModelName);
     const intervalId = setInterval(function() {
         $.ajax({
@@ -3391,9 +3391,13 @@ async function submitForm({formId, pollUrl, inputId}) {
                 }
                 modal.finish();
             }
-        }).fail(function() {
+        }).fail(function(jqXHR) {
             if (!cancelled) {
-                modal.clearAndAddMessage('The server raised an internal exception during form submission.')
+                if (jqXHR.status === 409) {
+                    modal.clearAndAddMessage('A feeder with that name already exists. Please choose a different name.');
+                } else {
+                    modal.clearAndAddMessage('The server raised an internal exception during form submission.');
+                }
                 modal.hideCancelButton();
                 modal.finish();
             }

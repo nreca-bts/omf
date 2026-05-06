@@ -47,7 +47,7 @@
 					<div class='buttonGroup'>
 						<button name="accountOps" id="accountOps" class='pill' onclick='dropPill(this, "Account")'>Account ▾</button>
 						<ul class='menu right'>
-							<li style="width:120px;"><a href="logout">Logout</a></li>
+							<li style="width:120px;"><form action="/logout" method="POST" style="margin:0"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button type="submit">Logout</button></form></li>
 							<li style="width:120px;"><a href="myaccount">My Account</a></li>
 							{% if is_admin %}
 							<li style="width:120px;"><a href="adminControls">Admin Controls</a></li>

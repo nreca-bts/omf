@@ -40,8 +40,10 @@ ul.menu.center {right: auto; left:-45%;}
 ul.menu li {padding:0px;}
 ul.menu li:hover {background:green;color:white;}
 ul.menu li:hover a {color:white;}
-ul.menu a {display:block; color:black; padding:4px;}
-ul.menu a:hover {color:white;}
+ul.menu a, ul.menu button {display:block; color:black; padding:4px;}
+ul.menu a:hover, ul.menu button:hover {color:white;}
+ul.menu li:hover button {color:white;}
+ul.menu button {width:100%; text-align:left; background:none; border:none; cursor:pointer; font:inherit;}
 ul.menu {display:block; color:black; padding:4px;}
 ul.menu ul.menu:hover, ul.menu:visited:hover {color:white;}
 * {margin:0px; padding:0px; border:0px;}

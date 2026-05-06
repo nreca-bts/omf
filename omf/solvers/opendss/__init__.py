@@ -142,7 +142,7 @@ def newQstsPlot(filePath, stepSizeInMinutes, numberOfSteps, keepAllFiles=False, 
 		if name.startswith('monload-'):
 			# reassign V1 single phase voltages outputted by DSS to the appropriate column and filling Nans for neutral phases (V2)
 			# three phase print out should work fine as is
-			ob_name = name.split('-')[1]
+			ob_name = name.split('-', 1)[1]
 			# print("ob_name:", ob_name)
 			the_object = _getByName(tree, ob_name)
 			# print("the_object:", the_object)

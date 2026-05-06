@@ -239,6 +239,7 @@ class FeatureController { // implements ControllerInterface
                                 submitButton.disabled = false;
                             }
                             modalInsert.addEventListener('click', hideModalInsert);
+                            return;
                         }
                 }
             } catch {

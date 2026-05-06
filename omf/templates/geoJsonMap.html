@@ -50,26 +50,26 @@
 				url: '/checkConversion/{{ modelName }}/{{ owner }}',
 				async: false
 			}).done(function (data) {
-
-				// Set conversion status depending on result of AJAX request
-				if (data.exists == null)
-					conversionStatus = data;
-				else if (data.exists)
-					conversionStatus = 'converting'
-				else if (!data.exists)
-					conversionStatus = 'done';
-
-				// Deal with the conversion status (if not 'converting' or 'done', something went wrong)
-				if (conversionStatus == 'converting') { }
-				else if (conversionStatus == 'done') {
+				if (data.error) {
+					var messages = {
+						'glmError': 'The glm file used is incorrectly formatted.',
+						'milError': 'The .std and .seq files used are incorrectly formatted.',
+						'dssError': 'The DSS file used is incorrectly formatted.',
+						'cymeError': 'The CYME file used is incorrectly formatted.',
+						'amiError': 'The AMI data is incorrectly formatted.',
+						'anonymizeError': 'An error occurred during anonymization.'
+					};
+					window.clearInterval(intervalId);
+					alert(messages[data.error] || data.error);
+					removeProgressDialog();
+				}
+				else if (data.exists) {
+					// Still converting
+				}
+				else if (data.exists === false) {
 					window.clearInterval(intervalId);
 					alert('Conversion complete.')
 					displayGeojson();
-					removeProgressDialog();
-				}
-				else {
-					window.clearInterval(intervalId);
-					alert(conversionStatus);
 					removeProgressDialog();
 				}
 			})

@@ -300,7 +300,7 @@ def get_randomized_api_key():
 #potential optional inputs (for solver): ratio_gap, threads, max_solutions, verbosity
 #potential other inputs (ease of use): load csv file path ("path_to_csv") => check if "loads_kw" already exists
 def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, microgrid_only=False, max_runtime_s=None, 
-				 run_with_sysimage=True, tolerance=0.05 ):
+				 run_with_sysimage=True, tolerance=0.05, random_seed=None):
 	''' calls 'run' function through run_reopt.jl (Julia file) '''
 	
 	if inputFile == "" and not default:
@@ -330,6 +330,7 @@ def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, 
 		microgrid_only_jl = "false" if not microgrid_only else "true"
 		outages_jl = "false" if not outages else "true"
 		max_runtime_s_jl = "nothing" if max_runtime_s == None else max_runtime_s
+		random_seed_jl = "nothing" if random_seed == None else random_seed
 
 		api_key = get_randomized_api_key()
 
@@ -338,7 +339,7 @@ def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, 
 
 			juliaStr = f'''using .REoptSolver;
 				ENV["NREL_DEVELOPER_API_KEY"]="{api_key}";
-				REoptSolver.run("{path}", {outages_jl}, {microgrid_only_jl}, {max_runtime_s_jl}, "{api_key}", {tolerance})
+				REoptSolver.run("{path}", {outages_jl}, {microgrid_only_jl}, {max_runtime_s_jl}, "{api_key}", {tolerance}, {random_seed_jl})
 				'''
 			juliaFileLocation, delCommand = make_julia_script_file(juliaStr)
 			command = f'julia --sysimage="{sysimage_path}" "{juliaFileLocation}"'
@@ -348,7 +349,7 @@ def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, 
 			juliaStr = f'''using Pkg; Pkg.instantiate();
 				import REoptSolver;
 				ENV["NREL_DEVELOPER_API_KEY"]="{api_key}";
-				REoptSolver.run("{path}", {outages_jl}, {microgrid_only_jl}, {max_runtime_s_jl}, "{api_key}", {tolerance})
+				REoptSolver.run("{path}", {outages_jl}, {microgrid_only_jl}, {max_runtime_s_jl}, "{api_key}", {tolerance}, {random_seed_jl})
 				'''
 			juliaFileLocation, delCommand = make_julia_script_file(juliaStr)  
 			command = f'julia --project="{project_path}" "{juliaFileLocation}"'

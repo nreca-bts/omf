@@ -204,6 +204,8 @@ def work(modelDir, inputDict):
 				"Wind": {
 					"installed_cost_per_kw": windCost,
 					#"installed_cost_us_dollars_per_kw": windCost,
+					"can_export_beyond_nem_limit": solarCanExport,
+					"can_curtail": solarCanCurtail,
 					"min_kw": windMin,
 					"macrs_option_years": windMacrsOptionYears,
 					"federal_itc_fraction": windItcPercent
@@ -238,7 +240,10 @@ def work(modelDir, inputDict):
 				#scenario['Scenario']['ElectricTariff']["wholesale_rate_above_site_load_us_dollars_per_kwh"] = 0
 				scenario['ElectricTariff']['wholesale_rate'] = 0
 				#["wholesale_rate_us_dollars_per_kwh"] = 0
-		scenario['Wind']['max_kw'] = windMax
+		# REopt.jl's Wind struct does not support existing_kw (unlike PV which does).
+		# To give REopt the correct ceiling, manually add windExisting to windMax here, mirroring the effect of PV's existing_kw which REopt adds to max_kw internally
+		windExistingVal = float(inputDict.get('windExisting', 0))
+		scenario['Wind']['max_kw'] = windMax + windExistingVal
 		scenario['ElectricStorage']['max_kw'] = batteryPowerMax
 		scenario['ElectricStorage']['max_kwh'] = batteryCapacityMax
 		# if outage_start_hour is > 0, a resiliency optimization that includes diesel is triggered
