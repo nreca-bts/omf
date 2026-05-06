@@ -754,97 +754,6 @@ class USCRNDataType(object):
 			return self.transformation_function(value)
 		return value
 
-def lat_lon_diff(lat1, lat2, lon1, lon2):
-	'''Get the euclidean distance between two sets of latlon coordinates'''
-	dist = sqrt((float(lat1) - float(lat2))**2 + (float(lon1) - float(lon2))**2)
-	return dist
-
-# NSRDB
-def nsrbd_latlon_to_wkt(longitude, latitude):
-    if not (-90 <= latitude <= 90):
-        raise ValueError('invalid latitude')
-    if not (-180 <= longitude <= 180):
-        raise ValueError('invalid longitude')
-
-    lon_str = f"{longitude:.4f}"
-    lat_str = f"{latitude:.4f}"
-
-    return f"POINT({lon_str} {lat_str})"
-
-def get_nsrdb_goes_aggregated_data(longitude, latitude, year, api_key, attributes=["dni", "dhi", "ghi", "wind_speed" "air_temperature"], utc="false", leap_day="false", email='admin@omf.coop', filename=None):
-	'''
-		Pulls data from NSRDB GOES East and GOES West
-
-		parameters:
-		- attributes: Check https://developer.nrel.gov/docs/solar/nsrdb/nsrdb-GOES-aggregated-v4-0-0-download/ for all attributes
-		- filename: must have modelDir passed in
-	'''
-	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv?"
-	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
-	string_of_attributes = ' '.join(attributes)
-	lat_long_to_wkt = nsrbd_latlon_to_wkt(longitude=longitude, latitude=latitude) # "POINT({lon_str} {lat_str})"
-	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={string_of_attributes}&names={year}&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	response = requests.get(modified_url)
-	if response.status_code == 400:
-		print(f"url: {modified_url}")
-		raise Exception(f"pvwatts work(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
-	else:
-		text = response.text
-		clean_text = text.splitlines()
-		with open( filename, "w") as text_file:
-			text_file.write(clean_text)
-			requestSuccess = True
-
-
-def get_nsrdb_data(data_set, longitude, latitude, year, api_key, utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
-	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
-	print("NSRDB found")
-	base_url = 'https://developer.nrel.gov'
-	request_url = ""
-	params = {}
-	params['api_key'] = api_key
-	params['wkt'] = nsrbd_latlon_to_wkt(latitude=latitude, longitude=longitude)
-	params['names'] = str(year)
-	params['utc'] = utc
-	params['leap_day'] = leap_day
-	params['email'] = email
-
-	# Physical Solar Model
-	if data_set == 'psm':
-		params["interval"] = interval
-		request_url = os.path.join( base_url, 'api/solar/nsrdb_psm3_download.csv' )
-	# physical solar model v3 tsm
-	elif data_set == 'psm_tmy':
-		request_url = os.path.join( base_url, 'api/nsrdb_api/solar/nsrdb_psm3_tmy_download.csv' )
-	# SUNY International
-	elif data_set == 'suny':
-		request_url = os.path.join( base_url, 'api/solar/suny_india_download.csv' )
-	# spectral tmy
-	elif data_set == 'spectral_tmy':
-		request_url = os.path.join( base_url,' api/nsrdb_api/solar/spectral_tmy_india_download.csv' )
-	data = requests.get( url=request_url, params=params)
-
-	if data.status_code != 200:
-		# This means something went wrong.
-		raise Exception(f'status code: {data.status_code} ' + data.text)
-	csv_lines = [line.decode() for line in data.iter_lines()]
-	reader = csv.reader(csv_lines, delimiter=',')
-	if filename is not None:
-		with open(filename, 'w', newline='') as csvfile:
-			for i in reader:
-				csvwriter = csv.writer(csvfile, delimiter=',')
-				csvwriter.writerow(i)
-		return data
-	else:
-		#Transform data, and resubmit in friendly format for frontend
-		data = pd.DataFrame(reader)
-		colNames = (data.iloc[2][:].values)
-		print(data)
-		data.rename(columns={key:val for key, val in enumerate(colNames)}, inplace=True)
-		#Maybe change depending on what's easy/flexible but this gives good display
-		return data
-
-
 SURFRAD_COLUMNS = [
     'year', 'jday', 'month', 'day', 'hour', 'minute', 'dt', 'zen',
     'dw_solar', 'dw_solar_flag', 'uw_solar', 'uw_solar_flag', 'direct_n',
@@ -1677,45 +1586,79 @@ def cds_windpowerlib_getWind(weather_dataset):
 	wind_output_ds.reset_index(drop=True, inplace=True)
 	return wind_output_ds
 
-##################### developer.nrel.gov Functions #####################
+##################### developer.nrl.gov API Requests #####################
 
-def nrel_getTMYData(modelDir, attributes, longitude: float, latitude: float, tmy_file_name: str="output_tmy_data.csv", utc: str="false", leap_day: str="true") -> bool:
-	'''
-	https://developer.nrel.gov/docs/solar/nsrdb/nsrdb-GOES-tmy-v4-0-0-download/
+def lat_lon_diff(lat1, lat2, lon1, lon2):
+	'''Get the euclidean distance between two sets of latlon coordinates'''
+	dist = sqrt((float(lat1) - float(lat2))**2 + (float(lon1) - float(lon2))**2)
+	return dist
+
+# NSRDB
+def nsrbd_latlon_to_wkt(longitude, latitude):
+    if not (-90 <= latitude <= 90):
+        raise ValueError('invalid latitude')
+    if not (-180 <= longitude <= 180):
+        raise ValueError('invalid longitude')
+
+    lon_str = f"{longitude:.4f}"
+    lat_str = f"{latitude:.4f}"
+
+    return f"POINT({lon_str} {lat_str})"
+
+
+def nrl_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: int, api_key, attributes=[], utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
+	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
+	base_url = 'https://developer.nlr.gov'
+	request_url = ""
+	params = {}
+	params['api_key'] = api_key
+	params['wkt'] = nsrbd_latlon_to_wkt(latitude=latitude, longitude=longitude)
+	params['names'] = str(year)
+	params['utc'] = utc
+	params['leap_day'] = leap_day
+	params['email'] = email
+	if len(attributes) > 0:
+		params['attributes'] = ",".join(attributes)
+
+	# Physical Solar Model has been deprecated. PSM is now GOES Aggregated, PSM TMY is now GOES TMY. 
+	if data_set == 'goes_tmy':
+		request_url = f"{base_url}/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv"
+	elif data_set == 'goes_aggregated':
+		request_url = f"{base_url}/api/nsrdb/v2/solar/nsrdb-GOES-aggregated-v4-0-0-download.csv"
+	# SUNY International
+	elif data_set == 'suny':
+		request_url = f"{base_url}/api/solar/suny_india_download.csv"
+	# spectral tmy
+	elif data_set == 'spectral_tmy':
+		request_url = f"{base_url}/api/nsrdb_api/solar/spectral_tmy_india_download.csv"
+	data = requests.get( url=request_url, params=params)
 	
-
-	returns:
-		True/False if request was successful
-		.csv file is created with the data for parsing
-	'''
-
-	requestSuccess = False
-	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
-	email = "admin@omf.coop"
-	base_url = f"https://developer.nrel.gov/api/nsrdb/v2/solar/nsrdb-GOES-tmy-v4-0-0-download.csv?"
-	lat_long_to_wkt = nsrbd_latlon_to_wkt(longitude=longitude, latitude=latitude) # "POINT({lon_str} {lat_str})"
-	attributesStr = ",".join(attributes)
-	attributesStr = f"{attributesStr}"
-	# 	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={'dni,dhi,ghi,wind_speed,air_temperature'}&names=tmy&utc=false&leap_day=true&email={email}&api_key={nrel_key}"
-	modified_url = f"{base_url}wkt={lat_long_to_wkt}&attributes={attributesStr}&names=tmy&utc={utc}&leap_day={leap_day}&email={email}&api_key={nrel_key}"
-	response = requests.get(modified_url)
-	if response.status_code == 400:
-		print(f"url: {modified_url}")
-		raise Exception(f"nrel_getTMYData(): API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
+	if data.status_code != 200:
+		# This means something went wrong.
+		print(f"URL: {data.url}")
+		raise Exception(f'nrl_get_nsrdb_data() :: API Request Failed :: status code: {data.status_code} ' + data.text)
+	csv_lines = [line.decode() for line in data.iter_lines()]
+	reader = csv.reader(csv_lines, delimiter=',')
+	if filename is not None:
+		with open(filename, 'w', newline='') as csvfile:
+			for i in reader:
+				csvwriter = csv.writer(csvfile, delimiter=',')
+				csvwriter.writerow(i)
+		return data
 	else:
-		text = response.text
-		lines = text.splitlines()
-		clean_text = "\n".join(lines)
-		with open( Path(modelDir, tmy_file_name), "w") as text_file:
-			text_file.write(clean_text)
-			requestSuccess = True
-	return requestSuccess
-	
+		#Transform data, and resubmit in friendly format for frontend
+		data = pd.DataFrame(reader)
+		colNames = (data.iloc[2][:].values)
+		print(data)
+		data.rename(columns={key:val for key, val in enumerate(colNames)}, inplace=True)
+		#Maybe change depending on what's easy/flexible but this gives good display
+		return data
+
 
 def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
 	'''
 
-	get wind data from https://developer.nrel.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
+	get wind data from https://developer.nlr.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
 
 	'''
 	successFlag = False
@@ -1726,7 +1669,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 			return successFlag 
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
-	base_url = f"https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
+	base_url = f"https://developer.nlr.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
 	#longitude, latitude 
 	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
 	response = requests.get(modified_url)
@@ -1739,7 +1682,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 		successFlag = True
 	return successFlag
 
-def nrel_pySam_getWind(modelDir, year: int, longitude: float, latitude: float):
+def nlr_pySam_getWind(modelDir, year: int, longitude: float, latitude: float):
 	'''
 		'windpower-inputs.json' - windpower defaults
 		'wind-turbines.json' - wind turbine data. 

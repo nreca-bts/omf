@@ -55,8 +55,8 @@ def work(modelDir, inputDict):
 
 	# We need DNI, DHI, GHI, windspeed, and temp
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	requestSuccess = weather.nrel_getTMYData(modelDir=modelDir, attributes=attributes, longitude=long, latitude=lat)
-
+	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
 	if requestSuccess:

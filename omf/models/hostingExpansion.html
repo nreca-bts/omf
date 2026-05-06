@@ -78,27 +78,31 @@
 			<div class="wideInput">
 				<p class="inputSectionHeader">PV Details</p>
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
+				<label class="tooltip">Year<span class="classic">1998-2024</span></label>
+				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^(199(8|9)|20[0-2][0-4])$" required="required">
+			</div>
+			<div class="shorterInput">
 				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
 				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
 				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
 				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
 			</div>
-			<div class="shortInput">
+			<div class="shorterInput">
 				<label class="tooltip">System Capacity (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
 				<input type="text" id="systemCapacity" name="systemCapacity" value="{{allInputDataDict.systemCapacity}}" pattern="^[1-9]\d*$" required="required">
 			</div>
-				<div class="shortInput">
+				<div class="shorterInput">
 				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
 				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
-				<div class="shortInput">
+				<div class="shorterInput">
 				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
 				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
 			</div>
-				<div class="shortInput">
+				<div class="shorterInput">
 				<label class="tooltip">Losses<span class="classic">Losses.</span></label>
 				<input type="text" id="losses" name="losses" value="{{allInputDataDict.losses}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
