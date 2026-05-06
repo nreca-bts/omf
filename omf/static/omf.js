@@ -364,6 +364,8 @@ function duplicateModel() {
 			} else {
 				post_to_url("/duplicateModel/" + allInputData.user + "/" + allInputData.modelName+"/", {"newName":newName})
 			}
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			alert("AJAX request failed to get a successful response from the server.");
 		})
 	}
 }

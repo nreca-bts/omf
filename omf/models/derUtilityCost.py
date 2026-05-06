@@ -474,7 +474,10 @@ def work(modelDir, inputDict):
 		outData['chargeLevelBattery'] = list(np.zeros_like(demand))
 
 	if GENcheck == 'enabled':
-		generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		try:
+			generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		except KeyError:
+			raise Exception(f'No fossil fuel generator found in REopt results. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
 	else:
 		generator = np.zeros_like(demand)
 

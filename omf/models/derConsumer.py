@@ -313,7 +313,7 @@ def work(modelDir, inputDict):
 		try:
 			BESS = reoptResults['ElectricStorage']['storage_to_load_series_kw']
 		except KeyError:
-			raise Exception(f'No BESS found in REopt. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
+			raise Exception(f'No BESS found in REopt results. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
 		
 		grid_charging_BESS = reoptResults['ElectricUtility']['electric_to_storage_series_kw']
 		outData['chargeLevelBattery'] = list(np.array(reoptResults['ElectricStorage']['soc_series_fraction']) * 100.)
@@ -323,7 +323,10 @@ def work(modelDir, inputDict):
 		outData['chargeLevelBattery'] = list(np.zeros_like(demand))
 
 	if GENcheck == 'enabled':
-		generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		try:
+			generator = np.array(reoptResults['Generator']['electric_to_load_series_kw'])
+		except KeyError:
+			raise Exception(f'No fossil fuel generator found in REopt results. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
 	else:
 		generator = np.zeros_like(demand)
 

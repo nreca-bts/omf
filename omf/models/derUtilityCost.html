@@ -130,19 +130,19 @@
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Seed - BESS & GEN<span class="classic">A deterministic random seed number for the HiGHS optimizer used for the BESS and GEN technologies. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_HiGHS_REopt" name="random_seed_HiGHS_REopt" value="{{allInputDataDict.random_seed_HiGHS_REopt}}" pattern="^\d+\.?\d*?$" required="required">
+				<input type="number" id="random_seed_HiGHS_REopt" name="random_seed_HiGHS_REopt" value="{{allInputDataDict.random_seed_HiGHS_REopt}}" pattern="^\d+\.?\d*?$" min="0" max="2147483647" required="required" >
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Seed - AC<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" required="required">
+				<input type="number" id="random_seed_PuLP_ac" name="random_seed_PuLP_ac" value="{{allInputDataDict.random_seed_PuLP_ac}}" pattern="^\d+\.?\d*?$" min="0" max="2147483647" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Seed - HP<span class="classic">A deterministic random seed number for the PuLP optimizer used for the heat pump technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" required="required">
+				<input type="number" id="random_seed_PuLP_hp" name="random_seed_PuLP_hp" value="{{allInputDataDict.random_seed_PuLP_hp}}" pattern="^\d+\.?\d*?$" min="0" max="2147483647" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Seed - WH<span class="classic">A deterministic random seed number for the PuLP optimizer used for the water heater technology. Must be a positive integer between 0 and 2147483647. Please see the documentation at the help link for more information.</span></label>
-				<input type="text" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" required="required">
+				<input type="number" id="random_seed_PuLP_wh" name="random_seed_PuLP_wh" value="{{allInputDataDict.random_seed_PuLP_wh}}" pattern="^\d+\.?\d*?$" min="0" max="2147483647" required="required">
 			</div>
 			<div class="shortInput">
 				<label class="tooltip">Random Numbers for Water Heater (.csv file)<span class="classic"> A .csv file containing the random numbers to determine the water heater's water draw in gallons per minute. If the 'Use the user-provided random numbers?' input is set to 'Yes', the model will use the provided file. If 'No', the model will generate and save the water heater random numbers to a .csv file in the output files. Please see the documentation at the help link for the required format and example file.</span></label>
