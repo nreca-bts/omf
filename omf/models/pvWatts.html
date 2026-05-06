@@ -54,14 +54,6 @@
 			</div>
 			<hr>
 			<div class="shortInput">
-				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
-				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
-			</div>
-			<div class="shortInput">
-				<label class="tooltip">Tracker Rotation Limit (degrees)<span class="classic">How far each module in a tracking system is able to rotate if on a tracker, measured from the horizontal.</span></label>
-				<input type="text" id="rotlim" name="rotlim" value="{{allInputDataDict.rotlim}}" pattern="^\d+\.?\d*$" required="required"/>
-			</div>
-			<div class="shortInput">
 				<label class="tooltip">Tracking Mode<span class="classic">Type of tracking system the PV array will use if any.</span></label>
 				<select id="trackingMode" name="trackingMode"/>
 					<option value="0" {% if allInputDataDict.trackingMode == '0' %}selected{% endif %}>Fixed Open Rack</option>
@@ -72,6 +64,14 @@
 				</select>
 			</div>
 			<div class="shortInput">
+				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
+				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+			<div class="shortInput">
+				<label class="tooltip">Tracker Rotation Limit (degrees)<span class="classic">How far each module in a tracking system is able to rotate if on a tracker, measured from the horizontal.</span></label>
+				<input type="text" id="rotlim" name="rotlim" value="{{allInputDataDict.rotlim}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+		<div class="shortInput">
 				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
 				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
 			</div>
@@ -99,6 +99,7 @@
 					<option value="days" {% if allInputDataDict.simLengthUnits == 'days' %}selected{% endif %}>Days</option>
 				</select>
 			</div>
+			<input type="hidden" id="setYear" name="setYear" value="{{allInputDataDict.setYear}}">
 			{{ omfModelButtons }}
 		</form>
 	</div>
