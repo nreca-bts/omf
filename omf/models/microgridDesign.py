@@ -98,9 +98,9 @@ def work(modelDir, inputDict):
 	minGenLoading = float(inputDict['minGenLoading'])
 	outage_start_hour = int(inputDict['outage_start_hour'])
 	outage_duration = int(inputDict['outageDuration'])
-	outage_end_hour = outage_start_hour + outage_duration
+	outage_end_hour = outage_start_hour + outage_duration - 1  # REopt end_time_step is inclusive: [start, end] = duration steps
 	if outage_end_hour > 8759:
-		outage_end_hour = 8760
+		outage_end_hour = 8759
 	value_of_lost_load = float(inputDict['value_of_lost_load'])
 	solarCanExport = inputDict['solarCanExport']
 	solarCanCurtail = inputDict['solarCanCurtail']
@@ -244,6 +244,18 @@ def work(modelDir, inputDict):
 		# To give REopt the correct ceiling, manually add windExisting to windMax here, mirroring the effect of PV's existing_kw which REopt adds to max_kw internally
 		windExistingVal = float(inputDict.get('windExisting', 0))
 		scenario['Wind']['max_kw'] = windMax + windExistingVal
+		wind_mps = inputDict.get('windMetersPerSec')
+		if wind_mps:
+			scenario['Wind']['wind_meters_per_sec'] = wind_mps
+			wind_dir = inputDict.get('windDirectionDegrees')
+			wind_temp = inputDict.get('windTemperatureCelsius')
+			wind_press = inputDict.get('windPressureAtmospheres')
+			if wind_dir:
+				scenario['Wind']['wind_direction_degrees'] = wind_dir
+			if wind_temp:
+				scenario['Wind']['temperature_celsius'] = wind_temp
+			if wind_press:
+				scenario['Wind']['pressure_atmospheres'] = wind_press
 		scenario['ElectricStorage']['max_kw'] = batteryPowerMax
 		scenario['ElectricStorage']['max_kwh'] = batteryCapacityMax
 		# if outage_start_hour is > 0, a resiliency optimization that includes diesel is triggered
