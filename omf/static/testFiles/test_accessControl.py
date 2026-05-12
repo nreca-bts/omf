@@ -2,8 +2,7 @@ import pytest, json, os, shutil
 from flask import url_for
 import omf
 from omf import omfDir
-from omf.web import app
-from passlib.hash import pbkdf2_sha512
+from omf.web import app, set_user_password_digest
 
 
 """Integration tests for access control functionality"""
@@ -40,10 +39,9 @@ def client():
     test_users = ['first-test-user', 'second-test-user'] 
     for username in test_users:
         filepath = os.path.join(omfDir, 'data/User', username + '.json')
-        data = json.dumps({
-            'username': username,
-            'password_digest': pbkdf2_sha512.encrypt(username)
-        })
+        user_data = {'username': username}
+        set_user_password_digest(user_data, username)
+        data = json.dumps(user_data)
         with open(filepath, 'w') as f:
             f.write(data)
     # Send client to test
