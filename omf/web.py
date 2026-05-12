@@ -2489,43 +2489,58 @@ def downloadModelData(owner, modelName, fullPath):
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>")
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>/<name>")
 @flask_login.login_required
-@read_permission_function # This route needs read permissions because duplicate model uses it
 def uniqObjName(objtype, owner, modelName=None, name=None):
 	"""Checks if a given object type/owner/name is unique. More like checks if a file exists on the server"""
 	print("Entered uniqobjname", owner, modelName, name)
+	# Inline authorization (replaces @read_permission_function).
+	# Model checks only need ownership — the model may not exist yet.
+	# Feeder/Network/circuitFile checks need the parent model to exist
+	# and the user to have read access.
+	if objtype == 'Model':
+		if owner != User.cu() and User.cu() != 'admin':
+			return redirect('/')
+	else:
+		if owner == 'public':
+			pass  # Any authenticated user can check public resources
+		else:
+			model_metadata_path = path_manager.join('data', 'Model', owner, modelName, 'allInputData.json')
+			if not os.path.isfile(model_metadata_path):
+				return redirect('/')
+			if owner != User.cu() and not _is_authorized_model_viewer(owner, modelName) and User.cu() != 'admin':
+				return redirect('/')
 	# For Model type, the 3-segment route puts the name-to-check in modelName.
 	if objtype == 'Model':
 		name = modelName
+	original_name = name
 	# Sanitize the name the same way creation routes do so the uniqueness
 	# check matches the actual filename that would be written to disk.
-	if objtype == 'Model':
-		name = secure_filename(name) or 'model'
-	elif objtype in ('Feeder', 'circuitFile'):
-		name = secure_filename(name) or 'feeder'
-	elif objtype == 'Network':
-		name = secure_filename(name) or 'network'
-	if objtype == 'Model':
-		path = path_manager.join('data', 'Model', owner, name)
-	elif objtype == 'Feeder':
-		if name == 'feeder':
-			return jsonify(exists=True)
-		if owner != 'public':
-			path = path_manager.join('data', 'Model', owner, modelName, name + '.omd')
-		else:
-			path = path_manager.join('static', 'publicFeeders', name + '.omd')
-	elif objtype == 'Network':
-		path = path_manager.join('data', 'Model', owner, modelName, name + '.omt')
-		if name == 'feeder':
-			return jsonify(exists=True)
-	elif objtype == 'circuitFile':
-		if name == 'feeder':
-			return jsonify(exists=True)
-		if owner != 'public':
-			path = path_manager.join('data', 'Model', owner, modelName, name)
-		else:
-			# path = path_manager.join('solvers', 'opendss', name + '.dss')
-			path = path_manager.join('solvers', 'opendss', name)
-	return jsonify(exists=os.path.exists(path))
+	FALLBACKS = {'Model': 'model', 'Feeder': 'feeder', 'circuitFile': 'feeder', 'Network': 'network'}
+	name = secure_filename(name) or FALLBACKS.get(objtype, 'file')
+	# If the name collapsed to its reserved fallback, it always "exists" (reserved).
+	if name == FALLBACKS.get(objtype):
+		return jsonify(exists=True)
+	def _build_path(n):
+		if objtype == 'Model':
+			return path_manager.join('data', 'Model', owner, n)
+		if objtype == 'Feeder':
+			if owner == 'public':
+				return path_manager.join('static', 'publicFeeders', n + '.omd')
+			return path_manager.join('data', 'Model', owner, modelName, n + '.omd')
+		if objtype == 'Network':
+			return path_manager.join('data', 'Model', owner, modelName, n + '.omt')
+		if objtype == 'circuitFile':
+			if owner == 'public':
+				return path_manager.join('solvers', 'opendss', n)
+			return path_manager.join('data', 'Model', owner, modelName, n)
+	# Check sanitized path first, then fall back to original name for legacy files.
+	exists = os.path.exists(_build_path(name))
+	if not exists and original_name != name:
+		try:
+			exists = os.path.exists(_build_path(original_name))
+		except path_manager.PathTraversalError:
+			# - There shouldn't be any legacy filenames with malicious characters, but if there are, they're orphaned
+			pass
+	return jsonify(exists=exists)
 
 
 if __name__ == "__main__":

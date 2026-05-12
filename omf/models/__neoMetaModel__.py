@@ -176,8 +176,10 @@ def renderTemplate(modelDir, absolutePaths=False, datastoreNames={}):
 		<button id="deleteButton" type="button" onclick="deleteModel()">Delete</button>
 		<button id="runButton" type="submit">Run Model</button>
 		{% endif %}
-		{% if modelStatus == "finished" %}
+		{% if modelStatus == "finished" and (loggedInUser == modelOwner or loggedInUser == 'admin') %}
 		<button id="shareButton" type="button" onclick="shareModel()">Share</button>
+		{% endif %}
+		{% if modelStatus == "finished" %}
 		<button id="duplicateButton" type="button" onclick="duplicateModel()">Duplicate</button>
 		{% endif %}
 		{% if modelStatus == "running" and (loggedInUser == modelOwner or loggedInUser == 'admin') %}
