@@ -36,7 +36,7 @@ def work(modelDir, inputDict):
 	if requestSuccess:
 		pvwatts_model, results_df = pysam.run_pvwatts(modelDir, sys_design=sys_design, dataFile="output_tmy_data.csv")
 	else:
-		raise Exception("pvwatts.py: API request failed")
+		raise Exception("solarCashflow.py: API request failed")
 	outData = {}
 	# Geodata output.
 	outData['latitude'] = pvwatts_model.Outputs.lat

@@ -32,25 +32,25 @@ def _pysam_sysDesignSetup(inputDict: dict, lat: float, long: float) -> dict:
 	# Values from inputDict
 	array_type = int( inputDict.get('trackingMode', 2))
 	if not (0 <= array_type <= 4):
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: trackingMode must be an integer between 0 and 4 inclusive.")
+		raise ValueError("_pysam_sysDesignSetup: trackingMode must be an integer between 0 and 4 inclusive.")
 	azimuth = float( inputDict.get('azimuth', 180.0))
 	if not (0 <= azimuth <= 360) and array_type < 4:
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: azimuth must be between 0 and 360 degrees.")
+		raise ValueError("_pysam_sysDesignSetup: azimuth must be between 0 and 360 degrees.")
 	inv_eff = float( inputDict.get('inverterEfficiency', 96))
 	if not (90 < inv_eff <= 99.5):
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: inverterEfficiency must be between 90 and 99.5 percent.")
+		raise ValueError("_pysam_sysDesignSetup: inverterEfficiency must be between 90 and 99.5 percent.")
 	losses = float( inputDict.get('losses', 15.53)) # DC system losses [%] - 15.53 is an OMF Default
 	if not (-5 <= losses <= 99):
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: losses must be between -5 and 99 percent.")
+		raise ValueError("_pysam_sysDesignSetup: losses must be between -5 and 99 percent.")
 	rotlim = float( inputDict.get('rotlim', 45))
 	if not (0 <= rotlim <= 360):
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: rotlim must be between 0 and 360 degrees.")
+		raise ValueError("_pysam_sysDesignSetup: rotlim must be between 0 and 360 degrees.")
 	systemSize = int( inputDict.get('systemSize', inputDict.get('systemCapacity', 10)))
 	if systemSize <= 0:
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: systemSize must be a positive integer.")
+		raise ValueError("_pysam_sysDesignSetup: systemSize must be a positive integer.")
 	tilt = float( inputDict.get('tilt', 45))
 	if not (0 <= tilt <= 90) and array_type < 4:
-		raise ValueError("pvwatts.py _pysam_sysDesignSetup: tilt must be between 0 and 90 degrees.")
+		raise ValueError("_pysam_sysDesignSetup: tilt must be between 0 and 90 degrees.")
 
 	# OMF Defaults not in inputDict
 	module_type = 2.0
@@ -85,7 +85,7 @@ def run_pvwatts(modelDir, sys_design: dict, dataFile: str = "solar_resource_file
 	- dataFile (str): Name of CSV File containing the solar resource data. This is the output of weather.nrl_get_nsrdb_data() using either goes_tmy or goes_aggregated
 	  - nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 	  - attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-		- These attributes will be expected
+		- These attributes will be expected.
 
 	- setYear (bool): TMY is a bunch of years of data put together - if you want to set the year to be a specific year, set this to True
 	- year (str): If setYear is True, this is the year to set the data to.
@@ -109,6 +109,11 @@ def run_pvwatts(modelDir, sys_design: dict, dataFile: str = "solar_resource_file
 	metadata = full_data.iloc[0:1].copy()
 	wind_data = full_data.iloc[2:].copy()
 	wind_data.columns = full_data.iloc[1]
+	# Validate required columns exist
+	required_columns = ['DNI', 'DHI', 'GHI', 'Wind Speed', 'Temperature']
+	missing_columns = [col for col in required_columns if col not in wind_data.columns]
+	if missing_columns:
+		raise ValueError(f"run_pvwatts: Missing required columns in dataframe: {', '.join(missing_columns)}")
 	# We can snag elevation from the NSRDB Data we pulled out of the request
 	# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
 	# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
@@ -155,7 +160,6 @@ def run_pvwatts(modelDir, sys_design: dict, dataFile: str = "solar_resource_file
 	with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
 			json.dump(resource, outfile)
 	pvwatts_model.execute()
-
 	gh = np.array( pvwatts_model.Outputs.gh, dtype=float)
 	poa = np.array( pvwatts_model.Outputs.poa, dtype=float)
 	dn = np.array( pvwatts_model.Outputs.dn, dtype=float)
@@ -171,7 +175,6 @@ def run_pvwatts(modelDir, sys_design: dict, dataFile: str = "solar_resource_file
 	results_df["timestamp"] = pd.to_datetime(results_df["timestamp"])
 	results_df = results_df.set_index( results_df["timestamp"])
 	results_df = results_df.drop( columns=["timestamp"] )
-
 	return pvwatts_model, results_df
 
 def run_pvwatts_historical_max(modelDir, sys_design: dict, dataFile: str="solar_resource_file.csv"):
@@ -187,7 +190,6 @@ def run_pvwatts_historical_max(modelDir, sys_design: dict, dataFile: str="solar_
 		- Note: Because this only uses goes_aggregated and is historical data, there is only the data for the year provided.
 			  - nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year="<given year>", api_key="", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
 	  		- attributes = ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']
-				- These are the attributes
 
 	returns:
 	- pvwatts_model: The PySAM pvWattsv8 model object.
@@ -200,6 +202,11 @@ def run_pvwatts_historical_max(modelDir, sys_design: dict, dataFile: str="solar_
 	metadata = full_data.iloc[0:1].copy()
 	wind_data = full_data.iloc[2:].copy()
 	wind_data.columns = full_data.iloc[1]
+	# Validate required columns exist
+	required_columns = ['Clearsky DNI', 'Clearsky DHI', 'Clearsky GHI']
+	missing_columns = [col for col in required_columns if col not in wind_data.columns]
+	if missing_columns:
+		raise ValueError(f"run_pvwatts_historical_max: Missing required columns in dataframe: {', '.join(missing_columns)}")
 	# We can snag elevation from the NSRDB Data we pulled out of the request
 	# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
 	# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
