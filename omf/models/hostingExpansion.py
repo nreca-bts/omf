@@ -16,168 +16,48 @@ from omf.models.__neoMetaModel__ import *
 from omf import weather
 from omf.models import hostingCapacity
 from omf.solvers import opendss
-from omf.models import pvWatts
+from omf.solvers import pysam
 
 # Model metadata
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
-def run_pvwatts_historical_max(modelDir, inputDict):
-	'''
-	Modified inputDict['tilt] = latitude
-	'''
-	lat = float( inputDict['latitude'] )
-	long = float( inputDict['longitude'] )
-	year = int( inputDict['year'] )
-	inputDict['tilt'] = lat
-	sys_design = pvWatts._pysam_sysDesignSetup(inputDict, lat, long)
-	attributes = ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
-	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
-
-	# If getting the data was successful:
-	# - Combine data + system parameters into pvwatts model and execute
-	if requestSuccess:
-		import PySAM.Pvwattsv8 as pvwatts
-		pvwatts_model = pvwatts.new()
-		full_data = pd.read_csv(Path(modelDir,"output_aggregated_clearsky_data.csv"))
-		metadata = full_data.iloc[0:1].copy()
-		wind_data = full_data.iloc[2:].copy()
-		wind_data.columns = full_data.iloc[1]
-		# We can snag elevation from the NSRDB Data we pulled out of the request
-		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
-		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
-		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
-		datetime_components_dict = {
-			'year': wind_data["Year"],
-			'month': wind_data['Month'],
-			'day': wind_data['Day'],
-			'hour': wind_data['Hour'],
-			'minute': wind_data['Minute'],
-		}
-		wind_data['datetime'] = pd.to_datetime(datetime_components_dict)
-		wind_data = wind_data.set_index(wind_data["datetime"])
-		solar_resource_data = {
-			'lat': float( metadata["Latitude"][0] ),
-			'lon': float( metadata["Longitude"][0] ),
-			'tz': int( metadata["Time Zone"][0] ),
-			'elev':  int( metadata["Elevation"][0] ),
-			'year': [int(x) for x in wind_data['Year']],
-			'month': [int(x) for x in wind_data['Month']],
-			'day': [int(x) for x in wind_data['Day']],
-			'hour': [int(x) for x in wind_data['Hour']],
-			'minute': [int(x) for x in wind_data['Minute']],
-			'dn': [float(x) for x in wind_data['Clearsky DNI']],
-			'df': [float(x) for x in wind_data['Clearsky DHI']],
-			'gh': [float(x) for x in wind_data['Clearsky GHI']],
-			'wspd': [0.0] * len(wind_data),
-			'tdry': [0.0] * len(wind_data),
-		}
-		pvwatts_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
-		model_params = sys_design['ModelParams']
-		pvwatts_model.assign(model_params)
-		resource = pvwatts_model.SolarResource.export()
-		# Convert and write JSON object to file
-		with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
-				json.dump(resource, outfile)
-		pvwatts_model.execute()
-	else:
-		raise Exception("hostingExpansion API request failed")
-	
-	ac = np.array( pvwatts_model.Outputs.ac, dtype=float) # Watts
-
-	results_df = pd.DataFrame(
-		{'timestamp': wind_data.index, 'ac_watts': ac},
-		columns=['timestamp', 'ac_watts']
-	)
-	results_df["timestamp"] = pd.to_datetime(results_df["timestamp"])
-	results_df = results_df.set_index( results_df["timestamp"])
-	results_df = results_df.drop( columns=["timestamp"] )
-	return pvwatts_model, results_df
-
-def run_pvwatts_historical(modelDir, inputDict):
-	lat = float( inputDict['latitude'] )
-	long = float( inputDict['longitude'] )
-	year = int( inputDict['year'] )
-	sys_design = pvWatts._pysam_sysDesignSetup(inputDict, lat, long)
-	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
-	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
-
-	# If getting the data was successful:
-	# - Combine data + system parameters into pvwatts model and execute
-	if requestSuccess:
-		import PySAM.Pvwattsv8 as pvwatts
-		pvwatts_model = pvwatts.new()
-		full_data = pd.read_csv(Path(modelDir,"output_aggregated_data.csv"))
-		metadata = full_data.iloc[0:1].copy()
-		wind_data = full_data.iloc[2:].copy()
-		wind_data.columns = full_data.iloc[1]
-		# We can snag elevation from the NSRDB Data we pulled out of the request
-		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
-		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
-		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
-		datetime_components_dict = {
-			'year': wind_data["Year"],
-			'month': wind_data['Month'],
-			'day': wind_data['Day'],
-			'hour': wind_data['Hour'],
-			'minute': wind_data['Minute'],
-		}
-		wind_data['datetime'] = pd.to_datetime(datetime_components_dict)
-		wind_data = wind_data.set_index(wind_data["datetime"])
-		solar_resource_data = {
-			'lat': float( metadata["Latitude"][0] ),
-			'lon': float( metadata["Longitude"][0] ),
-			'tz': int( metadata["Time Zone"][0] ),
-			'elev':  int( metadata["Elevation"][0] ),
-			'year': [int(x) for x in wind_data['Year']],
-			'month': [int(x) for x in wind_data['Month']],
-			'day': [int(x) for x in wind_data['Day']],
-			'hour': [int(x) for x in wind_data['Hour']],
-			'minute': [int(x) for x in wind_data['Minute']],
-			'dn': [float(x) for x in wind_data['DNI']],
-			'df': [float(x) for x in wind_data['DHI']],
-			'gh': [float(x) for x in wind_data['GHI']],
-			'wspd': [float(x) for x in wind_data['Wind Speed']],
-			'tdry': [float(x) for x in wind_data['Temperature']],
-		}
-		pvwatts_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
-		model_params = sys_design['ModelParams']
-		pvwatts_model.assign(model_params)
-		resource = pvwatts_model.SolarResource.export()
-		# Convert and write JSON object to file
-		with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
-				json.dump(resource, outfile)
-		pvwatts_model.execute()
-	else:
-		raise Exception("hostingExpansion API request failed")
-	ac = np.array( pvwatts_model.Outputs.ac, dtype=float) # Watts
-	results_df = pd.DataFrame(
-		{'timestamp': wind_data.index, 'ac_watts': ac},
-		columns=['timestamp', 'ac_watts']
-	)
-	results_df["timestamp"] = pd.to_datetime(results_df["timestamp"])
-	results_df = results_df.set_index( results_df["timestamp"])
-	results_df = results_df.drop( columns=["timestamp"] )
-	return pvwatts_model, results_df
-
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
 	# Delete output file every run if it exists
-	outData = {}		
+	outData = {}
 	# Model operations goes here.
+	lat = float( inputDict['latitude'] )
+	long = float( inputDict['longitude'] )
+	year = int( inputDict['year'] )
+	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
+	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
+	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
+	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
+	if requestSuccess:
+		pvwatts_model, pvwatts_data = pysam.run_pvwatts(modelDir=modelDir, sys_design=sys_design, dataFile="output_aggregated_data.csv")
+	else:
+		raise Exception("hostingExpansion.py: API request 1 Failed")
 
-	pvwatts_model, pvwatts_data = run_pvwatts_historical(modelDir=modelDir, inputDict=inputDict)
-	maxSolar_model, maxSolar_data = run_pvwatts_historical_max(modelDir=modelDir, inputDict=inputDict)
+	# For Max Solar - Set tilt = latitude
+	inputDict['tilt'] = lat
+	sys_design_max = pysam._pysam_sysDesignSetup(inputDict, lat, long)
+	attributes_clearsky = ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']
+	nrlAPIResponse_clearsky = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes_clearsky, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
+	requestSuccess = True if nrlAPIResponse_clearsky.status_code == 200 else False
+	if requestSuccess:
+		maxSolar_model, maxSolar_data = pysam.run_pvwatts_historical_max(modelDir=modelDir, sys_design=sys_design_max, dataFile="output_aggregated_clearsky_data.csv")
+	else:
+		raise Exception("hostingExpansion.py: API request 2 Failed")
+
 	#downlineload_df = hostingCapacity.run_downlineLoadAlgorithm(modelDir=modelDir, inputDict=inputDict, outData=outData)
 	amiData = pd.read_csv( Path(modelDir, inputDict["AmiDataFileName"]) )
 	full_df = pd.DataFrame({
     'hour': pvwatts_data.index,
     'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000,
-		'pysam_ac_watts': pvwatts_data['ac_watts'].values,
+		'pysam_ac_watts': pvwatts_data['ac'].values,
 		'dc_nameplate_w': float(inputDict["systemCapacity"])*1000, # Convert kW to W 
-		'max_solar_ac_watts': maxSolar_data['ac_watts'].values
+		'max_solar_ac_watts': maxSolar_data['ac'].values
 	})
 	full_df.to_csv(Path(modelDir, "output_LoadvsPySAM.csv"), index=False)
 	scatterFigure = px.line(full_df, x='hour', y=['total_load','pysam_ac_watts', 'dc_nameplate_w', 'max_solar_ac_watts'])

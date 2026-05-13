@@ -7,7 +7,7 @@ from os.path import join as pJoin
 from omf import weather
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
-from omf.models import pvWatts
+from omf.solvers import pysam
 
 # Python imports
 from pathlib import Path
@@ -22,24 +22,46 @@ hidden = False
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
-
+	# lat/long get checked in nrl_get_nsrdb_data
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
-
-	pvWatts.new(Path(modelDir, "running_pvwatts_for_solarCashFlow"))
-	with open(Path(modelDir, 'running_pvwatts_for_solarCashFlow', 'allInputData.json')) as f:
-		all_input_data = json.load(f)
-	all_input_data['longitude'] = long
-	all_input_data['latitude'] = lat
-	all_input_data['systemSize'] = inputDict['systemSize']
-	startDateTime = all_input_data.get("simStartDate", "2020-01-01 00:00:00")
-	with open(Path(modelDir, 'running_pvwatts_for_solarCashFlow', 'allInputData.json'), 'w') as f:
-		json.dump(all_input_data, f, indent=4)
-	omf.models.__neoMetaModel__.runForeground(f'{Path(modelDir)}/running_pvwatts_for_solarCashFlow')
-	with open(Path(modelDir, 'running_pvwatts_for_solarCashFlow', 'allOutputData.json')) as f:
-		outData = json.load(f)
-
-	outData['powerOutputAc'] = outData['Consumption']['Power']
+	# parameter validation
+	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
+	# We need DNI, DHI, GHI, windspeed, and temp
+	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
+	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
+	# If getting the data was successful:
+	# - Combine data + system parameters into pvwatts model and execute
+	if requestSuccess:
+		pvwatts_model, results_df = pysam.run_pvwatts(modelDir, sys_design=sys_design, dataFile="output_tmy_data.csv")
+	else:
+		raise Exception("pvwatts.py: API request failed")
+	outData = {}
+	# Geodata output.
+	outData['latitude'] = pvwatts_model.Outputs.lat
+	outData['longitude'] = pvwatts_model.Outputs.lon
+	outData['elev'] = pvwatts_model.Outputs.elev
+	# Set the timezone to be UTC, it won't affect calculation and display, relative offset handled in pvWatts.html
+	startDateTime = "2013-01-01 00:00:00 UTC"
+	# Timestamp output.
+	outData = {}
+	outData["timeStamps"] = [datetime.datetime.strftime(
+		datetime.datetime.strptime(startDateTime[0:19],"%Y-%m-%d %H:%M:%S") +
+		datetime.timedelta(**{"hours":x}),"%Y-%m-%d %H:%M:%S") + " UTC" for x in range(int(8760))]
+	
+	# Geodata output.
+	outData['lat'] = lat
+	outData['lon'] = long
+	# Weather output.
+	outData["climate"] = {}
+	outData['climate']['Global Horizontal Radiation (W/m^2)'] = results_df["gh"].tolist() if "gh" in results_df else []
+	outData['climate']['Plane of Array Irradiance (W/m^2)'] = results_df["poa"].tolist() if "poa" in results_df else []
+	outData['climate']['Ambient Temperature (F)'] = results_df["tamb"].tolist() if "tamb" in results_df else []
+	outData['climate']['Cell Temperature (F)'] = results_df["tcell"].tolist() if "tcell" in results_df else []
+	outData['climate']['Wind Speed (m/s)'] = results_df["wspd"].tolist() if "wspd" in results_df else []
+	# Power generation.
+	outData['powerOutputAc'] = results_df["ac"].tolist() if "ac" in results_df else []
 
 	solarFraction = float(inputDict.get("resPenetration", .05))/100
 	fossilFraction = max(1 - solarFraction, 10**-6)
