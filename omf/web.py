@@ -1,6 +1,6 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, random, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii
+import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
@@ -42,10 +42,12 @@ _omfDir = os.path.dirname(os.path.abspath(__file__))
 
 PASSWORD_DIGEST_SECRET_ENV = 'OMF_PASSWORD_DIGEST_KEY'
 PASSWORD_DIGEST_PREFIX = 'omf_pwd_v1$'
+PASSWORD_HASH_PBKDF2_ROUNDS = 210000
 PASSWORD_DIGEST_PBKDF2_ROUNDS = 200000
 PASSWORD_DIGEST_SALT_BYTES = 16
 PASSWORD_DIGEST_NONCE_BYTES = 16
 PASSWORD_DIGEST_TAG_BYTES = 32
+_PASSWORD_HASHER = pbkdf2_sha512.using(rounds=PASSWORD_HASH_PBKDF2_ROUNDS)
 
 
 ###################################################
@@ -319,7 +321,7 @@ def verify_user_password(password, user_json):
 
 def set_user_password_digest(user_json, password):
 	'''Hash a password and store the resulting digest in encrypted form. '''
-	user_json['password_digest'] = encrypt_password_digest(pbkdf2_sha512.encrypt(password))
+	user_json['password_digest'] = encrypt_password_digest(_PASSWORD_HASHER.hash(password))
 
 
 def migrate_legacy_user_password_digests(usernames=None):
@@ -379,12 +381,10 @@ class User:
 
 def cryptoRandomString():
 	''' Generate a cryptographically secure random string for signing/encrypting cookies. '''
-	# Use pre-defined COOKIE_KEY if provided at runtime (e.g., via injection in globals),
-	# otherwise generate a pseudo-random value (note: for stronger randomness consider secrets.token_hex).
 	ck = globals().get('COOKIE_KEY')
 	if ck:
 		return ck
-	return hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
+	return secrets.token_hex(32)
 
 
 login_manager = flask_login.LoginManager()
@@ -447,7 +447,7 @@ def _send_link(email, message, u=None):
 	if u is None:
 		u = {}
 	try:
-		reg_key = hashlib.md5(str(random.random()).encode('utf-8') + str(time.time()).encode('utf-8')).hexdigest()
+		reg_key = secrets.token_hex(32)
 		_send_email(email, 'OMF Registration Link', message.replace('reg_link', URL + '/register/' + email + '/' + reg_key))
 		u["reg_key"] = reg_key
 		u["timestamp"] = dt.datetime.strftime(dt.datetime.now(), format="%c")
@@ -589,7 +589,7 @@ def fastNewUser(email):
 	if email.lower() in [f[0:-5].lower() for f in _safe_list_dir(os.path.join(_omfDir, 'data', 'User'))]:
 		return "User with email {} already exists. Please log in or go back and use the 'Forgot Password' link. Or use a different email address.".format(email), 200, {'Content-Type': 'text/plain'}
 	else:
-		randomPass = ''.join([random.choice('abcdefghijklmnopqrstuvwxyz') for x in range(15)])
+		randomPass = ''.join(secrets.choice('abcdefghijklmnopqrstuvwxyz') for x in range(15))
 		user = {"username": email}
 		set_user_password_digest(user, randomPass)
 		with locked_open(path_manager.join('data', 'User', f'{user["username"]}.json'), 'w') as f:
