@@ -92,6 +92,7 @@ def work(modelDir, inputDict):
 	windMax = float(inputDict['windMax'])
 	batteryPowerMax = float(inputDict['batteryPowerMax'])
 	batteryCapacityMax = float(inputDict['batteryCapacityMax'])
+	batterySocMinFraction = float(inputDict['batterySocMinFraction'])
 	solarExisting = float(inputDict['solarExisting'])
 	fuelAvailable = float(inputDict['fuelAvailable'])
 	genExisting = float(inputDict['genExisting'])
@@ -258,6 +259,7 @@ def work(modelDir, inputDict):
 				scenario['Wind']['pressure_atmospheres'] = wind_press
 		scenario['ElectricStorage']['max_kw'] = batteryPowerMax
 		scenario['ElectricStorage']['max_kwh'] = batteryCapacityMax
+		scenario['ElectricStorage']['soc_min_fraction'] = batterySocMinFraction
 		# if outage_start_hour is > 0, a resiliency optimization that includes diesel is triggered
 		run_outages = True if outage_start_hour != 0 else False
 		if outage_start_hour == 0:
@@ -1142,6 +1144,7 @@ def new(modelDir):
 		"windMax": "10000000",
 		"batteryPowerMax": "1000000",
 		"batteryCapacityMax": "1000000",
+		"batterySocMinFraction": "0.2",
 		"dieselMax": "100000",
 		"solarExisting": 0,
 		"outage_start_hour": "500",

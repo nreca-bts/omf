@@ -524,7 +524,7 @@ def login_page():
 	nextUrl = str(request.args.get("next","/") or "/")
 	if not _is_safe_url(nextUrl):
 		nextUrl = "/"
-	if flask_login.current_user.is_authenticated():
+	if flask_login.current_user.is_authenticated:
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
 
@@ -603,7 +603,7 @@ def fastNewUser(email):
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
 def register(email, reg_key):
-	if flask_login.current_user.is_authenticated():
+	if flask_login.current_user.is_authenticated:
 		return redirect("/")
 	try:
 		with locked_open(path_manager.join('data', 'User', f'{email}.json')) as f:
