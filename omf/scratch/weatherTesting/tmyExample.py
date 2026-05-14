@@ -4,11 +4,10 @@ from pathlib import Path
 
 
 modelDir = Path.cwd()
-longitude = -97.1292
-lati = 33.2164
+long = -97.1292
+lat = 33.2164
 attributes = ['dni','dhi','ghi','wind_speed','air_temperature']
 		
-weather.nrel_getTMYData(modelDir=modelDir, attributes=attributes, longitude=longitude, latitude=lati)
+nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 import pandas as pd
-
 df = pd.read_csv("output_tmy_data.csv")

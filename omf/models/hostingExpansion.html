@@ -14,6 +14,12 @@
     <input id="{{userFileDisplayNameID}}" name="{{userFileDisplayNameID}}" value="{{ allInputDataDict[userFileDisplayNameID] }}" readonly class="uploadFileName">
     <input id="{{dataFileNameID}}" name= {{dataFileNameID}} type="hidden" value="{{ allInputDataDict[dataFileNameID] }}">
 	{% endmacro %}
+	<script type="text/javascript" src="{{pathPrefix}}/static/plotly-1.50.1.min.js" onload="plotGraph()"></script>
+	<script>
+		function plotGraph(graphTitle, graphData ) {
+			Plotly.newPlot(graphTitle, JSON.parse( graphData ) || {} )
+		}
+	</script>
 </head>
 <body>
 	{{ omfModelTitle }}
@@ -43,7 +49,7 @@
 			</div>
 			<!-- Model Specific Inputs -->
 			<div class="wideInput">
-				<p class="inputSectionHeader">Input Data</p>
+				<p class="inputSectionHeader">Initial Inputs</p>
 			</div>
 			<hr>
 			<div class="shortInput">
@@ -69,40 +75,51 @@
 				<label class="tooltip">New Interconnection Input File <span class="classic">Upload a .csv file. Format for input columns: busname, kVA, tbd_solar_settings.</span></label>
 				<div>{{ file_upload('newInterconnDataFile', 'newInterconnUIDisplay', 'newInterconnDataFileName') }}</div>
 			</div>
-			{{ omfModelButtons }}
+			<div class="wideInput">
+				<p class="inputSectionHeader">PV Details</p>
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">Year<span class="classic">1998-2024</span></label>
+				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^(199(8|9)|20[0-2][0-4])$" required="required">
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">Latitude<span class="classic">Latitude</span></label>
+				<input type="text" id="latitude" name="latitude" value="{{allInputDataDict.latitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">Longitude<span class="classic">Longitude</span></label>
+				<input type="text" id="longitude" name="longitude" value="{{allInputDataDict.longitude}}" pattern="^\-?\d+\.?\d*?$" required="required">
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">System Capacity (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
+				<input type="text" id="systemCapacity" name="systemCapacity" value="{{allInputDataDict.systemCapacity}}" pattern="^[1-9]\d*$" required="required">
+			</div>
+				<div class="shorterInput">
+				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
+				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+				<div class="shorterInput">
+				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
+				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
+			</div>
+				<div class="shorterInput">
+				<label class="tooltip">Losses<span class="classic">Losses.</span></label>
+				<input type="text" id="losses" name="losses" value="{{allInputDataDict.losses}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+		{{ omfModelButtons }}
 		</form>
 	</div>
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
 	<!-- Output tables, graphs, etc -->
-	<div id="output">
-		<!-- Integer Sum Table -->
-		<p class="reportTitle">Model Skeleton Integer Sum</p>
-		<div id="analysisSummary" class="content">
-			<div class="shortInput">
-				<strong>Input 1</strong>
-				<p id="input1Out">{{allInputDataDict.input1}}</p>
-			</div>
-			<div class="shortInput">
-				<strong>Input 2</strong>
-				<p id="input2Out">{{allInputDataDict.input2}}</p>
-			</div>
-			<div class="shortInput">
-				<strong>Output</strong>
-				<p id="sumOut">{{allOutputDataDict.output}}</p>
-			</div>
-			<p class="reportTitle" style="page-break-before:always">Hosting Capacity Map</p>
-				<div id="hostingCapacityMap" class="tightContent"></div>
-				<script>
-					var mapContent = allOutputData["hostingCapacityMap"]
-					var iframe = document.createElement('iframe');
-					iframe.style = 'width:1000px; height:800px; border-radius:8px;'
-					document.getElementById('hostingCapacityMap').appendChild(iframe);
-					iframe.contentWindow.document.open();
-					iframe.contentWindow.document.write(mapContent);
-					iframe.contentWindow.document.close();
+	<p class="reportTitle">Total Load vs PySAM PVWatts Output</p>
+			<div id="scatterFigure" class="tightContent">
+				<div id="scatterFigure" style="width:1000px"></div>
+				<script type="text/javascript">
+					plotGraph("scatterFigure", allOutputData["scatterFigure"])
 				</script>
-		</div>
+			</div>
+	<div id="output">
 		{{ rawOutputFiles }}
 	</div>
 	{% endif %}

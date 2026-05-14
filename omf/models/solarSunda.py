@@ -11,6 +11,7 @@ import requests
 from omf import weather
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
+from omf.solvers import pysam
 
 # Model metadata:
 modelName, template = __neoMetaModel__.metadata(__file__)
@@ -20,10 +21,32 @@ hidden = False
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
 
-	# Set static input data
-	trackingMode = 0
+	# Defaults
+	inputDict["systemSize"] = 750
 	panelSize = 305
-
+	# lat/long get checked in nrl_get_nsrdb_data
+	lat = float( inputDict['latitude'] )
+	long = float( inputDict['longitude'] )
+	# parameter validation
+	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
+	# We need DNI, DHI, GHI, windspeed, and temp
+	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
+	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
+	# If getting the data was successful:
+	# - Combine data + system parameters into pvwatts model and execute
+	if requestSuccess:
+		pvwatts_model, results_df = pysam.run_pvwatts(modelDir, sys_design=sys_design, dataFile="output_tmy_data.csv")
+	else:
+		raise Exception("solarSunda.py: API request failed")
+	outData = {}
+	# Set the timezone to be UTC, it won't affect calculation and display, relative offset handled in pvWatts.html
+	startDateTime = "2024-01-01 00:00:00 UTC"
+	# Timestamp output.
+	outData["timeStamps"] = [datetime.datetime.strftime(
+		datetime.datetime.strptime(startDateTime[0:19],"%Y-%m-%d %H:%M:%S") +
+		datetime.timedelta(**{"hours":x}),"%Y-%m-%d %H:%M:%S") + " UTC" for x in range(int(8760))]
+	
 	inverterSizeAC = float(inputDict.get("inverterSize",0))
 	if (inputDict.get("systemSize",0) == "-"):
 		arraySizeDC = 1.3908 * inverterSizeAC
@@ -32,325 +55,220 @@ def work(modelDir, inputDict):
 	numberPanels = (arraySizeDC * 1000/305)
 	numberInverters = math.ceil(inverterSizeAC/1000/0.5)
 
-	# Simulation
-	simLength = 8760
-	simStartDate = "2024-01-01"
-	# Set the timezone to be UTC, it won't affect calculation and display, relative offset handled in pvWatts.html
-	startDateTime = simStartDate + " 00:00:00 UTC"
-	simLengthUnits = "hours"
+	# Geodata output.
+	outData["minLandSize"] = round((arraySizeDC/1390.8*5 + 1)*math.cos(math.radians(22.5))/math.cos(math.radians(30.0)),0)
+	landAmount = float(inputDict.get("landAmount", 6.0))
+	# outData['city'] = ssc.ssc_data_get_string(dat, b'city').decode()
+	# outData['state'] = ssc.ssc_data_get_string(dat, b'state').decode()
+	outData['latitude'] = pvwatts_model.Outputs.lat
+	outData['longitude'] = pvwatts_model.Outputs.lon
+	outData['elev'] = pvwatts_model.Outputs.elev
 
-	### Get inputs for system design parameters
-	lat = float( inputDict['latitude'] )
-	long = float( inputDict['longitude'] )
-	azimuth = float( inputDict['azimuth'] )
-	tilt = float( inputDict['tilt'] )
-	losses = 15.53
-	sys_cap = 750
-
-	### Set up system design parameter dict for PySAM pvWatts Model
-	sys_design = {
-		"ModelParams": {
-				"SystemDesign": {
-						"array_type": trackingMode,
-						"azimuth": azimuth,
-						"losses": losses,
-						"system_capacity": sys_cap,
-						"tilt": tilt
-				},
-				"SolarResource": {
-				}
-		},
-		"Other": {
-				"lat": lat,
-				"lon": long,
-		}
-	}
-
-	### Get the data from NSRDB API
-	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	requestSuccess = weather.nrel_getTMYData(modelDir=modelDir, attributes=attributes, longitude=long, latitude=lat)
-
-	# If getting the data was successful:
-	# - Combine data + system parameters into pvwatts model and execute
-	if requestSuccess:
-		import PySAM.Pvwattsv8 as pvwatts
-		pvwatts_model = pvwatts.new()
-		full_data = pd.read_csv(Path(modelDir,"output_tmy_data.csv"))
-		metadata = full_data.iloc[0:1].copy()
-		wind_data = full_data.iloc[2:].copy()
-		wind_data.columns = full_data.iloc[1]
-		# We can snag elevation from the NSRDB Data we pulled out of the request
-		# Source,Location ID,City,State,Country,Latitude,Longitude,Time Zone,Elevation
-		# NSRDB,694051,-,-,-,33.21,-97.14,-6, 207 <- This 207 right here
-		sys_design["Other"]["elev"] = int( metadata["Elevation"][0] )
-		datetime_components_dict = {
-			'year': wind_data['Year'],
-			'month': wind_data['Month'],
-			'day': wind_data['Day'],
-			'hour': wind_data['Hour'],
-			'minute': wind_data['Minute'],
-		}
-		wind_data['datetime'] = pd.to_datetime(datetime_components_dict)
-		wind_data = wind_data.set_index(wind_data["datetime"])
-		solar_resource_data = {
-			'lat': float( metadata["Latitude"][0] ),
-			'lon': float( metadata["Longitude"][0] ),
-			'tz': int( metadata["Time Zone"][0] ),
-			'elev':  int( metadata["Elevation"][0] ),
-			'year': [int(x) for x in wind_data['Year']],
-			'month': [int(x) for x in wind_data['Month']],
-			'day': [int(x) for x in wind_data['Day']],
-			'hour': [int(x) for x in wind_data['Hour']],
-			'minute': [int(x) for x in wind_data['Minute']],
-			'dn': [float(x) for x in wind_data['DNI']],
-			'df': [float(x) for x in wind_data['DHI']],
-			'gh': [float(x) for x in wind_data['GHI']],
-			'wspd': [float(x) for x in wind_data['Wind Speed']],
-			'tdry': [float(x) for x in wind_data['Temperature']],
-		}
-		
-		pvwatts_model.SolarResource.assign({'solar_resource_data': solar_resource_data})
-		model_params = sys_design['ModelParams']
-		pvwatts_model.assign(model_params)
-		resource = pvwatts_model.SolarResource.export()
-		# Convert and write JSON object to file
-		with open( Path(modelDir, "solar_resource.json"), "w") as outfile: 
-				json.dump(resource, outfile)
-		pvwatts_model.execute()
-
-		thirty_minute_start = pd.to_timedelta( 30, unit="minute")
-		start = pd.to_datetime(simStartDate) + thirty_minute_start
-		time_passed = pd.to_timedelta( simLength, simLengthUnits )
-		end = start + time_passed
-
-		poa = np.array( pvwatts_model.Outputs.poa, dtype=float)
-		dn = np.array( pvwatts_model.Outputs.dn, dtype=float)
-		df = np.array( pvwatts_model.Outputs.df, dtype=float)
-		tamb = np.array( pvwatts_model.Outputs.tamb, dtype=float)
-		tcell = np.array( pvwatts_model.Outputs.tcell, dtype=float)
-		wspd = np.array( pvwatts_model.Outputs.wspd, dtype=float)
-		ac = np.array( pvwatts_model.Outputs.ac, dtype=float) / 1000
-
-		results_df = pd.DataFrame(
-			{'timestamp': wind_data.index, 'poa': poa, 'dn': dn, 'df': df, 'tamb': tamb, 'tcell': tcell, 'wspd': wspd, 'ac': ac},
-			columns=['timestamp', 'poa', 'dn', 'df', 'tamb', 'tcell', 'wspd', 'ac']
-		)
-		results_df = results_df.set_index( results_df["timestamp"])
-
-		# Timestamp output.
-		outData = {}
-		# Geodata output.
-		outData["minLandSize"] = round((arraySizeDC/1390.8*5 + 1)*math.cos(math.radians(22.5))/math.cos(math.radians(30.0)),0)
-		landAmount = float(inputDict.get("landAmount", 6.0))
-		# outData['city'] = ssc.ssc_data_get_string(dat, b'city').decode()
-		# outData['state'] = ssc.ssc_data_get_string(dat, b'state').decode()
-		outData['lat'] = lat
-		outData['lon'] = long
-		# Weather output.
-		outData['climate'] = {}
-		outData['climate']['Global Horizontal Radiation (W/m^2)'] = results_df["gh"].tolist() if "gh" in results_df else []
-		outData['climate']['Plane of Array Irradiance (W/m^2)'] = results_df["poa"].tolist() if "poa" in results_df else []
-		outData['climate']['Ambient Temperature (F)'] = results_df["tamb"].tolist() if "tamb" in results_df else []
-		outData['climate']['Cell Temperature (F)'] = results_df["tcell"].tolist() if "tcell" in results_df else []
-		outData['climate']['Wind Speed (m/s)'] = results_df["wspd"].tolist() if "wspd" in results_df else []
-		# Power generation.
-		outData['powerOutputAc'] = results_df["ac"].tolist() if "ac" in results_df else []
-		# Calculate clipping.
-		invSizeWatts = inverterSizeAC * 1000
-		outData["powerOutputAcInvClipped"] = [x if x < invSizeWatts else invSizeWatts for x in outData["powerOutputAc"]]
-		try:
-			outData["percentClipped"] = 100 * (1.0 - sum(outData["powerOutputAcInvClipped"]) / sum(outData["powerOutputAc"]))
-		except ZeroDivisionError:
-			outData["percentClipped"] = 0.0
-		#One year generation
-		outData["oneYearGenerationWh"] = sum(outData["powerOutputAcInvClipped"])
-		#Annual generation for all years
-		loanYears = 25
-		outData["allYearGenerationMWh"] = {}
-		outData["allYearGenerationMWh"][1] = float(outData["oneYearGenerationWh"])/1000000
-		# outData["allYearGenerationMWh"][1] = float(2019.576)
-		for i in range (2, loanYears+1):
-			outData["allYearGenerationMWh"][i] = float(outData["allYearGenerationMWh"][i-1]) * (1 - float(inputDict.get("degradation", 0.8))/100)
-		# Summary of Results.
-		######
-		### Total Costs (sum of): Hardware Costs, Design/Engineering/PM/EPC/Labor Costs, Siteprep Costs, Construction Costs, Installation Costs, Land Costs
-		######
-		### Hardware Costs 
-		pvModules = arraySizeDC * float(inputDict.get("moduleCost",0))*1000 #off by 4000
-		racking = arraySizeDC * float(inputDict.get("rackCost",0))*1000
-		inverters = numberInverters * float(inputDict.get("inverterCost",0))
-		inverterSize = inverterSizeAC
-		if (inverterSize <= 250):
-			gear = 15000
-		elif (inverterSize <= 600):
-			gear = 18000
-		else:
-			gear = inverterSize/1000 * 22000
-		balance = inverterSizeAC * 1.3908 * 134
-		combiners = math.ceil(numberPanels/19/24) * float(1800)  #*
-		wireManagement = arraySizeDC * 1.5
-		transformer = 1 * 28000
-		weatherStation = 1 * 12500
-		shipping = 1.02
-		hardwareCosts = (pvModules + racking + inverters + gear + balance + combiners + wireManagement  + transformer + weatherStation) * shipping
-		### Design/Engineering/PM/EPC/Labor Costs 
-		EPCmarkup = float(inputDict.get("EPCRate",0))/100 * hardwareCosts
-		#designCosts = float(inputDict.get("mechLabor",0))*160 + float(inputDict.get("elecLabor",0))*75 + float(inputDict.get("pmCost",0)) + EPCmarkup
-		hoursDesign = 160*math.sqrt(arraySizeDC/1390)
-		hoursElectrical = 80*math.sqrt(arraySizeDC/1391)
-		designLabor = 65*hoursDesign
-		electricalLabor = 75*hoursElectrical
-		laborDesign = designLabor + electricalLabor + float(inputDict.get("pmCost",0)) + EPCmarkup
-		materialDesign = 0
-		designCosts = materialDesign + laborDesign
-		### Siteprep Costs 
-		surveying = 2.25 * 4 * math.sqrt(landAmount*43560)
-		concrete = 8000 * math.ceil(numberInverters/2)
-		fencing = 6.75 * 4 * math.sqrt(landAmount*43560)
-		grading = 2.5 * 4 * math.sqrt(landAmount*43560)
-		landscaping = 750 * landAmount
-		siteMaterial = 8000 + 600 + 5500 + 5000 + surveying + concrete + fencing + grading + landscaping + 5600
-		blueprints = float(inputDict.get("mechLabor",0))*12
-		mobilization = float(inputDict.get("mechLabor",0))*208
-		mobilizationMaterial = float(inputDict.get("mechLabor",0))*19.98
-		siteLabor = blueprints + mobilization + mobilizationMaterial
-		sitePrep = siteMaterial + siteLabor
-		### Construction Costs (Office Trailer, Skid Steer, Storage Containers, etc) 
-		constrEquip = 6000 + math.sqrt(landAmount)*16200
-		### Installation Costs 
-		moduleAndRackingInstall = numberPanels * (15.00 + 12.50 + 1.50)
-		pierDriving = 1 * arraySizeDC*20
-		balanceInstall = 1 * arraySizeDC*100
-		installCosts = moduleAndRackingInstall + pierDriving + balanceInstall + float(inputDict.get("elecLabor",0)) * (72 + 60 + 70 + 10 + 5 + 30 + 70)
-		### Land Costs 
-		if (str(inputDict.get("landOwnership",0)) == "Owned" or (str(inputDict.get("landOwnership",0)) == "Leased")):
-			landCosts = 0
-		else:
-			landCosts = float(inputDict.get("costAcre",0))*landAmount
-		######
-		### Total Costs 
-		######
-		totalCosts = hardwareCosts + designCosts + sitePrep + constrEquip + installCosts + landCosts
-		totalFees= float(inputDict.get("devCost",0))/100 * totalCosts
-		outData["totalCost"] = totalCosts + totalFees + float(inputDict.get("interCost",0))
-		# Add to Pie Chart
-		outData["costsPieChart"] = [["Land", landCosts],
-			["Design/Engineering/PM/EPC", designCosts],
-			["PV Modules", pvModules*shipping],
-			["Racking", racking*shipping],
-			["Inverters & Switchgear", (inverters+gear)*shipping],
-			["BOS", hardwareCosts - pvModules*shipping - racking*shipping - (inverters+gear)*shipping],
-			["Site Prep, Constr. Eq. and Installation", (siteMaterial + constrEquip) + (siteLabor + installCosts)]]
-		# Cost per Wdc
-		outData["costWdc"] = (totalCosts + totalFees + float(inputDict.get("interCost",0))) / (arraySizeDC * 1000)
-		outData["capFactor"] = float(outData["oneYearGenerationWh"])/(inverterSizeAC*1000*365.25*24) * 100
-		######
-		### Loans calculations for Direct, NCREB, Lease, Tax-equity, and PPA
-		######
-		### Full Ownership, Direct Loan
-		#Output - Direct Loan [C]
-		projectCostsDirect = 0
-		#Output - Direct Loan [D]
-		netFinancingCostsDirect = 0
-		#Output - Direct Loan [E]
-		OMInsuranceETCDirect = []
-		#Output - Direct Loan [F]
-		distAdderDirect = []
-		#Output - Direct Loan [G]
-		netCoopPaymentsDirect = []
-		#Output - Direct Loan [H]
-		costToCustomerDirect = []
-		#Output - Direct Loan [F53]
-		Rate_Levelized_Direct = 0
-		## Output - Direct Loan Formulas
-		projectCostsDirect = 0
-		#Output - Direct Loan [D]
-		payment = pmt(float(inputDict.get("loanRate",0))/100, loanYears, outData["totalCost"])
-		interestDirectPI = outData["totalCost"] * float(inputDict.get("loanRate",0))/100
-		principleDirectPI = (-payment - interestDirectPI)
-		patronageCapitalRetiredDPI = 0
-		netFinancingCostsDirect = -(principleDirectPI + interestDirectPI - patronageCapitalRetiredDPI)
-		#Output - Direct Loan [E] [F] [G] [H]
-		firstYearOPMainCosts = (1.25 * arraySizeDC * 12)
-		firstYearInsuranceCosts = (0.37 * outData["totalCost"]/100)
-		if (inputDict.get("landOwnership",0) == "Leased"):
-			firstYearLandLeaseCosts = float(inputDict.get("costAcre",0))*landAmount
-		else:
-			firstYearLandLeaseCosts = 0
-		for i in range (1, len(outData["allYearGenerationMWh"])+1):
-			OMInsuranceETCDirect.append(-firstYearOPMainCosts*math.pow((1 + .01),(i-1)) - firstYearInsuranceCosts*math.pow((1 + .025),(i-1)) - firstYearLandLeaseCosts*math.pow((1 + .01),(i-1)))
-			distAdderDirect.append(float(inputDict.get("distAdder",0))*outData["allYearGenerationMWh"][i])
-			netCoopPaymentsDirect.append(OMInsuranceETCDirect[i-1] + netFinancingCostsDirect)
-			costToCustomerDirect.append((netCoopPaymentsDirect[i-1] - distAdderDirect[i-1]))
-		#Output - Direct Loan [F53] 
-		NPVLoanDirect = npv(float(inputDict.get("discRate",0))/100, [0,0] + costToCustomerDirect)
-		NPVallYearGenerationMWh = npv(float(inputDict.get("discRate",0))/100, [0,0] + list(outData["allYearGenerationMWh"].values()))
-		Rate_Levelized_Direct = -NPVLoanDirect/NPVallYearGenerationMWh	
-		#Master Output [Direct Loan]
-		outData["levelCostDirect"] = Rate_Levelized_Direct
-		outData["costPanelDirect"] = abs(NPVLoanDirect/numberPanels)
-		outData["cost10WPanelDirect"] = (float(outData["costPanelDirect"])/panelSize)*10
-		### NCREBs Financing
-		ncrebsRate = float(inputDict.get("NCREBRate",4.060))/100
-		ncrebBorrowingRate = 1.1 * ncrebsRate
-		ncrebPaymentPeriods = 44
-		ncrebCostToCustomer = []
-		# TODO ASAP: FIX ARRAY OFFSETS START 0
-		for i in range (1, len(outData["allYearGenerationMWh"])+1):
-			coopLoanPayment = 2 * pmt(ncrebBorrowingRate/2.0, ncrebPaymentPeriods, outData["totalCost"]) if i <= ncrebPaymentPeriods / 2 else 0
-			ncrebsCredit = -0.7 * (ipmt(ncrebsRate / 2, 2 * i - 1, ncrebPaymentPeriods, outData["totalCost"])
-				+ ipmt(ncrebsRate / 2, 2 * i, ncrebPaymentPeriods, outData["totalCost"])) if i <= ncrebPaymentPeriods / 2 else 0
-			financingCost = ncrebsCredit + coopLoanPayment
-			omCost = OMInsuranceETCDirect[i - 1]
-			netCoopPayments = financingCost + omCost
-			distrAdder = distAdderDirect[i - 1]
-			costToCustomer = netCoopPayments + distrAdder
-			ncrebCostToCustomer.append(costToCustomer)
-		NPVLoanNCREB = npv(float(inputDict.get("discRate", 0))/100, [0,0] + ncrebCostToCustomer)
-		Rate_Levelized_NCREB = -NPVLoanNCREB/NPVallYearGenerationMWh	
-		outData["levelCostNCREB"] = Rate_Levelized_NCREB
-		outData["costPanelNCREB"] = abs(NPVLoanNCREB/numberPanels)
-		outData["cost10WPanelNCREB"] = (float(outData["costPanelNCREB"])/panelSize)*10
-		### Lease Buyback Structure
-		#Output - Lease [C]
-		projectCostsLease = outData["totalCost"]
-		#Output - Lease [D]
-		leasePaymentsLease = []
-		#Output - Lease [E]
-		OMInsuranceETCLease = OMInsuranceETCDirect
-		#Output - Lease [F]
-		distAdderLease = distAdderDirect
-		#Output - Lease [G]
-		netCoopPaymentsLease = []
-		#Output - Lease [H]
-		costToCustomerLease = []
-		#Output - Lease [H44]
-		NPVLease = 0
-		#Output - Lease [H49]
-		Rate_Levelized_Lease = 0
-		## Tax Lease Formulas
-		#Output - Lease [D]
-		for i in range (0, 12):
-			leaseRate = float(inputDict.get("taxLeaseRate",0))/100.0
-			if i>8: # Special behavior in later years:
-				leaseRate = leaseRate - 0.0261
-			leasePaymentsLease.append(-1*projectCostsLease/((1.0-(1.0/(1.0+leaseRate)**12))/(leaseRate)))
-		# Last year is different.
-		leasePaymentsLease[11] += -0.2*projectCostsLease
-		for i in range (12, 25):
-			leasePaymentsLease.append(0)
-		#Output - Lease [G]	[H]
-		for i in range (1, len(outData["allYearGenerationMWh"])+1):
-			netCoopPaymentsLease.append(OMInsuranceETCLease[i-1]+leasePaymentsLease[i-1])
-			costToCustomerLease.append(netCoopPaymentsLease[i-1]-distAdderLease[i-1])
-		#Output - Lease [H44]. Note the extra year at the zero point to get the discounting right.
-		NPVLease = npv(float(inputDict.get("discRate", 0))/100, [0,0]+costToCustomerLease)
-		#Output - Lease [H49] (Levelized Cost Three Loops)
-		Rate_Levelized_Lease = -NPVLease/NPVallYearGenerationMWh
-		#Master Output [Lease]
-		outData["levelCostTaxLease"] = Rate_Levelized_Lease
-		outData["costPanelTaxLease"] = abs(NPVLease/numberPanels)
-		outData["cost10WPanelTaxLease"] = (float(outData["costPanelTaxLease"])/float(panelSize))*10
+	# Weather output.
+	outData['climate'] = {}
+	outData['climate']['Global Horizontal Radiation (W/m^2)'] = results_df["gh"].tolist() if "gh" in results_df else []
+	outData['climate']['Plane of Array Irradiance (W/m^2)'] = results_df["poa"].tolist() if "poa" in results_df else []
+	outData['climate']['Ambient Temperature (F)'] = results_df["tamb"].tolist() if "tamb" in results_df else []
+	outData['climate']['Cell Temperature (F)'] = results_df["tcell"].tolist() if "tcell" in results_df else []
+	outData['climate']['Wind Speed (m/s)'] = results_df["wspd"].tolist() if "wspd" in results_df else []
+	# Power generation.
+	outData['powerOutputAc'] = results_df["ac"].tolist() if "ac" in results_df else []
+	# Calculate clipping.
+	invSizeWatts = inverterSizeAC * 1000
+	outData["powerOutputAcInvClipped"] = [x if x < invSizeWatts else invSizeWatts for x in outData["powerOutputAc"]]
+	try:
+		outData["percentClipped"] = 100 * (1.0 - sum(outData["powerOutputAcInvClipped"]) / sum(outData["powerOutputAc"]))
+	except ZeroDivisionError:
+		outData["percentClipped"] = 0.0
+	#One year generation
+	outData["oneYearGenerationWh"] = sum(outData["powerOutputAcInvClipped"])
+	#Annual generation for all years
+	loanYears = 25
+	outData["allYearGenerationMWh"] = {}
+	outData["allYearGenerationMWh"][1] = float(outData["oneYearGenerationWh"])/1000000
+	# outData["allYearGenerationMWh"][1] = float(2019.576)
+	for i in range (2, loanYears+1):
+		outData["allYearGenerationMWh"][i] = float(outData["allYearGenerationMWh"][i-1]) * (1 - float(inputDict.get("degradation", 0.8))/100)
+	# Summary of Results.
+	######
+	### Total Costs (sum of): Hardware Costs, Design/Engineering/PM/EPC/Labor Costs, Siteprep Costs, Construction Costs, Installation Costs, Land Costs
+	######
+	### Hardware Costs 
+	pvModules = arraySizeDC * float(inputDict.get("moduleCost",0))*1000 #off by 4000
+	racking = arraySizeDC * float(inputDict.get("rackCost",0))*1000
+	inverters = numberInverters * float(inputDict.get("inverterCost",0))
+	inverterSize = inverterSizeAC
+	if (inverterSize <= 250):
+		gear = 15000
+	elif (inverterSize <= 600):
+		gear = 18000
+	else:
+		gear = inverterSize/1000 * 22000
+	balance = inverterSizeAC * 1.3908 * 134
+	combiners = math.ceil(numberPanels/19/24) * float(1800)  #*
+	wireManagement = arraySizeDC * 1.5
+	transformer = 1 * 28000
+	weatherStation = 1 * 12500
+	shipping = 1.02
+	hardwareCosts = (pvModules + racking + inverters + gear + balance + combiners + wireManagement  + transformer + weatherStation) * shipping
+	### Design/Engineering/PM/EPC/Labor Costs 
+	EPCmarkup = float(inputDict.get("EPCRate",0))/100 * hardwareCosts
+	#designCosts = float(inputDict.get("mechLabor",0))*160 + float(inputDict.get("elecLabor",0))*75 + float(inputDict.get("pmCost",0)) + EPCmarkup
+	hoursDesign = 160*math.sqrt(arraySizeDC/1390)
+	hoursElectrical = 80*math.sqrt(arraySizeDC/1391)
+	designLabor = 65*hoursDesign
+	electricalLabor = 75*hoursElectrical
+	laborDesign = designLabor + electricalLabor + float(inputDict.get("pmCost",0)) + EPCmarkup
+	materialDesign = 0
+	designCosts = materialDesign + laborDesign
+	### Siteprep Costs 
+	surveying = 2.25 * 4 * math.sqrt(landAmount*43560)
+	concrete = 8000 * math.ceil(numberInverters/2)
+	fencing = 6.75 * 4 * math.sqrt(landAmount*43560)
+	grading = 2.5 * 4 * math.sqrt(landAmount*43560)
+	landscaping = 750 * landAmount
+	siteMaterial = 8000 + 600 + 5500 + 5000 + surveying + concrete + fencing + grading + landscaping + 5600
+	blueprints = float(inputDict.get("mechLabor",0))*12
+	mobilization = float(inputDict.get("mechLabor",0))*208
+	mobilizationMaterial = float(inputDict.get("mechLabor",0))*19.98
+	siteLabor = blueprints + mobilization + mobilizationMaterial
+	sitePrep = siteMaterial + siteLabor
+	### Construction Costs (Office Trailer, Skid Steer, Storage Containers, etc) 
+	constrEquip = 6000 + math.sqrt(landAmount)*16200
+	### Installation Costs 
+	moduleAndRackingInstall = numberPanels * (15.00 + 12.50 + 1.50)
+	pierDriving = 1 * arraySizeDC*20
+	balanceInstall = 1 * arraySizeDC*100
+	installCosts = moduleAndRackingInstall + pierDriving + balanceInstall + float(inputDict.get("elecLabor",0)) * (72 + 60 + 70 + 10 + 5 + 30 + 70)
+	### Land Costs 
+	if (str(inputDict.get("landOwnership",0)) == "Owned" or (str(inputDict.get("landOwnership",0)) == "Leased")):
+		landCosts = 0
+	else:
+		landCosts = float(inputDict.get("costAcre",0))*landAmount
+	######
+	### Total Costs 
+	######
+	totalCosts = hardwareCosts + designCosts + sitePrep + constrEquip + installCosts + landCosts
+	totalFees= float(inputDict.get("devCost",0))/100 * totalCosts
+	outData["totalCost"] = totalCosts + totalFees + float(inputDict.get("interCost",0))
+	# Add to Pie Chart
+	outData["costsPieChart"] = [["Land", landCosts],
+		["Design/Engineering/PM/EPC", designCosts],
+		["PV Modules", pvModules*shipping],
+		["Racking", racking*shipping],
+		["Inverters & Switchgear", (inverters+gear)*shipping],
+		["BOS", hardwareCosts - pvModules*shipping - racking*shipping - (inverters+gear)*shipping],
+		["Site Prep, Constr. Eq. and Installation", (siteMaterial + constrEquip) + (siteLabor + installCosts)]]
+	# Cost per Wdc
+	outData["costWdc"] = (totalCosts + totalFees + float(inputDict.get("interCost",0))) / (arraySizeDC * 1000)
+	outData["capFactor"] = float(outData["oneYearGenerationWh"])/(inverterSizeAC*1000*365.25*24) * 100
+	######
+	### Loans calculations for Direct, NCREB, Lease, Tax-equity, and PPA
+	######
+	### Full Ownership, Direct Loan
+	#Output - Direct Loan [C]
+	projectCostsDirect = 0
+	#Output - Direct Loan [D]
+	netFinancingCostsDirect = 0
+	#Output - Direct Loan [E]
+	OMInsuranceETCDirect = []
+	#Output - Direct Loan [F]
+	distAdderDirect = []
+	#Output - Direct Loan [G]
+	netCoopPaymentsDirect = []
+	#Output - Direct Loan [H]
+	costToCustomerDirect = []
+	#Output - Direct Loan [F53]
+	Rate_Levelized_Direct = 0
+	## Output - Direct Loan Formulas
+	projectCostsDirect = 0
+	#Output - Direct Loan [D]
+	payment = pmt(float(inputDict.get("loanRate",0))/100, loanYears, outData["totalCost"])
+	interestDirectPI = outData["totalCost"] * float(inputDict.get("loanRate",0))/100
+	principleDirectPI = (-payment - interestDirectPI)
+	patronageCapitalRetiredDPI = 0
+	netFinancingCostsDirect = -(principleDirectPI + interestDirectPI - patronageCapitalRetiredDPI)
+	#Output - Direct Loan [E] [F] [G] [H]
+	firstYearOPMainCosts = (1.25 * arraySizeDC * 12)
+	firstYearInsuranceCosts = (0.37 * outData["totalCost"]/100)
+	if (inputDict.get("landOwnership",0) == "Leased"):
+		firstYearLandLeaseCosts = float(inputDict.get("costAcre",0))*landAmount
+	else:
+		firstYearLandLeaseCosts = 0
+	for i in range (1, len(outData["allYearGenerationMWh"])+1):
+		OMInsuranceETCDirect.append(-firstYearOPMainCosts*math.pow((1 + .01),(i-1)) - firstYearInsuranceCosts*math.pow((1 + .025),(i-1)) - firstYearLandLeaseCosts*math.pow((1 + .01),(i-1)))
+		distAdderDirect.append(float(inputDict.get("distAdder",0))*outData["allYearGenerationMWh"][i])
+		netCoopPaymentsDirect.append(OMInsuranceETCDirect[i-1] + netFinancingCostsDirect)
+		costToCustomerDirect.append((netCoopPaymentsDirect[i-1] - distAdderDirect[i-1]))
+	#Output - Direct Loan [F53] 
+	NPVLoanDirect = npv(float(inputDict.get("discRate",0))/100, [0,0] + costToCustomerDirect)
+	NPVallYearGenerationMWh = npv(float(inputDict.get("discRate",0))/100, [0,0] + list(outData["allYearGenerationMWh"].values()))
+	Rate_Levelized_Direct = -NPVLoanDirect/NPVallYearGenerationMWh	
+	#Master Output [Direct Loan]
+	outData["levelCostDirect"] = Rate_Levelized_Direct
+	outData["costPanelDirect"] = abs(NPVLoanDirect/numberPanels)
+	outData["cost10WPanelDirect"] = (float(outData["costPanelDirect"])/panelSize)*10
+	### NCREBs Financing
+	ncrebsRate = float(inputDict.get("NCREBRate",4.060))/100
+	ncrebBorrowingRate = 1.1 * ncrebsRate
+	ncrebPaymentPeriods = 44
+	ncrebCostToCustomer = []
+	# TODO ASAP: FIX ARRAY OFFSETS START 0
+	for i in range (1, len(outData["allYearGenerationMWh"])+1):
+		coopLoanPayment = 2 * pmt(ncrebBorrowingRate/2.0, ncrebPaymentPeriods, outData["totalCost"]) if i <= ncrebPaymentPeriods / 2 else 0
+		ncrebsCredit = -0.7 * (ipmt(ncrebsRate / 2, 2 * i - 1, ncrebPaymentPeriods, outData["totalCost"])
+			+ ipmt(ncrebsRate / 2, 2 * i, ncrebPaymentPeriods, outData["totalCost"])) if i <= ncrebPaymentPeriods / 2 else 0
+		financingCost = ncrebsCredit + coopLoanPayment
+		omCost = OMInsuranceETCDirect[i - 1]
+		netCoopPayments = financingCost + omCost
+		distrAdder = distAdderDirect[i - 1]
+		costToCustomer = netCoopPayments + distrAdder
+		ncrebCostToCustomer.append(costToCustomer)
+	NPVLoanNCREB = npv(float(inputDict.get("discRate", 0))/100, [0,0] + ncrebCostToCustomer)
+	Rate_Levelized_NCREB = -NPVLoanNCREB/NPVallYearGenerationMWh	
+	outData["levelCostNCREB"] = Rate_Levelized_NCREB
+	outData["costPanelNCREB"] = abs(NPVLoanNCREB/numberPanels)
+	outData["cost10WPanelNCREB"] = (float(outData["costPanelNCREB"])/panelSize)*10
+	### Lease Buyback Structure
+	#Output - Lease [C]
+	projectCostsLease = outData["totalCost"]
+	#Output - Lease [D]
+	leasePaymentsLease = []
+	#Output - Lease [E]
+	OMInsuranceETCLease = OMInsuranceETCDirect
+	#Output - Lease [F]
+	distAdderLease = distAdderDirect
+	#Output - Lease [G]
+	netCoopPaymentsLease = []
+	#Output - Lease [H]
+	costToCustomerLease = []
+	#Output - Lease [H44]
+	NPVLease = 0
+	#Output - Lease [H49]
+	Rate_Levelized_Lease = 0
+	## Tax Lease Formulas
+	#Output - Lease [D]
+	for i in range (0, 12):
+		leaseRate = float(inputDict.get("taxLeaseRate",0))/100.0
+		if i>8: # Special behavior in later years:
+			leaseRate = leaseRate - 0.0261
+		leasePaymentsLease.append(-1*projectCostsLease/((1.0-(1.0/(1.0+leaseRate)**12))/(leaseRate)))
+	# Last year is different.
+	leasePaymentsLease[11] += -0.2*projectCostsLease
+	for i in range (12, 25):
+		leasePaymentsLease.append(0)
+	#Output - Lease [G]	[H]
+	for i in range (1, len(outData["allYearGenerationMWh"])+1):
+		netCoopPaymentsLease.append(OMInsuranceETCLease[i-1]+leasePaymentsLease[i-1])
+		costToCustomerLease.append(netCoopPaymentsLease[i-1]-distAdderLease[i-1])
+	#Output - Lease [H44]. Note the extra year at the zero point to get the discounting right.
+	NPVLease = npv(float(inputDict.get("discRate", 0))/100, [0,0]+costToCustomerLease)
+	#Output - Lease [H49] (Levelized Cost Three Loops)
+	Rate_Levelized_Lease = -NPVLease/NPVallYearGenerationMWh
+	#Master Output [Lease]
+	outData["levelCostTaxLease"] = Rate_Levelized_Lease
+	outData["costPanelTaxLease"] = abs(NPVLease/numberPanels)
+	outData["cost10WPanelTaxLease"] = (float(outData["costPanelTaxLease"])/float(panelSize))*10
 	### Tax Equity Flip Structure
 	# Tax Equity Flip Function
 	def taxEquityFlip(PPARateSixYearsTE, discRate, totalCost, allYearGenerationMWh, distAdderDirect, loanYears, firstYearLandLeaseCosts, firstYearOPMainCosts, firstYearInsuranceCosts, numberPanels):
