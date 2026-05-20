@@ -1091,7 +1091,7 @@ def duplicateModel(owner, modelName):
 	# Remove transient PID and error files so the duplicate doesn't appear
 	# "running" and cancelling it won't kill the original model's process.
 	for name in ['ZPID.txt', 'APID.txt', 'NPID.txt', 'CPID.txt', 'WPID.txt', 'TPPID.txt', 'PPID.txt',
-			'gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'rawError.txt']:
+			'gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'cimError.txt']:
 		p = os.path.join(destination_path, name)
 		if os.path.isfile(p):
 			os.remove(p)
@@ -1386,7 +1386,7 @@ def checkConversion(modelName, owner):
 	"""
 	print(modelName)
 	# First check for error files
-	for filename in ['gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'rawError.txt']:
+	for filename in ['gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'cimError.txt']:
 		filepath = path_manager.join('data', 'Model', owner, modelName, filename)
 		if os.path.isfile(filepath):
 			with locked_open(filepath) as f:
@@ -1467,7 +1467,7 @@ def matpowerImport(owner):
 	''' API for importing a MATPOWER network. '''
 	modelName = request.form.get('modelName', '')
 	model_dir, con_file_path = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('', 'ZPID.txt')]
-	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
+	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'cimError.txt')]
 	# Delete existing .m files to not clutter model.
 	for filename in _safe_list_dir(model_dir):
 		if filename.endswith(".m"):
@@ -1511,59 +1511,94 @@ def _mat_import_background(owner, modelName, networkName, networkNum):
 		os.remove(pid_filepath)
 
 
-@app.route("/rawImport/<owner>", methods=["POST"])
+@app.route("/cimImport/<owner>", methods=["POST"])
 @login_required
 @write_permission_function
-def rawImport(owner):
-	''' API for importing a RAW network. '''
+def cimImport(owner):
+	''' API for importing a CGMES/CIM network through pandapower. '''
 	modelName = request.form.get('modelName', '')
 	model_dir = path_manager.join('data', 'Model', owner, modelName)
 	con_file_path = path_manager.join('data', 'Model', owner, modelName, 'ZPID.txt')
-	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
-	# Delete existing .raw and .m files to not clutter model.
+	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'cimError.txt')]
 	for filename in _safe_list_dir(model_dir):
-		if filename.endswith(".raw") or filename.endswith(".m"):
+		if filename.startswith('cim_import_'):
 			os.remove(os.path.join(model_dir, filename))
 	for error_path in error_paths:
 		if os.path.isfile(error_path):
 			os.remove(error_path)
-	with locked_open(con_file_path, 'w') as conFile:
-		conFile.write("WORKING")
-	networkName = secure_filename(str(request.form.get('networkNameR', 'network1'))) or 'network'
+	networkName = secure_filename(str(request.form.get('networkNameC', 'network1'))) or 'network'
 	networkNum = secure_filename(str(request.form.get("networkNum", '1'))) or '1'
+	cgmes_version = request.form.get('cgmesVersion', '2.4.15')
+	if cgmes_version not in ['2.4.15', '3.0']:
+		cgmes_version = '2.4.15'
 	if os.path.isfile(path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')):
 		return 'Name already exists', 409
-	network_filepath = path_manager.join('data', 'Model', owner, modelName, 'import.raw')
-	request.files['rawFile'].save(network_filepath)
-	importProc = Process(target=_raw_import_background, args=[owner, modelName, networkName, networkNum])
+	cim_filepaths = []
+	for i, cim_file in enumerate(request.files.getlist('cimFiles')):
+		if cim_file is None or cim_file.filename == '':
+			continue
+		filename = secure_filename(cim_file.filename) or ('file' + str(i))
+		filepath = path_manager.join('data', 'Model', owner, modelName, 'cim_import_' + str(i) + '_' + filename)
+		cim_file.save(filepath)
+		if not _is_safe_cim_upload(filepath):
+			for saved_filepath in cim_filepaths + [filepath]:
+				if os.path.isfile(saved_filepath):
+					os.remove(saved_filepath)
+			return 'Unsupported or unsafe file', 400
+		cim_filepaths.append(filepath)
+	if len(cim_filepaths) == 0:
+		return 'No files provided', 400
+	with locked_open(con_file_path, 'w') as conFile:
+		conFile.write("WORKING")
+	importProc = Process(target=_cim_import_background, args=[owner, modelName, networkName, networkNum, cgmes_version, cim_filepaths])
 	importProc.start()
 	return 'Success'
 
 
-def _raw_import_background(owner, modelName, networkName, networkNum):
-	''' Function to run in the background for Raw import. '''
+def _is_safe_cim_upload(filepath):
+	extension = os.path.splitext(filepath)[1].lower()
+	if extension not in ['.xml', '.rdf', '.zip']:
+		return False
+	if extension != '.zip':
+		return True
+	import zipfile
+	try:
+		with zipfile.ZipFile(filepath) as zip_file:
+			for member in zip_file.namelist():
+				member_path = Path(member)
+				if member_path.is_absolute() or '..' in member_path.parts:
+					return False
+	except zipfile.BadZipFile:
+		return False
+	return True
+
+
+def _cim_import_background(owner, modelName, networkName, networkNum, cgmes_version, cim_filepaths):
+	''' Function to run in the background for CGMES/CIM import. '''
 	model_dir = path_manager.join('data', 'Model', owner, modelName)
-	network_filepath = path_manager.join('data', 'Model', owner, modelName, 'import.raw')
 	pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'ZPID.txt')
 	new_network_filepath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
+	error_filepath = path_manager.join('data', 'Model', owner, modelName, 'cimError.txt')
 	try:
-		newNet = transmission.parseRaw(network_filepath, filePath=True)
-		transmission.layout(newNet)
-		with locked_open(network_filepath, 'w') as f:
+		newNet = transmission.parseCim(cim_filepaths, cgmes_version=cgmes_version)
+		if not any('latitude' in bus and 'longitude' in bus for bus in newNet.get('bus', {}).values()):
+			transmission.layout(newNet)
+		with locked_open(new_network_filepath, 'w') as f:
 			json.dump(newNet, f, indent=4)
-		os.rename(network_filepath, new_network_filepath)
 		_remove_network(owner, modelName, networkNum)
 		_write_to_input(model_dir, networkName, 'networkName' + str(networkNum))
-	except ValueError:
-		filepath = path_manager.join('data', 'Model', owner, modelName, 'rawError.txt')
-		with locked_open(filepath, 'w') as errorFile:
-			errorFile.write('rawError')
+	except ImportError:
+		with locked_open(error_filepath, 'w') as errorFile:
+			errorFile.write('pandapowerCimError')
 	except Exception:
-		filepath = path_manager.join('data', 'Model', owner, modelName, 'rawError.txt')
-		with locked_open(filepath, 'w') as errorFile:
-			errorFile.write('octaveError')
+		with locked_open(error_filepath, 'w') as errorFile:
+			errorFile.write('cimError')
 	finally:
-		os.remove(pid_filepath)
+		if os.path.isfile(pid_filepath):
+			os.remove(pid_filepath)
+		for filepath in cim_filepaths:
+			if os.path.isfile(filepath):
+				os.remove(filepath)
 
 
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
@@ -1964,7 +1999,7 @@ def _cleanup_error_files(model_dir):
 _RESERVED_FILENAMES = frozenset([
 	'ZPID.txt', 'APID.txt', 'NPID.txt', 'CPID.txt', 'WPID.txt', 'TPPID.txt', 'PPID.txt',
 	'allInputData.json', 'gridError.txt', 'error.txt', 'weatherError.txt',
-	'matError.txt', 'rawError.txt',
+	'matError.txt', 'cimError.txt',
 ])
 
 

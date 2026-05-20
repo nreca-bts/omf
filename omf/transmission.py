@@ -1,7 +1,6 @@
 ''' Functions for manipulating electrical transmission network models. '''
 
-import datetime, copy, os, re, json, tempfile, shutil, fileinput, webbrowser, platform, subprocess
-from os.path import join as pJoin
+import os, json, tempfile, shutil, fileinput, webbrowser
 import networkx as nx
 import omf
 
@@ -12,16 +11,25 @@ def parse(inputStr, filePath=True):
 	matDict = _dictConversion(inputStr, filePath)
 	return matDict
 
-def parseRaw(inputStr, filePath=True):
-	''' Parse a RAW file into an omf.network json via a matpower file. This is so we can walk the json, 
-	change things in bulk, etc. Input can be a filepath or RAW string. Raises ValueError if the RAW 
-	file/string does not contain valid data.
+def parseCim(inputFiles, cgmes_version='2.4.15'):
+	''' Parse CGMES/CIM XML or ZIP files into an omf.network json using pandapower's CIM importer.
+
+	Input can be a filepath or a list of filepaths. Raises ValueError if the files cannot be converted.
 	'''
-	matfile_name = _rawToMat(inputStr, filePath)
-	matDict = _dictConversion(matfile_name, True)
-	if not filePath:
-		os.remove(matfile_name)
-	return matDict
+	if isinstance(inputFiles, str):
+		file_list = [inputFiles]
+	else:
+		file_list = list(inputFiles or [])
+	if not file_list:
+		raise ValueError('No CGMES/CIM files were provided.')
+	from_cim = _get_pandapower_from_cim()
+	try:
+		pp_net = from_cim(file_list=file_list, cgmes_version=cgmes_version)
+		return _pandapower_net_to_omt(pp_net)
+	except ValueError:
+		raise
+	except Exception as err:
+		raise ValueError('CGMES/CIM files could not be converted by pandapower.') from err
 
 def write(inNet):
 	''' Turn an omf.network json object into a MAT-formatted string. '''
@@ -122,63 +130,107 @@ def _dictConversion(inputStr, filePath=True):
 		raise ValueError('MAT file/string does not contain valid data.')
 	return newNetworkWireframe
 
+def _get_pandapower_from_cim():
+	''' Return pandapower's from_cim callable across supported pandapower package layouts. '''
+	try:
+		from pandapower.converter.cim.cim2pp.from_cim import from_cim
+	except Exception as first_err:
+		try:
+			from pandapower.converter.cim import from_cim
+			if not callable(from_cim) and hasattr(from_cim, 'from_cim'):
+				from_cim = from_cim.from_cim
+		except Exception as second_err:
+			raise ImportError('The installed pandapower package does not include the CGMES/CIM converter.') from second_err
+		if not callable(from_cim):
+			raise ImportError('The installed pandapower package does not include the CGMES/CIM converter.') from first_err
+	return from_cim
+
+def _pandapower_net_to_omt(pp_net):
+	''' Convert a pandapower net into the MATPOWER-shaped OMT dictionary used by transEdit.html. '''
+	try:
+		from pandapower.converter import to_mpc
+	except Exception as err:
+		raise ImportError('The installed pandapower package does not include MATPOWER conversion support.') from err
+	try:
+		mpc_wrapper = to_mpc(pp_net, init='flat', calculate_voltage_angles=True, check_connectivity=False)
+	except TypeError:
+		mpc_wrapper = to_mpc(pp_net, init='flat')
+	mpc = mpc_wrapper.get('mpc', mpc_wrapper)
+	network = {
+		"baseMVA": _matpower_value_to_string(mpc.get('baseMVA', 100)),
+		"mpcVersion": str(mpc.get('version', '2')),
+		"bus": {},
+		"gen": {},
+		"branch": {}
+	}
+	bus_keys = ['bus_i', 'type', 'Pd', 'Qd', 'Gs', 'Bs', 'area', 'Vm', 'Va', 'baseKV', 'zone', 'Vmax', 'Vmin']
+	gen_keys = ['bus', 'Pg', 'Qg', 'Qmax', 'Qmin', 'Vg', 'mBase', 'status', 'Pmax', 'Pmin', 'Pc1', 'Pc2',
+		'Qc1min', 'Qc1max', 'Qc2min', 'Qc2max', 'ramp_agc', 'ramp_10', 'ramp_30', 'ramp_q', 'apf']
+	branch_keys = ['fbus', 'tbus', 'r', 'x', 'b', 'rateA', 'rateB', 'rateC', 'ratio', 'angle', 'status',
+		'angmin', 'angmax']
+	for i, row in enumerate(mpc.get('bus', [])):
+		network['bus'][str(i + 1)] = _matpower_row_to_dict(row, bus_keys)
+	for i, row in enumerate(mpc.get('gen', [])):
+		network['gen'][str(i + 1)] = _matpower_row_to_dict(row, gen_keys)
+	for i, row in enumerate(mpc.get('branch', [])):
+		network['branch'][str(i + 1)] = _matpower_row_to_dict(row, branch_keys)
+	if not network['bus']:
+		raise ValueError('CGMES/CIM files did not produce any buses.')
+	_add_pandapower_bus_coordinates(pp_net, network)
+	return network
+
+def _matpower_row_to_dict(row, keys):
+	return {key: _matpower_value_to_string(row[i]) if i < len(row) else '0' for i, key in enumerate(keys)}
+
+def _matpower_value_to_string(value):
+	try:
+		numeric_value = float(value)
+	except (TypeError, ValueError):
+		return str(value)
+	if numeric_value != numeric_value:
+		return '0'
+	if numeric_value.is_integer():
+		return str(int(numeric_value))
+	return format(numeric_value, '.12g')
+
+def _add_pandapower_bus_coordinates(pp_net, network):
+	''' Preserve CGMES GL/DL coordinates from pandapower when the import provides them. '''
+	if not hasattr(pp_net, 'bus') or pp_net.bus is None:
+		return
+	bus_lookup = getattr(pp_net, '_pd2ppc_lookups', {}).get('bus')
+	bus_by_i = {bus.get('bus_i'): bus for bus in network['bus'].values()}
+	for pp_bus_index, pp_bus in pp_net.bus.iterrows():
+		coords = _extract_pandapower_point(pp_bus.get('geo'))
+		if coords is None:
+			coords = _extract_pandapower_point(pp_bus.get('diagram'))
+		if coords is None:
+			continue
+		try:
+			ppc_bus_index = int(bus_lookup[int(pp_bus_index)])
+		except Exception:
+			ppc_bus_index = int(pp_bus_index)
+		for candidate in [ppc_bus_index, ppc_bus_index + 1]:
+			bus = bus_by_i.get(_matpower_value_to_string(candidate))
+			if bus is not None:
+				bus['longitude'] = coords[0]
+				bus['latitude'] = coords[1]
+				break
+
+def _extract_pandapower_point(raw_geo):
+	if raw_geo is None or raw_geo != raw_geo:
+		return None
+	try:
+		geo = json.loads(raw_geo) if isinstance(raw_geo, str) else raw_geo
+		coords = geo.get('coordinates') if isinstance(geo, dict) else None
+		if not isinstance(coords, list) or len(coords) < 2 or isinstance(coords[0], list):
+			return None
+		return [float(coords[0]), float(coords[1])]
+	except Exception:
+		return None
+
 def _dictToString(inDict):
 	''' Helper function: given a single dict representing a NETWORK, concatenate it into a string. '''
 	return ''
-
-def _rawToMat(inputStr, filePath=True):
-	''' Turn a RAW file/string into a MATPOWER case structure. 
-	See the following for details: https://matpower.org/docs/ref/matpower5.0/psse2mpc.html
-	'''
-	#TODO: offer installs below, or at least check for octave + matpower availability.
-	# ALSO NEED OCTAVE INSTALL, WILL BE PLATFORM DEPENDENT
-	# os.system(f"wget -P {source_dir}/omf/solvers/ 'https://github.com/MATPOWER/matpower/releases/download/7.0/matpower7.0.zip'")
-	# os.system(f"unzip '{source_dir}/omf/solvers/matpower7.0.zip' -d {source_dir}/omf/solvers/")
-	# os.system(f'octave-cli --no-gui -p "{source_dir}/omf/solvers/matpower7.0" --eval "install_matpower(1,1,1)"')
-	if not filePath: # create a temp file location for the RAW string
-		now = datetime.datetime.now()
-		rawfile_name = pJoin(omf.omfDir, 'temp' + now + '.raw')
-		matfile_name = pJoin(omf.omfDir, 'temp' + now + '.m')
-		with open(rawfile_name, 'w') as rawFile:
-			rawFile.write(inputStr)
-	else:
-		rawfile_name = inputStr
-		matfile_name = os.path.splitext(inputStr)[0] + '.m' 
-	# Prepare Octave with correct path.
-	matpowerDir =  pJoin(omf.omfDir,'solvers','matpower7.0')
-	matPath = _getMatPath(matpowerDir)
-	# TODO: Test code on Windows.
-	if platform.system() == "Windows":
-		# Find the location of octave-cli tool.
-		envVars = os.environ["PATH"].split(';')
-		octavePath = "C:\\Octave\\Octave-4.2.0"
-		for pathVar in envVars:
-			if "octave" in pathVar.lower():
-				octavePath = pathVar
-		# Run Windows-specific Octave command.
-		command = 'psse2mpc(\'' + rawfile_name + '\', \'' + matfile_name + '\')'
-		args = [octavePath + '\\bin\\octave-cli', '-p', matPath, '--eval', command]
-		try:
-			mat = subprocess.check_output(args, shell=False)
-		except subprocess.CalledProcessError as e:
-			raise ValueError('RAW file/string does not contain valid data.')
-		finally:
-			if not filePath:
-				os.remove(rawfile_name)
-	else:
-		# Run UNIX Octave command.
-		command = 'psse2mpc(\'' + rawfile_name + '\', \'' + matfile_name + '\')'
-		args = 'octave -p ' + matPath + ' --no-gui --eval "' + command + '"'
-		proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
-		(out, err) = proc.communicate()
-		if not filePath:
-			os.remove(rawfile_name)
-		if len(err) != 0:
-			if '\'psse2mpc\' undefined' in err.decode("utf-8"):
-				raise Exception('Matpower/Octave setup is incorrect.')
-			else: 
-				raise ValueError('RAW file/string does not contain valid data.')
-	return matfile_name
 
 def netToNxGraph(inNet):
 	''' Convert network.omt to networkx graph. '''
@@ -251,17 +303,6 @@ def get_file_contents(filepath):
 def get_abs_path(relative_path):
 	return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
-def _getMatPath(matDir):
-	# Get paths required for matpower7.0 in octave
-	if platform.system() == "Windows":
-		pathSep = ";"
-	else:
-		pathSep = ":"
-	relativePaths = ['lib', 'lib/t', 'data', 'mips/lib', 'mips/lib/t', 'most/lib', 'most/lib/t', 'mptest/lib', 'mptest/lib/t', 'extras/maxloadlim', 'extras/maxloadlim/tests', 'extras/maxloadlim/examples', 'extras/misc', 'extras/reduction', 'extras/sdp_pf', 'extras/se', 'extras/smartmarket', 'extras/state_estimator', 'extras/syngrid/lib','extras/syngrid/lib/t']
-	paths = [matDir] + [pJoin(matDir, relativePath) for relativePath in relativePaths]
-	matPath = '"' + pathSep.join(paths) + '"'
-	return matPath
-
 def viz(omt_filepath, output_path=None, output_name="viewer.html", open_file=True):
 	"""
 	Get a path to an .omt file that was saved on the server after a grip API consumer POSTed their desired .omt file.
@@ -302,12 +343,6 @@ def _tests():
 	networkJson = parse(netPath, filePath=True)
 	keyLen = len(networkJson.keys())
 	print('Parsed MAT file with %s buses, %s generators, and %s branches.'%(len(networkJson['bus']),len(networkJson['gen']),len(networkJson['branch'])))
-	# Parse raw to dictionary.
-	# networkNameRaw = 'GO500v2_perfect_0'
-	# netPathRaw = os.path.join(os.path.dirname(__file__), 'solvers', 'matpower7.0', 'data', 'test', networkNameRaw + '.raw')
-	# networkJsonRaw = parseRaw(netPathRaw, filePath=True)
-	# keyLenRaw = len(networkJsonRaw.keys())
-	# print('Parsed RAW file with %s buses, %s generators, and %s branches.'%(len(networkJsonRaw['bus']),len(networkJsonRaw['gen']),len(networkJsonRaw['branch'])))
 	# Use python nxgraph to add lat/lon to .omt.json.
 	nxG = netToNxGraph(networkJson)
 	networkJson = latlonToNet(nxG, networkJson)
