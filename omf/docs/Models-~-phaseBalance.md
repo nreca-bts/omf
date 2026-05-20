@@ -8,19 +8,19 @@ The phaseBalance model operates by calculating a number of variables, including 
 
 A visual “before” and “after” diagram of the feeder, graphing the unbalance when there is no solar generation (left), full solar generation (center), and after implementing controller (right). 
 
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/phaseBalance_1.png)
+![](./images/phaseBalance_1.png)
 
 A summary of how Gridlab-D calculates the load, distributed generation, losses, all VARs, and power factor in each case. Assumed net metering when calculating energy revenue.
 
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/phaseBalance_2.png)
+![](./images/phaseBalance_2.png)
 
 A summary of inverter outputs in volt amps, giving the user a detailed look into how the controller is manipulating each inverter. All results are searchable and sortable. 
 
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/phaseBalance_3.png)
+![](./images/phaseBalance_3.png)
 
 A summary of how every three-phase motor on the feeder is affected by each case. Unbalance is calculated as specified by the user, and then motor efficiency is calculated using a polynomial fit to calculations posted by the EERE [1]. The tables are sortable and searchable.
 
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/phaseBalance_4.png)
+![](./images/phaseBalance_4.png)
 
 
 ### References

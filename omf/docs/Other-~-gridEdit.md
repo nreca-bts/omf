@@ -10,7 +10,7 @@ The grid edit tool has the capability to import feeders from Milsoft, Gridlab-D,
 
 ![gridEditPage](images/gridEdit_file.png)
 
-These imported feeders are converted to a useable format on the OMF. Find more information about Milsoft Windmil [here](https://github.com/dpinney/omf/wiki/Other-~-Windmil-Data-Import), and Gridlab-D [here](http://gridlab-d.sourceforge.net/wiki/index.php/Creating_GLM_Files).
+These imported feeders are converted to a useable format on the OMF. Find more information about Milsoft Windmil [here](./Other-~-Windmil-Data-Import), and Gridlab-D [here](http://gridlab-d.sourceforge.net/wiki/index.php/Creating_GLM_Files).
 
 ![gridEditPage](images/gridEdit_milsoftModal.png)
 

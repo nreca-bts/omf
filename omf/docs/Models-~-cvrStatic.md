@@ -1,9 +1,9 @@
 ###Overview
 The cvrStatic model calculates the expected costs and benefits (including energy, loss, and peak reductions) for implementing conservation voltage reduction on a given feeder circuit.   
-For a longer discussion on Load Profile Effects of CVR, [click here](https://github.com/dpinney/omf/wiki/Other-~-Load-Profile-effect-on-CVR).
+For a longer discussion on Load Profile Effects of CVR, [click here](./Other-~-Load-Profile-effect-on-CVR).
 
 ###Walkthrough
-This model requires inputs for the costs for implementing a CVR program, the utility’s energy costs and demand charges (by season), characteristics about the loads found feeder, and average load and peak for each month (in watts).  BaselineTap refers to the baseline positon of the tap on the tap changer.  Loads in this model are characterized by the ZIP model, or the percentage of loads that are constant resistance, constant load, or constant power.  Unless you have a clear understanding of the loads on your system, the default values can be used.  When estimating power factor note that there is a linear increase in savings when power factor is increased because there is a higher decrease in peak demand at higher power factors (more details on this see the [Load Profile Paper](https://github.com/dpinney/omf/wiki/Other-~-Load-Profile-effect-on-CVR)).
+This model requires inputs for the costs for implementing a CVR program, the utility’s energy costs and demand charges (by season), characteristics about the loads found feeder, and average load and peak for each month (in watts).  BaselineTap refers to the baseline positon of the tap on the tap changer.  Loads in this model are characterized by the ZIP model, or the percentage of loads that are constant resistance, constant load, or constant power.  Unless you have a clear understanding of the loads on your system, the default values can be used.  When estimating power factor note that there is a linear increase in savings when power factor is increased because there is a higher decrease in peak demand at higher power factors (more details on this see the [Load Profile Paper](./Other-~-Load-Profile-effect-on-CVR)).
 
 ![cvrStatic_Inputs](images/cvrStatic_Inputs.jpg)
 

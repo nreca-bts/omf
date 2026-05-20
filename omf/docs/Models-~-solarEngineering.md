@@ -8,7 +8,7 @@ You can [try the model on omf.coop](https://omf.coop/newModel/solarEngineering/l
 
 ### How to Use the Model
 
-Before running this model, be sure that the feeder you are using has solar modeled on it already. Modifying an existing feeder to simulate solar systems can be done through the feeder editor (steps described below). There are relatively few inputs for this model. The user only needs to enter a model name, the feeder, location for weather data, simulation length, and simulation start date. The most important input is the feeder, and the model results are dictated by solar system(s) on the feeder. For general feeder editing information go to the [gridEdit wiki article](https://github.com/dpinney/omf/wiki/Other-~-gridEdit), or keep reading here for a specific guide on editing feeders for solar:
+Before running this model, be sure that the feeder you are using has solar modeled on it already. Modifying an existing feeder to simulate solar systems can be done through the feeder editor (steps described below). There are relatively few inputs for this model. The user only needs to enter a model name, the feeder, location for weather data, simulation length, and simulation start date. The most important input is the feeder, and the model results are dictated by solar system(s) on the feeder. For general feeder editing information go to the [gridEdit wiki article](./Other-~-gridEdit), or keep reading here for a specific guide on editing feeders for solar:
 
 **Getting the Feeder Imported**
 

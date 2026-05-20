@@ -132,7 +132,7 @@ bus1,0.15,0.435
 bus2,0.33,0.44
 ```
 
-**Input 14** - Completed Transformer Labeling Info := If transformer-customer pairing has already been completed, you can input the completed results here and the other input won't be used. The [TransformerPairing](https://github.com/dpinney/omf/wiki/Models-~-transformerPairing) model in the OMF provides a way to get results.
+**Input 14** - Completed Transformer Labeling Info := If transformer-customer pairing has already been completed, you can input the completed results here and the other input won't be used. The [TransformerPairing](./Models-~-transformerPairing) model in the OMF provides a way to get results.
 
 | Input Title               | Input Datatype                               |
 | -------------             | -------------                                |

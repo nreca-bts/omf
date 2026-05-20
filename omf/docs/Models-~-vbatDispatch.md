@@ -1,7 +1,7 @@
 ### Introduction
 This model returns the expected savings of using thermostatically controlled loads in demand response programs. The underlying device model is PNNL's VBAT, which calculates the energy potential for thermal loads, an energy demand, and temperature settings. The results are outputted in three parts: the _VBAT Energy Available & Demand Impact_, shows a range of how much power could be saved over a year long period, the state of charge of the virtual battery, the unadulterated demand, demand after vbat reductions to achieve monthly peak shaving, and power actually dispatched; the second, _Monthly Cost Comparison_, shows a breakdown of demand, energy, energy cost, demand charge, total cost, and savings on a monthly basis to compare cost and performance of the system without and with VBAT; the third, _Cash Flow Projection_ shows the yearly cashflows as well as the overall balance.
 
-Run the model here: https://omf.coop/newModel/vbatDispatch/wiki
+Run the model here: https://omf.coop/newModel/vbatDispatch/fromWiki
 
 ### Walkthrough
 The model requires the user to select the load type. Default values for the temperature settings are automatically loaded based on the device used, but can be changed. The next six parameters are for the financial analysis.

@@ -8,7 +8,7 @@ This model generates a communications network on top of a feeder. It calculates 
 
 ![](images/commsBandwidthInputs.png)
 
-Select a feeder to generate a communications map on top of. See here for information on selecting a feeder and using the grid editing tool : https://github.com/dpinney/omf/wiki/Other-~-gridEdit
+Select a feeder to generate a communications map on top of. See here for information on selecting a feeder and [using the grid editing tool](./Other-~-gridEdit).
 
 The model generates a communications network as follows:
 Fiber is created between the substation and switches, following the grid.

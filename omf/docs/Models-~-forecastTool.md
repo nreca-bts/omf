@@ -19,10 +19,10 @@ Detailed information on the model implementation and results: https://towardsdat
 * 72-hour temperature forecast: a file with no header that lists each hour's temperature forecast on a new line.
 
 ### Outputs
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/forecastTool_1.png)
+![](./images/forecastTool_1.png)
 The zoomable graph that shows tomorrow’s forecast (blue) and compares that to historical monthly loads (gray) as well as the current month’s load so far (black).
 
 
-![](https://raw.githubusercontent.com/wiki/dpinney/omf/images/forecastTool_2.png)
+![](./images/forecastTool_2.png)
 The three-day peak forecast, the highest peak so far, and their appropriate error bars. Given those inputs, the model predicts the statistical likelihood that tomorrow’s peak will be the monthly peak. For even better context, the historical distribution of hourly load is also given, helping utilities place tomorrow’s forecast in context.
 

@@ -2,12 +2,12 @@ Please note that these instructions in this document refer to hosts and director
 
 ### Dev Deployment 
 
-See the [Developer Documentation](https://github.com/dpinney/omf/wiki/Dev-~-Installation-Instructions).
+See the [Developer Documentation](./Dev-~-Installation-Instructions).
 
 ### Prod Deployment
 
 1. Bring up an Ubuntu 18.04 LTS machine.
-2. Complete the [developer installation](https://github.com/dpinney/omf/wiki/Dev-~-Installation-Instructions) production server.
+2. Complete the [developer installation](./Dev-~-Installation-Instructions) production server.
 3. Enable the service by `cp /omf/omf.service /etc/systemd/system/omf.service`.
 4. Make sure we're starting on boot via `sudo systemctl enable omf`.
 5. Add the SSL certificates to /omf/omf/omfDevCert.pem, /omf/omf/omfDevKey.pem, and /omf/omf/certChain.ca-bundle (ask David for it).

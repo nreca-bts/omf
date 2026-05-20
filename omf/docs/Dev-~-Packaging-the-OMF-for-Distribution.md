@@ -37,7 +37,7 @@
 	A more detailed instruction of build distribution is available [here](https://docs.python.org/2/distutils/builtdist.html).
 	
 5. Install the distribution package on other machines.
-	You can also check [Developer Documentation](https://github.com/dpinney/omf/wiki/Developer-Documentation#getting-started) page
+	You can also check [Developer Documentation](./Developer-Documentation#getting-started) page
 	1. For Windows
 		1. Check version of python
 			You need have python installed in your machine, and both 32-bit are 64-bit are suitable. And you'd better have your python environment setted in the system environment variables.

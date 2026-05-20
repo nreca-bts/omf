@@ -12,10 +12,10 @@ This tutorial will lead the user through an ad hoc solar analysis model, and sho
 
 Tutorial Contents:
 
-1. [Quick-Start Guide](https://github.com/dpinney/omf/wiki/Walkthrough%20of%20a%20Solar%20Analysis#1-quick-start-guide)
-2. [Set-up and Log-in](https://github.com/dpinney/omf/wiki/Walkthrough%20of%20a%20Solar%20Analysis#2--setup-and-login)
-3. [Feeders](https://github.com/dpinney/omf/wiki/Walkthrough%20of%20a%20Solar%20Analysis#3--feeder-editing)
-4. [Additional Resources](https://github.com/dpinney/omf/wiki/Walkthrough%20of%20a%20Solar%20Analysis#4--conclusion-and-additional-resources)
+1. [Quick-Start Guide](./Walkthrough%20of%20a%20Solar%20Analysis#1-quick-start-guide)
+2. [Set-up and Log-in](./Walkthrough%20of%20a%20Solar%20Analysis#2--setup-and-login)
+3. [Feeders](./Walkthrough%20of%20a%20Solar%20Analysis#3--feeder-editing)
+4. [Additional Resources](./Walkthrough%20of%20a%20Solar%20Analysis#4--conclusion-and-additional-resources)
 
 
 ## 1. Quick-Start Guide

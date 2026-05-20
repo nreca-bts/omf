@@ -1,8 +1,7 @@
 Many OMF models use weather data. If you don't have a source of your own, we recommend one of the following.
 
 The following models require temperature data:
-[vbatDispatch](https://github.com/dpinney/omf/wiki/Models-~-vbatDispatch)
-
+[vbatDispatch](./Models-~-vbatDispatch)
 
 ## Iowa State METAR Database
 

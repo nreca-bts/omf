@@ -2,7 +2,7 @@ This document explains how to create a new kind of model in the OMF.
 
 In this guide, we'll create a model named integerSum that adds two numbers and displays the result. Specifically, we will show how to start with the model skeleton files, adjust the file paths and modelType parameters, add new inputs and model logic, and finally create a default test case.
 
-It assumes that the developer has successfully installed and setup the OMF per the wiki instructions [here](https://github.com/dpinney/omf/wiki/Dev-~-Installation-Instructions). Also please read the OMF [code style guide here](https://github.com/dpinney/omf/wiki/Dev-~-Architecture-Notes).
+It assumes that the developer has successfully installed and setup the OMF per the wiki instructions [here](./Dev-~-Installation-Instructions). Also please read the OMF [code style guide here](./Dev-~-Architecture-Notes).
 
 ### Start With the modelSkeleton
 
@@ -44,7 +44,7 @@ And
 
 ```
 <div class="shortInput">
-	<label>Model Type <a href="https://github.com/dpinney/omf/wiki/Models:-modelSkeleton" target="blank">Help?</a></label>
+	<label>Model Type <a href="./Models:-modelSkeleton" target="blank">Help?</a></label>
 	<input type="text" id="modelType" name="modelType" value="modelSkeleton" readonly/>
 </div>
 ```
@@ -52,7 +52,7 @@ Becomes:
 
 ```
 <div class="shortInput">
-	<label>Model Type <a href="https://github.com/dpinney/omf/wiki/Models:-integerSum" target="blank">Help?</a></label>
+	<label>Model Type <a href="./Models:-integerSum" target="blank">Help?</a></label>
 	<input type="text" id="modelType" name="modelType" value="integerSum" readonly/>
 </div>
 ```

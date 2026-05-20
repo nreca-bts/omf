@@ -123,30 +123,15 @@ Fig.7. Losses for various load levels at different power factors.
 
 As can be seen from the above analysis, the overall savings are directly affected by the relative percentages of constant Z, constant I and constant P components of the load. We obtained typical ZIP data from a load study done by PNNL with WECC [4]. In tables below, we have listed the typical ZIP estimates obtained for various regions for different types of load mixes. 
 
+<img src="./images/sri15.jpg" height="150px" width="1150px">
 
+<img src="./images/sri16.jpg" height="175px" width="1200px">
 
-<img src="https://raw.github.com/wiki/dpinney/omf/images/sri15.jpg" height="150px" width="1150px">
+<img src="./images/sri17.jpg" height="150px" width="1150px">
 
+<img src="./images/sri18.jpg" height="175px" width="1200px">
 
-
-
-<img src="https://raw.github.com/wiki/dpinney/omf/images/sri16.jpg" height="175px" width="1200px">
-
-
-
-
-<img src="https://raw.github.com/wiki/dpinney/omf/images/sri17.jpg" height="150px" width="1150px">
-
-
-
-
-<img src="https://raw.github.com/wiki/dpinney/omf/images/sri18.jpg" height="175px" width="1200px">
-
-
-
-
-Fig.8. Tables showing ZIP estimates for different climate zones in California. 
-
+Fig.8. Tables showing ZIP estimates for different climate zones in California.
 
 ## References
 
@@ -156,6 +141,6 @@ Level”, Prepared by Pacific Northwest National Laboratory for the U.S. Departm
 
 [2] Pinney, “Costs and Benefits of Conservation Voltage Reduction. CVR warrants a careful examination- Initial Findings,” NRECA DOE Smartgrid demonstration project, November 15, 2013.
 
-[3] https://github.com/dpinney/omf/wiki
+[3] https://omf.coop/
 
 [4]http://www.wecc.biz/committees/StandingCommittees/PCC/TSS/MVWG/LMTF/Shared%20Documents/Forms/DispForm.aspx?ID=10
