@@ -1439,7 +1439,7 @@ def new(modelDir):
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
 @neoMetaModel_test_setup
-def _tests():
+def _debugging():
 	# Model Location
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
@@ -1459,5 +1459,4 @@ def _tests():
 	__neoMetaModel__.renderAndShow(modelLoc)
 
 if __name__ == '__main__':
-	_tests()
-	pass
+	_debugging()
