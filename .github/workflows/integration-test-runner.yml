@@ -7,8 +7,20 @@ jobs:
     name: Test OMF on Ubuntu
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env:
+      OMF_REOPT_BUILD_SYSIMAGE: "0"
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # Checkout whichever ref that triggered this workflow
+      - name: Cache REopt.jl artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.julia
+            omf/solvers/reopt_jl/instantiated.txt
+            omf/solvers/reopt_jl/reopt_jl.so
+          key: reopt-jl-${{ runner.os }}-julia-1.9.4-${{ hashFiles('omf/solvers/reopt_jl/REoptSolver/Project.toml', 'omf/solvers/reopt_jl/REoptSolver/Manifest.toml', 'omf/solvers/reopt_jl/REoptSolver/src/REoptSolver.jl', 'omf/solvers/reopt_jl/precompile_reopt.jl') }}
+          restore-keys: |
+            reopt-jl-${{ runner.os }}-julia-1.9.4-
       - name: Install Dependencies
         run: |
           sudo python3 install.py

@@ -56,6 +56,6 @@ function run(path::String, outages::Bool=false, microgrid_only::Bool=false, max_
 
 end
 
-precompile(run, (String, Bool, Bool, Union{Nothing,String},))
+precompile(run, (String, Bool, Bool, Union{Nothing,Int}, String, Float64, Union{Nothing,Int},))
 
 end 

@@ -1,7 +1,7 @@
 using JSON
 using Base.Filesystem
 
-include(normpath(joinpath("REoptSolver","src","REoptSolver.jl"))) #joinpath(@__DIR__,
+include(normpath(joinpath(@__DIR__, "REoptSolver", "src", "REoptSolver.jl")))
 
 function test()
 	json_data = JSON.parsefile(normpath(joinpath(string(@__DIR__), "testFiles","julia_default.json")))

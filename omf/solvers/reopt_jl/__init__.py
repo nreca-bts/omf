@@ -1,11 +1,23 @@
 import json, time
-import os, platform
+import os, platform, shutil
 import random
 import subprocess
 from os.path import join as pJoin
 
 
 thisDir = str(os.path.abspath(os.path.dirname(__file__)))
+
+def _env_flag_false(name):
+	value = os.environ.get(name)
+	return value is not None and value.lower() in ('0', 'false', 'no', 'off')
+
+def _julia_on_path():
+	if shutil.which('julia') is None:
+		return False
+	try:
+		return subprocess.run(['julia', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+	except OSError:
+		return False
 
 def make_julia_script_file(juliaStr : str, cleanFileFormatting = True):
 	''' Creates a Julia File containing the script in juliaStr, cleans up file location formatting (optional), and returns:
@@ -41,13 +53,15 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 	sysimage_path = str(os.path.normpath(os.path.join(thisDir,"reopt_jl.so")))
 	precompile_path = str(os.path.normpath(os.path.join(thisDir,"precompile_reopt.jl")))
 
-	if os.path.isfile(instantiated_path):
+	if os.path.isfile(instantiated_path) and _julia_on_path():
 		if not os.path.isfile(sysimage_path) and build_sysimage:
 			print("error: reopt_jl.so not found - remove instantiated.txt to build \n attempting to run without sysimage... ")
 			return False
 		else:
 			print("reopt_jl dependencies installed - to reinstall remove instantiated.txt")
 			return build_sysimage
+	elif os.path.isfile(instantiated_path):
+		print("reopt_jl instantiated.txt found but julia is not on PATH; installing julia before continuing")
 	
 	try:
 		install_pyjulia = [
@@ -73,33 +87,37 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 				' '''
 			]
 		else:
-			build_julia_image = []
+			build_julia_image = [
+				f'''julia --project="{project_path}" -e '
+				import Pkg; Pkg.instantiate();
+				import REoptSolver;
+				' '''
+			]
 		if system == "Darwin":
-			commands = [ '''
+			commands = [] if _julia_on_path() else [ '''
 				HOMEBREW_NO_AUTO_UPDATE=1 brew list julia 1>/dev/null 2>/dev/null || 
 				{ brew tap homebrew/core; brew install julia; }
 				'''
 			]
 			commands += install_pyjulia
-			commands += [ f'touch "{instantiated_path}"' ]
 			commands += build_julia_image
+			commands += [ f'touch "{instantiated_path}"' ]
 		elif system == "Linux":
-			commands = [
-				'sudo apt-get install wget',
+			commands = [] if _julia_on_path() else [
+				'sudo apt-get -y install wget',
 				'wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz ',
 				#'''python3 -c 'from urllib.request import urlretrieve as wget; wget("https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz", "./julia-1.9.4-linux-x86_64.tar.gz") ' ''',
 				'sudo tar -xvzf "julia-1.9.4-linux-x86_64.tar.gz" -C /usr/local --strip-components 1'
 			]
 			commands += install_pyjulia
-			commands += [ f'touch "{instantiated_path}"' ]
 			commands += build_julia_image
+			commands += [ f'touch "{instantiated_path}"' ]
 		elif system == "Windows":
 			commands = [
-				f'cd "{thisDir}" & del julia-1.9.4-win64.zip',
+				f'cd "{thisDir}" & if exist julia-1.9.4-win64.zip del julia-1.9.4-win64.zip',
 				f'cd "{thisDir}" & curl -o julia-1.9.4-win64.zip https://julialang-s3.julialang.org/bin/winnt/x64/1.9/julia-1.9.4-win64.zip',
 				f'cd "{thisDir}" & tar -x -f julia-1.9.4-win64.zip' ]
 			commands += install_pyjulia
-			commands += [ f'copy nul {instantiated_path}' ]
 			if build_sysimage:
 				juliaStr = f'''import Pkg; Pkg.instantiate();
 					import REoptSolver; using PackageCompiler;
@@ -111,11 +129,16 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 					f'cd "{thisDir}\\julia-1.9.4\\bin" & julia --project="{project_path}" "{juliaFileLocation}"',
 					delCommand
 				]
+			else:
+				commands += [f'cd "{thisDir}\\julia-1.9.4\\bin" & julia --project="{project_path}" -e "import Pkg; Pkg.instantiate(); import REoptSolver;"']
+			commands += [ f'copy nul "{instantiated_path}"' ]
 		else:
 			raise ValueError(f'No installation script available yet for {system}')
 
 		for command in commands:
-			os.system(command)
+			exit_code = os.system(command)
+			if exit_code != 0:
+				raise RuntimeError(f"reopt_jl install command failed with exit code {exit_code}: {command}")
 
 		return build_sysimage
 
@@ -302,6 +325,8 @@ def get_randomized_api_key():
 def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, microgrid_only=False, max_runtime_s=None, 
 				 run_with_sysimage=True, tolerance=0.05, random_seed=None):
 	''' calls 'run' function through run_reopt.jl (Julia file) '''
+	if _env_flag_false('OMF_REOPT_BUILD_SYSIMAGE'):
+		run_with_sysimage = False
 	
 	if inputFile == "" and not default:
 		print("Invalid inputs: inputFile needed if default=False")
