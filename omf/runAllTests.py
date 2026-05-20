@@ -3,13 +3,13 @@
 import sys, platform, pkgutil, importlib, omf, traceback
 
 # master override disabling testing.
-IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.models.phaseId', 'omf.models.solarDisagg', 'omf.tests', 'omf.models.forecastTool', 'omf.models.transmission', 'omf.models.cvrStatic', 'omf.models.smartSwitching']
+IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.models.phaseId', 'omf.models.solarDisagg', 'omf.tests', 'omf.models.forecastTool', 'omf.models.transmission', 'omf.models.cvrStatic', 'omf.models.smartSwitching', 'omf.models.flisr']
 
 # Different platforms like to name the python binary differently
 PY_BIN_NAME = 'python3'
 # some tests are very finicky on windows
 if platform.system()=='Windows':
-	NO_WINDOWS_SUPPORT = ['omf.cymeToGridlab', 'omf.models.rfCoverage', 'omf.models.solarEngineering', 'omf.models.phaseBalance', 'omf.models.forecastTool', 'omf.distNetViz', 'omf.models.derInterconnection', 'omf.models.flisr', 'omf.models.networkStructure', 'omf.models.smartSwitching']
+	NO_WINDOWS_SUPPORT = ['omf.cymeToGridlab', 'omf.models.rfCoverage', 'omf.models.solarEngineering', 'omf.models.phaseBalance', 'omf.models.forecastTool', 'omf.distNetViz', 'omf.models.derInterconnection', 'omf.models.networkStructure', 'omf.models.smartSwitching']
 	PY_BIN_NAME = 'python'
 	IGNORE_FILES.extend(NO_WINDOWS_SUPPORT)
 
