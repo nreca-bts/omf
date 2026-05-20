@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # Checkout whichever ref that triggered this workflow
       - name: Cache REopt.jl artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: |
             ~/.julia
