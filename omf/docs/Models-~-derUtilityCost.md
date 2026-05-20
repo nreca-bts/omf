@@ -81,9 +81,9 @@ A temperature curve .csv can be obtained using the following steps:
 <b> AFTER DOWNLOADING THE .CSV, YOU MUST EDIT THE .CSV FILE BY DOING THE FOLLOWING:</b>
 <ul>
 <li> Open the .csv file after downloading. It may be in your Downloads folder, or wherever your files go when they are downloaded. You want to be able to make changes and edit the file (e.g. the easiest way would be to open the file in Excel, Google Sheets, CryptPad Spreadsheet, OnlyOffice Spreadsheet, or some other spreadsheet program). The .csv file should look like this: </li>
-<img width="703" alt="open-meteo-googlesheet-example" src="https://github.com/user-attachments/assets/3ebdecc0-7b0c-4e6e-93e3-f7e23a7b19bd" />
+<img width="703" alt="open-meteo-googlesheet-example" src="./images/derConsumer_open-meteo-googlesheet-example.png" />
 <li> Delete the header rows and the timestamp column. The .csv file should look like this when you upload it to derUtilityCost:</li>
-<img width="704" alt="open-meteo-googlesheets-example-edited" src="https://github.com/user-attachments/assets/3f844fba-bd95-458b-a6c0-c591e6e871d3" />
+<img width="704" alt="open-meteo-googlesheets-example-edited" src="./images/derConsumer_open-meteo-googlesheet-example-edited.png" />
 <li> Be sure that there are 8760 rows total. Save the file (e.g. if you’re using Google Sheets, go to File > Download > Comma Separated Values (.csv). Now you can upload the .csv file to the Temperature Curve input!</li>
 
 </ul>
@@ -135,8 +135,8 @@ The example above was created using the REopt Web Tool custom electric rate tari
 
 <ol>
 
-  <img width="1120" alt="OpenEI_URDB" src="https://github.com/user-attachments/assets/0e6d7b99-f406-4d78-98d2-5cb47e8faaa9" />
-  <img width="1120" alt="OpenEI_URDB_example" src="https://github.com/user-attachments/assets/f8160910-50bb-4282-8226-d9a3f2a57fb5" />
+  <img width="1120" alt="OpenEI_URDB" src="./images/derUtilityCost_OpenEI_URDB.png" />
+  <img width="1120" alt="OpenEI_URDB_example" src="./images/derUtilityCost_OpenEI_URDB_example.png" />
 
 </ol>
 
