@@ -15,6 +15,7 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: |
+            ~/.cache/omf/julia-1.9.4
             ~/.julia
             omf/solvers/reopt_jl/instantiated.txt
             omf/solvers/reopt_jl/reopt_jl.so
