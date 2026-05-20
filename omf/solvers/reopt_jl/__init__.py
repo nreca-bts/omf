@@ -143,7 +143,11 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 				' '''
 			]
 		if system == "Darwin":
+<<<<<<< HEAD
 			commands = [] if _ensure_julia_on_path() else [ '''
+=======
+			commands = [] if _julia_on_path() else [ '''
+>>>>>>> 3d6f91cb345b7a5da5e62e70101c6e6ba406f250
 				HOMEBREW_NO_AUTO_UPDATE=1 brew list julia 1>/dev/null 2>/dev/null || 
 				{ brew tap homebrew/core; brew install julia; }
 				'''
@@ -152,6 +156,7 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 			commands += build_julia_image
 			commands += [ f'touch "{instantiated_path}"' ]
 		elif system == "Linux":
+<<<<<<< HEAD
 			if _ensure_julia_on_path():
 				commands = []
 			else:
@@ -171,6 +176,16 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 					print("reopt_jl dependencies installed after restoring cached Julia - to reinstall remove instantiated.txt")
 					return build_sysimage
 				commands = []
+=======
+			commands = [] if _julia_on_path() else [
+				'sudo apt-get -y install wget',
+				f'wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-{JULIA_VERSION}-linux-x86_64.tar.gz ',
+				#'''python3 -c 'from urllib.request import urlretrieve as wget; wget("https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz", "./julia-1.9.4-linux-x86_64.tar.gz") ' ''',
+				f'sudo tar -xvzf "julia-{JULIA_VERSION}-linux-x86_64.tar.gz" -C /usr/local --strip-components 1'
+			]
+			if commands:
+				os.environ['PATH'] = f'/usr/local/bin:{os.environ.get("PATH", "")}'
+>>>>>>> 3d6f91cb345b7a5da5e62e70101c6e6ba406f250
 			commands += install_pyjulia
 			commands += build_julia_image
 			commands += [ f'touch "{instantiated_path}"' ]
@@ -197,7 +212,14 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 		else:
 			raise ValueError(f'No installation script available yet for {system}')
 
+<<<<<<< HEAD
 		_run_install_commands(commands)
+=======
+		for command in commands:
+			exit_code = os.system(command)
+			if exit_code != 0:
+				raise RuntimeError(f"reopt_jl install command failed with exit code {exit_code}: {command}")
+>>>>>>> 3d6f91cb345b7a5da5e62e70101c6e6ba406f250
 
 		return build_sysimage
 
