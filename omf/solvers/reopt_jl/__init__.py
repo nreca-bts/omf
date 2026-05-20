@@ -6,6 +6,7 @@ from os.path import join as pJoin
 
 
 thisDir = str(os.path.abspath(os.path.dirname(__file__)))
+JULIA_VERSION = '1.9.4'
 
 def _env_flag_false(name):
 	value = os.environ.get(name)
@@ -15,7 +16,8 @@ def _julia_on_path():
 	if shutil.which('julia') is None:
 		return False
 	try:
-		return subprocess.run(['julia', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+		version_check = subprocess.run(['julia', '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
+		return version_check.returncode == 0 and f'version {JULIA_VERSION}' in version_check.stdout
 	except OSError:
 		return False
 
@@ -105,10 +107,12 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 		elif system == "Linux":
 			commands = [] if _julia_on_path() else [
 				'sudo apt-get -y install wget',
-				'wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz ',
+				f'wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-{JULIA_VERSION}-linux-x86_64.tar.gz ',
 				#'''python3 -c 'from urllib.request import urlretrieve as wget; wget("https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz", "./julia-1.9.4-linux-x86_64.tar.gz") ' ''',
-				'sudo tar -xvzf "julia-1.9.4-linux-x86_64.tar.gz" -C /usr/local --strip-components 1'
+				f'sudo tar -xvzf "julia-{JULIA_VERSION}-linux-x86_64.tar.gz" -C /usr/local --strip-components 1'
 			]
+			if commands:
+				os.environ['PATH'] = f'/usr/local/bin:{os.environ.get("PATH", "")}'
 			commands += install_pyjulia
 			commands += build_julia_image
 			commands += [ f'touch "{instantiated_path}"' ]
