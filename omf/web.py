@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
 from functools import lru_cache, wraps
-from flask import (Flask, send_from_directory, request, redirect, render_template, session, abort, jsonify, url_for)
-import flask_login, boto3
+from flask import (Flask, send_from_directory, request, redirect, render_template, session, abort, jsonify, url_for, g, has_request_context)
+import boto3
 from flask_compress import Compress
 from jinja2 import Template
 import markdown
@@ -14,6 +14,7 @@ import dateutil
 from subprocess import Popen
 import re
 from urllib.parse import urlsplit
+from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename
 from pathlib import Path
 try:
@@ -35,11 +36,159 @@ app = Flask("web", template_folder=os.path.join(_omfDir, "templates"), static_fo
 Compress(app)
 URL = "http://www.omf.coop"
 
-# Ensure HttpOnly flags on cookies (session + Flask-Login remember cookie)
+# Ensure HttpOnly flags on cookies (session + remember cookie)
 # Explicit even if framework defaults cover session, to satisfy security review.
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
+
+
+class _AnonymousUser:
+	username = None
+	is_authenticated = False
+	is_active = False
+	is_anonymous = True
+
+	def get_id(self):
+		return None
+
+
+class _LoginManager:
+	def __init__(self):
+		self.login_view = None
+		self._user_callback = None
+
+	def init_app(self, app):
+		app.after_request(_update_remember_cookie)
+
+	def user_loader(self, callback):
+		self._user_callback = callback
+		return callback
+
+
+def _login_cookie_secret():
+	secret = app.secret_key or ''
+	if isinstance(secret, bytes):
+		return secret
+	return str(secret).encode('utf-8')
+
+
+def _encode_remember_cookie(user_id):
+	payload = base64.urlsafe_b64encode(str(user_id).encode('utf-8')).decode('ascii').rstrip('=')
+	signature = hmac.new(_login_cookie_secret(), payload.encode('ascii'), hashlib.sha512).hexdigest()
+	return payload + '|' + signature
+
+
+def _decode_remember_cookie(cookie_value):
+	try:
+		payload, signature = str(cookie_value).split('|', 1)
+	except ValueError:
+		return None
+	expected = hmac.new(_login_cookie_secret(), payload.encode('ascii'), hashlib.sha512).hexdigest()
+	if not secrets.compare_digest(signature, expected):
+		return None
+	try:
+		padding = '=' * (-len(payload) % 4)
+		return base64.urlsafe_b64decode((payload + padding).encode('ascii')).decode('utf-8')
+	except (binascii.Error, UnicodeDecodeError):
+		return None
+
+
+def _remember_cookie_name():
+	return app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
+
+
+def _remember_cookie_duration_seconds():
+	duration = app.config.get('REMEMBER_COOKIE_DURATION', dt.timedelta(days=365))
+	if isinstance(duration, dt.timedelta):
+		return int(duration.total_seconds())
+	return int(duration)
+
+
+def _update_remember_cookie(response):
+	action = session.pop('_remember', None)
+	cookie_name = _remember_cookie_name()
+	cookie_path = app.config.get('REMEMBER_COOKIE_PATH', '/')
+	if action == 'set':
+		user_id = session.get('_user_id')
+		if user_id:
+			response.set_cookie(
+				cookie_name,
+				_encode_remember_cookie(user_id),
+				max_age=_remember_cookie_duration_seconds(),
+				path=cookie_path,
+				secure=request.is_secure,
+				httponly=app.config.get('REMEMBER_COOKIE_HTTPONLY', True),
+				samesite=app.config.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+			)
+	elif action == 'clear':
+		response.delete_cookie(cookie_name, path=cookie_path)
+	return response
+
+
+def _get_current_user():
+	if not has_request_context():
+		return _AnonymousUser()
+	if hasattr(g, '_login_user'):
+		return g._login_user
+	user = None
+	user_id = session.get('_user_id')
+	if not user_id:
+		remember_cookie = request.cookies.get(_remember_cookie_name(), '')
+		user_id = _decode_remember_cookie(remember_cookie)
+		if user_id:
+			session['_user_id'] = user_id
+		elif remember_cookie:
+			session['_remember'] = 'clear'
+	if user_id and login_manager._user_callback is not None:
+		user = login_manager._user_callback(user_id)
+	if user is None:
+		session.pop('_user_id', None)
+		if user_id:
+			session['_remember'] = 'clear'
+		user = _AnonymousUser()
+	g._login_user = user
+	return user
+
+
+def _is_authenticated(user):
+	is_authenticated = user.is_authenticated
+	if callable(is_authenticated):
+		return is_authenticated()
+	return bool(is_authenticated)
+
+
+def login_user(user, remember=False):
+	user_id = user.get_id()
+	if user_id is None:
+		return False
+	session['_user_id'] = str(user_id)
+	session['_fresh'] = True
+	g._login_user = user
+	session['_remember'] = 'set' if remember else 'clear'
+	return True
+
+
+def logout_user():
+	session.pop('_user_id', None)
+	session.pop('_fresh', None)
+	session['_remember'] = 'clear'
+	g._login_user = _AnonymousUser()
+
+
+def login_required(func):
+	@wraps(func)
+	def decorated_view(*args, **kwargs):
+		if _is_authenticated(current_user):
+			return func(*args, **kwargs)
+		if login_manager.login_view:
+			next_url = request.full_path if request.query_string else request.path
+			return redirect(url_for(login_manager.login_view, next=next_url))
+		abort(401)
+	return decorated_view
+
+
+current_user = LocalProxy(_get_current_user)
 
 PASSWORD_DIGEST_SECRET_ENV = 'OMF_PASSWORD_DIGEST_KEY'
 PASSWORD_DIGEST_PREFIX = 'omf_pwd_v1$'
@@ -436,7 +585,7 @@ def migrate_legacy_user_password_digests(usernames=None):
 
 class User:
 	def __init__(self, jsonBlob): self.username = jsonBlob["username"]
-	# Required flask_login functions.
+	# Required login user functions.
 	def is_admin(self): return self.username == "admin"
 	def get_id(self): return self.username
 	def is_authenticated(self): return True
@@ -445,7 +594,7 @@ class User:
 	@classmethod
 	def cu(self):
 		"""Returns current user's username"""
-		return flask_login.current_user.username
+		return current_user.username
 
 
 def cryptoRandomString():
@@ -456,7 +605,7 @@ def cryptoRandomString():
 	return secrets.token_hex(32)
 
 
-login_manager = flask_login.LoginManager()
+login_manager = _LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login_page"
 app.secret_key = cryptoRandomString()
@@ -531,9 +680,7 @@ def _send_link(email, message, u=None):
 
 @login_manager.user_loader
 def load_user(username):
-	'''Required by flask_login to return instance of the current user.
-	Must return None if the user no longer exists (e.g. deleted account),
-	otherwise Flask-Login raises an unhandled exception on every request.'''
+	'''Return the current user instance, or None if the account no longer exists.'''
 	try:
 		with locked_open(path_manager.join('data', 'User', username + '.json')) as f:
 			data = json.load(f)
@@ -572,11 +719,8 @@ def _safe_redirect(target: str):
 
 
 def _current_user_is_authenticated():
-	'''Support Flask-Login versions where is_authenticated is either a property or a method.'''
-	is_authenticated = flask_login.current_user.is_authenticated
-	if callable(is_authenticated):
-		return is_authenticated()
-	return is_authenticated
+	'''Return whether the current request has an authenticated user.'''
+	return _is_authenticated(current_user)
 
 
 @app.route("/login", methods = ["POST"])
@@ -591,7 +735,7 @@ def login():
 			break
 	if userJson and verify_user_password(password, userJson):
 		user = User(userJson)
-		flask_login.login_user(user, remember = remember == "on")
+		login_user(user, remember = remember == "on")
 	nextUrl = str(request.form.get("next","/") or "/")
 	return _safe_redirect(nextUrl)
 
@@ -610,12 +754,12 @@ def login_page():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-	flask_login.logout_user()
+	logout_user()
 	return redirect("/")
 
 
 @app.route("/deleteUser", methods=["POST"])
-@flask_login.login_required
+@login_required
 def deleteUser():
 	if User.cu() != "admin":
 		return "You are not authorized to delete users"
@@ -675,14 +819,14 @@ def fastNewUser(email):
 			json.dump(user, f, indent=4)
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
-		flask_login.login_user(User(user))
+		login_user(User(user))
 		nextUrl = str(request.args.get("next","/") or "/")
 		return _safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
 def register(email, reg_key):
-	if flask_login.current_user.is_authenticated:
+	if current_user.is_authenticated:
 		return redirect("/")
 	try:
 		with locked_open(path_manager.join('data', 'User', f'{email}.json')) as f:
@@ -702,7 +846,7 @@ def register(email, reg_key):
 		set_user_password_digest(user, password)
 		user.pop("reg_key", None)
 		user.pop("timestamp", None)
-		flask_login.login_user(User(user))
+		login_user(User(user))
 		with locked_open(path_manager.join('data', 'User', f'{user["username"]}.json'), 'w') as f: # Need 'w' mode to create new users? I would prefer r+ mode
 			json.dump(user, f, indent=4)
 	else:
@@ -711,7 +855,7 @@ def register(email, reg_key):
 
 
 @app.route("/changepwd", methods=["POST"])
-@flask_login.login_required
+@login_required
 def changepwd():
 	old_pwd, new_pwd, conf_pwd = map(request.form.get, ['old_pwd', 'new_pwd', 'conf_pwd'])
 	user_filepath = os.path.join(_omfDir, 'data', 'User', User.cu() + '.json')
@@ -732,7 +876,7 @@ def changepwd():
 
 
 @app.route("/adminControls")
-@flask_login.login_required
+@login_required
 def adminControls():
 	''' Render admin controls. '''
 	if User.cu() != "admin":
@@ -752,7 +896,7 @@ def adminControls():
 
 
 @app.route("/omfStats")
-@flask_login.login_required
+@login_required
 def omfStatsView():
 	'''Render log visualizations.'''
 	if User.cu() != "admin":
@@ -761,7 +905,7 @@ def omfStatsView():
 
 
 @app.route("/regenOmfStats", methods=["POST"])
-@flask_login.login_required
+@login_required
 def regenOmfStats():
 	'''Regenarate stats images.'''
 	if User.cu() != "admin":
@@ -772,7 +916,7 @@ def regenOmfStats():
 
 
 @app.route("/myaccount")
-@flask_login.login_required
+@login_required
 def myaccount():
 	''' Render account info for any user. '''
 	return render_template("myaccount.html", user=User.cu())
@@ -866,7 +1010,7 @@ def write_permission_function(func):
 
 
 @app.route("/model/<owner>/<modelName>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def showModel(owner, modelName):
 	''' Render a model template with saved data. '''
@@ -879,7 +1023,7 @@ def showModel(owner, modelName):
 
 
 @app.route("/newModel/<modelType>/<modelName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 # - Do not use @write_permission_function because the user is always writing to their own model directory
 def newModel(modelType, modelName):
 	''' Create a new model with given name. '''
@@ -890,7 +1034,7 @@ def newModel(modelType, modelName):
 
 
 @app.route("/runModel/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def runModel():
 	''' Start a model running and redirect to its running screen. '''
@@ -927,7 +1071,7 @@ def runModel():
 
 
 @app.route("/cancelModel/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cancelModel():
 	''' Cancel an already running model. '''
@@ -938,7 +1082,7 @@ def cancelModel():
 
 
 @app.route("/duplicateModel/<owner>/<modelName>/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def duplicateModel(owner, modelName):
 	newName = secure_filename(request.form.get("newName","")) or 'model'
@@ -963,7 +1107,7 @@ def duplicateModel(owner, modelName):
 
 
 @app.route("/shareModel", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def shareModel():
 	''' Share a model with other users by granting them read-only access. '''
@@ -1109,7 +1253,7 @@ def _write_to_input(workDir, entry, key):
 
 
 @app.route("/gridEdit/<owner>/<modelName>/<int:feederNum>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def feederGet(owner, modelName, feederNum):
 	''' Editing interface for feeders. '''
@@ -1124,7 +1268,7 @@ def feederGet(owner, modelName, feederNum):
 
 
 @app.route("/network/<owner>/<modelName>/<int:networkNum>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def networkGet(owner, modelName, networkNum):
 	''' Editing interface for networks. '''
@@ -1144,7 +1288,7 @@ def networkGet(owner, modelName, networkNum):
 
 @app.route('/feeder/<owner>/<modelName>/<feeder_num>/test')
 @app.route('/feeder/<owner>/<modelName>/<feeder_num>')
-@flask_login.login_required
+@login_required
 @read_permission_function
 def distribution_get(owner, modelName, feeder_num):
 	'''Render the editing interface for distribution networks.'''
@@ -1181,7 +1325,7 @@ def distribution_get(owner, modelName, feeder_num):
 
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>/test')
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>')
-@flask_login.login_required
+@login_required
 @read_permission_function
 def distribution_text_get(owner, modelName, fileName):
 	'''Render the raw text editing interface for distribution networks.'''
@@ -1215,7 +1359,7 @@ def distribution_text_get(owner, modelName, fileName):
 
 @app.route("/getComponents/")
 @app.route("/getComponents/<schema>")
-@flask_login.login_required
+@login_required
 def get_components(schema='gld'):
 	if schema == 'dss':
 		directory = path_manager.join('data', 'ComponentDss')
@@ -1232,7 +1376,7 @@ def get_components(schema='gld'):
 
 
 @app.route("/checkConversion/<modelName>/<owner>", methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function # Viewers can load a feeder, and all feeders check for ongoing conversions, so this route must have read permissions
 def checkConversion(modelName, owner):
 	"""
@@ -1257,7 +1401,7 @@ def checkConversion(modelName, owner):
 
 
 @app.route("/milsoftImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def milsoftImport(owner):
 	''' API for importing a milsoft feeder. '''
@@ -1317,7 +1461,7 @@ def _mil_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/matpowerImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def matpowerImport(owner):
 	''' API for importing a MATPOWER network. '''
@@ -1368,7 +1512,7 @@ def _mat_import_background(owner, modelName, networkName, networkNum):
 
 
 @app.route("/rawImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def rawImport(owner):
 	''' API for importing a RAW network. '''
@@ -1423,7 +1567,7 @@ def _raw_import_background(owner, modelName, networkName, networkNum):
 
 
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def gridlabdImport(owner):
 	'''This function is used for gridlabdImporting'''
@@ -1476,7 +1620,7 @@ def _gridlab_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/opendssImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def dssImport(owner):
 	'''This function is used for opendss importing in distnetviz'''
@@ -1526,7 +1670,7 @@ def _dss_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/scadaLoadshape/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def scadaLoadshape(owner, feederName):
 	#feederNum = request.form.get("feederNum", '1')
@@ -1593,7 +1737,7 @@ def _background_scada_loadshape(owner, modelName, feederName, loadName):
 
 
 @app.route("/loadModelingAmi/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadModelingAmi(owner, feederName):
 	#feederNum = request.form.get('feederNum', '1')
@@ -1626,7 +1770,7 @@ def _background_load_modeling_ami(owner, modelName, feederName, loadName):
 
 # TODO: Check if rename mdb files worked
 @app.route("/cymeImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cymeImport(owner):
 	''' API for importing a cyme feeder. '''
@@ -1689,7 +1833,7 @@ def _new_simple_feeder(owner, modelName, feederNum=1, writeInput=False, feederNa
 
 
 @app.route("/newSimpleFeeder/<owner>/<modelName>/<int:feederNum>/<writeInput>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newSimpleFeederRequest(owner, modelName, feederNum=1, writeInput=False, feederName='feeder1'):
 	'''Route handler for creating a simple feeder.'''
@@ -1715,7 +1859,7 @@ def _new_simple_network(owner, modelName, networkNum=1, writeInput=False, networ
 
 
 @app.route("/newSimpleNetwork/<owner>/<modelName>/<int:networkNum>/<writeInput>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newSimpleNetworkRequest(owner, modelName, networkNum=1, writeInput=False, networkName='network1'):
 	'''Route handler for creating a simple network.'''
@@ -1723,7 +1867,7 @@ def newSimpleNetworkRequest(owner, modelName, networkNum=1, writeInput=False, ne
 
 
 @app.route("/newBlankFeeder/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newBlankFeeder(owner):
 	'''This function is used for creating a new blank feeder.'''
@@ -1745,7 +1889,7 @@ def newBlankFeeder(owner):
 
 
 # @app.route("/newBlankFile/<owner>", methods=["POST"])
-# @flask_login.login_required
+# @login_required
 # @write_permission_function
 # def newBlankFile(owner):
 # 	'''This function is used for creating a new blank feeder.'''
@@ -1770,7 +1914,7 @@ def newBlankFeeder(owner):
 
 
 @app.route("/newBlankNetwork/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newBlankNetwork(owner):
 	'''This function is used for creating a new blank network.'''
@@ -1790,7 +1934,7 @@ def newBlankNetwork(owner):
 
 
 @app.route("/feederData/<owner>/<modelName>/<feederName>/")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def feederData(owner, modelName, feederName):
 	filepath = path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
@@ -1799,7 +1943,7 @@ def feederData(owner, modelName, feederName):
 
 
 @app.route("/networkData/<owner>/<modelName>/<networkName>/")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def networkData(owner, modelName, networkName):
 	filepath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
@@ -1838,7 +1982,7 @@ def _cancel_pid_processes(model_dir):
 
 
 @app.route("/saveFeeder/<owner>/<modelName>/<feederName>/<int:feederNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveFeeder(owner, modelName, feederName, feederNum):
 	"""Save feeder data. Also used for cancelling a file import, file conversion, or feeder-load overwrite."""
@@ -1860,7 +2004,7 @@ def saveFeeder(owner, modelName, feederName, feederNum):
 
 
 @app.route("/saveFile/<owner>/<modelName>/<fileName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveFile(owner, modelName, fileName):
 	"""Save file data. Also used for cancelling a file import, file conversion, or file-load overwrite."""
@@ -1883,7 +2027,7 @@ def saveFile(owner, modelName, fileName):
 
 
 @app.route("/saveNetwork/<owner>/<modelName>/<networkName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveNetwork(owner, modelName, networkName, networkNum):
 	''' Save network data. '''
@@ -1901,7 +2045,7 @@ def saveNetwork(owner, modelName, networkName, networkNum):
 
 
 @app.route("/renameFeeder/<owner>/<modelName>/<oldName>/<newName>/<int:feederNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def renameFeeder(owner, modelName, oldName, newName, feederNum):
 	''' rename a feeder. '''
@@ -1918,7 +2062,7 @@ def renameFeeder(owner, modelName, oldName, newName, feederNum):
 
 
 @app.route("/renameNetwork/<owner>/<modelName>/<oldName>/<networkName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def renameNetwork(owner, modelName, oldName, networkName, networkNum):
 	''' rename a network. '''
@@ -1954,7 +2098,7 @@ def _remove_feeder(owner, modelName, feederNum, feederName=None):
 
 @app.route("/removeFeeder/<owner>/<modelName>/<int:feederNum>", methods=["POST"])
 @app.route("/removeFeeder/<owner>/<modelName>/<int:feederNum>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 	''' Remove feeder from web.'''
@@ -1963,7 +2107,7 @@ def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 
 
 @app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<int:feederNum>/<frUser>/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 	'''Load a feeder from one model to another.'''
@@ -1989,7 +2133,7 @@ def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 
 
 @app.route("/loadFile/<frfileName>/<frmodelName>/<modelName>/<int:fileNum>/<frUser>/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 	'''Load a file from one model to another.'''
@@ -2013,7 +2157,7 @@ def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 
 
 @app.route("/cleanUpFeeders/<owner>/<modelName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cleanUpFeeders(owner, modelName):
 	'''Go through allInputData and fix feeder Name keys'''
@@ -2056,7 +2200,7 @@ def _remove_network(owner, modelName, networkNum):
 
 
 @app.route("/removeNetwork/<owner>/<modelName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def removeNetworkRequest(owner, modelName, networkNum):
 	'''Remove network from web.'''
@@ -2065,7 +2209,7 @@ def removeNetworkRequest(owner, modelName, networkNum):
 
 
 @app.route("/climateChange/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def climateChange(owner, feederName):
 	model_name = request.form.get('modelName')
@@ -2133,7 +2277,7 @@ def _background_climate_change(owner, modelName, feederName, importOption, zipCo
 
 
 @app.route("/anonymize/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def anonymize(owner, feederName):
 	modelName = request.form.get('modelName')
@@ -2206,7 +2350,7 @@ def _background_anonymize(owner, modelName, feederName, options):
 
 
 @app.route("/zillowHouses", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def zillow_houses():
 	owner = request.form.get("user")
@@ -2253,7 +2397,7 @@ def _background_zillow_houses(model_dir, triplex_objects):
 
 
 @app.route("/checkZillowHouses", methods=["POST"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def check_zillow_houses():
 	owner = request.form.get("user")
@@ -2276,7 +2420,7 @@ def check_zillow_houses():
 
 
 @app.route("/anonymizeTran/<owner>/<networkName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def anonymizeTran(owner, networkName):
 	modelName = request.form.get('modelName')
@@ -2330,7 +2474,7 @@ def _background_anonymizeTran(owner, modelName, networkName, options):
 
 
 @app.route("/checkAnonymizeTran/<owner>/<modelName>", methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def checkAnonymizeTran(owner, modelName):
 	# print 'Check conversion status:', os.path.exists(pidPath), 'for path', pidPath                                  
@@ -2340,7 +2484,7 @@ def checkAnonymizeTran(owner, modelName):
 
 
 @app.route('/displayMap/<owner>/<modelName>/<int:feederNum>', methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def displayOmdMap(owner, modelName, feederNum):
 	'''API to render omd on a leaflet map using a new template '''
@@ -2399,7 +2543,7 @@ def displayOmdMap(owner, modelName, feederNum):
 
 
 @app.route('/commsMap/<owner>/<modelName>/<int:feederNum>', methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def commsMap(owner, modelName, feederNum):
 	'''Render omc on a leaflet map.'''
@@ -2412,7 +2556,7 @@ def commsMap(owner, modelName, feederNum):
 
 
 @app.route('/redisplayGrid', methods=["POST"])
-@flask_login.login_required
+@login_required
 def redisplayGrid():
 	'''Redisplay comms grid on edits'''
 	geoDict = request.get_json()
@@ -2430,7 +2574,7 @@ def redisplayGrid():
 
 
 @app.route('/saveCommsMap/<owner>/<modelName>/<feederName>/<int:feederNum>', methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveCommsMap(owner, modelName, feederName, feederNum):
 	# Validate feederName before passing to comms.saveOmc (which uses os.path.join)
@@ -2472,7 +2616,7 @@ def _fast_input_scan(file_path):
 
 
 @app.route("/")
-@flask_login.login_required
+@login_required
 def root():
 	''' Render the home screen of the OMF. '''
 	# Gather object names.
@@ -2541,7 +2685,7 @@ def root():
 
 
 @app.route("/delete/<objectType>/<owner>/<objectName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def delete(objectType, objectName, owner):
 	''' Delete models or feeders. '''
@@ -2565,7 +2709,7 @@ def delete(objectType, objectName, owner):
 
 
 @app.route("/downloadModelData/<owner>/<modelName>/<path:fullPath>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def downloadModelData(owner, modelName, fullPath):
 	pathPieces = fullPath.split('/')
@@ -2580,7 +2724,7 @@ def downloadModelData(owner, modelName, fullPath):
 
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>")
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>/<name>")
-@flask_login.login_required
+@login_required
 def uniqObjName(objtype, owner, modelName=None, name=None):
 	"""Checks if a given object type/owner/name is unique. More like checks if a file exists on the server"""
 	print("Entered uniqobjname", owner, modelName, name)

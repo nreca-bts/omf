@@ -3,7 +3,6 @@ numpy-financial
 cython
 Flask>=2.0.0,<2.2.0
 Werkzeug==2.0.3
-Flask-Login<0.3
 Jinja2>=2.7.2
 MarkupSafe>=0.18
 Markdown>=3.3
