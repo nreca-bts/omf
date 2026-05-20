@@ -9,6 +9,7 @@ from flask import (Flask, send_from_directory, request, redirect, render_templat
 import flask_login, boto3
 from flask_compress import Compress
 from jinja2 import Template
+import markdown
 import dateutil
 from subprocess import Popen
 import re
@@ -29,7 +30,8 @@ from omf import (models, feeder, transmission, milToGridlab, cymeToGridlab, weat
 	loadModelingAmi, geo, comms)
 from omf.solvers.opendss import dssConvert
 
-app = Flask("web")
+_omfDir = os.path.dirname(os.path.abspath(__file__))
+app = Flask("web", template_folder=os.path.join(_omfDir, "templates"), static_folder=os.path.join(_omfDir, "static"))
 Compress(app)
 URL = "http://www.omf.coop"
 
@@ -38,7 +40,6 @@ URL = "http://www.omf.coop"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
-_omfDir = os.path.dirname(os.path.abspath(__file__))
 
 PASSWORD_DIGEST_SECRET_ENV = 'OMF_PASSWORD_DIGEST_KEY'
 PASSWORD_DIGEST_PREFIX = 'omf_pwd_v1$'
@@ -195,6 +196,74 @@ def _handle_pathtraversalerror(e):
 
 
 path_manager = PathManager(_omfDir)
+docs_path_manager = PathManager(os.path.join(_omfDir, "docs"))
+DOC_PATH_ALIASES = {
+	"Models-~-flisr": "README",
+	"Models-~-microgridPlan": "Models-~-microgridDesign",
+	"Models-~-modelSkeleton": "Dev-~-How-to-Create-Your-First-Model-Type",
+	"Models-~-solarDisagg": "Models-~-disaggregation"
+}
+
+
+def _normalize_doc_path(doc_path):
+	'''Normalize old GitHub wiki page slugs to migrated markdown filenames.'''
+	doc_path = (doc_path or "").strip("/")
+	if doc_path == "":
+		return "README"
+	doc_path = doc_path.replace("Models:-~-", "Models-~-")
+	doc_path = doc_path.replace("Models:-", "Models-~-")
+	doc_path = doc_path.replace("Tools-~-", "Other-~-")
+	if doc_path == "Home":
+		return "README"
+	if doc_path in DOC_PATH_ALIASES:
+		return DOC_PATH_ALIASES[doc_path]
+	return doc_path
+
+
+def _safe_docs_path(doc_path):
+	path_pieces = [piece for piece in doc_path.split("/") if piece]
+	return docs_path_manager.join(*path_pieces)
+
+
+def _get_doc_candidates(doc_path):
+	doc_path = _normalize_doc_path(doc_path)
+	candidates = [doc_path]
+	root, ext = os.path.splitext(doc_path)
+	if ext == "":
+		candidates.append(doc_path + ".md")
+		if doc_path.endswith("2"):
+			candidates.extend([doc_path[:-1], doc_path[:-1] + ".md"])
+	candidates.append(os.path.join(doc_path, "README.md"))
+	return candidates
+
+
+def _resolve_doc_path(doc_path):
+	for candidate in _get_doc_candidates(doc_path):
+		try:
+			full_path = _safe_docs_path(candidate)
+		except PathManager.PathTraversalError:
+			continue
+		if os.path.isfile(full_path):
+			return full_path
+	return None
+
+
+def _doc_title(markdown_text, source_path):
+	for line in markdown_text.splitlines():
+		line = line.strip()
+		if line.startswith("# "):
+			return line[2:].strip()
+	return os.path.splitext(os.path.basename(source_path))[0].replace("-~-", ": ").replace("-", " ")
+
+
+def _render_markdown_doc(source_path):
+	with open(source_path, "r", encoding="utf-8") as doc_file:
+		markdown_text = doc_file.read()
+	content = markdown.markdown(
+		markdown_text,
+		extensions=["extra", "sane_lists", "toc"],
+		output_format="html5")
+	return render_template("docs.html", title=_doc_title(markdown_text, source_path), content=content)
 
 
 @lru_cache(maxsize=1)
@@ -502,6 +571,14 @@ def _safe_redirect(target: str):
 	return redirect(target)
 
 
+def _current_user_is_authenticated():
+	'''Support Flask-Login versions where is_authenticated is either a property or a method.'''
+	is_authenticated = flask_login.current_user.is_authenticated
+	if callable(is_authenticated):
+		return is_authenticated()
+	return is_authenticated
+
+
 @app.route("/login", methods = ["POST"])
 def login():
 	''' Authenticate a user and send them to the URL they requested. '''
@@ -524,7 +601,9 @@ def login_page():
 	nextUrl = str(request.args.get("next","/") or "/")
 	if not _is_safe_url(nextUrl):
 		nextUrl = "/"
-	if flask_login.current_user.is_authenticated:
+	if urlsplit(nextUrl).path == request.path:
+		nextUrl = "/"
+	if _current_user_is_authenticated():
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
 
@@ -702,6 +781,19 @@ def myaccount():
 @app.route("/robots.txt")
 def static_from_root():
 	return send_from_directory(app.static_folder, request.path[1:])
+
+
+@app.route("/docs")
+@app.route("/docs/")
+@app.route("/docs/<path:doc_path>")
+def docs(doc_path=""):
+	'''Render migrated wiki markdown docs and serve local doc assets.'''
+	source_path = _resolve_doc_path(doc_path)
+	if source_path is None:
+		abort(404)
+	if source_path.lower().endswith(".md"):
+		return _render_markdown_doc(source_path)
+	return send_from_directory(os.path.dirname(source_path), os.path.basename(source_path))
 
 
 def read_permission_function(func):

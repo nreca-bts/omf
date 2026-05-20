@@ -6,6 +6,7 @@ Werkzeug==2.0.3
 Flask-Login<0.3
 Jinja2>=2.7.2
 MarkupSafe>=0.18
+Markdown>=3.3
 argparse>=1.2.1
 backports.ssl-match-hostname>=3.4.0.2
 boto3
