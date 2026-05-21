@@ -21,7 +21,6 @@ tensorflow
 OpenDSSDirect.py[extras]
 seaborn
 pandapower>=3.1.2,<3.2
-keyring
 openpyxl
 shapely
 geopandas
