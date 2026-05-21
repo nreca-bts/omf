@@ -65,6 +65,21 @@ Repository = "https://github.com/nreca-bts/omf"
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-data]
+omf = ["**/*"]
+
+[tool.setuptools.exclude-package-data]
+omf = [
+  ".git/**",
+  "__pycache__/**",
+  "*.py[cod]",
+  "data/Model/admin/**",
+  "scratch/**",
+  "build/**",
+  "dist/**",
+  "omf.egg-info/**",
+]
+
 [tool.setuptools.packages.find]
 include = ["omf*"]
 exclude = ["omf.scratch*", "omf.build*", "omf.dist*"]

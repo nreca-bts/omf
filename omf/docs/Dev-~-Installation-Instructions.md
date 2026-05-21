@@ -1,6 +1,6 @@
 ### Docker
 
-Because our list of [required python packages](https://github.com/dpinney/omf/blob/master/requirements.txt) and [operating system packages](https://github.com/dpinney/omf/blob/master/install.py) is extensive, the easiest approach to running the OMF is via Docker. Here is our [Docker file](https://github.com/dpinney/omf/blob/master/Dockerfile) with instructions on usage embedded.
+Because our list of Python packages in [pyproject.toml](https://github.com/dpinney/omf/blob/master/pyproject.toml) and [operating system packages](https://github.com/dpinney/omf/blob/master/install.py) is extensive, the easiest approach to running the OMF is via Docker. Here is our [Docker file](https://github.com/dpinney/omf/blob/master/Dockerfile) with instructions on usage embedded.
 
 ### Windows Installation Instructions
 
@@ -97,7 +97,7 @@ To contribute your changes back to the OMF, follow the above steps on a forked c
 Both Windows and Linux OMF can be uninstalled by running the following command in the OMF directory.
 
 ```
-python setup.py uninstall
+python -m pip uninstall omf
 ```
 
-The link in the site-packages (Windows) or dist-packages (Linux) folder will be removed. The code will remain where you cloned it until you delete it.
+The installed package will be removed. The code will remain where you cloned it until you delete it.
