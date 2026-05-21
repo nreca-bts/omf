@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-latest]
+        os: [ubuntu-24.04, windows-latest, macos-latest]
         python-version: ["3.11"]
     steps:
       - name: Cache REOpt.jl artifacts

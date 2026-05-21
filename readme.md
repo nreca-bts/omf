@@ -6,9 +6,9 @@ Full [OMF documentation](./omf/docs/README.md) is available.
 
 ### Installation
 
-Anyone can sign up for a free account on our hosted production site https://www.omf.coop/.
+Anyone can sign up for a free account on our hosted production site https://omf.coop/.
 
-If you'd like to host your own copy of the OMF, please follow the [developer installation instructions](./omf/docs/Dev-~-Installation-Instructions.md).
+You can install the software locally by running `pip install git+https://github.com/nreca-bts/omf` or you can use one of our dockerfiles in this directory.
 
 ### Example Screenshots
 

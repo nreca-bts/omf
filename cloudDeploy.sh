@@ -20,7 +20,7 @@ else
 	echo "** Setting permissions."
 	chown -R omf:omf /omf
 	echo "** Re-run install to handle any missing requirements."
-	python3 /omf/install.py
+	python3 -m pip install /omf/
 	echo "** Restarting the service."
 	systemctl start omf
 fi
