@@ -1,7 +1,6 @@
 numpy>=1.20,<2
 numpy-financial
-Flask>=2.0.0,<2.2.0
-Werkzeug==2.0.3
+Flask>=2.0.0
 Markdown>=3.3
 boto3
 networkx
