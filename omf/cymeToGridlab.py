@@ -13,7 +13,7 @@ modelDir is the working directory for intermediate file output
 """
 
 
-import csv, random, math, copy, subprocess, locale, warnings, os, json, traceback, shutil, platform
+import csv, random, math, copy, subprocess, locale, warnings, os, json, traceback, shutil
 #import tempfile
 from os.path import join as pJoin
 import numpy as np
@@ -22,6 +22,62 @@ from omf import feeder
 from omf.solvers import gridlabd
 
 m2ft = 1.0 / 0.3048  # Conversion factor for meters to feet
+
+def _require_mdbtools():
+	if shutil.which("mdb-tables") and shutil.which("mdb-export"):
+		return
+	raise RuntimeError(
+		"CYME Access database import requires the mdbtools executables "
+		"`mdb-tables` and `mdb-export`. The preferred pure-Python "
+		"`access-parser` MDB reader also failed for this database."
+	)
+
+
+def _csv_value(value):
+	if value is None:
+		return ""
+	if isinstance(value, bytes):
+		return value.decode("utf-8", errors="replace")
+	return value
+
+
+def _dump_table_to_csv(table, csv_path):
+	columns = list(table.keys())
+	row_count = 0
+	for values in table.values():
+		if isinstance(values, list):
+			row_count = max(row_count, len(values))
+	with open(csv_path, "w", newline="") as csv_file:
+		writer = csv.writer(csv_file)
+		writer.writerow(columns)
+		for row_index in range(row_count):
+			writer.writerow([
+				_csv_value(values[row_index]) if isinstance(values, list) and row_index < len(values) else ""
+				for values in table.values()
+			])
+
+
+def _csv_dump_with_access_parser(database_file, output_dir):
+	from access_parser import AccessParser
+
+	db = AccessParser(database_file)
+	for table_name in db.catalog:
+		if table_name.startswith("MSys"):
+			continue
+		table = db.parse_table(table_name)
+		filename = table_name.replace(" ", "_") + ".csv"
+		_dump_table_to_csv(table, pJoin(output_dir, filename))
+
+
+def _csv_dump_with_mdbtools(database_file, output_dir):
+	_require_mdbtools()
+	table_names = subprocess.check_output(["mdb-tables", "-1", database_file]).decode("utf-8")
+	for table in table_names.splitlines():
+		if table:
+			filename = table.replace(" ", "_") + ".csv"
+			contents = subprocess.check_output(["mdb-export", database_file, table]).decode("utf-8")
+			with open(pJoin(output_dir, filename), "w") as csv_file:
+				csv_file.write(contents)
 
 
 def flatten(*args, **kwargs):
@@ -37,55 +93,17 @@ def flatten(*args, **kwargs):
 
 
 def _csvDump(database_file, modelDir):
-	# Get the list of table names with "mdb-tables"
-	if platform.system() == "Linux" or platform.system() == "Darwin":
-		table_names = subprocess.Popen(
-			["mdb-tables", "-1", database_file], stdout=subprocess.PIPE
-		).communicate()[0]
-		table_names = table_names.decode('utf-8')
-		tables = table_names.split('\n')
-		if not os.path.isdir((pJoin(modelDir, "cymeCsvDump"))):
-			os.makedirs((pJoin(modelDir, "cymeCsvDump")))
-			# Dump each table as a CSV file using "mdb-export",
-			# converting " " in table names to "_" for the CSV filenames.
-		for table in tables:
-			if table != "":
-				filename = table.replace(' ', '_') + '.csv'
-				f = open(pJoin(modelDir, "cymeCsvDump", filename), "w+")
-				contents = subprocess.Popen(
-					["mdb-export", database_file, table], stdout=subprocess.PIPE
-				).communicate()[0]
-				contents = contents.decode('utf-8')
-				f.write(contents)
-				f.close()
-	elif platform.system() == "Windows":
-		# The following code uses mdb-tables in Windows 10, but requires the creators update and ubuntu
-		# One big problem:  after this function dumps the csv files, python crashes. So I have to run this routine twice.
-		originaldir = (
-			os.getcwd()
-		)  # bash command below wouldn't work if I appended path to database_file
-		os.chdir(modelDir)
-		database_file = database_file.split("\\")[-1]
-		table_names = subprocess.Popen(
-			["bash", "-c", "mdb-tables -1 " + database_file], stdout=subprocess.PIPE
-		).communicate()[0]
-		table_names = table_names.decode('utf-8')
-		tables = table_names.split('\n')
-		if not os.path.isdir((pJoin(modelDir, "cymeCsvDump"))):
-			os.makedirs((pJoin(modelDir, "cymeCsvDump")))
-			# Dump each table as a CSV file using "mdb-export",
-			# converting " " in table names to "_" for the CSV filenames.
-		for table in tables:
-			if table != "":
-				filename = table.replace(" ", "_") + ".csv"
-				file = open(pJoin(modelDir, "cymeCsvDump", filename), "w+")
-				contents = subprocess.Popen(
-					["bash", "-c", "mdb-export " + database_file + " " + table], stdout=subprocess.PIPE, text=True
-				).communicate()[0]
-				contents = contents.decode('utf-8')
-				file.write(contents)
-				file.close()
-		os.chdir(originaldir)
+	output_dir = pJoin(modelDir, "cymeCsvDump")
+	if not os.path.isdir(output_dir):
+		os.makedirs(output_dir)
+	try:
+		_csv_dump_with_access_parser(database_file, output_dir)
+	except Exception as exc:
+		warnings.warn(
+			f"Pure-Python Access database parsing failed; falling back to mdbtools. Error: {exc}",
+			RuntimeWarning,
+		)
+		_csv_dump_with_mdbtools(database_file, output_dir)
 
 
 def _findNetworkId(csvFile):

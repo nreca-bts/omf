@@ -8,6 +8,73 @@ from copy import deepcopy
 import omf
 import omf.feeder
 
+_GRIDLABD_AUTO_INSTALL_ENV = "OMF_GRIDLABD_AUTO_INSTALL"
+_gridlabd_install_checked = False
+
+def _gridlabd_on_path():
+	return shutil.which("gridlabd") is not None
+
+def _run_gridlabd_installer(command):
+	try:
+		return subprocess.call(command) == 0
+	except Exception as err:
+		print("Unable to run bundled GridLAB-D installer:", err)
+		return False
+
+def _linux_distro_text():
+	try:
+		with open("/etc/os-release") as os_release:
+			return os_release.read().lower()
+	except OSError:
+		return ""
+
+def _install_gridlabd_if_missing():
+	'''Best-effort GridLAB-D install for platforms with bundled installers.'''
+	global _gridlabd_install_checked
+	if _gridlabd_install_checked:
+		return
+	_gridlabd_install_checked = True
+	if os.environ.get(_GRIDLABD_AUTO_INSTALL_ENV, "1").lower() in ("0", "false", "no"):
+		return
+	if _gridlabd_on_path():
+		return
+	source_dir = os.path.abspath(pJoin(os.path.dirname(__file__), "..", "..", ".."))
+	system = platform.system()
+	print("GridLAB-D was not found on PATH; attempting bundled GridLAB-D install.")
+	if system == "Windows":
+		installer = pJoin(source_dir, "omf", "static", "gridlabd-4.0_RC1.exe")
+		if not os.path.exists(installer):
+			print("Bundled GridLAB-D installer not found:", installer)
+			return
+		_run_gridlabd_installer([installer, "/silent"])
+	elif system == "Darwin":
+		dmg = pJoin(source_dir, "omf", "static", "gridlabd-4.0_RC1.dmg")
+		if not os.path.exists(dmg):
+			print("Bundled GridLAB-D installer not found:", dmg)
+			return
+		volume = "/Volumes/GridLAB-D 4.0.0"
+		if _run_gridlabd_installer(["sudo", "hdiutil", "attach", dmg]):
+			try:
+				_run_gridlabd_installer(["sudo", "installer", "-package", pJoin(volume, "gridlabd.mpkg"), "-target", "/"])
+			finally:
+				_run_gridlabd_installer(["sudo", "hdiutil", "detach", volume])
+	elif system == "Linux":
+		rpm = pJoin(source_dir, "omf", "static", "gridlabd-4.0.0-1.el6.x86_64.rpm")
+		if not os.path.exists(rpm):
+			print("Bundled GridLAB-D installer not found:", rpm)
+			return
+		if "ubuntu" in _linux_distro_text():
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "update"])
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "install", "alien"])
+			_run_gridlabd_installer(["sudo", "alien", "-i", rpm])
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "install", "-f"])
+		else:
+			_run_gridlabd_installer(["sudo", "rpm", "-Uvh", rpm])
+	if not _gridlabd_on_path():
+		print("GridLAB-D install did not add `gridlabd` to PATH.")
+
+_install_gridlabd_if_missing()
+
 def checkStatus(modelDir):
 	'''Reads a current gridlabD simulation time from stdErr.txt,
 	compares it to the total input simulation time and outputs a

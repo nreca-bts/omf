@@ -1,11 +1,12 @@
 ''' Determine optimal location for RF network nodes. '''
 
-import datetime, shutil, subprocess, requests, tempfile, xml.etree.ElementTree as ET, base64
+import datetime, shutil, requests, tempfile, xml.etree.ElementTree as ET, base64
 from zipfile import ZipFile
 from os.path import join as pJoin
 from PIL import Image
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
+from omf.solvers import splat as splat_solver
 
 # Model metadata:
 tooltip = "The rfCoverage model provides a visualization of radio frequency propogation"
@@ -80,10 +81,9 @@ def work(modelDir, inputDict):
 						with ZipFile(tmp, 'r') as zipper:
 							zipper.extractall(hgtDir)
 							hgtFile = "N" + strLat + "W" + strLon + ".hgt"
-							args = ["srtm2sdf", pJoin(hgtDir, hgtFile)]
-							subprocess.Popen(args, cwd=sdfDir).wait()
+							splat_solver.run_srtm2sdf(pJoin(hgtDir, hgtFile), cwd=sdfDir)
 	#Can add in -R switch for area to cover
-	args = ["splat", "-t", pJoin(modelDir, "siteLocation.qth"), "-o", pJoin(modelDir, "coverageMap.ppm"), "-kml", "-ngs", "-d", sdfDir]
+	args = ["-t", pJoin(modelDir, "siteLocation.qth"), "-o", pJoin(modelDir, "coverageMap.ppm"), "-kml", "-ngs", "-d", sdfDir]
 
 	#change inputs based on analysis type
 	if inputDict["analysisType"] == "lineOfSight":
@@ -95,7 +95,7 @@ def work(modelDir, inputDict):
 			if inputDict["analysisType"] == "recievedPower":
 				args += ["-dbm"]
 
-	subprocess.Popen(args, cwd=pJoin(modelDir)).wait()
+	splat_solver.run(args, cwd=pJoin(modelDir))
 
 	outData = {}
 

@@ -8,6 +8,7 @@ passlib>=1.6.2
 matplotlib
 requests>=2.20
 pandas>=0.24.2
+pytz
 pulp>=1.6.8
 scipy>=1.4.1
 plotly>=4.0.0
@@ -22,3 +23,6 @@ pandapower>=3.1.2,<3.2
 openpyxl
 shapely
 nrel-pysam>=7.0.0
+imageio-ffmpeg
+access-parser
+# Optional ML workflows use tensorflow. Install with: python -m pip install "omf[ml]"
