@@ -1,13 +1,12 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii
+import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii, gzip
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
 from functools import lru_cache, wraps
 from flask import (Flask, send_from_directory, request, redirect, render_template, session, abort, jsonify, url_for, g, has_request_context)
 import boto3
-from flask_compress import Compress
 from jinja2 import Template
 import markdown
 import dateutil
@@ -33,7 +32,6 @@ from omf.solvers.opendss import dssConvert
 
 _omfDir = os.path.dirname(os.path.abspath(__file__))
 app = Flask("web", template_folder=os.path.join(_omfDir, "templates"), static_folder=os.path.join(_omfDir, "static"))
-Compress(app)
 URL = "http://www.omf.coop"
 
 # Ensure HttpOnly flags on cookies (session + remember cookie)
@@ -41,6 +39,64 @@ URL = "http://www.omf.coop"
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
+
+COMPRESS_MIN_SIZE = 500
+COMPRESS_MIMETYPES = {
+	'text/html',
+	'text/css',
+	'text/plain',
+	'text/xml',
+	'text/csv',
+	'application/json',
+	'application/javascript',
+	'application/x-javascript',
+	'application/xml',
+	'image/svg+xml'
+}
+
+
+def _add_vary_header(response, value):
+	current_vary = response.headers.get('Vary')
+	if not current_vary:
+		response.headers['Vary'] = value
+		return
+	if value.lower() not in [x.strip().lower() for x in current_vary.split(',')]:
+		response.headers['Vary'] = current_vary + ', ' + value
+
+
+def _is_compressible_mimetype(mimetype):
+	return (
+		mimetype.startswith('text/') or
+		mimetype in COMPRESS_MIMETYPES or
+		mimetype.endswith('+json') or
+		mimetype.endswith('+xml')
+	)
+
+
+@app.after_request
+def gzip_response(response):
+	'''Gzip eligible responses without depending on flask-compress.'''
+	if 'gzip' not in request.headers.get('Accept-Encoding', '').lower():
+		return response
+	if response.status_code < 200 or response.status_code in (204, 304):
+		return response
+	if response.direct_passthrough or response.is_streamed:
+		return response
+	if response.headers.get('Content-Encoding'):
+		return response
+	if not _is_compressible_mimetype(response.mimetype or ''):
+		return response
+	data = response.get_data()
+	if len(data) < COMPRESS_MIN_SIZE:
+		return response
+	compressed = gzip.compress(data)
+	if len(compressed) >= len(data):
+		return response
+	response.set_data(compressed)
+	response.headers['Content-Encoding'] = 'gzip'
+	response.headers['Content-Length'] = str(len(compressed))
+	_add_vary_header(response, 'Accept-Encoding')
+	return response
 
 
 class _AnonymousUser:

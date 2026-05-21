@@ -39,11 +39,10 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from pathlib import Path
 import datetime
+import math
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
-import haversine as hs
-from haversine import Unit
 import pandas as pd
 
 
@@ -811,6 +810,34 @@ def PrettyPrintChangedCustomers(predictedTransLabels,transLabelsErrors,custIDInp
 #
 #       CreateDistanceMatrix
 #
+def _haversine_distance(loc1, loc2, units='m'):
+    """Return great-circle distance between (lat, lon) pairs in the requested units."""
+    unit_factors = {
+        'm': 1.0,
+        'meter': 1.0,
+        'meters': 1.0,
+        'km': 0.001,
+        'kilometer': 0.001,
+        'kilometers': 0.001,
+        'mi': 1.0 / 1609.344,
+        'mile': 1.0 / 1609.344,
+        'miles': 1.0 / 1609.344,
+        'ft': 3.280839895013123,
+        'foot': 3.280839895013123,
+        'feet': 3.280839895013123,
+    }
+    unit_key = str(units).lower()
+    if unit_key not in unit_factors:
+        raise ValueError("Unsupported haversine distance unit: " + str(units))
+    lat1, lon1 = map(math.radians, loc1)
+    lat2, lon2 = map(math.radians, loc2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2.0)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2.0)**2
+    distance_m = 6371008.8 * 2.0 * math.asin(min(1.0, math.sqrt(a)))
+    return distance_m * unit_factors[unit_key]
+
+
 def CreateDistanceMatrix(latLonDict, labels,distTypeFlag='euclidean',units='m'):
     """ This function takes a list of x,y coordinates indexed by customer
             and creates a dictionary for lat/lon keyed to the transformer 
@@ -863,12 +890,12 @@ def CreateDistanceMatrix(latLonDict, labels,distTypeFlag='euclidean',units='m'):
         for rowCtr in range(0,len(labelsList)):
             currRowLabel = labelsList[rowCtr]
             if currRowLabel not in latLonDict:
-                print('Label ' + str(currLabel) + ' is not present in the latLonDict.  This label was skipped and NaN placed in the distMatrix')
+                print('Label ' + str(currRowLabel) + ' is not present in the latLonDict.  This label was skipped and NaN placed in the distMatrix')
                 continue
             colCtr = rowCtr + 1
             while colCtr < len(labelsList):
                 currColLabel = labelsList[colCtr]
-                distance = np.round(hs.haversine(latLonDict[currRowLabel],latLonDict[currColLabel],unit=units),decimals=2)
+                distance = np.round(_haversine_distance(latLonDict[currRowLabel],latLonDict[currColLabel],units=units),decimals=2)
                 distMatrix[rowCtr,colCtr] = distance
                 distMatrix[colCtr,rowCtr] = distance
                 colCtr = colCtr + 1

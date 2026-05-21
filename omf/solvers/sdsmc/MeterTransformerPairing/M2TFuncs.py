@@ -456,7 +456,7 @@ def CorrectFlaggedTransformers_WithDist(mseMatrixInput, ccMatrix,
                 #else:
                 #    transLoc1 = transLatLon[transLabelsOriginal[currentIndex]]
                 #    transLoc2 = transLatLon[transLabelsOriginal[minIndex]]                
-                #distance = np.round(hs.haversine(transLoc1,transLoc2,unit=Unit.METERS),decimals=2)
+                #distance = np.round(M2TUtils._haversine_distance(transLoc1,transLoc2,units='m'),decimals=2)
                 distance = distMatrix[currentIndex,minIndex]
                 dist2NewTrans.append(distance)                
                 
