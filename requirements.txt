@@ -7,7 +7,6 @@ boto3
 networkx
 passlib>=1.6.2
 matplotlib
-xlwt>=0.7.5
 requests>=2.20
 pandas>=0.24.2
 pulp>=1.6.8
