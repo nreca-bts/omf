@@ -209,7 +209,7 @@ class AttackAllObTypeAgent(object):
 				if (rez.get('obType') == self.obTypeToAttack):
 					nameList = rez.get('obNameList')
 					writeReqs = []
-					for obName in obNameList:
+					for obName in nameList:
 						for obPropAndTarget in self.obPropsAndTargets:
 							obProp = obPropAndTarget.get('obPropToAttack')
 							propTarget = obPropAndTarget.get('value')
@@ -239,7 +239,7 @@ class AttackAllInverterAgent(object):
 				if (rez.get('obType') == self.obTypeToAttack):
 					nameList = rez.get('obNameList')
 					writeReqs = []
-					for obName in obNameList:
+					for obName in nameList:
 						for obPropAndTarget in self.obPropsAndTargets:
 							obProp = obPropAndTarget.get('obPropToAttack')
 							propTarget = obPropAndTarget.get('value')

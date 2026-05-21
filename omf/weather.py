@@ -194,6 +194,9 @@ def pullUscrn(year, station, datatype):
 	'''Returns hourly weather data from NOAA's quality-controlled USCRN dataset as array.
 	* Documentation: https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02/README.txt
 	* List of available stations: https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02'''
+	def get_diffuse_solar_component(irradiance_estimate):
+		'''The diffuse component of solar irradiance is estimated as 0.271 times the total irradiance estimate, based on the work of Erbs et al. (1982).'''
+		return 0.271 * irradiance_estimate
 	url = ('https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02/{0}/'
 		'CRNH0203-{0}-{1}.txt'.format(year, station))
 	r = requests.get(url)
@@ -236,7 +239,6 @@ def pullUscrn(year, station, datatype):
 		raw_diffuse = list(zip(rawData, diffuse))
 		return raw_diffuse #direct_diffuse
 	return rawData
-
 
 def _pullWeatherWunderground(start, end, airport, workDir):
 	'''	NOTE: WeatherUnderground moved behind a paywall but we'll keep this in case we get a license. 
@@ -1086,7 +1088,7 @@ def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station
     return input_array, ghiData, cosArray
 
 def predictNeuralNet(input_array, model_path):
-    from tensorflow import keras
+    import tensorflow.keras as keras #type: ignore
     model = keras.models.load_model(model_path)
     #Takes in numpy array of proper shape
     """
@@ -1264,7 +1266,7 @@ def lat_lon_diff(lat1, lat2, lon1, lon2):
 
 # Getting the data
 def api_request( request, target ):
-	import cdsapi
+	import cdsapi # type: ignore
 	dataset = "reanalysis-era5-single-levels"
 	client = cdsapi.Client()
 	client.retrieve(dataset, request=request, target=target)
@@ -1402,7 +1404,7 @@ def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDat
 
 	'''
 	from zipfile import ZipFile
-	import xarray as xr
+	import xarray as xr # type: ignore
 	total_weather_data_ds = xr.Dataset()
 	total_weather_data_df = pd.DataFrame()
 	# For each file we downloaded ( month-1-2-data.zip )

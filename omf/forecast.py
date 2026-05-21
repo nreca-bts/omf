@@ -268,8 +268,8 @@ def nextDayPeakKatrinaForecast(
 
 def prophetForecast(rawData, startDate, modelDir, partitions):
 	"""Forecasting with fbprophet"""
-	from fbprophet import Prophet
-	from fbprophet.diagnostics import cross_validation
+	from fbprophet import Prophet  # type: ignore
+	from fbprophet.diagnostics import cross_validation  # type: ignore
 
 	partitions = int(partitions)
 	# initiate model
@@ -572,7 +572,7 @@ def MAPE(predictions, answers):
 
 def train_neural_net(X_train, y_train, epochs, HOURS_AHEAD=24, structure=None):
 	import tensorflow as tf
-	from tensorflow.keras import layers
+	from tensorflow.keras import layers # type: ignore
 
 	if structure != '3D':
 		model = tf.keras.Sequential([

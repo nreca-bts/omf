@@ -393,7 +393,7 @@ def convert(stdString, seqString, rescale=True):
 			if 'B' in overhead['phases'] and (ohLineList[20] != '0' or ohLineList[23] != '0'):
 				overhead['distributed_load_B'] = float(ohLineList[20])*1000 + float(ohLineList[23])*1000j
 			if 'C' in overhead['phases'] and (ohLineList[21] != '0' or ohLineList[24] != '0'):
-				 overhead['distributed_load_C'] = float(ohLineList[21])*1000 + float(ohLineList[24])*1000j
+				overhead['distributed_load_C'] = float(ohLineList[21])*1000 + float(ohLineList[24])*1000j
 			return overhead
 
 		def convertUgLine(ugLineList):
@@ -541,11 +541,11 @@ def convert(stdString, seqString, rescale=True):
 					}
 			# Check to see if there is distributed load on the line
 			if 'A' in underground['phases'] and (ugLineList[19] != '0' or ugLineList[22] != '0'):
-			    underground['distributed_load_A'] = float(ugLineList[19])*1000 + (float(ugLineList[22]))*1000j
+				underground['distributed_load_A'] = float(ugLineList[19])*1000 + (float(ugLineList[22]))*1000j
 			if 'B' in underground['phases'] and (ugLineList[20] != '0' or ugLineList[23] != '0'):
-			    underground['distributed_load_B'] = float(ugLineList[20])*1000 + (float(ugLineList[23]))*1000j
+				underground['distributed_load_B'] = float(ugLineList[20])*1000 + (float(ugLineList[23]))*1000j
 			if 'C' in underground['phases'] and (ugLineList[21] != '0' or ugLineList[24] != '0'):
-			    underground['distributed_load_C'] = float(ugLineList[21])*1000 + (float(ugLineList[24]))*1000j
+				underground['distributed_load_C'] = float(ugLineList[21])*1000 + (float(ugLineList[24]))*1000j
 			return underground
 
 		def convertRegulator(regList):
@@ -1691,16 +1691,6 @@ def rewriteStatePlaneToLatLon(tree, epsg = None):
 			newCoords = geo.statePlaneToLatLon(tree[key]['longitude'], tree[key]['latitude'], epsg = epsg)
 			tree[key]['latitude'], tree[key]['longitude'] = newCoords
 	return tree
-
-def _latCount(name):
-	''' Debug function to count up the meters and such and figure out whether we're lat/lon coding them correctly. '''
-	nameCount, myLatCount = (0,0)
-	for key in outGlm:
-		if outGlm[key].get('object','')==name:
-			nameCount += 1
-			if 'latitude' in outGlm[key]:
-				myLatCount += 1
-	warnings.warn(name, 'COUNT', nameCount, 'LAT COUNT', latCount, 'SUCCESS RATE', 1.0*latCount/nameCount)
 
 default_equipment = {
 	'underground_line_conductor': {

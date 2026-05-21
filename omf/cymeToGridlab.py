@@ -2522,7 +2522,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 		elif dev_dict["device_type"] == 23:
 			# very similar to device 3
 			if dev_key not in cymUnbalancedOverheadLine.keys():
-				print("There is no line spec for ", oh1, " in the network database provided.\n")
+				print("There is no line spec for ", dev_key, " in the network database provided.\n")
 			elif dev_key not in ohls.keys():
 				struct = {
 					"object": "overhead_line",
@@ -2607,7 +2607,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 					# Create recloser dictionaries
 		elif dev_dict["device_type"] == 10:
 			if dev_key not in cymrecloser.keys():
-				print("There is no recloster spec for ", rc1, " in the network database provided.\n")
+				print("There is no recloster spec for ", dev_key, " in the network database provided.\n")
 			elif dev_key not in rcls.keys():
 				rcls[dev_key] = {
 					"object": "recloser",
@@ -2680,7 +2680,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 					"to": dev_dict["to"],
 				}
 				equipmentId = cymreactor[dev_key]["configuration"]
-				Zohms = float(cymeqdev_key[equipmentId]["reactance"])
+				Zohms = float(reactors[dev_key][equipmentId]["reactance"])
 				for ph in reactors[dev_key]["phases"]:
 					reactors[dev_key]["phase_" + ph + "_reactance"] = "{:0.6f}".format(
 						Zohms
