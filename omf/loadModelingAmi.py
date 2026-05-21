@@ -81,16 +81,12 @@ def writeNewGlmAndPlayers(omdPath, amiPath, outputDir):
 		json.dump(omdObj, outFile, indent=4)
 
 def _tests():
-	outFolder = omf.omfDir + '/scratch/loadModelingAmiOutput/'
+	outFolder = os.path.join(omf.omfDir, 'scratch', 'loadModelingAmiOutput')
 	# Delete old output:
-	try:
-		shutil.rmtree(outFolder)
-	except:
-		pass # no output there.
+	shutil.rmtree(outFolder, ignore_errors=True)
 	# Generate new output:
-	glmPath = omf.omfDir + '/static/testFiles/Input - IEEE 13 Node.glm'
-	omdPath = omf.omfDir + '/static/testFiles/Input - IEEE 13 Node.omd'
-	amiPath = omf.omfDir + '/static/testFiles/Input - AMI measurements 13 node.csv'
+	omdPath = os.path.join(omf.omfDir, 'static', 'testFiles', 'Input - IEEE 13 Node.omd')
+	amiPath = os.path.join(omf.omfDir, 'static', 'testFiles', 'Input - AMI measurements 13 node.csv')
 	writeNewGlmAndPlayers(omdPath, amiPath, outFolder)
 
 if __name__ == '__main__':
