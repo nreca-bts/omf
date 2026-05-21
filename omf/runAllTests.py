@@ -2,41 +2,46 @@
 
 import os, sys, platform, pkgutil, importlib, omf, traceback
 
-# master override disabling testing.
-IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.models.phaseId', 'omf.models.solarDisagg', 'omf.tests', 'omf.models.forecastTool', 'omf.models.transmission', 'omf.models.cvrStatic', 'omf.models.smartSwitching', 'omf.models.flisr']
+# Ignore some files that should never be tested.
+IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.tests', ]
 
-# GitHub-hosted runners do not have the system solvers, GUI support, or stable
-# external API access needed by these older integration-style tests.
-if os.environ.get("GITHUB_ACTIONS") == "true":
-	IGNORE_FILES.extend([
-		'omf.cymeToGridlab',
-		'omf.feeder',
-		'omf.loadModelingAmi',
-		'omf.loadModelingScada',
-		'omf.milToGridlab',
-		'omf.solvers.gridlabd',
-		'omf.weather',
-		'omf.models.anomalyDetector',
-		'omf.models.cvrDynamic',
-		'omf.models.derInterconnection',
-		'omf.models.evRange',
-		'omf.models.faultAnalysis',
-		'omf.models.gridlabMulti',
-		'omf.models.hostingExpansion',
-		'omf.models.microgridDesign',
-		'omf.models.phaseBalance',
-		'omf.models.pvWatts',
-		'omf.models.rfCoverage',
-		'omf.models.solarCashflow',
-		'omf.models.solarConsumer',
-		'omf.models.solarEngineering',
-		'omf.models.solarFinancial',
-		'omf.models.solarSunda',
-		'omf.models.storagePeakShave',
-		'omf.models.voltageDrop',
-		'omf.models.weatherPull',
-		'omf.models.wildfireAnticipation',
-	])
+# GitHub-hosted runners do not have the system solvers, GUI support, or stable external API access needed by these older integration-style tests.
+# IGNORE_FILES.extend([
+#	'omf.models.forecastTool',
+# 	'omf.models.phaseId',
+# 	'omf.models.solarDisagg',
+# 	'omf.models.transmission',
+# 	'omf.models.cvrStatic',
+# 	'omf.models.smartSwitching',
+# 	'omf.models.flisr',
+# 	'omf.cymeToGridlab',
+# 	'omf.feeder',
+# 	'omf.loadModelingAmi',
+# 	'omf.loadModelingScada',
+# 	'omf.milToGridlab',
+# 	'omf.solvers.gridlabd',
+# 	'omf.weather',
+# 	'omf.models.anomalyDetector',
+# 	'omf.models.cvrDynamic',
+# 	'omf.models.derInterconnection',
+# 	'omf.models.evRange',
+# 	'omf.models.faultAnalysis',
+# 	'omf.models.gridlabMulti',
+# 	'omf.models.hostingExpansion',
+# 	'omf.models.microgridDesign',
+# 	'omf.models.phaseBalance',
+# 	'omf.models.pvWatts',
+# 	'omf.models.rfCoverage',
+# 	'omf.models.solarCashflow',
+# 	'omf.models.solarConsumer',
+# 	'omf.models.solarEngineering',
+# 	'omf.models.solarFinancial',
+# 	'omf.models.solarSunda',
+# 	'omf.models.storagePeakShave',
+# 	'omf.models.voltageDrop',
+# 	'omf.models.weatherPull',
+# 	'omf.models.wildfireAnticipation',
+# ])
 
 # Different platforms like to name the python binary differently
 PY_BIN_NAME = 'python3'

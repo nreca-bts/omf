@@ -2,11 +2,6 @@ name: OMF Integration Tests
 
 on: [push, pull_request]
 
-env:
-  MPLCONFIGDIR: .matplotlib
-  OMF_GRIDLABD_AUTO_INSTALL: "0"
-  OMF_SPLAT_AUTO_INSTALL: "0"
-
 jobs:
   PackageInstall:
     name: Pip install OMF on ${{ matrix.os }}
