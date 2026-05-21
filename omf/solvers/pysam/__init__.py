@@ -259,7 +259,7 @@ def run_pvwatts_historical_max(modelDir, sys_design: dict, dataFile: str="solar_
 def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
 	'''
 
-	get wind data from https://developer.nlr.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
+	get wind data from https://developer.nrel.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
 
 	'''
 	successFlag = False
@@ -270,7 +270,7 @@ def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) ->
 			return successFlag 
 	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 	email = "admin@omf.coop"
-	base_url = f"https://developer.nlr.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
+	base_url = f"https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
 	#longitude, latitude 
 	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
 	response = requests.get(modified_url)

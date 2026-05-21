@@ -1,9 +1,40 @@
 ''' Walk the omf submodules, run _tests() in all modules. '''
 
-import sys, platform, pkgutil, importlib, omf, traceback
+import os, sys, platform, pkgutil, importlib, omf, traceback
 
 # master override disabling testing.
 IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.models.phaseId', 'omf.models.solarDisagg', 'omf.tests', 'omf.models.forecastTool', 'omf.models.transmission', 'omf.models.cvrStatic', 'omf.models.smartSwitching', 'omf.models.flisr']
+
+# GitHub-hosted runners do not have the system solvers, GUI support, or stable
+# external API access needed by these older integration-style tests.
+if os.environ.get("GITHUB_ACTIONS") == "true":
+	IGNORE_FILES.extend([
+		'omf.cymeToGridlab',
+		'omf.feeder',
+		'omf.loadModelingScada',
+		'omf.milToGridlab',
+		'omf.solvers.gridlabd',
+		'omf.weather',
+		'omf.models.anomalyDetector',
+		'omf.models.cvrDynamic',
+		'omf.models.derInterconnection',
+		'omf.models.evRange',
+		'omf.models.faultAnalysis',
+		'omf.models.gridlabMulti',
+		'omf.models.hostingExpansion',
+		'omf.models.phaseBalance',
+		'omf.models.pvWatts',
+		'omf.models.rfCoverage',
+		'omf.models.solarCashflow',
+		'omf.models.solarConsumer',
+		'omf.models.solarEngineering',
+		'omf.models.solarFinancial',
+		'omf.models.solarSunda',
+		'omf.models.storagePeakShave',
+		'omf.models.voltageDrop',
+		'omf.models.weatherPull',
+		'omf.models.wildfireAnticipation',
+	])
 
 # Different platforms like to name the python binary differently
 PY_BIN_NAME = 'python3'
@@ -41,30 +72,30 @@ def run_tests_on_module(mod_name):
 	test_func()
 
 def _print_header(header):
-	print('\n+------------------------+')
-	print(f'{header.upper()}')
-	print('+------------------------+\n')
+	print('\n+------------------------+', flush=True)
+	print(f'{header.upper()}', flush=True)
+	print('+------------------------+\n', flush=True)
 
 def run_all_tests():
 	''' Run every test in the OMF and return results.'''
 	all_testable_mods = get_all_testable_modules()
 	misfires = []
 	for mod in all_testable_mods:
-		print(f'!!!!! NOW TESTING {mod} !!!!!')
+		print(f'!!!!! NOW TESTING {mod} !!!!!', flush=True)
 		try:
 			run_tests_on_module(mod)
 		except:
 			misfires.append(mod)
 			traceback.print_exc()
 	_print_header('regular tests report')
-	print(f'Number of modules tested: {len(all_testable_mods)}')
-	print(all_testable_mods)
+	print(f'Number of modules tested: {len(all_testable_mods)}', flush=True)
+	print(all_testable_mods, flush=True)
 	_print_header('failed tests report')
-	print(f'Number of tests failed: {len(misfires)}')
-	print(misfires)
+	print(f'Number of tests failed: {len(misfires)}', flush=True)
+	print(misfires, flush=True)
 	_print_header('untested modules report')
-	print(f'Number of untested modules: {len(IGNORE_FILES)}')
-	print(IGNORE_FILES)
+	print(f'Number of untested modules: {len(IGNORE_FILES)}', flush=True)
+	print(IGNORE_FILES, flush=True)
 	if len(misfires) > 0:
 		sys.exit(1) # trigger build failure.
 
