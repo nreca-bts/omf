@@ -60,7 +60,7 @@ ml = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nreca-bts/omf"
+Homepage = "https://omf.coop/"
 Repository = "https://github.com/nreca-bts/omf"
 
 [tool.setuptools]
