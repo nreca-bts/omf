@@ -19,7 +19,6 @@ import pandas as pd
 from tempfile import mkdtemp
 import pytz
 import xml.etree.ElementTree as ET
-import xmltodict
 from pathlib import Path
 
 omfDir = os.path.dirname(os.path.abspath(__file__))
@@ -1197,11 +1196,41 @@ def _ndfd_url(path=''):
 
 
 #This function acts as a general xml parser
+def _strip_xml_namespace(tag):
+	if '}' in tag:
+		return tag.split('}', 1)[1]
+	return tag
+
+
+def _xml_element_to_dict(element):
+	'''Convert ElementTree nodes into the dictionary shape this module consumes.'''
+	children = list(element)
+	attributes = {'@' + _strip_xml_namespace(k): v for k, v in element.attrib.items()}
+	text = (element.text or '').strip()
+	if not children:
+		if attributes:
+			if text:
+				attributes['#text'] = text
+			return attributes
+		return text
+	node = dict(attributes)
+	for child in children:
+		child_tag = _strip_xml_namespace(child.tag)
+		child_value = _xml_element_to_dict(child)
+		if child_tag in node:
+			if not isinstance(node[child_tag], list):
+				node[child_tag] = [node[child_tag]]
+			node[child_tag].append(child_value)
+		else:
+			node[child_tag] = child_value
+	if text:
+		node['#text'] = text
+	return node
+
+
 def _generalParseXml(data):
-	o = xmltodict.parse(data.content)
-	d = json.dumps(o)
-	d = json.loads(d)
-	return d
+	root = ET.fromstring(data.content)
+	return {_strip_xml_namespace(root.tag): _xml_element_to_dict(root)}
 
 def _run_ndfd_request(q):
 	print(_ndfd_url(q))
