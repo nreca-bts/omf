@@ -1,10 +1,21 @@
+"""
+Implement the contextual source-separation core used by OMF solar disaggregation solver
+wrappers.
+"""
+
 import numpy as np
 # import cvxpy as cvp #cvxpy is a bad bad no good library and we only want to use it when we're using a model using this solver.
 
 class CSSS:
 ### Contextually Supervised Source Seperation Class
 
+    """
+    Implement contextual source-separation state and optimization helpers.
+    """
     def __init__(self, aggregateSignal):
+        """
+        Internal helper for csss init processing.
+        """
         self.aggregateSignal  = aggregateSignal
         self.modelcounter     = 0   # Number of source signals
         self.models           = {}  # Model for each source signal, this is a list but could be a dict
@@ -18,6 +29,9 @@ class CSSS:
                   lb = None, # Lower bound on source
                   ub = None  # Upper bound on source
                  ):
+        """
+        Implement add source behavior for CSSS instances.
+        """
         import cvxpy as cvp #cvxpy is a bad bad no good library and we only want to use it when we're using a model using this solver.
 
         ### This is a method to add a new source
@@ -69,6 +83,9 @@ class CSSS:
         self.updateSourceObj(name)
 
     def updateSourceObj(self, sourcename):
+        """
+        Implement update source obj behavior for CSSS instances.
+        """
         import cvxpy as cvp #cvxpy is a bad bad no good library and we only want to use it when we're using a model using this solver.
         if sourcename.lower() == 'all':
             for name in self.models.keys():
@@ -149,9 +166,15 @@ class CSSS:
 
     def addConstraint(self, constraint):
         ### This is a method to add a new source
+        """
+        Implement add constraint behavior for CSSS instances.
+        """
         self.constraints.append(constraint)
 
     def constructSolve(self):
+        """
+        Implement construct solve behavior for CSSS instances.
+        """
         import cvxpy as cvp #cvxpy is a bad bad no good library and we only want to use it when we're using a model using this solver.
 
         ## This method constructs and solves the optimization
@@ -194,6 +217,9 @@ class CSSS:
         #    - For each source, set the price and the remaining sources constant,
         #       - Add individual constraints to individual source updates,
         #       - Solve and update the source.
+        """
+        Implement admm solve behavior for CSSS instances.
+        """
         import cvxpy as cvp #cvxpy is a bad bad no good library and we only want to use it when we're using a model using this solver.
         dual_objective=[]
         norm_resid_equality=[]
@@ -281,6 +307,9 @@ class CSSS:
     def fixThetas(self):
         ## Fixes theta to current value and removes it as a decision variable
         ## This is creates the "real time problem.""
+        """
+        Implement fix thetas behavior for CSSS instances.
+        """
         for name, m in self.models.items():
             m['theta'] = m['theta'].value
         self.updateSourceObj('all')

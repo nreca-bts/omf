@@ -1,7 +1,7 @@
-''' The transmission model pre-alpha release.
-Requirements: GNU octave
-Tested on Linux and macOS.
-'''
+"""
+The transmission model calculates the expected powerflow voltage results per bus on a
+given transmission circuit. The underlying calculations are handled by MATPOWER.
+"""
 
 import json, os, shutil, platform, base64
 from os.path import join as pJoin
@@ -103,6 +103,9 @@ def work(modelDir, inputDict):
 
 def _getMatPath(matDir):
 	# Get paths required for matpower7.0 in octave
+	"""
+	Internal helper for transmission get mat path processing.
+	"""
 	if platform.system() == "Windows":
 		pathSep = ";"
 	else:
@@ -133,6 +136,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

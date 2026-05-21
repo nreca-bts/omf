@@ -1,4 +1,7 @@
-'''Display up-to-date map of public EV charging locations with an editable EV range radius at each location.'''
+"""
+Map public electric-vehicle charging stations and compute reachable service areas from
+configurable range assumptions.
+"""
 import random, requests
 from pathlib import Path
 
@@ -35,6 +38,9 @@ def get_randomized_api_key():
 	return random.choice(REOPT_API_KEYS)
 
 def filter_fuel_stations(full_results):
+	"""
+	Perform filter fuel stations processing for the ev range model.
+	"""
 	keys_to_keep = ['station_name', 'latitude', 'longitude', 'street_address', 'city', 'state']
 	# keys_to_keep = ['id', 'station_name', 'latitude', 'longitude', 'street_address', 'city', 'state', 'zip']
 	# keys_to_keep = ['id', 'station_name', 'latitude', 'longitude', 'street_address', 'city', 'state', 'zip', 'ev_network', 'ev_connector_types', 'ev_pricing', 'maximum_vehicle_class', 'ev_level1_evse_num', 'ev_level2_evse_num', 'ev_dc_fast_num', 'access_days_time', 'station_phone', 'date_last_confirmed']
@@ -45,6 +51,9 @@ def filter_fuel_stations(full_results):
 	return filtered
 
 def call_api():
+	"""
+	Perform call api processing for the ev range model.
+	"""
 	api_key = get_randomized_api_key()
 	url = 'https://developer.nrel.gov/api/alt-fuel-stations/v1.json'
 	params = {
@@ -66,10 +75,16 @@ def call_api():
 		raise NRELAltFuelStationsAPIError(f'API call failed with status code {response.status_code}: {response.text}')
 	
 def get_cache_filepath():
+    """
+    Return the cache filepath needed by this workflow.
+    """
     app_root = Path(__neoMetaModel__._omfDir).resolve()
     return app_root / 'static' / 'ev_fueling_stations.json'
 
 def get_cached_results():
+	"""
+	Return the cached results needed by this workflow.
+	"""
 	cache_file = get_cache_filepath()
 	try:
 		if cache_file.exists():
@@ -80,6 +95,9 @@ def get_cached_results():
 		raise FuelStationCacheError(f'Error reading cached results: {e}')
 
 def cache_new_results(results):
+	"""
+	Perform cache new results processing for the ev range model.
+	"""
 	cache_file = get_cache_filepath()
 	cache_file.parent.mkdir(parents=True, exist_ok=True)
 	try:
@@ -91,6 +109,9 @@ def cache_new_results(results):
 		raise FuelStationCacheError(f'Failed to cache new results: {e}')
 
 def compute_union_for_group(ev_range_meters, group, transformer_from, transformer_to):
+    """
+    Perform compute union for group processing for the ev range model.
+    """
     buffers = []
     for station in group:
         try:
@@ -165,6 +186,9 @@ def compute_union_polygon_by_region(stations, ev_range_miles):
 	return {"type": "FeatureCollection", "features": features}
 	
 def work(modelDir, inputDict):
+	"""
+	Run the ev range model analysis and return the output data used by the OMF interface.
+	"""
 	outData = {}
 	refresh_requested = inputDict.get('refreshCachedResults', False)
 	if refresh_requested:
@@ -191,6 +215,9 @@ def work(modelDir, inputDict):
 	return outData
 	
 def new(modelDir):
+	"""
+	Create a new ev range model instance with default inputs for the OMF interface.
+	"""
 	defaultInputs = {
 		'modelType': modelName,
 		'initialRangeMiles': 100
@@ -200,6 +227,9 @@ def new(modelDir):
 
 def _tests():
     # Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

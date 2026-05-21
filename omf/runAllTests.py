@@ -1,4 +1,7 @@
-''' Walk the omf submodules, run _tests() in all modules. '''
+"""
+Discover OMF modules with test entrypoints and run their module-level smoke tests in a
+repeatable order.
+"""
 
 import os, sys, platform, pkgutil, importlib, omf, traceback
 
@@ -44,6 +47,9 @@ def run_tests_on_module(mod_name):
 	test_func()
 
 def _print_header(header):
+	"""
+	Internal helper for run all tests print header processing.
+	"""
 	print('\n+------------------------+', flush=True)
 	print(f'{header.upper()}', flush=True)
 	print('+------------------------+\n', flush=True)

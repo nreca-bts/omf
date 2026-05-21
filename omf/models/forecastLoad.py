@@ -1,4 +1,7 @@
-''' Forecast load.'''
+"""
+The various load forecasters in forecastLoad take in some combination of forecasted
+temperature, date, and historical demand data to predict future demand data.
+"""
 import json
 from os.path import join as pJoin
 from datetime import datetime as dt
@@ -144,6 +147,9 @@ def new(modelDir):
 
 def _debugging():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(
 		__neoMetaModel__._omfDir,
 		"data",

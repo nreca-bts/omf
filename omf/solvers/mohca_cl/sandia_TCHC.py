@@ -1,6 +1,6 @@
 """
-Sandia code for model-free thermal-constrained hosting capacity (TCHC)
-
+Run Sandia thermal-constrained hosting-capacity analysis using transformer and customer
+measurements.
 """
 
 import numpy as np

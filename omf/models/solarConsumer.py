@@ -1,4 +1,8 @@
-''' Calculate solar costs and benefits for consumers. '''
+"""
+This model calculates the expected costs for a consumer who buys solar in one of 3
+different ways: through a PPA with a 3rd party, through a community solar project, or by
+buying a rooftop system.
+"""
 
 # Python Imports
 from pathlib import Path
@@ -85,6 +89,9 @@ def work(modelDir, inputDict):
 
 def tjCode(inputs, outData):
 	# Make inputs the right types.
+	"""
+	Perform tj code processing for the solar consumer model.
+	"""
 	for k in inputs.keys():
 		try:
 			inputs[k] = float(inputs[k])
@@ -272,6 +279,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

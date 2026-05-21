@@ -1,4 +1,6 @@
-''' Generate interconnection results for EVs. '''
+"""
+Electric Vehicle Interconnection Analysis
+"""
 
 import json, os, shutil, csv, warnings, base64, platform
 from os.path import join as pJoin
@@ -420,6 +422,9 @@ def new(modelDir):
 	return creationCode
 
 def _testingPlot():
+	"""
+	Internal helper for ev interconnection testing plot processing.
+	"""
 	PREFIX = omf.omfDir + '/scratch/CIGAR/'
 	# FNAME = 'test_base_R4-25.00-1.glm_CLEAN.glm'
 	# FNAME = 'test_Exercise_4_2_1.glm'
@@ -436,6 +441,9 @@ def _testingPlot():
 	# plt.show()
 
 def plotMaxLoadShape(loadShape=None, combined_load=None, hourly_con=None, REopt_load=None):
+	"""
+	Create a plot or display artifact for max load shape results.
+	"""
 	base_shape = loadShape
 	com_shape_REopt = REopt_load
 
@@ -507,6 +515,9 @@ def plotMaxLoadShape(loadShape=None, combined_load=None, hourly_con=None, REopt_
 	return maxLoadShape(day_shape, hourly_con, day_shape_REopt), carpet_plot(base_shape_REopt, hourly_con)
 
 def plotEVShape(modelDir, numVehicles=None, chargeRate=None, batterySize=None, startHour=None, endHour=None, chargeLimit=None, minCharge=None, maxCharge=None, loadShape=None, rezSqIn=None):
+	"""
+	Create a plot or display artifact for evshape results.
+	"""
 	shapes = []
 	for i in range(numVehicles):
 		# Random arrival
@@ -618,6 +629,9 @@ def plotEVShape(modelDir, numVehicles=None, chargeRate=None, batterySize=None, s
 	return max_val, evShape, carpet_plot(base_shape, hourly_con), hourly_con, combined
 
 def fuelCostCalc(numVehicles=None, batterySize=None, efficiency=None, energyCost=None, gasEfficiency=None, gasCost=None, workload=None):
+	"""
+	Perform fuel cost calc processing for the ev interconnection model.
+	"""
 	dailyGasAmount = workload/gasEfficiency #amount(gal) of gas used per vehicle, daily
 	dailyGasCost = dailyGasAmount*gasCost #amount($) spent on gas per vehicle, daily
 	totalGasCost = numVehicles*dailyGasCost #amount($) spent on gas daily for all vehicles
@@ -641,6 +655,9 @@ def fuelCostCalc(numVehicles=None, batterySize=None, efficiency=None, energyCost
 	return html_str
 
 def energyCostCalc(max_bau_load_shape = None, sum_bau_load_shape = None, demand_charge = None, energy_charge = None, REopt_EV_output=None, REopt_opt_output=None):
+	"""
+	Perform energy cost calc processing for the ev interconnection model.
+	"""
 	bau_energy_cost = max_bau_load_shape*demand_charge + sum_bau_load_shape*energy_charge
 	ev_energy_cost = REopt_EV_output
 	opt_energy_cost = REopt_opt_output
@@ -656,6 +673,9 @@ def energyCostCalc(max_bau_load_shape = None, sum_bau_load_shape = None, demand_
 @neoMetaModel_test_setup
 def _debug():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

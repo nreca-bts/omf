@@ -1,4 +1,10 @@
-''' perform analysis pertaining to the addition of a DER interconnection on a feeder. '''
+"""
+The Distributed Energy Resource (DER) Interconnection model carries out the key
+modelling and analysis steps involved in a DER impact study including Load Flow
+computations, Short Circuit Analysis, and Effective Grounding Screenings. This analysis
+is presented in a static point-of-view of a 24hr simulation period, and not as a time
+series analysis.
+"""
 import glob, json, os, tempfile, shutil, csv, math, random, copy, base64
 from os.path import join as pJoin
 import networkx as nx
@@ -438,6 +444,9 @@ def work(modelDir, inputDict):
 
 def createTreeWithFault( tree, faultType, faultLocation, startTime, stopTime ):
 	
+	"""
+	Create the tree with fault structure used by this workflow.
+	"""
 	treeCopy = copy.deepcopy(tree)
 
 	# HACK: set groupid for all meters so outage stats are collected.
@@ -496,6 +505,9 @@ def createTreeWithFault( tree, faultType, faultLocation, startTime, stopTime ):
 
 def readGroupRecorderCSV( filename ):
 
+	"""
+	Read the group recorder csv data and normalize it for this workflow.
+	"""
 	dataDictionary = {}
 	with open(filename, newline='') as csvFile:
 		reader = csv.reader(csvFile)
@@ -516,6 +528,9 @@ def readGroupRecorderCSV( filename ):
 def runGridlabAndProcessData(tree, attachments, edge_bools, workDir=False):
 	
 	# Run Gridlab.
+	"""
+	Run the gridlab and process data workflow and return its results.
+	"""
 	if not workDir:
 		workDir = tempfile.mkdtemp()
 	else:
@@ -821,6 +836,9 @@ def new(modelDir):
 	return creationCode
 
 def _testingPlot():
+	"""
+	Internal helper for der interconnection testing plot processing.
+	"""
 	PREFIX = os.path.join(os.path.dirname(__file__), '../scratch/CIGAR/')
 	#PREFIX = omf.omfDir + '/scratch/CIGAR/'
 
@@ -842,6 +860,9 @@ def _testingPlot():
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -1,4 +1,6 @@
-''' Calculate solar photovoltaic system output using PySAM PVWattsv8. '''
+"""
+The pvWatts model runs the NREL pvWatts tool for quick estimation of solar panel output.
+"""
 
 import shutil, datetime
 from os.path import join as pJoin
@@ -17,6 +19,9 @@ tooltip = "The pvWatts model runs the NLR PySAM pvWattsv8 tool for quick estimat
 modelName, template = __neoMetaModel__.metadata(__file__)
 
 def work(modelDir, inputDict):
+	"""
+	Run the pv watts model analysis and return the output data used by the OMF interface.
+	"""
 	simStartDate = inputDict["simStartDate"]
 	start = pd.to_datetime(inputDict["simStartDate"])
 	# lat/long get checked in nrl_get_nsrdb_data
@@ -110,6 +115,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

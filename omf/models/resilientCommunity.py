@@ -1,4 +1,7 @@
-''' Calculates Outage Impact Potential for a given Circuit '''
+"""
+omf.models.resilientCommunity is a new model currently under development. Check back in
+the coming months for updates!
+"""
 # warnings.filterwarnings("ignore")
 from logging import raiseExceptions
 import urllib.request
@@ -118,6 +121,9 @@ def runTransformation(geos):
 ############################## Zillow Code ##################################
 def get_zillowListings(lat, lon):
 	#zillow api
+	"""
+	Return the zillow listings needed by this workflow.
+	"""
 	url = "https://zillow56.p.rapidapi.com/search_coordinates"
 	# necessary query string
 	querystring = {
@@ -144,6 +150,9 @@ def get_zillowListings(lat, lon):
 
 def calculateAvg_prices(data):
 	# Extract the list of results
+	"""
+	Calculate avg prices for this analysis.
+	"""
 	results = data.get('results', [])
 	# Initialize list to store price per square foot
 	prices_per_sqft = []
@@ -171,6 +180,9 @@ def calculateAvg_prices(data):
 			return None, None
 
 def cacheZillowData(pathToOmd, pathToLoad):
+	"""
+	Perform cache zillow data processing for the resilient community model.
+	"""
 	omd = json.load(open(pathToOmd))
 	loads = json.load(open(pathToLoad))
 	zillowDict = {}
@@ -229,6 +241,9 @@ def getSectionsDistribution(sectionsDict, omd):
 		plt.show()
 
 def getDistribution():
+	"""
+	Return the distribution needed by this workflow.
+	"""
 	import json
 	import numpy as np
 	import matplotlib.pyplot as plt
@@ -279,6 +294,9 @@ def getDistribution():
 
 ############################## Run Calculations Code ##################################
 def testRunCalculations():
+	"""
+	Perform test run calculations processing for the resilient community model.
+	"""
 	pathToOmd = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity/ieee37_LBL_simplified.omd"
 	modelDir = "C:/Users/louis/NRECA/omf/omf/static/testFiles/resilientCommunity"
 	feederName = "ieee37_LBL_simplified"
@@ -369,6 +387,9 @@ def all_vals(obj):
 def runSections(pathToOmd, omd):
 	#omd = json.load(open(omdFilePath))
 	#dssTree = omdToTree(omdFilePath)
+	"""
+	Run the sections workflow and return its results.
+	"""
 	G = createGraph(pathToOmd)
 	disconnected_nodes = [node for node in G.nodes if G.degree[node] == 0]
 	# add data to nodes
@@ -427,6 +448,9 @@ def runSections(pathToOmd, omd):
 	return sectionDict, distanceToSource, len(sections)
 
 def section_circuit(graph):
+	"""
+	Perform section circuit processing for the resilient community model.
+	"""
 	visited_edges = set()  # Tracks visited edges
 	sections = []		  # List of finalized sections: [(section_number, nodes, edges)]
 	locked_nodes = {}
@@ -522,6 +546,9 @@ def section_circuit(graph):
 def calculate_distances_to_source(graph, source):
 	# Reverse the graph to calculate distances to the source.
 	# This flips the direction of edges, making it easier to compute distances to the source node.
+	"""
+	Calculate distances to source for this analysis.
+	"""
 	reversed_graph = graph.reverse(copy=True)
 	# Initialize distances to all nodes as infinity.
 	# Distance to the source itself is set to 0 since it's the starting point.
@@ -1153,6 +1180,9 @@ def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict, avgPeakDemand):
 	addPctlToDict(loadDict, 'locational crit score', 'distance_from_source')
 
 def _geojson_property_value(value):
+	"""
+	Internal helper for resilient community geojson property value processing.
+	"""
 	if not isinstance(value, (list, tuple, dict)) and pd.isna(value):
 		return None
 	if isinstance(value, np.generic):
@@ -1577,6 +1607,10 @@ def new(modelDir):
 	#omdfileName = 'iowa240_in_Florida_copy2'
 	#omdfileName = 'iowa240_dwp_22_no_show_voltage.dss'
 	#omdfileName = 'ieee37_LBL_simplified'
+	"""
+	Create a new resilient community model instance with default inputs for the OMF
+	interface.
+	"""
 	omdfileName = 'iowa240_in_Florida_copy2_no_show_voltage.dss'
 
 	# Establish Default Files
@@ -1645,6 +1679,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def tests():
 	# Location
+	"""
+	Perform tests processing for the resilient community model.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

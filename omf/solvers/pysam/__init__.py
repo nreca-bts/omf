@@ -1,3 +1,8 @@
+"""
+Wrap NREL PySAM photovoltaic, wind, and weather-data workflows for OMF renewable-energy
+models.
+"""
+
 # Python Imports
 import pandas as pd
 from pathlib import Path

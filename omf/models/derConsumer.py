@@ -1,4 +1,7 @@
-''' Performs a cost-benefit analysis for a member-consumer enrolling distributed energy resources (DERs) in a utility DER sharing program.'''
+"""
+❗ NOTE ❗ omf.models.derConsumer is a new model currently under development. Check back
+in the coming months for updates!
+"""
 
 ## Python imports
 import warnings
@@ -1441,6 +1444,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _debugging():
 	# Model Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

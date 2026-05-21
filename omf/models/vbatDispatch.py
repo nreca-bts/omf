@@ -1,4 +1,16 @@
-''' Evaluate demand response energy and economic savings available using PNNL VirtualBatteries (VBAT) model. '''
+"""
+This model returns the expected savings of using thermostatically controlled loads in
+demand response programs. The underlying device model is PNNL's VBAT, which calculates
+the energy potential for thermal loads, an energy demand, and temperature settings. The
+results are outputted in three parts: the VBAT Energy Available & Demand Impact, shows a
+range of how much power could be saved over a year long period, the state of charge of
+the virtual battery, the unadulterated demand, demand after vbat reductions to achieve
+monthly peak shaving, and power actually dispatched; the second, Monthly Cost
+Comparison, shows a breakdown of demand, energy, energy cost, demand charge, total cost,
+and savings on a monthly basis to compare cost and performance of the system without and
+with VBAT; the third, Cash Flow Projection shows the yearly cashflows as well as the
+overall balance.
+"""
 
 import shutil, csv, pulp, os
 from os.path import join as pJoin
@@ -17,6 +29,9 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 tooltip = "Calculate the energy storage capacity for a collection of thermostatically controlled loads."
 
 def pyVbat(modelDir, i):
+	"""
+	Perform py vbat processing for the vbat dispatch model.
+	"""
 	vbType = i['load_type']
 	with open(pJoin(modelDir, 'temperature.csv'), newline='') as f:
 		ambientList = []
@@ -57,6 +72,9 @@ def pyVbat(modelDir, i):
 
 def pulpFunc(inputDict, demand, P_lower, P_upper, E_UL, monthHours):
 	### Di's Modified dispatch code	
+	"""
+	Perform pulp func processing for the vbat dispatch model.
+	"""
 	alpha = 1-(1/(float(inputDict["capacitance"])*float(inputDict["resistance"])))  #1-(deltaT/(C*R)) hourly self discharge rate
 
 	## Set the random seed in PuLP optimizer. See https://github.com/coin-or/pulp/issues/545#issuecomment-1355737609
@@ -265,6 +283,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	if os.path.isdir(modelLoc):
 		shutil.rmtree(modelLoc)

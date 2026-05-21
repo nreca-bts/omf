@@ -1,4 +1,10 @@
-''' Get power and energy limits from PNNL VirtualBatteries (VBAT) load model.'''
+"""
+This model enables users to pull weather data at an hourly resolution for an entire year
+from two sets. The first set is NOAA's USCRN. The second is from Iowa State University's
+Iowa Environmental Mesonet. By selecting the set, year, station, and parameter, users
+can pull that information, obtain the validity of the data and download a .csv file
+based on their inputs.
+"""
 import shutil, csv
 from os.path import isdir, join as pJoin
 from omf import weather
@@ -177,6 +183,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir, "data", "Model", "admin", "Automated Testing of " + modelName)
 	if isdir(modelLoc):
 		shutil.rmtree(modelLoc)

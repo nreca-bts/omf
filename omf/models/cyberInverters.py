@@ -1,4 +1,9 @@
-''' Powerflow results for one Gridlab instance. '''
+"""
+The cyberInverters model shows the impacts of inverter hacks on a feeder including
+system voltages, regulator actions, and capacitor responses. It leverages PyCIGAR, which
+is a computational framework for deep Reinforcement Learning and control experiments for
+the distributed grid, developed by LBNL.
+"""
 
 
 import json
@@ -58,8 +63,9 @@ def work(model_dir, input_dict):
 
 
 def run_pycigar(model_dir, input_dict, start, duration, df):
-    '''
-    '''
+    """
+    Run the pycigar workflow and return its results.
+    """
     # - Must import the package here so that developers who haven't installed pycigar can still use the OMF
     import pycigar
     # - Set the 'test' argument to pycigar.main() to be 'NO_DEFENSE', 'TRAIN', or 'DEFENSE'
@@ -171,8 +177,9 @@ def run_pycigar(model_dir, input_dict, start, duration, df):
 
 
 def format_output(model_dir, input_dict, start, duration):
-    '''
-    '''
+    """
+    Perform format output processing for the cyber inverters model.
+    """
     # - Must import the package here so that developers who haven't installed pycigar can still use the OMF
     from pycigar.utils.logging import logger
     # - TODO: a lot of the operations we do to set properties on the out_data dict are to create data for visualizations in highchart.js. Should we
@@ -378,6 +385,9 @@ def new(model_dir):
 @neoMetaModel_test_setup
 def _debugging():
     # Location
+    """
+    Run this module's local smoke tests or debugging workflow.
+    """
     model_loc = Path(omf.omfDir) / 'data' / 'Model' / 'admin' / f'Automated Testing of {modelName}'
     # Blow away old test results if necessary.
     try:

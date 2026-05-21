@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-This is the draft version of PINN_based PV hosting capacity analysis codes.
-
-@author: liming liu
-@email: limingl@iastate.edu
-
+Run Iowa State PINN-based photovoltaic hosting-capacity analysis routines for MOHCA
+workflows.
 """
 import numpy as np
 import pandas as pd
@@ -14,6 +11,9 @@ from pathlib import Path
 
 def PINN_HC(input_csv_path, output_csv_path, nodes_selected=0 ):
 
+    """
+    Perform pinn hc processing for the wrapped solver workflow.
+    """
     import torch
     import torch.nn as nn
     import torch.utils.data as Data
@@ -124,6 +124,9 @@ def PINN_HC(input_csv_path, output_csv_path, nodes_selected=0 ):
         class Linearlize_totalpower_OLTC_Net(nn.Module):
             
             def __init__(self, node_number):
+                """
+                Internal helper for isu pinnbased hca init processing.
+                """
                 super(Linearlize_totalpower_OLTC_Net, self).__init__()   
                 
                 self.node_number = node_number
@@ -161,6 +164,9 @@ def PINN_HC(input_csv_path, output_csv_path, nodes_selected=0 ):
                         p.requires_grad=False  
         
             def forward(self, x): 
+                """
+                Implement forward behavior for Linearlize_totalpower_OLTC_Net instances.
+                """
                 xp = self.A(x[:,:self.node_number])
                 xq = self.B(x[:,self.node_number:])
                 
@@ -384,4 +390,7 @@ def PINN_HC(input_csv_path, output_csv_path, nodes_selected=0 ):
 
 
 def sanity_check():
+    """
+    Perform sanity check processing for the wrapped solver workflow.
+    """
     pass

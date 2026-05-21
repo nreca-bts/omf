@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*
 """
+Adapt feedinlib windpowerlib models for OMF wind turbine and wind-farm feed-in
+calculations.
+
 Feed-in model class using windpowerlib.
 
-SPDX-FileCopyrightText: Birgit Schachler
-SPDX-FileCopyrightText: Uwe Krien <krien@uni-bremen.de>
-SPDX-FileCopyrightText: Stephan Günther
-SPDX-FileCopyrightText: Stephen Bosch
-SPDX-FileCopyrightText: Patrik Schönfeldt <patrik.schoenfeldt@dlr.de>
+SPDX-FileCopyrightText: Birgit Schachler SPDX-FileCopyrightText: Uwe Krien
+<krien@uni-bremen.de> SPDX-FileCopyrightText: Stephan Günther SPDX-FileCopyrightText:
+Stephen Bosch SPDX-FileCopyrightText: Patrik Schönfeldt <patrik.schoenfeldt@dlr.de>
 
 SPDX-License-Identifier: MIT
 
@@ -59,11 +60,16 @@ class WindpowerlibTurbine(WindpowerModelBase):
     """  # noqa: E501
 
     def __init__(self, **kwargs):
-        """ """
+        """
+        Internal helper for windpowerlib init processing.
+        """
         super().__init__(**kwargs)
         self.power_plant = None
 
     def __repr__(self):
+        """
+        Internal helper for windpowerlib repr processing.
+        """
         return "windpowerlib_single_turbine"
 
     @property
@@ -262,11 +268,16 @@ class WindpowerlibTurbineCluster(WindpowerModelBase):
     """  # noqa: E501
 
     def __init__(self, **kwargs):
-        """ """
+        """
+        Internal helper for windpowerlib init processing.
+        """
         super().__init__(**kwargs)
         self.power_plant = None
 
     def __repr__(self):
+        """
+        Internal helper for windpowerlib repr processing.
+        """
         return "WindpowerlibTurbineCluster"
 
     @property

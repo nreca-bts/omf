@@ -1,9 +1,17 @@
+"""
+Provide contextual source-separation solar disaggregation estimators for individual
+homes and real-time streams.
+"""
+
 import omf.solvers.CSSS.CSSS as CSSS
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression as LR
 
 class SolarDisagg_IndvHome(CSSS.CSSS):
+    """
+    Disaggregate individual-home solar production from net-load and weather features.
+    """
     def __init__(self, netloads, solarregressors, loadregressors, tuningregressors = None, names = None):
         ## Inputs
         # netloads:         np.array of net loads at each home, with columns corresponding to entries of "names" if available.
@@ -11,6 +19,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         # loadregressors:   np.array of load regressors (N_l x T)
 
         ## Find aggregate net load, and initialize problem.
+        """
+        Internal helper for solar disagg init processing.
+        """
         agg_net_load = np.sum(netloads, axis = 1)
         CSSS.CSSS.__init__(self, agg_net_load)
 
@@ -50,10 +61,16 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         self.addConstraint( self.models['AggregateLoad']['source'] >= 0 )
 
     def Solar_var_norm(self):
+        """
+        Implement solar var norm behavior for SolarDisagg_IndvHome instances.
+        """
         return(None)
         ## Placeholder for variance prediction for tuning
 
     def Total_NL_var(self):
+        """
+        Implement total nl var behavior for SolarDisagg_IndvHome instances.
+        """
         return(None)
         ## Placeholder for variance prediction for tuning
 
@@ -61,6 +78,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         ## Function to add true solar for a given model
 
         ## Check that true value is correct number of dimensions
+        """
+        Implement add true value behavior for SolarDisagg_IndvHome instances.
+        """
         trueValue = trueValue.squeeze()
         if not (trueValue.shape == (self.N,)):
             raise Exception('True value of a solar or load signal must be one dimensional and length N = %d' % self.N)
@@ -77,6 +97,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         ## Function to calculate performance metrics
         # Dropping zeros is intended to remove nightime solar.
 
+        """
+        Calculate performance metrics for this analysis.
+        """
         df = pd.DataFrame()
         df['models'] = self.models.keys()
         df['rmse']   = np.zeros(df.shape[0]) * np.nan
@@ -125,6 +148,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
 
     def tuneAlphas_v1(self, tuneSys = None, filter_vec = np.ones(12)/12.0, var_lb_fraction = 0.01):
         ## Function to autotune alphas given some true solar information.
+        """
+        Implement tune alphas v1 behavior for SolarDisagg_IndvHome instances.
+        """
         if tuneSys is None:
             ## If no name for a tuning system is input, use all systems for which
             # a truth is known.
@@ -199,6 +225,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         return(None)
 
     def fitTuneModels(self, tuneSys = None, var_lb_fraction = 0.05, tuningRegressors = None):
+        """
+        Implement fit tune models behavior for SolarDisagg_IndvHome instances.
+        """
         firsttune = True
 
         if tuneSys is None:
@@ -262,6 +291,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
 
     def tuneAlphas(self):
         # Instantiate vectors for the total solar variance and total estiamted net load by the model.
+        """
+        Implement tune alphas behavior for SolarDisagg_IndvHome instances.
+        """
         total_sol_var   = np.zeros(self.N) ## Instantiate vector for total variance of PV signals,
 
         ## Cycle through each solar model and tune alphas
@@ -296,6 +328,9 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
 
     def scaleAlphas(self, scale_to = 1.0):
         ## Find the maximum value of alpha
+        """
+        Implement scale alphas behavior for SolarDisagg_IndvHome instances.
+        """
         alpha_max = 0
         for name, m in self.models.items():
             if np.max(m['alpha']) > alpha_max:
@@ -312,11 +347,17 @@ class SolarDisagg_IndvHome(CSSS.CSSS):
         return(None)
 
 class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
+    """
+    Disaggregate individual-home solar production in an incremental real-time workflow.
+    """
     def __init__(self, sdmod, aggregateNetLoad, solarregressors, loadregressors, tuningregressors = None):
         ## Inputs
         # netloads:         np.array of net loads at each home, with columns corresponding to entries of "names" if available.
         # solarregressors:  np.array of solar regressors (N_s X T)
         # loadregressors:   np.array of load regressors (N_l x T)
+        """
+        Internal helper for solar disagg init processing.
+        """
         CSSS.CSSS.__init__(self, aggregateNetLoad)
 
         self.N = len(aggregateNetLoad)
@@ -363,6 +404,9 @@ class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
 
     def tuneAlphas(self):
         # Instantiate vectors for the total solar variance and total estiamted net load by the model.
+        """
+        Implement tune alphas behavior for SolarDisagg_IndvHome_Realtime instances.
+        """
         total_sol_var   = np.zeros(self.N) ## Instantiate vector for total variance of PV signals,
 
         ## Cycle through each solar model and tune alphas
@@ -398,6 +442,9 @@ class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
 
     def scaleAlphas(self, scale_to = 1.0):
         ## Find the maximum value of alpha
+        """
+        Implement scale alphas behavior for SolarDisagg_IndvHome_Realtime instances.
+        """
         alpha_max = 0
         for name, m in self.models.items():
             if np.max(m['alpha']) > alpha_max:
@@ -417,6 +464,9 @@ class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
         ## Function to add true solar for a given model
 
         ## Check that true value is correct number of dimensions
+        """
+        Implement add true value behavior for SolarDisagg_IndvHome_Realtime instances.
+        """
         trueValue = trueValue.squeeze()
         if not (trueValue.shape == (self.N,)):
             raise Exception('True value of a solar or load signal must be one dimensional and length N = %d' % self.N)
@@ -432,6 +482,9 @@ class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
         ## Function to calculate performance metrics
         # Dropping zeros is intended to remove nightime solar.
 
+        """
+        Calculate performance metrics for this analysis.
+        """
         df = pd.DataFrame()
         df['models'] = self.models.keys()
         df['rmse']   = np.zeros(df.shape[0]) * np.nan
@@ -481,6 +534,9 @@ class SolarDisagg_IndvHome_Realtime(CSSS.CSSS):
 
 ## Function for a cyclic convolution filter, because apparantely there isn't one already in python
 def convolve_cyc(x, filt, left = True):
+    """
+    Perform convolve cyc processing for the wrapped solver workflow.
+    """
     if (len(filt) % 2) == 1:
         pad_l = np.int((len(filt)-1)/2)
         pad_r = pad_l

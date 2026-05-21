@@ -1,4 +1,7 @@
-'''Return wildfire risk for custom geographic regions in the US.'''
+"""
+Estimate wildfire risk for user-specified US geographic regions and package map overlays
+for OMF resilience workflows.
+"""
 import base64, requests, shutil
 from pathlib import Path
 from omf.models import __neoMetaModel__
@@ -62,6 +65,10 @@ def get_kmz_base64(forecast_time):
 	return encoded
 
 def work(modelDir, inputDict):
+	"""
+	Run the wildfire anticipation model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	forecast_time = int(inputDict.get('forecastTimeSelect', '0'))
 	geojson_input = inputDict.get('geojsonInput', '')
@@ -101,6 +108,10 @@ def work(modelDir, inputDict):
 	return outData
 
 def new(modelDir):
+	"""
+	Create a new wildfire anticipation model instance with default inputs for the OMF
+	interface.
+	"""
 	defaultInputs = {
 		'modelType': modelName
     }
@@ -109,6 +120,9 @@ def new(modelDir):
 
 def _tests():
     # Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

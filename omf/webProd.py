@@ -1,4 +1,6 @@
-''' OMF production web server.'''
+"""
+Configure the production OMF web service entrypoint around the shared web application.
+"""
 import omf, os, web, logging
 from subprocess import Popen
 
@@ -9,10 +11,16 @@ reApp = web.Flask('OMFR')
 
 @reApp.route('/')
 def index():
+	"""
+	Perform index processing for OMF helper-library workflows.
+	"""
 	return 'NA'
 
 @reApp.before_request
 def before_request():
+	"""
+	Perform before request processing for OMF helper-library workflows.
+	"""
 	if web.request.url.startswith('http://'):
 		url = web.request.url.replace('http://', 'https://', 1)
 		code = 301

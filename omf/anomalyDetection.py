@@ -1,4 +1,7 @@
-''' Functions to detect anomalies in timeseries data (usually meter data).'''
+"""
+Provide reusable anomaly-detection algorithms for demand, meter, and other time-series
+data used by OMF models.
+"""
 import os
 from os.path import join as pJoin
 import numpy as np
@@ -8,6 +11,9 @@ from omf.forecast import suppress_stdout_stderr
 
 def train_prophet(df, modelDir, confidence=0.99):
 	# train and cache into modelDir
+	"""
+	Perform train prophet processing for OMF helper-library workflows.
+	"""
 	from prophet import Prophet
 	m = Prophet(
 		yearly_seasonality=True, daily_seasonality=True, interval_width=confidence
@@ -28,6 +34,9 @@ def train_prophet(df, modelDir, confidence=0.99):
 
 def prophet(df, modelDir, confidence=0.99, cached=""):
 	# load cached df if exists, or call train_prophet
+	"""
+	Perform prophet processing for OMF helper-library workflows.
+	"""
 	if cached and os.path.isfile(pJoin(modelDir, cached)):
 		forecast = pd.read_csv(pJoin(modelDir, cached))
 	else:
@@ -41,6 +50,9 @@ def prophet(df, modelDir, confidence=0.99, cached=""):
 	return forecast
 
 def elliptic_envelope(df, modelDir, norm_confidence=0.95):
+	"""
+	Perform elliptic envelope processing for OMF helper-library workflows.
+	"""
 	from sklearn.covariance import EllipticEnvelope
 	from scipy.stats import normaltest
 	if "ds" in df.columns:

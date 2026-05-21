@@ -1,4 +1,9 @@
-''' Gives users the expected financial output of a PV system based on its costs and the amount energy it will likely produce. '''
+"""
+The Solar Financial model gives users the expected financial output of a PV system based
+on its costs and the amount energy it will likely produce. The model uses pvWatts, an
+NREL model, to calculate how much energy the solar system will produce and the user’s
+assumptions about the price of installing and maintaining the array.
+"""
 
 import json, shutil, datetime as dt
 from os.path import join as pJoin
@@ -270,6 +275,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

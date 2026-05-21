@@ -1,5 +1,6 @@
 """
-Collection of sandia codes for model free hosting capacity
+Run Sandia model-free photovoltaic hosting-capacity analysis from AMI and feeder
+metadata.
 """
 
 import time

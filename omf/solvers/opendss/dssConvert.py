@@ -1,3 +1,7 @@
+"""
+Convert feeder models between OpenDSS, GridLAB-D, and OMF tree representations.
+"""
+
 # Prereq: `pip install 'git+https://github.com/NREL/ditto.git@master#egg=ditto[all]'`
 import os
 import json
@@ -346,6 +350,9 @@ def dssToTree(pathToDssOrString, is_path=True):
 	return list(contents.values())
 
 def treeToDss(treeObject, outputPath):
+	"""
+	Perform tree to dss processing for the wrapped solver workflow.
+	"""
 	outFile = open(outputPath, 'w')
 	for ob in treeObject:
 		line = ob['!CMD']
@@ -829,6 +836,9 @@ def evilGldTreeToDssTree(evil_gld_tree):
 	return dssTree
 
 def evilToOmd(evilTree, outPath):
+	"""
+	Perform evil to omd processing for the wrapped solver workflow.
+	"""
 	omdStruct = dict(newFeederWireframe)
 	omdStruct['syntax'] = 'DSS'
 	omdStruct['tree'] = evilTree
@@ -1056,6 +1066,9 @@ def _transformerDssWdgToArrayFormat_toBeTested(opendss_path, out_path):
 		outfile.write(outStr)
 
 def _testsFull():
+	"""
+	Internal helper for dss convert tests full processing.
+	"""
 	from omf.solvers.opendss import getVoltages, voltageCompare
 	import pandas as pd
 	from omf import distNetViz

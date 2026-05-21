@@ -1,3 +1,8 @@
+"""
+Estimate transformer-to-customer mappings from AMI voltage correlations and distance
+features.
+"""
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -368,6 +373,9 @@ def generate_connection_results_estimate(
 
 def Connection_adjustment_est(original_set, all_set, node_number, average_pc, Trans_num,coord,V):
 
+    """
+    Perform connection adjustment est processing for the wrapped solver workflow.
+    """
     cluster_set = []  # pre-result
     saved_cluster_sets = {}  # Store cluster_set for each cluster count
     while original_set:
@@ -609,6 +617,9 @@ def select_best_cluster(saved_cluster_sets, weights=(0.2, 0.2, 0.6)):
 
 def Connection_adjustment(original_set, all_set, node_number, average_pc, Trans_num, coord):
     # 
+    """
+    Perform connection adjustment processing for the wrapped solver workflow.
+    """
     cluster_set = []  # pre-result
     while original_set:
         # print(len(original_set))

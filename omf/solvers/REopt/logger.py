@@ -1,3 +1,7 @@
+"""
+Configure logging used by the OMF REopt API wrapper.
+"""
+
 import logging, tempfile
 
 """

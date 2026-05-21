@@ -1,4 +1,6 @@
-''' Graph the voltage drop on a feeder. '''
+"""
+The voltageDrop model runs loadflow to show system voltages at all nodes.
+"""
 import json, os, tempfile, shutil, csv, math, base64
 from os.path import join as pJoin
 import networkx as nx
@@ -655,6 +657,9 @@ def new(modelDir):
 	return creationCode
 
 def _testingPlot():
+	"""
+	Internal helper for voltage drop testing plot processing.
+	"""
 	PREFIX = omf.omfDir + '/scratch/CIGAR/'
 	# FNAME = 'test_base_R4-25.00-1.glm_CLEAN.glm'
 	FNAME = 'test_Exercise_4_2_1.glm'
@@ -672,6 +677,9 @@ def _testingPlot():
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

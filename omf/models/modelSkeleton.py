@@ -1,4 +1,7 @@
-''' A model skeleton for future models: Calculates the sum of two integers. '''
+"""
+Provide a minimal template model showing the OMF model lifecycle, metadata, defaults,
+and test hooks.
+"""
 
 import warnings
 # warnings.filterwarnings("ignore")
@@ -65,6 +68,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

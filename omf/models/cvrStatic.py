@@ -1,4 +1,8 @@
-''' Calculate CVR impacts using a targetted set of static loadflows. '''
+"""
+The cvrStatic model calculates the expected costs and benefits (including energy, loss,
+and peak reductions) for implementing conservation voltage reduction on a given feeder
+circuit. For a longer discussion on Load Profile Effects of CVR, click here.
+"""
 
 import json, os, shutil, math, base64, platform
 from copy import copy
@@ -435,6 +439,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

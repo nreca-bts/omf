@@ -1,3 +1,8 @@
+"""
+Wrap PowerModelsONM Julia workflows for distribution restoration and operational-network
+model studies.
+"""
+
 import subprocess
 import tempfile
 import os, platform, json, time
@@ -11,6 +16,9 @@ def check_instantiated():
 	return os.path.isfile(f'{thisDir}/instantiated.txt')
 
 def runCommands(commandList : list):
+	"""
+	Run the commands workflow and return its results.
+	"""
 	for x in commandList:
 		print(f'Running {x}')
 		os.system(x)
@@ -105,6 +113,9 @@ def install_onm(target : list = platform.system()):
 
 def build_settings_file(circuitPath='circuit.dss',settingsPath='settings.json', loadPrioritiesFile='', microgridTaggingFile='', max_switch_actions=1, vm_lb_pu=0.9, vm_ub_pu=1.1, sbase_default=1000.0, line_limit_mult='Inf', vad_deg=5.0):
 	#Check for load priorities input
+	"""
+	Build the settings file artifact used by this workflow.
+	"""
 	if loadPrioritiesFile: 
 		with open(loadPrioritiesFile) as loadPrioritiesJson:
 			loadPriorities = json.load(loadPrioritiesJson)
@@ -168,6 +179,9 @@ def build_settings_file(circuitPath='circuit.dss',settingsPath='settings.json', 
 
 def _build_settings_file_toBeTested(circuitPath='circuit.dss',settingsPath='settings.json', loadPrioritiesFile='', microgridTaggingFile='', max_switch_actions=1, vm_lb_pu=0.9, vm_ub_pu=1.1, sbase_default=1000.0, line_limit_mult='Inf', vad_deg=5.0):
 	#Check for load priorities input
+	"""
+	Internal helper for build settings file to be tested processing.
+	"""
 	if loadPrioritiesFile: 
 		with open(loadPrioritiesFile) as loadPrioritiesJson:
 			loadPriorities = json.load(loadPrioritiesJson)
@@ -231,6 +245,9 @@ def _build_settings_file_toBeTested(circuitPath='circuit.dss',settingsPath='sett
 
 def build_events_file(circuitPath='circuit.dss', eventsPath="events.json", custom_events='', default_switch_state='PMD.OPEN', default_switch_dispatchable='PMD.NO', default_switch_status='PMD.ENABLED'):
 	# For now, custom_events follows the already established schema in Julia Vector or Dicts format
+	"""
+	Build the events file artifact used by this workflow.
+	"""
 	if custom_events: 
 		with open(custom_events) as custom_events_file:
 			custom_events_data = custom_events_file.read()
@@ -257,6 +274,9 @@ def build_events_file(circuitPath='circuit.dss', eventsPath="events.json", custo
 
 def run_onm(circuitPath='circuit.dss', settingsPath='settings.json', outputPath="onm_out.json", eventsPath="events.json", faultsPath='', gurobi='false', verbose='true', fixSmallNumbers='true', applySwitchScores='true', skipList='["faults","stability"]', prettyPrint='true', optSwitchFormulation="lindistflow", optSwitchSolver="mip_solver", optSwitchAlgorithm="global", optSwitchProblem="block", optDispFormulation="lindistflow", optDispSolver="mip_solver", mip_solver_gap=0.05):
 	#TODO: allow arguments to function for the ones hardcoded!
+	"""
+	Run the onm workflow and return its results.
+	"""
 	juliaFileContents = f'''using PowerModelsONM; 
 		args = Dict{{String,Any}}( 
 			"network"=>"{circuitPath}", 
@@ -283,6 +303,9 @@ def run_onm(circuitPath='circuit.dss', settingsPath='settings.json', outputPath=
 
 def _run_onm_toBeTested(circuitPath='circuit.dss', settingsPath='settings.json', outputPath="onm_out.json", eventsPath="events.json", faultsPath='', gurobi='false', verbose='true', fixSmallNumbers='true', applySwitchScores='true', skipList='["faults","stability"]', prettyPrint='true', optSwitchFormulation="lindistflow", optSwitchSolver="mip_solver", optSwitchAlgorithm="global", optSwitchProblem="block", optDispFormulation="lindistflow", optDispSolver="mip_solver", mip_solver_gap=0.05):
 	#TODO: allow arguments to function for the ones hardcoded!
+	"""
+	Internal helper for run onm to be tested processing.
+	"""
 	juliaFileContents = f'''using PowerModelsONM; 
 		args = Dict{{String,Any}}( 
 			"network"=>"{circuitPath}", 

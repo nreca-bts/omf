@@ -1,7 +1,7 @@
-'''
-Pull weather data from various sources.
-Source options include NOAA's USCRN, Iowa State University's METAR, and Weather Underground (currently deprecated).
-'''
+"""
+Fetch, parse, cache, and convert weather observations and forecasts used by OMF load,
+solar, wind, and resilience models.
+"""
 
 
 import os, csv, re, json, sys
@@ -801,6 +801,9 @@ def create_tsv(data, radiation_type, site, year):
 			output.writerow(item)
 
 def get_radiation_data(radiation_type, site, year, out_file=None):
+	"""
+	Return the radiation data needed by this workflow.
+	"""
 	print("radiation found!")
 	'''Get solard or surfrad data. Optional export to csv with out_file option
 		Data is returned in a list w/ ~8760 elements. Each element is a dictionary
@@ -989,11 +992,17 @@ Station_Dict = {
 
 
 def _getUscrnData(year='2018', location='TX_Austin_33_NW', dataType="SOLARAD"):
+	"""
+	Internal helper for weather get uscrn data processing.
+	"""
 	ghiData = pullUscrn(year, location, dataType)
 	return ghiData
 
 #Standard positional arguments are for TX_Austin
 def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_pirateweather, units='si'):
+	"""
+	Internal helper for weather get pwcloud cover for year processing.
+	"""
 	cloudCoverByHour = {}
 	pressureByHour = {}
 	coords = '%0.2f,%0.2f' % (lat, lon)
@@ -1020,6 +1029,9 @@ def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key
 
 
 def _localized_datetime(datetime, timezone):
+    """
+    Internal helper for weather localized datetime processing.
+    """
     tz = pytz.timezone(timezone)
     if datetime.tzinfo is not None and datetime.utcoffset() is not None:
         return datetime.astimezone(tz)
@@ -1060,6 +1072,9 @@ def getSolarZenith(lat, lon, datetime, timezone):
 
 
 def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station='TX_Austin_33_NW', timezone='US/Central'):
+    """
+    Perform prepare prediction vectors processing for OMF helper-library workflows.
+    """
     cloudCoverData, pressureData = _getPWCloudCoverForYear(year, lat, lon)
     ghiData = _getUscrnData(year, station, dataType="SOLARAD")
     #for each 8760 hourly time slots, make a timestamp for each slot, look up cloud cover by that slot
@@ -1088,6 +1103,9 @@ def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station
     return input_array, ghiData, cosArray
 
 def predictNeuralNet(input_array, model_path):
+    """
+    Perform predict neural net processing for OMF helper-library workflows.
+    """
     import tensorflow.keras as keras #type: ignore
     model = keras.models.load_model(model_path)
     #Takes in numpy array of proper shape
@@ -1103,6 +1121,9 @@ def predictNeuralNet(input_array, model_path):
     return preds
 
 def get_synth_dhi_dni(uscrn_station='TX_Austin_33_NW', year='2020'):
+    """
+    Return the synth dhi dni needed by this workflow.
+    """
     lat = Station_Dict[uscrn_station][0]
     lon = Station_Dict[uscrn_station][1]
     timezone = Station_Dict[uscrn_station][2]
@@ -1120,6 +1141,9 @@ def get_synth_dhi_dni(uscrn_station='TX_Austin_33_NW', year='2020'):
 
 
 def easy_solar_tests(uscrn_station='TX_Austin_33_NW'):
+	"""
+	Perform easy solar tests processing for OMF helper-library workflows.
+	"""
 	print("********EASY SOLAR TEST STARTED************")
 	print(get_synth_dhi_dni())
 	print("Easy Solar Test Suceeded.........")
@@ -1140,6 +1164,9 @@ Single Point Unsummarized Data: Returns DWML-encoded NDFD data for a point
 """
 #Works
 def _singlePointDataQuery(lat1, lon1, product, begin, end, Unit='m', optional_params=['wspd', 'wdir']):
+	"""
+	Internal helper for weather single point data query processing.
+	"""
 	params = {
 		'lat':lat1,
 		'lon':lon1,
@@ -1165,6 +1192,9 @@ def _singlePointDataQuery(lat1, lon1, product, begin, end, Unit='m', optional_pa
 
 def _subGrid(centerPointLat, centerPointLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit='m', optional_params=['wspd', 'wdir']):
 	#Split into 3 dictionaries, each are encoded in a different manner
+	"""
+	Internal helper for weather sub grid processing.
+	"""
 	params = {
 		'centerPointLat':centerPointLat,
 		'centerPointLon':centerPointLon,
@@ -1194,11 +1224,17 @@ def _subGrid(centerPointLat, centerPointLon, distanceLat, distanceLon, resolutio
 
 #Main URL path
 def _ndfd_url(path=''):
+    """
+    Internal helper for weather ndfd url processing.
+    """
     return 'http://www.weather.gov/forecasts/xml/sample_products/browser_interface/ndfdXMLclient.php?' + path
 
 
 #This function acts as a general xml parser
 def _strip_xml_namespace(tag):
+	"""
+	Internal helper for weather strip xml namespace processing.
+	"""
 	if '}' in tag:
 		return tag.split('}', 1)[1]
 	return tag
@@ -1231,10 +1267,16 @@ def _xml_element_to_dict(element):
 
 
 def _generalParseXml(data):
+	"""
+	Internal helper for weather general parse xml processing.
+	"""
 	root = ET.fromstring(data.content)
 	return {_strip_xml_namespace(root.tag): _xml_element_to_dict(root)}
 
 def _run_ndfd_request(q):
+	"""
+	Internal helper for weather run ndfd request processing.
+	"""
 	print(_ndfd_url(q))
 	resp = requests.get(_ndfd_url(q))
 	if resp.status_code != 200:
@@ -1246,6 +1288,9 @@ def _run_ndfd_request(q):
 
 #Gets predictions from current moment to 10 weeks in future. Data not avaliable for past dates, not avaliable for too long in future
 def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), product='time-series', unit='m'):
+	"""
+	Return the ndfd data needed by this workflow.
+	"""
 	query = _singlePointDataQuery(lat1, lon1, product, begin, end, unit, optional_params)
 	res = _run_ndfd_request(query)
 	data = _generalParseXml(res)
@@ -1253,6 +1298,9 @@ def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(dt.datetime.no
 
 #Wrapper to call _subGrid, return parsed dict
 def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product='time-series', begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), Unit='m', optional_params=['critfireo', 'dryfireo']):
+	"""
+	Return the sub grid data needed by this workflow.
+	"""
 	data = _run_ndfd_request(_subGrid(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit, optional_params))
 	outData = _generalParseXml(data)
 	return outData
@@ -1266,17 +1314,26 @@ def lat_lon_diff(lat1, lat2, lon1, lon2):
 
 # Getting the data
 def api_request( request, target ):
+	"""
+	Perform api request processing for OMF helper-library workflows.
+	"""
 	import cdsapi # type: ignore
 	dataset = "reanalysis-era5-single-levels"
 	client = cdsapi.Client()
 	client.retrieve(dataset, request=request, target=target)
 
 async def async_api_request(request, target):
+	"""
+	Perform async api request processing for OMF helper-library workflows.
+	"""
 	import asyncio
 	await asyncio.to_thread(api_request, request, target)
 
 # Default year if not given is last year
 async def format_request(variable="default", year:str=str(dt.date.today().year - 1), latitude=None, longitude=None, dataDir="./"):
+	"""
+	Perform format request processing for OMF helper-library workflows.
+	"""
 	import asyncio
 	request_params = { 
 		"data_format": "netcdf",
@@ -1363,6 +1420,9 @@ async def format_request(variable="default", year:str=str(dt.date.today().year -
 
 # This is the function to call to trigger getting the data
 def get_cds_coper_data(latitude, longitude, year, modelDir):
+	"""
+	Return the cds coper data needed by this workflow.
+	"""
 	import asyncio
 	requestSuccess = False
 
@@ -1436,6 +1496,9 @@ def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDat
 
 # NSRDB
 def nsrbd_latlon_to_wkt(longitude, latitude):
+    """
+    Perform nsrbd latlon to wkt processing for OMF helper-library workflows.
+    """
     if not (-90 <= latitude <= 90):
         raise ValueError('invalid latitude')
     if not (-180 <= longitude <= 180):
@@ -1666,6 +1729,9 @@ def _tests():
 	# except:
 	# 	e = sys.exc_info()[0]
 	# 	print(e)
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	print("testing finished")
 	
 

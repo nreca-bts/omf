@@ -1,4 +1,6 @@
-'''Helpers for installing and running SPLAT!.'''
+"""
+Install and run SPLAT! radio-propagation studies for OMF RF coverage models.
+"""
 
 import os
 import platform
@@ -12,12 +14,21 @@ _SPLAT_AUTO_INSTALL_ENV = "OMF_SPLAT_AUTO_INSTALL"
 _splat_install_checked = False
 
 def _command_on_path(command):
+	"""
+	Internal helper for command on path processing.
+	"""
 	return shutil.which(command) is not None
 
 def _splat_available():
+	"""
+	Internal helper for splat available processing.
+	"""
 	return _command_on_path("splat") and _command_on_path("srtm2sdf")
 
 def _run_installer_command(command, cwd=None):
+	"""
+	Internal helper for run installer command processing.
+	"""
 	try:
 		return subprocess.call(command, cwd=cwd) == 0
 	except Exception as err:
@@ -25,12 +36,18 @@ def _run_installer_command(command, cwd=None):
 		return False
 
 def _download(url, destination):
+	"""
+	Internal helper for download processing.
+	"""
 	opener = urllib.request.build_opener()
 	opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 	urllib.request.install_opener(opener)
 	urllib.request.urlretrieve(url, destination)
 
 def _linux_distro_text():
+	"""
+	Internal helper for linux distro text processing.
+	"""
 	try:
 		with open("/etc/os-release") as os_release:
 			return os_release.read().lower()
@@ -38,6 +55,9 @@ def _linux_distro_text():
 		return ""
 
 def _install_splat_on_macos():
+	"""
+	Internal helper for install splat on macos processing.
+	"""
 	with tempfile.TemporaryDirectory() as temp_dir:
 		archive = pJoin(temp_dir, "splat-1.4.2-osx.tgz")
 		_download("https://www.qsl.net/kd2bd/splat-1.4.2-osx.tgz", archive)
@@ -81,6 +101,9 @@ def _install_splat_if_missing():
 		print("SPLAT! install did not add `splat` and `srtm2sdf` to PATH.")
 
 def _require_command(command):
+	"""
+	Internal helper for require command processing.
+	"""
 	if not _command_on_path(command):
 		raise RuntimeError(
 			f"SPLAT! command `{command}` was not found on PATH. "
@@ -88,10 +111,16 @@ def _require_command(command):
 		)
 
 def run_srtm2sdf(hgt_file, cwd=None):
+	"""
+	Run the srtm2sdf workflow and return its results.
+	"""
 	_require_command("srtm2sdf")
 	return subprocess.Popen(["srtm2sdf", hgt_file], cwd=cwd).wait()
 
 def run(args, cwd=None):
+	"""
+	Run the wrapped solver workflow and return its results or status.
+	"""
 	_require_command("splat")
 	return subprocess.Popen(["splat"] + args, cwd=cwd).wait()
 

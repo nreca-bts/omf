@@ -1,4 +1,7 @@
-''' Calculate optimal restoration scheme for distribution system with multiple microgrids. '''
+"""
+omf.models.restoration is a new model currently under development. Check back in the
+coming months for updates!
+"""
 import re, json, os, shutil, csv, math, io
 from os.path import join as pJoin
 import pandas as pd
@@ -2098,6 +2101,10 @@ def sanityCheck(dssLocation):
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the restoration model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	# Write in the feeder
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
@@ -2359,6 +2366,9 @@ def new(modelDir):
 def _debugging():
 	# outageCostAnalysis(omf.omfDir + '/static/publicFeeders/Olin Barre LatLon.omd', omf.omfDir + '/static/testFiles/smartswitch_Outages.csv', None, '60', '1')
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# buildCustomSettings(pJoin(omf.omfDir,'static','testFiles','nreca1824events.csv'),pJoin(omf.omfDir,'static','testFiles','nreca1824_dwp.omd'),pJoin(modelLoc,'customSettings.json'))
 	# Blow away old test results if necessary.

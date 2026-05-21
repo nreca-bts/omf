@@ -1,4 +1,7 @@
-''' Functions for manipulating electrical transmission network models. '''
+"""
+Read, write, lay out, and convert OMF transmission-network models, including CIM and
+pandapower representations.
+"""
 
 import os, json, tempfile, shutil, fileinput, webbrowser
 import networkx as nx
@@ -180,9 +183,15 @@ def _pandapower_net_to_omt(pp_net):
 	return network
 
 def _matpower_row_to_dict(row, keys):
+	"""
+	Internal helper for transmission matpower row to dict processing.
+	"""
 	return {key: _matpower_value_to_string(row[i]) if i < len(row) else '0' for i, key in enumerate(keys)}
 
 def _matpower_value_to_string(value):
+	"""
+	Internal helper for transmission matpower value to string processing.
+	"""
 	try:
 		numeric_value = float(value)
 	except (TypeError, ValueError):
@@ -217,6 +226,9 @@ def _add_pandapower_bus_coordinates(pp_net, network):
 				break
 
 def _extract_pandapower_point(raw_geo):
+	"""
+	Internal helper for transmission extract pandapower point processing.
+	"""
 	if raw_geo is None or raw_geo != raw_geo:
 		return None
 	try:
@@ -297,10 +309,16 @@ def netToMat(inNet, networkName):
 	return matStr
 
 def get_file_contents(filepath):
+	"""
+	Return the file contents needed by this workflow.
+	"""
 	with open(filepath) as f:
 		return f.read()
 
 def get_abs_path(relative_path):
+	"""
+	Return the abs path needed by this workflow.
+	"""
 	return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
 def viz(omt_filepath, output_path=None, output_name="viewer.html", open_file=True):
@@ -336,6 +354,9 @@ def viz(omt_filepath, output_path=None, output_name="viewer.html", open_file=Tru
 
 def _tests():
 	# Parse mat to dictionary.
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	networkName = 'case9'
 	netPath = os.path.join(omf.omfDir, 'static', 'testFiles', networkName + '.m')
 	print('NETPATH', netPath)

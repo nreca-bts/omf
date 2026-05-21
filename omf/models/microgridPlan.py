@@ -1,4 +1,7 @@
-''' A model skeleton for future models: Calculates the sum of two integers. '''
+"""
+Plan microgrid portfolios and summarize load, generation, cost, and resilience tradeoffs
+for candidate sites.
+"""
 
 import warnings
 # warnings.filterwarnings("ignore")
@@ -327,12 +330,18 @@ def new(modelDir):
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
 def display_prev_results():
+	"""
+	Perform display prev results processing for the microgrid plan model.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	__neoMetaModel__.renderAndShow(modelLoc)
 
 @neoMetaModel_test_setup
 def _debugging():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

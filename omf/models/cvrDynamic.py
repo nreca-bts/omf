@@ -1,4 +1,9 @@
-''' Calculate CVR impacts using a targetted set of dynamic loadflows. '''
+"""
+The cvrDynamic model calculates the expected costs and benefits for implementing
+conservation voltage reduction on a given feeder circuit. Compared to the cvrStatic
+model, which gives output at one point in time, the dynamic model gives output over a
+period of time.
+"""
 
 import json, os, shutil, math, calendar
 from datetime import datetime as dt, timedelta
@@ -522,6 +527,9 @@ def returnMag(complexStr):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

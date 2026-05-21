@@ -1,4 +1,9 @@
-''' Powerflow results for multiple Gridlab instances. '''
+"""
+The gridlabMulti model allows you to run multiple instances of GridLAB-D and compare
+their output visually. This allows the user to change a feeder (typically to simulate
+installing a new technology) and then see how that change impacts feeder power flow. The
+model also performs a simple cost/benefit analysis.
+"""
 
 import json, os, sys, tempfile, webbrowser, time, shutil, datetime, subprocess, math, multiprocessing, traceback
 from os.path import join as pJoin
@@ -490,6 +495,9 @@ def new(modelDir):
 
 def _tests():
 	# Variables
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(_omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

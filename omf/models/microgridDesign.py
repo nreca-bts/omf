@@ -1,4 +1,9 @@
-''' Design microgrid with optimal generation mix for economics and/or reliability. '''
+"""
+The multiSiteMicrogridDesign model uses a 1yr load profile to determine the most
+economical combination of solar, wind, and storage technologies to use in a microgrid.
+The model also provides basic resiliency analysis. The financial and resiliency
+optimization is performed using the NREL reOpt API
+"""
 import warnings, csv, json
 from io import StringIO
 from pathlib import Path
@@ -1188,6 +1193,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 		# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

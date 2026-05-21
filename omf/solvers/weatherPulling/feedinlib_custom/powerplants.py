@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 
 """
+Adapt feedinlib power-plant classes for OMF renewable-resource feed-in workflows.
+
 Power plant classes for specific weather dependent renewable energy resources.
 
-SPDX-FileCopyrightText: Birgit Schachler
-SPDX-FileCopyrightText: Uwe Krien <krien@uni-bremen.de>
-SPDX-FileCopyrightText: Stephan Günther
-SPDX-FileCopyrightText: Lucas Schmeling
-SPDX-FileCopyrightText: Keno Oltmanns
-SPDX-FileCopyrightText: Patrik Schönfeldt <patrik.schoenfeldt@dlr.de>
+SPDX-FileCopyrightText: Birgit Schachler SPDX-FileCopyrightText: Uwe Krien
+<krien@uni-bremen.de> SPDX-FileCopyrightText: Stephan Günther SPDX-FileCopyrightText:
+Lucas Schmeling SPDX-FileCopyrightText: Keno Oltmanns SPDX-FileCopyrightText: Patrik
+Schönfeldt <patrik.schoenfeldt@dlr.de>
 
 SPDX-License-Identifier: MIT
 
-Power plant classes act as data holders for the attributes making up a
-power plant's specification. These classes should only contain little logic.
-Computing the actual feed-in provided by a power plant is done by the models
-(see models.py). The model the feed-in is calculated with is specified in
-the `model` attribute.
+Power plant classes act as data holders for the attributes making up a power plant's
+specification. These classes should only contain little logic. Computing the actual
+feed-in provided by a power plant is done by the models (see models.py). The model the
+feed-in is calculated with is specified in the `model` attribute.
 """
 
 from abc import ABC
@@ -77,6 +76,7 @@ class Base(ABC):
 
     def __init__(self, **attributes):
         """
+        Internal helper for powerplants init processing.
         """
         model = attributes.pop("model")
         if isinstance(model, type):
@@ -218,6 +218,7 @@ class WindPowerPlant(Base):
 
     def __init__(self, model=WindpowerlibTurbine, **attributes):
         """
+        Internal helper for powerplants init processing.
         """
         super().__init__(model=model, **attributes)
 

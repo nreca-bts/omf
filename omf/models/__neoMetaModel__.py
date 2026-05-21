@@ -1,4 +1,7 @@
-""" Common functions for all models """
+"""
+Provide shared lifecycle, metadata, rendering, process, and filesystem helpers used by
+OMF model modules.
+"""
 
 import json, os, tempfile, webbrowser, math, shutil, datetime, multiprocessing, traceback, hashlib, re, pathlib
 from os.path import join as pJoin
@@ -350,6 +353,9 @@ def roundSig(x, sig=3):
 	else: return roundPosSig(x, sig)
 
 def safe_assert(bool_statement, error_str, keep_running):
+	"""
+	Perform safe assert processing for the neo meta model model.
+	"""
 	if keep_running:
 		if not bool_statement:
 			print(error_str)
@@ -437,6 +443,9 @@ def csvValidateAndLoad(file_input, modelDir, header=0, nrows=8760, ncols=1, dtyp
 
 
 def neoMetaModel_test_setup(function):
+	"""
+	Prepare a model test to run through the shared OMF model lifecycle.
+	"""
 	@wraps(function)
 	def test_setup_wrapper(*args, **kwargs):
 		heavyProcessing.__defaults__ = (True,)

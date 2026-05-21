@@ -1,82 +1,77 @@
 # -*- coding: utf-8 -*-
 """
+Provide sample scripts for Sandia sensor-based phase identification.
+
 BSD 3-Clause License
 
-Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain rights in this software.
+Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under
+the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain
+rights in this software.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright notice, this   list of
+conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+* Redistributions in binary form must reproduce the above copyright notice,   this list
+of conditions and the following disclaimer in the documentation   and/or other materials
+provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
+* Neither the name of the copyright holder nor the names of its   contributors may be
+used to endorse or promote products derived from   this software without specific prior
+written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
 # Input data
 
-voltageInputCust: numpy array of float (measurements,customers) - the AMI
-   voltage timeseries for each customer.  Each column is the timeseries for 
-   a single customer.  The units should be in volts.  
-   
-voltageInputSens: numpy array of float (measurements, sensor datastreams) - the
-   sensor voltage timeseries.  Each column should be a sensor datastream with
-   measurements in volts.  The length of the measurements dimension should
-   match in length and timestamp with the voltageInputCust field.  Each data
-   stream will correspond to one measurement field and phase for a particular
-   sensor.  Currently our work is using the average voltage field from the
-   sensors.  For example, if there are 10 sensors in the system, and the 
-   average voltage field is used, each sensor will have measurements from each
-   of the three phases A,B,C.  Thus the length of the sensor datastreams 
-   dimension will be 30.  Our work utilized IntelliRupters which take 
-   measurements on either side of the device, thus it might be expedient to 
-   downselect to one of the two datastreams, as the two datastreams will 
-   either be repeated (closed devices) or measuring two different sections of 
-   the grid (open devices).  
+voltageInputCust: numpy array of float (measurements,customers) - the AMI    voltage
+timeseries for each customer.  Each column is the timeseries for     a single customer.
+The units should be in volts.       voltageInputSens: numpy array of float
+(measurements, sensor datastreams) - the    sensor voltage timeseries.  Each column
+should be a sensor datastream with    measurements in volts.  The length of the
+measurements dimension should    match in length and timestamp with the voltageInputCust
+field.  Each data    stream will correspond to one measurement field and phase for a
+particular    sensor.  Currently our work is using the average voltage field from the
+sensors.  For example, if there are 10 sensors in the system, and the     average
+voltage field is used, each sensor will have measurements from each    of the three
+phases A,B,C.  Thus the length of the sensor datastreams     dimension will be 30.  Our
+work utilized IntelliRupters which take     measurements on either side of the device,
+thus it might be expedient to     downselect to one of the two datastreams, as the two
+datastreams will     either be repeated (closed devices) or measuring two different
+sections of     the grid (open devices).
 
-sensPhases: numpy array of int (1,sensor datastreams) - the phase labels of
-    the sensors in integer form.  1 - Phase A, 2 - Phase B, 3 - Phase C.  The
-    number of sensor datastreams should match the dimensions and indexing of 
-    axis 1 in voltageInputSens
-    
-sensIDs: list of str - the IDs for the sensors in string form.  The length of 
-    this list should match the length and indexing of the sensor datastreams
-    dimension of voltageInputSens and sensPhases.  (The IDs will be repeated
-    for the different phase datastreams of the same sensor)
-    
-phaseLabelsTrue: numpy array of int (1,customers) - the ground truth phase 
-    labels of each customer in integer form.  1 - Phase A, 2 - Phase B, 
-    3 - Phase C.  The length of the array should match in length and indexing 
-    with the customer dimension of voltageInputCust
+sensPhases: numpy array of int (1,sensor datastreams) - the phase labels of     the
+sensors in integer form.  1 - Phase A, 2 - Phase B, 3 - Phase C.  The     number of
+sensor datastreams should match the dimensions and indexing of      axis 1 in
+voltageInputSens      sensIDs: list of str - the IDs for the sensors in string form.
+The length of      this list should match the length and indexing of the sensor
+datastreams     dimension of voltageInputSens and sensPhases.  (The IDs will be repeated
+for the different phase datastreams of the same sensor)      phaseLabelsTrue: numpy
+array of int (1,customers) - the ground truth phase      labels of each customer in
+integer form.  1 - Phase A, 2 - Phase B,      3 - Phase C.  The length of the array
+should match in length and indexing      with the customer dimension of voltageInputCust
 
-phaseLabelsErrors: numpy array of int (1,customers) - the original utility phase 
-    labels of each customer in integer form.  1 - Phase A, 2 - Phase B, 
-    3 - Phase C.  The length of the array should match in length and indexing 
-    with the customer dimension of voltageInputCust.  These labels are assumed
-    to have erros in the labeling.  In the sampel data 18 customers have 
-    labels which are different from the labels in phaseLabelsTrue
-    
-custIDInput: list of str (customers) - the customer IDs in string form for
-    each customer.  This list should correspond in length and indexing with
-    the customer dimension in voltageInputCust and phaseLabelsInput
+phaseLabelsErrors: numpy array of int (1,customers) - the original utility phase
+labels of each customer in integer form.  1 - Phase A, 2 - Phase B,      3 - Phase C.
+The length of the array should match in length and indexing      with the customer
+dimension of voltageInputCust.  These labels are assumed     to have erros in the
+labeling.  In the sampel data 18 customers have      labels which are different from the
+labels in phaseLabelsTrue      custIDInput: list of str (customers) - the customer IDs
+in string form for     each customer.  This list should correspond in length and
+indexing with     the customer dimension in voltageInputCust and phaseLabelsInput
+
 
 """
 

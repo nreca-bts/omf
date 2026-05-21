@@ -1,4 +1,7 @@
-''' Geospatial analysis of circuit models.'''
+"""
+Perform geospatial operations for OMF circuits, including coordinate conversion, feeder
+shapes, GeoJSON export, and geographic lookup helpers.
+"""
 import json, os, shutil, math, tempfile, random, webbrowser, re
 import pathlib
 from os.path import join as pJoin
@@ -27,6 +30,9 @@ shortToEpsg = {"AK_1":26931,"AK_2":26932,"AK_3":26933,"AK_4":26934,"AK_5":26935,
 epsgToShort = {v: k for k, v in shortToEpsg.items()}
 
 def statePlaneToLatLon(easting, northing, epsg = None):
+	"""
+	Perform state plane to lat lon processing for OMF helper-library workflows.
+	"""
 	if not epsg:
 		# Center of the USA default
 		epsg = 26978
@@ -37,6 +43,9 @@ def statePlaneToLatLon(easting, northing, epsg = None):
 	return (lat, lon)
 
 def latLonToStatePlane(lat, lon, epsg = None):
+	"""
+	Perform lat lon to state plane processing for OMF helper-library workflows.
+	"""
 	if not epsg:
 		# Center of the USA default
 		epsg = 26978
@@ -405,6 +414,9 @@ def serveTiles(pathToTiles):
 
 
 def convertOmd(pathToOmdFile):
+	"""
+	Convert omd data between solver or OMF representations.
+	"""
 	with open(pathToOmdFile) as inFile:
 		tree = json.load(inFile)['links']
 	nxG = nx.Graph()
@@ -1311,6 +1323,9 @@ def _validate_transform_wgs84_coordinates_arguments(center, vertical_translation
 	return (center, vertical_translation, horizontal_translation, rotation)
 
 def get_component_featurecollection():
+	"""
+	Return the component featurecollection needed by this workflow.
+	"""
 	feature_collection = {'type': 'FeatureCollection', 'features': []}
 	# - This isn't an actual tree key, but it's needed to insert components into a FeatureMap in the front-end
 	tree_key = 1
@@ -1348,6 +1363,9 @@ def get_component_featurecollection():
 
 
 def _testFixedLatLonOmd():
+	"""
+	Internal helper for geo test fixed lat lon omd processing.
+	"""
 	import csv
 	omdFilePath = pJoin(__neoMetaModel__._omfDir, 'static', 'testFiles', 'iowa240_dwp_22.dss.omd')
 	coordFilePath = pJoin(__neoMetaModel__._omfDir, 'static', 'testFiles', 'BuscoordsLatLon.csv') #coordinate file is csv with each row containing busName, yValue(longitude), xValue(latitude)
@@ -1379,6 +1397,9 @@ def _tests():
 	# print (lat, lon) #(37.37267827914456, -89.89482331256504)
 	# e2, n2 = latLonToStatePlane(lat, lon, epsg=2205)
 	# print (e2, n2) # (249.24197527189972, 1186.1488466408398)
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	prefix = pathlib.Path(__file__).parent
 	map_omd(prefix / 'static/publicFeeders/Olin Barre LatLon.omd', './', open_browser=True)
 	# viz(str(prefix / 'static/publicFeeders/Olin Barre LatLon.omd'))

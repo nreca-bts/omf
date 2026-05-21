@@ -1,4 +1,8 @@
-""" Anomaly detection. """
+"""
+The various anomaly detectors in anomalyDetector take in some combination of forecasted
+temperature, date, and historical demand data to flag demand data-points as anomalously
+high or low.
+"""
 import sys, shutil, csv, hashlib, plotly, json
 from os.path import isdir, join as pJoin
 from io import StringIO
@@ -554,6 +558,9 @@ def new(modelDir):
 
 
 def _debugging():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(
 		__neoMetaModel__._omfDir,
 		"data",

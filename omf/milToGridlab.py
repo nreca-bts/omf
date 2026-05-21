@@ -1,4 +1,7 @@
-''' Convert a Milsoft Windmil feeder model into an OMF-compatible version. '''
+"""
+Convert Milsoft WindMil feeder exports into OMF and GridLAB-D circuit models, with
+repair helpers for common data-quality issues.
+"""
 import os, csv, random, math, copy, locale, json, traceback, shutil, time, datetime, warnings, gc, platform
 from os.path import join as pJoin
 from io import StringIO
@@ -1716,12 +1719,18 @@ default_equipment = {
 }
 
 def _writeResultsCsv(testOutput, outName):
+	"""
+	Internal helper for mil to gridlab write results csv processing.
+	"""
 	with open(outName, 'w', newline='') as f:
 		w = csv.DictWriter(f, testOutput[0].keys(), delimiter=',', lineterminator='\n')
 		w.writeheader()
 		w.writerows(testOutput)
 
 def voltDistribution(pathToGlm, pathToVoltdumpCsv):
+	"""
+	Perform volt distribution processing for OMF helper-library workflows.
+	"""
 	with open(pathToGlm, 'r') as f:
 		tree = omf.feeder.parse(pathToGlm)
 	ntk = getNamesToKeys(tree)
@@ -1755,6 +1764,9 @@ def voltDistribution(pathToGlm, pathToVoltdumpCsv):
 
 def crappyhist(a, path, bins=50, width=80):
 	# from @tammoippen on github
+	"""
+	Perform crappyhist processing for OMF helper-library workflows.
+	"""
 	a = np.asarray(a)
 	h, b = np.histogram(a, bins)
 	with open(path, 'w') as f:
@@ -1823,6 +1835,9 @@ def _tests(
 	voltdumpCsvName='{}_VD.csv',
 	logAllWarnings=False
 ):
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	if testAttachments.get('climate.tmy2') is None:
 		with open(omf.omfDir + '/data/Climate/KY-LEXINGTON.tmy2') as f:
 			testAttachments['climate.tmy2'] = f.read()

@@ -1,4 +1,7 @@
-''' Web server for model-oriented OMF interface. '''
+"""
+Serve the OMF web application, including users, feeders, model runs, file management,
+API routes, and deployment utilities.
+"""
 
 import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii, gzip, collections
 from contextlib import contextmanager
@@ -60,6 +63,9 @@ OMF_STATS_MAX_LOG_LINES = 1000
 
 
 def _add_vary_header(response, value):
+	"""
+	Internal helper for web add vary header processing.
+	"""
 	current_vary = response.headers.get('Vary')
 	if not current_vary:
 		response.headers['Vary'] = value
@@ -69,6 +75,9 @@ def _add_vary_header(response, value):
 
 
 def _is_compressible_mimetype(mimetype):
+	"""
+	Internal helper for web is compressible mimetype processing.
+	"""
 	return (
 		mimetype.startswith('text/') or
 		mimetype in COMPRESS_MIMETYPES or
@@ -78,6 +87,9 @@ def _is_compressible_mimetype(mimetype):
 
 
 def _bounded_log_line_count():
+	"""
+	Internal helper for web bounded log line count processing.
+	"""
 	try:
 		line_count = int(request.args.get('lines', OMF_STATS_DEFAULT_LOG_LINES))
 	except (TypeError, ValueError):
@@ -86,6 +98,9 @@ def _bounded_log_line_count():
 
 
 def _tail_log_file(log_name, line_count):
+	"""
+	Internal helper for web tail log file processing.
+	"""
 	log_path = os.path.join(_omfDir, log_name)
 	log_info = {
 		'name': log_name,
@@ -111,6 +126,9 @@ def _tail_log_file(log_name, line_count):
 
 
 def _get_omf_stats_logs():
+	"""
+	Internal helper for web get omf stats logs processing.
+	"""
 	line_count = _bounded_log_line_count()
 	return {
 		'line_count': line_count,
@@ -146,29 +164,50 @@ def gzip_response(response):
 
 
 class _AnonymousUser:
+	"""
+	Represent  anonymous user data used by this OMF workflow.
+	"""
 	username = None
 	is_authenticated = False
 	is_active = False
 	is_anonymous = True
 
 	def get_id(self):
+		"""
+		Return the id needed by this workflow.
+		"""
 		return None
 
 
 class _LoginManager:
+	"""
+	Represent  login manager data used by this OMF workflow.
+	"""
 	def __init__(self):
+		"""
+		Internal helper for web init processing.
+		"""
 		self.login_view = None
 		self._user_callback = None
 
 	def init_app(self, app):
+		"""
+		Implement init app behavior for _LoginManager instances.
+		"""
 		app.after_request(_update_remember_cookie)
 
 	def user_loader(self, callback):
+		"""
+		Implement user loader behavior for _LoginManager instances.
+		"""
 		self._user_callback = callback
 		return callback
 
 
 def _login_cookie_secret():
+	"""
+	Internal helper for web login cookie secret processing.
+	"""
 	secret = app.secret_key or ''
 	if isinstance(secret, bytes):
 		return secret
@@ -176,12 +215,18 @@ def _login_cookie_secret():
 
 
 def _encode_remember_cookie(user_id):
+	"""
+	Internal helper for web encode remember cookie processing.
+	"""
 	payload = base64.urlsafe_b64encode(str(user_id).encode('utf-8')).decode('ascii').rstrip('=')
 	signature = hmac.new(_login_cookie_secret(), payload.encode('ascii'), hashlib.sha512).hexdigest()
 	return payload + '|' + signature
 
 
 def _decode_remember_cookie(cookie_value):
+	"""
+	Internal helper for web decode remember cookie processing.
+	"""
 	try:
 		payload, signature = str(cookie_value).split('|', 1)
 	except ValueError:
@@ -197,10 +242,16 @@ def _decode_remember_cookie(cookie_value):
 
 
 def _remember_cookie_name():
+	"""
+	Internal helper for web remember cookie name processing.
+	"""
 	return app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
 
 
 def _remember_cookie_duration_seconds():
+	"""
+	Internal helper for web remember cookie duration seconds processing.
+	"""
 	duration = app.config.get('REMEMBER_COOKIE_DURATION', dt.timedelta(days=365))
 	if isinstance(duration, dt.timedelta):
 		return int(duration.total_seconds())
@@ -208,6 +259,9 @@ def _remember_cookie_duration_seconds():
 
 
 def _update_remember_cookie(response):
+	"""
+	Internal helper for web update remember cookie processing.
+	"""
 	action = session.pop('_remember', None)
 	cookie_name = _remember_cookie_name()
 	cookie_path = app.config.get('REMEMBER_COOKIE_PATH', '/')
@@ -229,6 +283,9 @@ def _update_remember_cookie(response):
 
 
 def _get_current_user():
+	"""
+	Internal helper for web get current user processing.
+	"""
 	if not has_request_context():
 		return _AnonymousUser()
 	if hasattr(g, '_login_user'):
@@ -254,6 +311,9 @@ def _get_current_user():
 
 
 def _is_authenticated(user):
+	"""
+	Internal helper for web is authenticated processing.
+	"""
 	is_authenticated = user.is_authenticated
 	if callable(is_authenticated):
 		return is_authenticated()
@@ -261,6 +321,9 @@ def _is_authenticated(user):
 
 
 def login_user(user, remember=False):
+	"""
+	Perform login user processing for OMF helper-library workflows.
+	"""
 	user_id = user.get_id()
 	if user_id is None:
 		return False
@@ -272,6 +335,9 @@ def login_user(user, remember=False):
 
 
 def logout_user():
+	"""
+	Perform logout user processing for OMF helper-library workflows.
+	"""
 	session.pop('_user_id', None)
 	session.pop('_fresh', None)
 	session['_remember'] = 'clear'
@@ -279,6 +345,9 @@ def logout_user():
 
 
 def login_required(func):
+	"""
+	Perform login required processing for OMF helper-library workflows.
+	"""
 	@wraps(func)
 	def decorated_view(*args, **kwargs):
 		if _is_authenticated(current_user):
@@ -353,6 +422,9 @@ ALLOWED_ORIGINS = {
 
 
 def _is_same_origin():
+	"""
+	Internal helper for web is same origin processing.
+	"""
 	origin = request.headers.get("Origin")
 	if origin:
 		return origin in ALLOWED_ORIGINS
@@ -385,6 +457,9 @@ def _csrf_failure_response():
 
 @app.before_request
 def only_same_origin():
+	"""
+	Perform only same origin processing for OMF helper-library workflows.
+	"""
 	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
 		if not _is_same_origin():
 			abort(403)
@@ -398,6 +473,9 @@ class PathManager:
 
 	def __init__(self, root):
 		# Establish the absolute, resolved root jail
+		"""
+		Internal helper for web init processing.
+		"""
 		self._root = Path(root).resolve()
 
 	_WINDOWS_RESERVED = frozenset(
@@ -425,6 +503,9 @@ class PathManager:
 		return s
 
 	def join(self, *parts):
+		"""
+		Implement join behavior for PathManager instances.
+		"""
 		full_path = self._root
 		for p in parts:
 			safe_p = self._sanitize_component(p)
@@ -443,6 +524,9 @@ class PathManager:
 
 @app.errorhandler(PathManager.PathTraversalError)
 def _handle_pathtraversalerror(e):
+	"""
+	Internal helper for web handle pathtraversalerror processing.
+	"""
 	return 'Bad Request', 400
 
 
@@ -472,11 +556,17 @@ def _normalize_doc_path(doc_path):
 
 
 def _safe_docs_path(doc_path):
+	"""
+	Internal helper for web safe docs path processing.
+	"""
 	path_pieces = [piece for piece in doc_path.split("/") if piece]
 	return docs_path_manager.join(*path_pieces)
 
 
 def _get_doc_candidates(doc_path):
+	"""
+	Internal helper for web get doc candidates processing.
+	"""
 	doc_path = _normalize_doc_path(doc_path)
 	candidates = [doc_path]
 	root, ext = os.path.splitext(doc_path)
@@ -489,6 +579,9 @@ def _get_doc_candidates(doc_path):
 
 
 def _resolve_doc_path(doc_path):
+	"""
+	Internal helper for web resolve doc path processing.
+	"""
 	for candidate in _get_doc_candidates(doc_path):
 		try:
 			full_path = _safe_docs_path(candidate)
@@ -500,6 +593,9 @@ def _resolve_doc_path(doc_path):
 
 
 def _doc_title(markdown_text, source_path):
+	"""
+	Internal helper for web doc title processing.
+	"""
 	for line in markdown_text.splitlines():
 		line = line.strip()
 		if line.startswith("# "):
@@ -508,6 +604,9 @@ def _doc_title(markdown_text, source_path):
 
 
 def _render_markdown_doc(source_path):
+	"""
+	Internal helper for web render markdown doc processing.
+	"""
 	with open(source_path, "r", encoding="utf-8") as doc_file:
 		markdown_text = doc_file.read()
 	content = markdown.markdown(
@@ -533,6 +632,9 @@ def _get_model_module(model_type):
 
 
 def _get_model_metadata(owner, model_name):
+	"""
+	Internal helper for web get model metadata processing.
+	"""
 	filepath = path_manager.join("data", "Model", owner, model_name, "allInputData.json")
 	with locked_open(filepath) as f:
 		model_metadata = json.load(f)
@@ -553,14 +655,23 @@ def _get_password_digest_secret():
 
 
 def _password_digest_encryption_enabled():
+	"""
+	Internal helper for web password digest encryption enabled processing.
+	"""
 	return _get_password_digest_secret() is not None
 
 
 def _is_encrypted_password_digest(password_digest):
+	"""
+	Internal helper for web is encrypted password digest processing.
+	"""
 	return isinstance(password_digest, str) and password_digest.startswith(PASSWORD_DIGEST_PREFIX)
 
 
 def _derive_password_digest_keys(salt):
+	"""
+	Internal helper for web derive password digest keys processing.
+	"""
 	secret = _get_password_digest_secret()
 	if secret is None:
 		raise ValueError('Password digest encryption secret is not configured.')
@@ -575,6 +686,9 @@ def _derive_password_digest_keys(salt):
 
 
 def _password_digest_keystream(enc_key, nonce, length):
+	"""
+	Internal helper for web password digest keystream processing.
+	"""
 	stream = bytearray()
 	counter = 0
 	while len(stream) < length:
@@ -686,13 +800,46 @@ def migrate_legacy_user_password_digests(usernames=None):
 
 
 class User:
-	def __init__(self, jsonBlob): self.username = jsonBlob["username"]
+	"""
+	Represent an authenticated OMF web user loaded from persisted user metadata.
+	"""
+	def __init__(self, jsonBlob):
+		"""
+		Initialize the user wrapper from a stored user JSON object.
+		"""
+		self.username = jsonBlob["username"]
+
 	# Required login user functions.
-	def is_admin(self): return self.username == "admin"
-	def get_id(self): return self.username
-	def is_authenticated(self): return True
-	def is_active(self): return True
-	def is_anonymous(self): return False
+	def is_admin(self):
+		"""
+		Return whether this user has OMF administrator privileges.
+		"""
+		return self.username == "admin"
+
+	def get_id(self):
+		"""
+		Return the stable login identifier for this user.
+		"""
+		return self.username
+
+	def is_authenticated(self):
+		"""
+		Return whether this user represents an authenticated session.
+		"""
+		return True
+
+	def is_active(self):
+		"""
+		Return whether this user account is active for login purposes.
+		"""
+		return True
+
+	def is_anonymous(self):
+		"""
+		Return whether this user is the anonymous-user placeholder.
+		"""
+		return False
+
 	@classmethod
 	def cu(self):
 		"""Returns current user's username"""
@@ -750,6 +897,9 @@ def set_csrf_cookie(response):
 
 
 def _send_email(recipient, subject, message):
+	"""
+	Internal helper for web send email processing.
+	"""
 	c = boto3.client('ses', region_name='us-east-1')
 	email_content = {
 		'Source': 'admin@omf.coop',
@@ -844,6 +994,9 @@ def login():
 
 @app.route("/login_page")
 def login_page():
+	"""
+	Perform login page processing for OMF helper-library workflows.
+	"""
 	nextUrl = str(request.args.get("next","/") or "/")
 	if not _is_safe_url(nextUrl):
 		nextUrl = "/"
@@ -856,6 +1009,9 @@ def login_page():
 
 @app.route("/logout", methods=["POST"])
 def logout():
+	"""
+	Perform logout processing for OMF helper-library workflows.
+	"""
 	logout_user()
 	return redirect("/")
 
@@ -863,6 +1019,9 @@ def logout():
 @app.route("/deleteUser", methods=["POST"])
 @login_required
 def deleteUser():
+	"""
+	Perform delete user processing for OMF helper-library workflows.
+	"""
 	if User.cu() != "admin":
 		return "You are not authorized to delete users"
 	username = request.form.get("username")
@@ -880,6 +1039,9 @@ def deleteUser():
 
 @app.route("/new_user", methods=["POST"])
 def new_user():
+	"""
+	Perform new user processing for OMF helper-library workflows.
+	"""
 	email = request.form.get("email")
 	if email == "": return "EMPTY"
 	path_manager.join('data', 'User', email + '.json')
@@ -894,6 +1056,9 @@ def new_user():
 
 @app.route("/forgotPassword/<email>", methods=["POST"])
 def forgotpwd(email):
+	"""
+	Perform forgotpwd processing for OMF helper-library workflows.
+	"""
 	try:
 		with locked_open(path_manager.join('data', 'User', f'{email}.json')) as f:
 			user = json.load(f)
@@ -928,6 +1093,9 @@ def fastNewUser(email):
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
 def register(email, reg_key):
+	"""
+	Perform register processing for OMF helper-library workflows.
+	"""
 	if current_user.is_authenticated:
 		return redirect("/")
 	try:
@@ -959,6 +1127,9 @@ def register(email, reg_key):
 @app.route("/changepwd", methods=["POST"])
 @login_required
 def changepwd():
+	"""
+	Perform changepwd processing for OMF helper-library workflows.
+	"""
 	old_pwd, new_pwd, conf_pwd = map(request.form.get, ['old_pwd', 'new_pwd', 'conf_pwd'])
 	user_filepath = os.path.join(_omfDir, 'data', 'User', User.cu() + '.json')
 	with locked_open(user_filepath) as f:
@@ -1027,6 +1198,9 @@ def myaccount():
 
 @app.route("/robots.txt")
 def static_from_root():
+	"""
+	Perform static from root processing for OMF helper-library workflows.
+	"""
 	return send_from_directory(app.static_folder, request.path[1:])
 
 
@@ -1188,6 +1362,9 @@ def cancelModel():
 @login_required
 @read_permission_function
 def duplicateModel(owner, modelName):
+	"""
+	Perform duplicate model processing for OMF helper-library workflows.
+	"""
 	newName = secure_filename(request.form.get("newName","")) or 'model'
 	destination_path = path_manager.join('data', 'Model', User.cu(), newName)
 	shutil.copytree(path_manager.join('data', 'Model', owner, modelName), destination_path)
@@ -1344,6 +1521,9 @@ def locked_open(filepath, mode='r', timeout=180, **io_open_args):
 
 
 def _write_to_input(workDir, entry, key):
+	"""
+	Internal helper for web write to input processing.
+	"""
 	try:
 		with locked_open(os.path.join(workDir, 'allInputData.json'), 'r+') as f:
 			allInput = json.load(f)
@@ -1464,6 +1644,9 @@ def distribution_text_get(owner, modelName, fileName):
 @app.route("/getComponents/<schema>")
 @login_required
 def get_components(schema='gld'):
+	"""
+	Return the components needed by this workflow.
+	"""
 	if schema == 'dss':
 		directory = path_manager.join('data', 'ComponentDss')
 	else: #schema == 'gld'
@@ -1659,6 +1842,9 @@ def cimImport(owner):
 
 
 def _is_safe_cim_upload(filepath):
+	"""
+	Internal helper for web is safe cim upload processing.
+	"""
 	extension = os.path.splitext(filepath)[1].lower()
 	if extension not in ['.xml', '.rdf', '.zip']:
 		return False
@@ -1812,6 +1998,9 @@ def _dss_import_background(owner, modelName, feederName, feederNum):
 @write_permission_function
 def scadaLoadshape(owner, feederName):
 	#feederNum = request.form.get("feederNum", '1')
+	"""
+	Perform scada loadshape processing for OMF helper-library workflows.
+	"""
 	loadName = 'calibration'
 	modelName = request.form.get("modelName","")
 	# delete calibration csv, calibration folder, and error file if they exist
@@ -1833,6 +2022,9 @@ def scadaLoadshape(owner, feederName):
 
 def _background_scada_loadshape(owner, modelName, feederName, loadName):
 	# heavy lifting background process/omfCalibrate and then deletes PID file
+	"""
+	Internal helper for web background scada loadshape processing.
+	"""
 	try:
 		pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'CPID.txt')
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -1879,6 +2071,9 @@ def _background_scada_loadshape(owner, modelName, feederName, loadName):
 @write_permission_function
 def loadModelingAmi(owner, feederName):
 	#feederNum = request.form.get('feederNum', '1')
+	"""
+	Load modeling ami data for OMF processing.
+	"""
 	loadName = 'ami'
 	modelName = request.form.get('modelName', '')
 	filepaths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('amiError.txt', 'amiLoad.csv')]
@@ -1893,6 +2088,9 @@ def loadModelingAmi(owner, feederName):
 
 
 def _background_load_modeling_ami(owner, modelName, feederName, loadName):
+	"""
+	Internal helper for web background load modeling ami processing.
+	"""
 	try:
 		pid_filepath, ami_filepath, omdPath, outDir, error_filepath = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in 
 			['APID.txt', loadName + '.csv', feederName + '.omd', 'amiOutput', 'error.txt']
@@ -2075,6 +2273,9 @@ def newBlankNetwork(owner):
 @login_required
 @read_permission_function
 def feederData(owner, modelName, feederName):
+	"""
+	Perform feeder data processing for OMF helper-library workflows.
+	"""
 	filepath = path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
 	with locked_open(filepath) as feedFile:
 		return feedFile.read(), 200, {'Content-Type': 'application/json'}
@@ -2084,6 +2285,9 @@ def feederData(owner, modelName, feederName):
 @login_required
 @read_permission_function
 def networkData(owner, modelName, networkName):
+	"""
+	Perform network data processing for OMF helper-library workflows.
+	"""
 	filepath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
 	with locked_open(filepath) as netFile:
 		thisNet = json.load(netFile)
@@ -2350,6 +2554,9 @@ def removeNetworkRequest(owner, modelName, networkNum):
 @login_required
 @write_permission_function
 def climateChange(owner, feederName):
+	"""
+	Perform climate change processing for OMF helper-library workflows.
+	"""
 	model_name = request.form.get('modelName')
 	# Remove files that could be left over from a previous run
 	filepaths = [
@@ -2369,6 +2576,9 @@ def climateChange(owner, feederName):
 
 
 def _background_climate_change(owner, modelName, feederName, importOption, zipCode, station, year_str):
+	"""
+	Internal helper for web background climate change processing.
+	"""
 	try:
 		omdPath, pid_filepath, error_filepath = [
 			path_manager.join('data', 'Model', owner, modelName, filename) for filename in [feederName + '.omd', 'WPID.txt', 'error.txt']
@@ -2418,6 +2628,9 @@ def _background_climate_change(owner, modelName, feederName, importOption, zipCo
 @login_required
 @write_permission_function
 def anonymize(owner, feederName):
+	"""
+	Perform anonymize processing for OMF helper-library workflows.
+	"""
 	modelName = request.form.get('modelName')
 	# Validate paths before spawning background process
 	path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
@@ -2442,6 +2655,9 @@ def anonymize(owner, feederName):
 
 
 def _background_anonymize(owner, modelName, feederName, options):
+	"""
+	Internal helper for web background anonymize processing.
+	"""
 	try:
 		omdPath = path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
 		pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'NPID.txt')
@@ -2491,6 +2707,9 @@ def _background_anonymize(owner, modelName, feederName, options):
 @login_required
 @write_permission_function
 def zillow_houses():
+	"""
+	Perform zillow houses processing for OMF helper-library workflows.
+	"""
 	owner = request.form.get("user")
 	model_name = request.form.get("modelName")
 	model_dir = path_manager.join("data", "Model", owner, model_name)
@@ -2511,6 +2730,9 @@ def zillow_houses():
 
 
 def _background_zillow_houses(model_dir, triplex_objects):
+	"""
+	Internal helper for web background zillow houses processing.
+	"""
 	try:
 		pid_filepath = os.path.join(model_dir, "ZPID.txt")
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -2538,6 +2760,9 @@ def _background_zillow_houses(model_dir, triplex_objects):
 @login_required
 @read_permission_function
 def check_zillow_houses():
+	"""
+	Perform check zillow houses processing for OMF helper-library workflows.
+	"""
 	owner = request.form.get("user")
 	model_name = request.form.get("modelName")
 	model_dir = path_manager.join("data", "Model", owner, model_name)
@@ -2561,6 +2786,9 @@ def check_zillow_houses():
 @login_required
 @write_permission_function
 def anonymizeTran(owner, networkName):
+	"""
+	Perform anonymize tran processing for OMF helper-library workflows.
+	"""
 	modelName = request.form.get('modelName')
 	# Validate path before spawning background process
 	path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
@@ -2584,6 +2812,9 @@ def anonymizeTran(owner, networkName):
 
 
 def _background_anonymizeTran(owner, modelName, networkName, options):
+	"""
+	Internal helper for web background anonymize tran processing.
+	"""
 	omtPath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
 	pid_path = path_manager.join('data', 'Model', owner, modelName, 'TPPID.txt')
 	with locked_open(omtPath, 'r') as inFile:
@@ -2617,6 +2848,9 @@ def _background_anonymizeTran(owner, modelName, networkName, options):
 def checkAnonymizeTran(owner, modelName):
 	# print 'Check conversion status:', os.path.exists(pidPath), 'for path', pidPath                                  
     # checks to see if PID file exists, if theres no PID file process is done.         
+	"""
+	Perform check anonymize tran processing for OMF helper-library workflows.
+	"""
 	pidPath = path_manager.join('data', 'Model', owner, modelName, 'TPPID.txt')
 	return jsonify(exists=os.path.exists(pidPath))
 
@@ -2716,6 +2950,9 @@ def redisplayGrid():
 @write_permission_function
 def saveCommsMap(owner, modelName, feederName, feederNum):
 	# Validate feederName before passing to comms.saveOmc (which uses os.path.join)
+	"""
+	Save comms map data produced by this workflow.
+	"""
 	path_manager.join('data', 'Model', owner, modelName, feederName + '.omc')
 	try:
 		geoDict = request.get_json()
@@ -2901,6 +3138,9 @@ def delete(objectType, objectName, owner):
 @login_required
 @read_permission_function
 def downloadModelData(owner, modelName, fullPath):
+	"""
+	Perform download model data processing for OMF helper-library workflows.
+	"""
 	pathPieces = fullPath.split('/')
 	fullValidatedPath = path_manager.join("data", "Model", owner, modelName, *pathPieces)
 	dirPath = os.path.dirname(fullValidatedPath)

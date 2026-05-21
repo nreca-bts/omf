@@ -1,4 +1,20 @@
-''' Determine impacts of distribution faults. '''
+"""
+The faultAnalysis model calculates and displays the effects of a fault on a given feeder
+circuit. It is similar to the voltageDrop model, with the addition of a fault to the
+provided circuit. ### Walkthrough The faultAnalysis model calculates and displays the
+effects of a fault on a given feeder circuit. It is similar to the voltageDrop model,
+with the addition of a fault to the provided circuit. The "Node Coloring By" and "Line
+Coloring By" fields denote the values that nodes and edges will be colored by in the
+loadflow output image. Similarly, "Node Labels" and "Line Labels" provide an option to
+label nodes and lines by name or value. The user can also choose to display only the
+line label for the location of the fault on the circuit. "Color Map" is set to Viridis
+by default for optimal readability of the scale. "Color Scale Min" and "Color Scale Max"
+allow the user to specify a specific range for the color scale, which is set by default
+when these fields are left empty. "Image Resolution" allows the user to specify the size
+of the output image, which is useful for varying circuit sizes. "Fault Location" and
+"Fault Type" specify where the fault occurs and what type of fault occurs. Finally,
+"Simulation Time" denotes the date and time at which the simulation is run.
+"""
 
 import json, os, shutil, csv, base64
 from os.path import join as pJoin
@@ -129,6 +145,9 @@ def new(modelDir):
 	return creationCode
 
 def _testingPlot():
+	"""
+	Internal helper for fault analysis testing plot processing.
+	"""
 	PREFIX = omf.omfDir + '/scratch/CIGAR/'
 	# FNAME = 'test_base_R4-25.00-1.glm_CLEAN.glm'
 	# FNAME = 'test_Exercise_4_2_1.glm'
@@ -148,6 +167,9 @@ def drawTable(path, workDir=None):
 	#return self.log
 	
 	# warnings.filterwarnings("ignore")
+	"""
+	Create a plot or display artifact for table results.
+	"""
 	if path.endswith('.glm'):
 		tree = feeder.parse(path)
 		attachments = []
@@ -258,6 +280,9 @@ def drawTable(path, workDir=None):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

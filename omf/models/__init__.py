@@ -1,4 +1,7 @@
-''' Container for all models. '''
+"""
+Register OMF grid-technology analysis models for the web application and command-line
+tooling.
+"""
 
 import os as _os
 

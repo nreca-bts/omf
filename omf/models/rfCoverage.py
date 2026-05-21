@@ -1,4 +1,7 @@
-''' Determine optimal location for RF network nodes. '''
+"""
+This model provides an interactive visualization of radio frequency coverage from a
+tower to assist with communications planning.
+"""
 
 import datetime, shutil, requests, tempfile, xml.etree.ElementTree as ET, base64
 from zipfile import ZipFile
@@ -15,6 +18,10 @@ hidden = False
 
 def work(modelDir, inputDict):
 
+	"""
+	Run the rf coverage model analysis and return the output data used by the OMF
+	interface.
+	"""
 	sourceQth = [
 		"Source Name",
 		str(inputDict['towerLatitude']),
@@ -167,6 +174,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

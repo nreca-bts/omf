@@ -1,9 +1,16 @@
+"""
+Implement Steinmetz-inspired inverter-control routines for GridLAB-D feeder studies.
+"""
+
 # imports
 import os, random as rand, math, glob, shutil, tempfile
 from shutil import copyfile
 import numpy
 
 def moveAndCreateDir(sourcePath, dstDir):
+	"""
+	Perform move and create dir processing for the wrapped solver workflow.
+	"""
 	if os.path.isdir(dstDir) == False:
 		os.makedirs(dstDir)
 	else:
@@ -13,6 +20,9 @@ def moveAndCreateDir(sourcePath, dstDir):
 	shutil.copy(sourcePath, dstDir)
 
 class PV_information:
+	"""
+	Store photovoltaic system metadata used by Steinmetz controller workflows.
+	"""
 	Parent = ""
 	Phase = ""
 	Rating = 0 
@@ -22,6 +32,9 @@ class PV_information:
 	Q_Out = 0.0
 
 	def __init__(self,parent,phase,rating,P_out,Q_max,name,Q_out):
+		"""
+		Internal helper for steinmetz controller init processing.
+		"""
 		self.Parent = parent
 		self.Phase = phase
 		self.Rating = rating
@@ -31,6 +44,9 @@ class PV_information:
 		self.Q_Out = Q_out
 
 def complexToString(complexNumber):
+	"""
+	Perform complex to string processing for the wrapped solver workflow.
+	"""
 	if complexNumber.imag>0:
 		return str(complexNumber.real) + '+' + str(complexNumber.imag) + 'j'
 	elif complexNumber.imag ==0:
@@ -39,6 +55,9 @@ def complexToString(complexNumber):
 		return str(complexNumber.real) + str(complexNumber.imag) + 'j'
 
 class StreamInfo:
+	"""
+	Store stream metadata used when exchanging Steinmetz controller time-series data.
+	"""
 	Entities = []
 	Connectivity = []
 	RootDic = {}
@@ -48,11 +67,17 @@ class StreamInfo:
 	NodePhaseDic = {}
 
 	def __init__(self):
+		"""
+		Internal helper for steinmetz controller init processing.
+		"""
 		pass
 
 # establish stream vector (leaf/node dictionary)
 def CreateStreamInfo(glmFileName, sourceNode):
 	# 
+	"""
+	Perform create stream info processing for the wrapped solver workflow.
+	"""
 	connectivity = []
 	# all entities
 	# excluding capacitor, load, lines, regulators
@@ -195,6 +220,9 @@ def GetUpstreamNodes(targetNode, nPhaseQualifierList, streamInfo):
 # find upstream nodes of the target node
 # go to source, collect leaves along the path
 # TODO: validate nodePhaseList
+	"""
+	Perform get upstream nodes processing for the wrapped solver workflow.
+	"""
 	leafNode = targetNode
 	upstreamNodes = []
 	while streamInfo.RootDic[leafNode] != 'SOURCE':
@@ -236,6 +264,9 @@ def GetUpstreamNodes(targetNode, nPhaseQualifierList, streamInfo):
 
 def GetDownStreamNodes(targetNode, nPhaseQualifierList, streamInfo):
 # find downstream nodes
+	"""
+	Perform get down stream nodes processing for the wrapped solver workflow.
+	"""
 	downstreamNodes = []
 	prevLeaves = []
 	prevLeaves.append(targetNode)
@@ -264,6 +295,9 @@ def GetDownStreamNodes(targetNode, nPhaseQualifierList, streamInfo):
 	return downstreamNodes
 
 def FindLine(node1, node2, streamInfo):
+	"""
+	Perform find line processing for the wrapped solver workflow.
+	"""
 	for key, value in streamInfo.LineDic.items():
 		if value == set([node1, node2]):
 			return key
@@ -271,6 +305,9 @@ def FindLine(node1, node2, streamInfo):
 
 # find cloest qualified upstream node 
 def GetCloestUpstreamNode(inputItem, nPhaseQualifierList, streamInfo):
+	"""
+	Perform get cloest upstream node processing for the wrapped solver workflow.
+	"""
 	if inputItem in streamInfo.Entities:
 		# general node item
 		targetNode = inputItem
@@ -297,6 +334,9 @@ def GetCloestUpstreamNode(inputItem, nPhaseQualifierList, streamInfo):
 
 
 def FindSlack(sourceFileName):
+	"""
+	Perform find slack processing for the wrapped solver workflow.
+	"""
 	temp_Name = ''
 	sourceNode = ''
 	IsSwing = 0
@@ -326,6 +366,9 @@ def FindSlack(sourceFileName):
 				
 	return sourceNode
 def GetDeltaPVdata(sourceFileName,streamInfo):
+	"""
+	Perform get delta pvdata processing for the wrapped solver workflow.
+	"""
 	PV = []
 	PV_index = {}
 	PV_rating = 0
@@ -374,6 +417,9 @@ def GetDeltaPVdata(sourceFileName,streamInfo):
 
 def CreateDeltaPVfile(sourceFileName,PV):
 
+	"""
+	Perform create delta pvfile processing for the wrapped solver workflow.
+	"""
 	outputFilename = sourceFileName.strip('.glm')+'DeltaPV.glm'
 	with open(sourceFileName, 'r') as inputFile, open(outputFilename, 'w+') as outputFile:
 		isPV = 0
@@ -412,6 +458,9 @@ def CreateDeltaPVfile(sourceFileName,PV):
 
 
 def SteinmetzDeltaQ_VUF(voltage,current,Q_pre):
+	"""
+	Perform steinmetz delta q vuf processing for the wrapped solver workflow.
+	"""
 	Q = {}
 	voltage_A = voltage['A']
 	voltage_B = voltage['B']
@@ -442,6 +491,9 @@ def SteinmetzDeltaQ_VUF(voltage,current,Q_pre):
 
 # Steinmetz circuit design (Wye) to decrease VUF
 def SteinmetzWyeQ_VUF(voltage,current,Q_pre):
+	"""
+	Perform steinmetz wye q vuf processing for the wrapped solver workflow.
+	"""
 	Q = {}
 	a = complex(-0.5, math.sqrt(3)/2)
 	voltage_A = voltage['A']
@@ -468,6 +520,9 @@ def SteinmetzWyeQ_VUF(voltage,current,Q_pre):
 
 # Steinmetz circuit design to decrease V0
 def SteinmetzWyeQ_V0(voltage,current,Q_pre):
+	"""
+	Perform steinmetz wye q v0 processing for the wrapped solver workflow.
+	"""
 	Q = {}
 	a = complex(-0.5, math.sqrt(3)/2)
 	voltage_A = voltage['A']
@@ -494,6 +549,9 @@ def SteinmetzWyeQ_V0(voltage,current,Q_pre):
 
 
 def ReadVoltage(voltageFileName):
+	"""
+	Perform read voltage processing for the wrapped solver workflow.
+	"""
 	with open(voltageFileName, 'r') as fp1:
 		contentVoltage = fp1.readlines()
 		voltage = {}
@@ -505,6 +563,9 @@ def ReadVoltage(voltageFileName):
 		return voltage
 
 def ReadCurrent(currentFileName):
+	"""
+	Perform read current processing for the wrapped solver workflow.
+	"""
 	with open(currentFileName, 'r') as fp2:
 		contentCurrent = fp2.readlines()
 		current = {}
@@ -517,18 +578,27 @@ def ReadCurrent(currentFileName):
 		return current
 
 def AddRecorder(sourceFileName,criticalNode,line_name):
+	"""
+	Perform add recorder processing for the wrapped solver workflow.
+	"""
 	with open(sourceFileName,'a+') as fp:
 		fp.writelines(['object recorder {\n','    parent '+ criticalNode+ ';\n','    interval 10;\n','    limit 1440;\n', '    file  "Node_voltage.csv";\n','    property "voltage_A,voltage_B,voltage_C";\n};\n\n'])
 		fp.writelines(['object recorder {\n','    parent '+ line_name+ ';\n','    interval 10;\n','    limit 1440;\n', '    file  "Node_current.csv";\n','    property "current_out_A,current_out_B,current_out_C";\n};\n\n'])
 
 
 def AddPVWyeRecorder(sourceFileName,suffix):
+	"""
+	Perform add pvwye recorder processing for the wrapped solver workflow.
+	"""
 	with open(sourceFileName,'a+') as fp:
 		fp.writelines(['object group_recorder {\n','    group class=inverter;\n','    interval 10;\n','    limit 1440;\n', '    file  "all_inverters_VA_Out_AC'+suffix+'.csv";\n','    property VA_Out;\n};\n\n'])
 		
 
 
 def AddPVDeltaRecorder(sourceFileName,suffix):
+	"""
+	Perform add pvdelta recorder processing for the wrapped solver workflow.
+	"""
 	with open(sourceFileName,'a+') as fp:
 		fp.writelines(['object group_recorder {\n','    group class=load AND groupid=deltaPVAB;\n','    interval 10;\n','    limit 1440;\n', '    file  "all_inverters_VA_Out_AC_A'+suffix+'.csv";\n','    property power_A;\n};\n\n'])
 		fp.writelines(['object group_recorder {\n','    group class=load AND groupid=deltaPVBC;\n','    interval 10;\n','    limit 1440;\n', '    file  "all_inverters_VA_Out_AC_B'+suffix+'.csv";\n','    property power_B;\n};\n\n'])
@@ -536,6 +606,9 @@ def AddPVDeltaRecorder(sourceFileName,suffix):
 		
 
 def addOutputCSV(sourceFileName,suffix):
+	"""
+	Perform add output csv processing for the wrapped solver workflow.
+	"""
 	with open(sourceFileName,'a+') as fp:
 		fp.writelines(['object group_recorder {\n','    group class=load AND groupid=threePhase;\n','    interval 10;\n','    limit 1440;\n', '    file  "threephaseMotor_Voltage_A'+suffix+'.csv";\n','    property voltage_A;\n};\n\n'])
 		fp.writelines(['object group_recorder {\n','    group class=load AND groupid=threePhase;\n','    interval 10;\n','    limit 1440;\n', '    file  "threephaseMotor_Voltage_B'+suffix+'.csv";\n','    property voltage_B;\n};\n\n'])
@@ -553,6 +626,9 @@ def addOutputCSV(sourceFileName,suffix):
 		fp.writelines(['object collector {\n','    group class=triplex_node;\n','    interval 10;\n','    limit 1440;\n', '    file  "triplexload'+suffix+'.csv";\n','    property sum(power_12.real),sum(power_12.imag);\n};\n\n'])
 
 def FindSlack(sourceFileName):
+	"""
+	Perform find slack processing for the wrapped solver workflow.
+	"""
 	temp_Name = ''
 	sourceNode = ''
 	IsSwing = 0
@@ -586,6 +662,9 @@ def FindSlack(sourceFileName):
 
 
 def GetWyePVdata(sourceFileName):
+	"""
+	Perform get wye pvdata processing for the wrapped solver workflow.
+	"""
 	PV = []
 	PV_index = {}
 	PV_rating = 0
@@ -623,6 +702,9 @@ def GetWyePVdata(sourceFileName):
 	return PV,PV_index
 
 def ChangeGlmFileWye(inputFileName,outputFileName,PV,PV_index):
+	"""
+	Perform change glm file wye processing for the wrapped solver workflow.
+	"""
 	with open(inputFileName, 'r') as inputFile, open(outputFileName, 'w+') as outputFile:
 
 		isPV = 0
@@ -654,6 +736,9 @@ def ChangeGlmFileWye(inputFileName,outputFileName,PV,PV_index):
 		outputFile.write(tempString)
 
 def ChangeGlmFileDelta(inputFileName,outputFileName,PV,PV_index):
+	"""
+	Perform change glm file delta processing for the wrapped solver workflow.
+	"""
 	with open(inputFileName, 'r') as inputFile, open(outputFileName, 'w+') as outputFile:
 		isLoad = 0
 		isPV = 0
@@ -690,6 +775,9 @@ def ChangeGlmFileDelta(inputFileName,outputFileName,PV,PV_index):
 
 def addIdtoThreephaseload(inputFileName,outputFileName):
 
+	"""
+	Perform add idto threephaseload processing for the wrapped solver workflow.
+	"""
 	with open(inputFileName, 'r') as inputFile, open(outputFileName, 'w+') as outputFile:
 		isLoad = 0
 		isThreephase = 0
@@ -731,6 +819,9 @@ def SteinmetzController(sourceFileName,connectionPV,criticalNode,iterNum,objecti
 	
 
 	#Find the swing bus of the feeder
+	"""
+	Perform steinmetz controller processing for the wrapped solver workflow.
+	"""
 	sourceNode = FindSlack(sourceFileName)
 	# establish streaminfo first
 	streamInformation = CreateStreamInfo(sourceFileName, sourceNode)
@@ -1035,6 +1126,9 @@ def SteinmetzController(sourceFileName,connectionPV,criticalNode,iterNum,objecti
 
 def testing():
 	#example 1
+	"""
+	Perform testing processing for the wrapped solver workflow.
+	"""
 	sourceFileName = os.path.abspath(os.path.join(os.path.dirname(__file__), '../static/testFiles/R1-12.47-1-AddSolar-Wye.glm'))
 	criticalNode = 'R1-12-47-1_node_17'
 

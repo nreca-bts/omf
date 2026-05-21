@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+"""
+Provide local ISO 3166 country lookup utilities used by OMF dependencies.
+"""
+
 import re
 from typing import Dict, Iterator, NamedTuple, Type, TypeVar, Union, overload
 
@@ -10,6 +14,9 @@ _D = TypeVar("_D")
 
 
 class Country(NamedTuple):
+    """
+    Represent ISO 3166 country metadata returned by the local lookup table.
+    """
     name: str
     alpha2: str
     alpha3: str
@@ -450,6 +457,9 @@ _records = [
 
 
 def _build_index(idx: int) -> Dict[str, Country]:
+    """
+    Internal helper for build index processing.
+    """
     return dict((r[idx].upper(), r) for r in _records)
 
 
@@ -470,21 +480,36 @@ countries_by_apolitical_name = _by_apolitical_name
 
 
 class NotFound:
+    """
+    Signal that an ISO 3166 country lookup did not match any known country.
+    """
     pass
 
 
 class _CountryLookup:
+    """
+    Index ISO 3166 country records by alpha codes, numeric codes, and names.
+    """
     @overload
     def get(self, key: StrOrInt) -> Country:
+        """
+        Return the module needed by this workflow.
+        """
         ...
 
     @overload
     def get(self, key: StrOrInt, default: _D) -> Union[Country, _D]:
+        """
+        Return the module needed by this workflow.
+        """
         ...
 
     def get(
         self, key: StrOrInt, default: Union[Type[NotFound], _D] = NotFound
     ) -> Union[Country, _D]:
+        """
+        Return the module needed by this workflow.
+        """
         if isinstance(key, int):
             k = f"{key:03d}"
             r = _by_numeric.get(k, default)
@@ -509,12 +534,21 @@ class _CountryLookup:
     __getitem__ = get
 
     def __len__(self) -> int:
+        """
+        Internal helper for len processing.
+        """
         return len(_records)
 
     def __iter__(self) -> Iterator[Country]:
+        """
+        Internal helper for iter processing.
+        """
         return iter(_records)
 
     def __contains__(self, item: StrOrInt) -> bool:
+        """
+        Internal helper for contains processing.
+        """
         try:
             self.get(item)
             return True

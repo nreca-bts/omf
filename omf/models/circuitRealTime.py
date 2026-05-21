@@ -1,4 +1,7 @@
-''' Display circuit simulator in real time. '''
+"""
+The circuitRealtime Model is an OMF frontend to the JavaScript version of the Falstad
+Circuit Simulator.
+"""
 
 import shutil
 from os.path import join as pJoin
@@ -28,6 +31,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

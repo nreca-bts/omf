@@ -1,3 +1,8 @@
+"""
+Install and run the protection-settings optimization solver used by OMF protection
+studies.
+"""
+
 import os, sys
 import platform
 
@@ -33,6 +38,9 @@ def run_pso(testPath, testFile, Fres=['0.001','1'], Fts=['3ph','SLG','LL'], Forc
                  type_select = type_select, Fault_Res = Fault_Res, Min_Ip = Min_Ip, Substation_bus = Substation_bus)
 
 def _test():
+    """
+    Run this module's local smoke tests or debugging workflow.
+    """
     testPath = os.path.normpath(os.path.join(thisDir, 'testFiles'))
     testFile = 'IEEE34Test.dss'
     run_pso(testPath, testFile)

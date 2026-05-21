@@ -1,4 +1,12 @@
-''' Calculate solar photovoltaic system output using our special financial model. '''
+"""
+The solarCashflow model allows a utility to calculate what impact consumer-owned solar
+systems will have on their costs. The model takes financial data from the utility as
+well as information about their consumers’ typical solar system size to determine the
+average monthly bill for solar and non-solar customers as well as the total cost of
+power for all consumers. The model uses pvWatts, software from NREL, to calculate how
+much energy the solar system will produce. The economic inputs can all be collected from
+the RUS Form 7.
+"""
 
 import shutil, datetime
 from os.path import join as pJoin
@@ -410,6 +418,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

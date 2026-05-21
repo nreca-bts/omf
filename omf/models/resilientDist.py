@@ -1,4 +1,11 @@
-''' Run micot-GFM, micot-RDT, and GridLAB-D to determine an optimal distribution resiliency investment. '''
+"""
+The Resilient Distribution model simulates the effect of weather hazards on the
+structure of an electrical distribution network. Users are able to compare the results
+and cost of hardening various individual components with the integrity of the network.
+The outputs include an optimal set of hardening options that improve the resiliency at
+the lowest possible cost. The model uses General Fragility Model, GridLAB-D, and
+Resilient Distribution Tool as part of the data pipeline.
+"""
 
 import json, os, shutil, subprocess, datetime, random, copy, base64, platform
 import os.path
@@ -23,6 +30,9 @@ HACK_SCALING_CONSTANT = 5000.0
 
 def ndfdToHazardFieldFile(xStart, xEnd, yStart, yEnd, cellsize, outFilePath):
 	# Loop through get_ndfd_data calls to populate HazardField data
+	"""
+	Perform ndfd to hazard field file processing for the resilient dist model.
+	"""
 	fieldArray = []
 	xNumSteps = round((xEnd - xStart) / cellsize)
 	yNumSteps = round((yEnd - yStart) / cellsize)
@@ -121,6 +131,9 @@ class HazardField(object):
 		self.hazardObj["cellsize"] = cellSize
 
 	def mapRanges(self, values, fromMin, fromMax):
+		"""
+		Implement map ranges behavior for HazardField instances.
+		"""
 		def mapValue(self, value, fromMin, fromMax, toMin=.7, toMax=1):
 			newValue = float(value - fromMin) / float(fromMax-fromMin)
 			return toMin + (newValue * (toMax-toMin))
@@ -164,6 +177,9 @@ class HazardField(object):
 			a[...] = random.uniform(lowerLimit, upperLimit) 
 
 def _testHazards():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	hazard = HazardField(omf.omfDir + "/static/testFiles/wf_clip.asc")
 	hazard.scaleField(.5)
 	hazard.moveLocation(20, 100)
@@ -367,6 +383,9 @@ def genDiagram(outputDir, feederJson, damageDict, critLoads, damagedLoads, edgeL
 	# print damageDict
 	# warnings.filterwarnings("ignore")
 	# Load required data.
+	"""
+	Perform gen diagram processing for the resilient dist model.
+	"""
 	tree = feederJson.get("tree",{})
 	links = feederJson.get("links",{})
 	# Generate lat/lons from nodes and links structures.
@@ -828,6 +847,9 @@ def new(modelDir):
 
 def _runModel():
 	# Testing the hazard class.
+	"""
+	Internal helper for resilient dist run model processing.
+	"""
 	_testHazards()
 	# Location
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)

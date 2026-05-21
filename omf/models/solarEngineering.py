@@ -1,4 +1,9 @@
-''' Shows users the technical system impacts of solar on a feeder including DG power generated, regulator tap changes, capacitor activation, and meter voltages '''
+"""
+The Solar Engineering model calculates the technical system impacts of solar on a feeder
+including the amount of distributed power generated, regulator tap changes, capacitor
+activation, current flows, and meter voltages. Solar Engineering uses GridLAB-D as the
+engine to calculate these outputs.
+"""
 
 import json, os, csv, shutil, datetime, math, gc, platform
 from os.path import join as pJoin
@@ -569,6 +574,9 @@ def _groupBy(inL, func):
 	return newL
 
 def stringToMag(s):
+	"""
+	Perform string to mag processing for the solar engineering model.
+	"""
 	if 'd' in s:
 		return complex(s.replace('d','j')).real
 	elif 'j' in s or 'i' in s:
@@ -594,6 +602,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -1,3 +1,8 @@
+"""
+Call the hosted NREL REopt API and normalize optimization and resilience-analysis
+results for OMF models.
+"""
+
 import json
 import requests
 import random
@@ -14,6 +19,9 @@ REOPT_API_KEYS = (
 )
 
 def run(inJSONPath, outputPath, api_key):
+	"""
+	Run the wrapped solver workflow and return its results or status.
+	"""
 	root_url = 'https://developer.nrel.gov/api/reopt'
 	post_url = root_url + '/v2/job/?api_key=' + api_key
 	results_url = root_url + '/v2/job/<run_uuid>/results/?api_key=' + api_key
@@ -33,6 +41,9 @@ def run(inJSONPath, outputPath, api_key):
 
 
 def runResilience(runID, outputPath, api_key):
+	"""
+	Run the resilience workflow and return its results.
+	"""
 	root_url = 'https://developer.nrel.gov/api/reopt'
 	post_url = root_url + '/v2/outagesimjob/?api_key=' + api_key
 	results_url = root_url + '/v2/job/<RUN_ID>/resilience_stats/?api_key=' + api_key
@@ -82,6 +93,9 @@ def raise_if_unsuccessful(response, outputPath):
 
 
 def _test():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	run('Scenario_POST40.json', 'results_S40.json', random.choice(REOPT_API_KEYS))
 	with open('results_S40.json') as jsonFile:
 		results = json.load(jsonFile)

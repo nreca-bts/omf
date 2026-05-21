@@ -1,76 +1,74 @@
 # -*- coding: utf-8 -*-
 """
+Provide sample scripts for Sandia constrained-agglomerative ensemble phase
+identification.
+
 BSD 3-Clause License
 
-Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain rights in this software.
+Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under
+the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain
+rights in this software.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright notice, this   list of
+conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+* Redistributions in binary form must reproduce the above copyright notice,   this list
+of conditions and the following disclaimer in the documentation   and/or other materials
+provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
+* Neither the name of the copyright holder nor the names of its   contributors may be
+used to endorse or promote products derived from   this software without specific prior
+written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-This file contains a sample script for running the Co-Association Matrix
-Ensemble Phase Identfication algorithm which uses customer advanced metering 
-infrastructure (AMI) data with an ensemble spectral clustering algorithm and 
-co-association matrix to cluster customers by their service phase. 
+This file contains a sample script for running the Co-Association Matrix Ensemble Phase
+Identfication algorithm which uses customer advanced metering  infrastructure (AMI) data
+with an ensemble spectral clustering algorithm and  co-association matrix to cluster
+customers by their service phase.
 
 This script also requires functions that are in CA_Ensemble_Funcs.py and
 PhaseIdent_Utils.py
 
-Input Data Formatting:
-    voltageInput: numpy array of float - This matrix contains the voltage 
-        measurements (in volts) for all customers under consideration.  The
-        matrix should be in the form (measurements,customers) where each 
-        column represents one customer AMI timeseries.  It is recommended that
-        the timeseries interval be at least 15-minute sampling, although the
-        algorithm will still function using 30-minute or 60-minute interval
-        sampling
-    custIDInput: list of str - This is a list of customer IDs as strings.  The
-        length of this list should match the customer dimension of voltageInput
-    phaseLabelsErrors: numpy array of int - This contains the phase labels for
-        each customer in integer form (i.e. 1 - Phase A, 2 - Phase B,
-        3 - Phase C).  Any integer notation may be used for this field; it is 
-        only used to assigned the final phase predictions.  In practice, this
-        field could even be omitted, the phase identification results from 
-        CAEnsemble will still be grouped by phase, and the assignment of final
-        phase labels could be left for a post-processing step by the utility.
-        The dimensions of this matrix should be (1, customers).
-        These are assumed to be the original, utility labels, which
-        may contain some number of errors.  The sample data included with these
-        scripts has ~9% of phase labels injected with errors.  This can be 
-        seen by comparing this field with the entries in phaseLabelsTrue which
-        contains the ground-truth phase labels
-    phaseLabelsTrue: numpy array of int (1,customers) - This contains the 
-        ground-truth phase labels for each customer, if available.  Note that,
-        in practice this may not be available, but for testing purposes this 
-        is provided along with functions to evaluate the phase identifcation
-        accuracy against the ground-truth labels.
-        
-The indexing of each of the input data must match, i.e. voltageInput[:,1] must
-    represent the same customer as custIDInput[1], phaseLabelErrors[0,1] and
-    phaseLabelsTrue[0,1]
+Input Data Formatting:     voltageInput: numpy array of float - This matrix contains the
+voltage          measurements (in volts) for all customers under consideration.  The
+matrix should be in the form (measurements,customers) where each          column
+represents one customer AMI timeseries.  It is recommended that         the timeseries
+interval be at least 15-minute sampling, although the         algorithm will still
+function using 30-minute or 60-minute interval         sampling     custIDInput: list of
+str - This is a list of customer IDs as strings.  The         length of this list should
+match the customer dimension of voltageInput     phaseLabelsErrors: numpy array of int -
+This contains the phase labels for         each customer in integer form (i.e. 1 - Phase
+A, 2 - Phase B,         3 - Phase C).  Any integer notation may be used for this field;
+it is          only used to assigned the final phase predictions.  In practice, this
+field could even be omitted, the phase identification results from          CAEnsemble
+will still be grouped by phase, and the assignment of final         phase labels could
+be left for a post-processing step by the utility.         The dimensions of this matrix
+should be (1, customers).         These are assumed to be the original, utility labels,
+which         may contain some number of errors.  The sample data included with these
+scripts has ~9% of phase labels injected with errors.  This can be          seen by
+comparing this field with the entries in phaseLabelsTrue which         contains the
+ground-truth phase labels     phaseLabelsTrue: numpy array of int (1,customers) - This
+contains the          ground-truth phase labels for each customer, if available.  Note
+that,         in practice this may not be available, but for testing purposes this
+is provided along with functions to evaluate the phase identifcation         accuracy
+against the ground-truth labels.          The indexing of each of the input data must
+match, i.e. voltageInput[:,1] must     represent the same customer as custIDInput[1],
+phaseLabelErrors[0,1] and     phaseLabelsTrue[0,1]
+
 
 """
 

@@ -1,4 +1,10 @@
-''' Calculate solar photovoltaic system output using our special financial model. '''
+"""
+The solarSunda model allows you to run multiple instances of the SUNDA Solar Costing
+Financing Screening Tool and compare their output visually. This tool allows a co-op to
+compare the levelized cost of a utility-scale solar installation using different
+financing structures. The financing structures included in this analysis are direct
+loan, NCREBs Financing, Lease Buyback, Tax-Equity Flip, and PPA.
+"""
 
 import json, shutil, math, datetime as dt
 from numpy_financial import npv, pmt, ppmt, ipmt, irr
@@ -551,6 +557,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

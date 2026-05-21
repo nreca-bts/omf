@@ -1,4 +1,8 @@
-''' Comms Bandwidth Model '''
+"""
+This model generates a communications network on top of a feeder. It calculates the cost
+of the communications network equipment and if the bandwidth is sufficient to handle
+each meter sending a packet simultaneously.
+"""
 
 import os, datetime, shutil
 from os.path import join as pJoin
@@ -14,6 +18,10 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
 def work(modelDir, inputDict):
+	"""
+	Run the comms bandwidth model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
 	inputDict['feederName1'] = feederName
@@ -101,6 +109,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

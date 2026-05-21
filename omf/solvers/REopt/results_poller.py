@@ -1,5 +1,5 @@
 """
-function for polling reopt api results url
+Poll REopt API result endpoints until optimization jobs finish or fail.
 """
 import json, time
 import requests

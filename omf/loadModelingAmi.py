@@ -1,4 +1,7 @@
-''' Attach loadshapes from an AMI data file to a OMF distribution model. '''
+"""
+Attach AMI-derived load shapes to OMF distribution models and write the GridLAB-D player
+files needed to replay those measurements.
+"""
 
 import csv, json, os, shutil, datetime
 from os.path import join as pJoin
@@ -81,6 +84,9 @@ def writeNewGlmAndPlayers(omdPath, amiPath, outputDir):
 		json.dump(omdObj, outFile, indent=4)
 
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	outFolder = os.path.join(omf.omfDir, 'scratch', 'loadModelingAmiOutput')
 	# Delete old output:
 	shutil.rmtree(outFolder, ignore_errors=True)

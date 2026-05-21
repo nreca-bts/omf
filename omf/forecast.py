@@ -1,6 +1,6 @@
 """
-This contains the loadForecast algorithms
-
+Implement load-forecasting algorithms used by OMF models, including smoothing, Prophet,
+neural-network, and peak-demand approaches.
 """
 
 import math, pulp
@@ -28,17 +28,26 @@ class suppress_stdout_stderr(object):
 
 	def __init__(self):
 		# Open a pair of null files
+		"""
+		Internal helper for forecast init processing.
+		"""
 		self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
 		# Save the actual stdout (1) and stderr (2) file descriptors.
 		self.save_fds = (os.dup(1), os.dup(2))
 
 	def __enter__(self):
 		# Assign the null pointers to stdout and stderr.
+		"""
+		Internal helper for forecast enter processing.
+		"""
 		os.dup2(self.null_fds[0], 1)
 		os.dup2(self.null_fds[1], 2)
 
 	def __exit__(self, *_):
 		# Re-assign the real stdout/stderr back to (1) and (2)
+		"""
+		Internal helper for forecast exit processing.
+		"""
 		os.dup2(self.save_fds[0], 1)
 		os.dup2(self.save_fds[1], 2)
 		# Close the null files
@@ -330,7 +339,13 @@ def _cleanse_params(params):
 
 
 class svmNextDayPeakTime:
+	"""
+	Train and apply a support-vector-machine predictor for next-day peak-load timing.
+	"""
 	def __init__(self, params=_default_params):
+		"""
+		Internal helper for forecast init processing.
+		"""
 		from sklearn.svm import SVC, SVR
 
 		params, gridSearch = _cleanse_params(params)
@@ -567,10 +582,16 @@ def makeUsefulDf(df, noise=2.5, hours_prior=24, structure=None):
 	return (r_df, df['load']) if structure != '3D' else (_data_transform_3d(r_df, var='x'), _data_transform_3d(df['load'], var='y'))
 
 def MAPE(predictions, answers):
+	"""
+	Perform mape processing for OMF helper-library workflows.
+	"""
 	assert len(predictions) == len(answers)
 	return sum([abs(x-y)/(y+1e-5) for x, y in zip(predictions, answers)])/len(answers)*100
 
 def train_neural_net(X_train, y_train, epochs, HOURS_AHEAD=24, structure=None):
+	"""
+	Perform train neural net processing for OMF helper-library workflows.
+	"""
 	import tensorflow as tf
 	from tensorflow.keras import layers # type: ignore
 
@@ -604,6 +625,9 @@ def train_neural_net(X_train, y_train, epochs, HOURS_AHEAD=24, structure=None):
 	return model
 
 def neural_net_predictions(all_X, all_y, epochs=20, model=None, save_file=None):
+	"""
+	Perform neural net predictions processing for OMF helper-library workflows.
+	"""
 	X_train, y_train = all_X[:-8760], all_y[:-8760]
 
 	if model == None:
@@ -622,6 +646,9 @@ def neural_net_predictions(all_X, all_y, epochs=20, model=None, save_file=None):
 	return [float(f) for f in model.predict(np.asarray(all_X[-8760:].values.tolist()), verbose=0)], accuracy
 
 def neural_net_next_day(all_X, all_y, epochs=20, hours_prior=24, save_file=None, model=None, structure=None):
+	"""
+	Perform neural net next day processing for OMF helper-library workflows.
+	"""
 	all_X_n, all_y_n = all_X[:-hours_prior], all_y[:-hours_prior]
 	X_train = all_X_n[:-8760]
 	y_train = all_y_n[:-8760]
@@ -652,6 +679,9 @@ def neural_net_next_day(all_X, all_y, epochs=20, hours_prior=24, save_file=None,
 	return predictions, model, accuracy
 
 def add_day(df, weather):
+	"""
+	Perform add day processing for OMF helper-library workflows.
+	"""
 	lr = df.iloc[-1]
 	if 'dates' in df.columns:
 		last_day = lr.dates

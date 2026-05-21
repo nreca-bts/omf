@@ -1,4 +1,7 @@
-''' Functions for manipulting electrical distribution feeder models. '''
+"""
+Read, write, convert, transform, and analyze OMF distribution feeder models represented
+as GridLAB-D files, OpenDSS files, and OMF feeder trees.
+"""
 
 import datetime, copy, os, re, warnings, json, platform
 from functools import reduce
@@ -205,6 +208,9 @@ def fullyDeEmbed(glmTree):
 
 def _mergeContigLinesOnce(tree):
 	# TODO: Check for switches that prevent valid reduction opportunities
+	"""
+	Internal helper for feeder merge contig lines once processing.
+	"""
 	n2k = nameIndex(tree)
 	treecopy = tree.copy()
 	removedNames = []
@@ -356,6 +362,9 @@ def removeNumberRefs(tree):
 						tree[key][subkey] = goodName
 
 def findParentCoords(inTree, item, defaultCoords):
+	"""
+	Find the parent coords that satisfies this workflow's search criteria.
+	"""
 	nameRefTree = {}
 	for key in inTree:
 		itemOb = inTree[key]
@@ -396,6 +405,9 @@ def findParentCoords(inTree, item, defaultCoords):
 	return parentCoords
 
 def calcDefaultCoords(inTree):
+	"""
+	Calculate default coords for this analysis.
+	"""
 	lats = []
 	lons = []
 	for key in inTree:
@@ -768,6 +780,9 @@ def _obToCol(obStr):
 
 def _tests():
 	# Parser Test
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	tokens = ['clock','{','clockey','valley','}','object','house','{','name','myhouse',';',
 		'object','ZIPload','{','inductance','bigind',';','power','newpower','}','size','234sqft','}']
 	obType = type(_parseTokenList(tokens))

@@ -1,4 +1,9 @@
-''' Calculate optimal restoration scheme for distribution system with multiple microgrids. '''
+"""
+The Microgrid Control model uses the PowerONM solver from Los Alamos National Labs to
+find the optimal series of control actions by which a microgrid can support loads in the
+case of an outage, in concert with an outage cost model for estimating the member and
+utility costs of user-specified outage scenarios.
+"""
 import re, json, os, tempfile, shutil, csv, math, io
 from os.path import join as pJoin
 import pandas as pd
@@ -203,6 +208,9 @@ def customerOutageTable(customerOutageData, outageCost, workDir):
 
 def utilityOutageTable(average_lost_kwh, profit_on_energy_sales, restoration_cost, hardware_cost, outageDuration, workDir):
 	# check to see if work directory is specified; otherwise, create a temporary directory
+	"""
+	Perform utility outage table processing for the microgrid control model.
+	"""
 	if not workDir:
 		workDir = tempfile.mkdtemp()
 		print('@@@@@@', workDir)
@@ -396,6 +404,9 @@ def customerCost1(duration, season, averagekWperhr, businessType):
 def validateSettingsFile(settingsFile):
 	# TODO: check to see if settings file input is correct
 	#if settings file is in correct format return 'True'
+	"""
+	Perform validate settings file processing for the microgrid control model.
+	"""
 	condition = True
 	if condition:
 		return 'True'
@@ -892,6 +903,9 @@ def graphMicrogrid(pathToOmd, pathToJson, pathToCsv, outputFile, settingsFile, u
 	return {'utilityOutageHtml': utilityOutageHtml, 'customerOutageHtml': customerOutageHtml, 'timelineStatsHtml': timelineStatsHtml, 'gens': gens, 'loads': loads, 'volts': volts, 'fig': fig, 'customerOutageCost': customerOutageCost, 'numTimeSteps': numTimeSteps, 'stepSize': stepSize, 'custHist': custHist}
 
 def buildCustomEvents(eventsCSV='', feeder='', customEvents='customEvents.json', defaultDispatchable = 'true'):
+	"""
+	Build the custom events artifact used by this workflow.
+	"""
 	def outageSwitchState(outList): return ('open'*(outList[3] == 'closed') + 'closed'*(outList[3]=='open'))
 	def eventJson(dispatchable, state, timestep, affected_asset):
 		return {
@@ -945,6 +959,10 @@ def buildCustomEvents(eventsCSV='', feeder='', customEvents='customEvents.json',
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the microgrid control model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	# Write in the feeder
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
@@ -1145,6 +1163,9 @@ def new(modelDir):
 def _debugging():
 	# outageCostAnalysis(omf.omfDir + '/static/publicFeeders/Olin Barre LatLon.omd', omf.omfDir + '/static/testFiles/smartswitch_Outages.csv', None, '60', '1')
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# buildCustomSettings(pJoin(omf.omfDir,'static','testFiles','nreca1824events.csv'),pJoin(omf.omfDir,'static','testFiles','nreca1824_dwp.omd'),pJoin(modelLoc,'customSettings.json'))
 	# Blow away old test results if necessary.

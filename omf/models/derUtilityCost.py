@@ -1,5 +1,7 @@
-''' Performs a cost-benefit analysis for a utility or cooperative member interested in 
-controlling behind-the-meter distributed energy resources (DERs).'''
+"""
+omf.models.derUtilityCost is a new model currently under development. Check back in the
+coming months for updates!
+"""
 
 ## Python imports
 import warnings
@@ -1707,6 +1709,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _debugging():
 	# Model Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) 
 	try: 	
 		# Blow away old test results if necessary.

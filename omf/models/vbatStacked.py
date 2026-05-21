@@ -1,4 +1,10 @@
-''' Evaluate demand response energy and economic savings available using PNNL VirtualBatteries (VBAT) model. '''
+"""
+In coordination with the Pacific Northwest National Laboratory (PNNL), the OMF has
+integrated a linear programming model that stacks the benefits of direct load control
+across different revenue streams, by considering deferment strategies, regulation
+pricing, and other payment structures. Read more about our work with direct load control
+and the required inputs here.
+"""
 
 import shutil, os
 from datetime import datetime as dt, timedelta
@@ -18,9 +24,15 @@ tooltip = "Calculate the energy storage capacity for a collection of thermostati
 # hidden = True
 
 def n(num):
+	"""
+	Perform n processing for the vbat stacked model.
+	"""
 	return "${:,.2f}".format(num)
 
 def pyVbat(tempCurve, modelDir, i):
+	"""
+	Perform py vbat processing for the vbat stacked model.
+	"""
 	vbType = i['load_type']
 	# with open(pJoin(modelDir, 'temp.csv')) as f:
 	# 	ambient = np.array([float(r[0]) for r in csv.reader(f)])
@@ -46,6 +58,10 @@ def pyVbat(tempCurve, modelDir, i):
 		return VB.WH(*variables).generate() # water heater
 
 def work(modelDir, ind):
+	"""
+	Run the vbat stacked model analysis and return the output data used by the OMF
+	interface.
+	"""
 	out = {}
 	
 	tempCurve = [float(x) for x in ind["tempCurve"].split('\n') if x != '']
@@ -231,6 +247,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	if os.path.isdir(modelLoc):
 		shutil.rmtree(modelLoc)

@@ -1,4 +1,6 @@
-''' toCalculate hosting capacity using modelBased and/or AMI-based methods. '''
+"""
+The hostingCapacity model calculates hosting capacity for DERs.
+"""
 import shutil
 import plotly as py
 import plotly.express as px
@@ -21,6 +23,9 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
 def convertTime( seconds ):
+	"""
+	Convert time data between solver or OMF representations.
+	"""
 	milliseconds = seconds * 1000
 	# toCalculate hours, minutes, seconds, and milliseconds
 	hours, remainder = divmod(milliseconds, 3600000)
@@ -29,6 +34,9 @@ def convertTime( seconds ):
 	return "{:02d}:{:02d}:{:02d}.{:03d}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
 
 def hostingCapacityMap( modelDir, inputDict, outData ):
+	"""
+	Perform hosting capacity map processing for the hosting capacity model.
+	"""
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	pathToOmd = Path(modelDir, feederName)
 	starting_omd = json.load(open(pathToOmd)) 
@@ -155,6 +163,9 @@ def hostingCapacityMap( modelDir, inputDict, outData ):
 		outData["hideMap"] = True
 
 def run_downlineLoadAlgorithm( modelDir, inputDict, outData ):
+	"""
+	Run the downline load algorithm workflow and return its results.
+	"""
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	pathToOmd = Path(modelDir, feederName)
 	tree = opendss.dssConvert.omdToTree(pathToOmd)
@@ -372,6 +383,9 @@ def run_AMIAlgorithm( modelDir, inputDict, outData ):
 	outData['AMI_runtime'] = convertTime( amiEndTime - amiStartTime )
 
 def run_modelBasedAlgorithm( modelDir, inputDict, outData ):
+	"""
+	Run the model based algorithm workflow and return its results.
+	"""
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	inputDict['feederName1'] = feederName[:-4]
 	pathToOmd = Path(modelDir, feederName)
@@ -400,6 +414,10 @@ def runtimeEstimate(modelDir):
 	return 1.0
 
 def work(modelDir, inputDict):
+	"""
+	Run the hosting capacity model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	if inputDict['runAmiAlgorithm'] == 'on':
 		run_AMIAlgorithm(modelDir, inputDict, outData)
@@ -472,6 +490,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _disabled_tests():
 	# Location
+	"""
+	Internal helper for hosting capacity disabled tests processing.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

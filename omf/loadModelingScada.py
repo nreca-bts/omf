@@ -1,4 +1,7 @@
-''' Calibrate load models based on SCADA data.'''
+"""
+Calibrate feeder load models against SCADA measurements and voltage observations for
+GridLAB-D simulations.
+"""
 import csv, datetime as dt, json, tempfile, os, random, platform
 from os.path import join as pJoin
 import numpy as np
@@ -307,6 +310,9 @@ def plotLine(workDir, powerVec, chartData, startTime, simLengthUnits):
 	plt.close()
 
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	print("Beginning to test calibrate.py")
 	workDir = tempfile.mkdtemp()
 	try: os.mkdir(pJoin(workDir,"gridlabD"))

@@ -1,4 +1,7 @@
-''' Code for running Gridlab and getting results into pythonic data structures. '''
+"""
+Locate, install, run, and parse GridLAB-D simulations for OMF distribution-model
+analyses.
+"""
 
 import sys, os, subprocess, platform, re, datetime, shutil, traceback, math, time, tempfile, json
 from os.path import join as pJoin
@@ -12,9 +15,15 @@ _GRIDLABD_AUTO_INSTALL_ENV = "OMF_GRIDLABD_AUTO_INSTALL"
 _gridlabd_install_checked = False
 
 def _gridlabd_on_path():
+	"""
+	Internal helper for gridlabd on path processing.
+	"""
 	return shutil.which("gridlabd") is not None
 
 def _run_gridlabd_installer(command):
+	"""
+	Internal helper for run gridlabd installer processing.
+	"""
 	try:
 		return subprocess.call(command) == 0
 	except Exception as err:
@@ -22,6 +31,9 @@ def _run_gridlabd_installer(command):
 		return False
 
 def _linux_distro_text():
+	"""
+	Internal helper for linux distro text processing.
+	"""
 	try:
 		with open("/etc/os-release") as os_release:
 			return os_release.read().lower()
@@ -277,6 +289,9 @@ def _strClean(x):
 
 def runToCompletionForMacOS(feederTree, attachments=[], keepFiles=False, workDir=None, glmName=None, gldBinary=None):
 	#TODO: port repeated running code from Kevin in here.
+	"""
+	Run the to completion for mac os workflow and return its results.
+	"""
 	MAX_ERROR_RUN = 12
 	for i in range(MAX_ERROR_RUN):
 		gridlabOut = runInFilesystem(
@@ -313,6 +328,9 @@ def anaDataTree(studyPath, fileNameTest):
 	return data
 
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	print("Full path to Gridlab executable we're using:", _addGldToPath())
 	print("Testing string cleaning.")
 	strTestCases = [

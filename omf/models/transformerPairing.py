@@ -1,3 +1,10 @@
+"""
+The model corrects GIS errors where meters are not associated with the correct
+transformer. It does this by calculating voltage and power correlations between meters.
+It is based on code and results developed by Logan Blakely and Matthew Reno at Sandia
+National Laboratory.
+"""
+
 import warnings
 # warnings.filterwarnings("ignore")
 
@@ -24,6 +31,10 @@ hidden = False
 
 def work(modelDir, inputDict):
 
+	"""
+	Run the transformer pairing model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	useTrueLabels = True
 	saveResultsPath = modelDir
@@ -124,6 +135,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _disabled_tests():
 	# Location
+	"""
+	Internal helper for transformer pairing disabled tests processing.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

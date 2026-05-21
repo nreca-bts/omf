@@ -1,3 +1,7 @@
+"""
+Install, configure, and run local Julia REopt workflows for OMF optimization models.
+"""
+
 import json, time
 import os, platform, shutil
 import random
@@ -13,13 +17,22 @@ JULIA_CACHE_HOME = os.path.normpath(os.path.expanduser(os.environ.get(
 )))
 
 def _env_flag_false(name):
+	"""
+	Internal helper for env flag false processing.
+	"""
 	value = os.environ.get(name)
 	return value is not None and value.lower() in ('0', 'false', 'no', 'off')
 
 def _julia_executable_name():
+	"""
+	Internal helper for julia executable name processing.
+	"""
 	return 'julia.exe' if platform.system() == 'Windows' else 'julia'
 
 def _julia_version_matches(julia_executable):
+	"""
+	Internal helper for julia version matches processing.
+	"""
 	try:
 		version_check = subprocess.run([julia_executable, '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
 		return version_check.returncode == 0 and f'version {JULIA_VERSION}' in version_check.stdout
@@ -27,12 +40,18 @@ def _julia_version_matches(julia_executable):
 		return False
 
 def _prepend_to_path(path):
+	"""
+	Internal helper for prepend to path processing.
+	"""
 	path = os.path.abspath(os.path.expanduser(path))
 	path_entries = os.environ.get('PATH', '').split(os.pathsep)
 	if path not in path_entries:
 		os.environ['PATH'] = os.pathsep.join([path] + [entry for entry in path_entries if entry])
 
 def _julia_bin_candidates():
+	"""
+	Internal helper for julia bin candidates processing.
+	"""
 	candidates = []
 	for env_name in ('OMF_JULIA_BINDIR', 'JULIA_BINDIR'):
 		if os.environ.get(env_name):
@@ -48,10 +67,16 @@ def _julia_bin_candidates():
 	return candidates
 
 def _julia_on_path():
+	"""
+	Internal helper for julia on path processing.
+	"""
 	julia_executable = shutil.which('julia')
 	return julia_executable is not None and _julia_version_matches(julia_executable)
 
 def _ensure_julia_on_path():
+	"""
+	Internal helper for ensure julia on path processing.
+	"""
 	if _julia_on_path():
 		return True
 	executable_name = _julia_executable_name()
@@ -63,6 +88,9 @@ def _ensure_julia_on_path():
 	return False
 
 def _run_install_commands(commands):
+	"""
+	Internal helper for run install commands processing.
+	"""
 	for command in commands:
 		exit_code = os.system(command)
 		if exit_code != 0:
@@ -459,6 +487,9 @@ def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, 
 
 
 def _test():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	run_reopt_jl(os.path.normpath(os.path.join(thisDir,"testFiles")), default=True)
 
 if __name__ == "__main__":

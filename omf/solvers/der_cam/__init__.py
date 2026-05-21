@@ -1,3 +1,8 @@
+"""
+Wrap DER-CAM spreadsheet and API workflows for distributed-energy-resource optimization
+studies.
+"""
+
 import os, time, json
 import shutil
 import pandas, openpyxl
@@ -272,6 +277,9 @@ def build_input_spreadsheet(path, reopt_input_file, der_cam_file_name, loadTempl
 #######################################################################
 
 def check_timeout(start_time, timeout):
+    """
+    Perform check timeout processing for the wrapped solver workflow.
+    """
     if timeout != 0:
         current_time = time.time()
         if current_time - start_time >= timeout:
@@ -421,6 +429,9 @@ def run(path, modelFile="", reoptFile="", apiKey="", loadTemplate="", timeout=0)
 
 
 def _test():
+    """
+    Run this module's local smoke tests or debugging workflow.
+    """
     modelKey = run(os.path.normpath(os.path.join(thisDir,"testFiles")), modelFile="test.xlsx")
     print_model( modelKey )
 

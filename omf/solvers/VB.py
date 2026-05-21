@@ -1,3 +1,8 @@
+"""
+Implement PNNL virtual-battery device and aggregation models used for demand-response
+dispatch studies.
+"""
+
 import pandas as pd
 import pulp
 import numpy as np
@@ -15,6 +20,9 @@ class VirtualBattery(object):
         # theta_s: temperature setpoint
         # N: number of TCL
         # ambient: ambient temperature
+        """
+        Internal helper for vb init processing.
+        """
         self.ambient = ambient_temp
         self.C = capacitance
         self.R = resistance
@@ -43,6 +51,9 @@ class VirtualBattery(object):
 class AC(VirtualBattery):
     """ Derived Class for specifically AC Virtual Battery. """
     def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number):
+        """
+        Internal helper for vb init processing.
+        """
         super(AC, self).__init__(theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number)
 
     # self.tcl_idx = tcl_idx
@@ -50,6 +61,9 @@ class AC(VirtualBattery):
 
     def generate(self):
         #heuristic function of participation
+        """
+        Implement generate behavior for AC instances.
+        """
         atan = np.arctan
         # participation for AC
         Ta = np.linspace(20, 45, num=51)
@@ -65,6 +79,9 @@ class AC(VirtualBattery):
 class HP(VirtualBattery):
     """ Derived Class for specifically HP Virtual Battery. """
     def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number):
+        """
+        Internal helper for vb init processing.
+        """
         super(HP, self).__init__(theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number)
 
     #  self.tcl_idx = tcl_idx
@@ -72,6 +89,9 @@ class HP(VirtualBattery):
 
     def generate(self):
         #heuristic function of participation
+        """
+        Implement generate behavior for HP instances.
+        """
         atan = np.arctan
         # participation for HP
         Ta = np.linspace(0, 25, num=51)
@@ -87,11 +107,17 @@ class HP(VirtualBattery):
 class RG(VirtualBattery):
     """ Derived Class for specifically RG Virtual Battery. """
     def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number):
+        """
+        Internal helper for vb init processing.
+        """
         super(RG, self).__init__(theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number)
     # self.tcl_idx = tcl_idx
         self.theta_a = self.ambient  # theta_a == ambient temperature
     def generate(self):
         #heuristic function of participation
+        """
+        Implement generate behavior for RG instances.
+        """
         atan = np.arctan
         # participation for RG
         participation = np.ones(self.theta_a.shape)
@@ -108,6 +134,9 @@ class WH(VirtualBattery):
     N_wh = 50
 
     def __init__(self, theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number,Tout, water, random_numbers=None):
+        """
+        Internal helper for vb init processing.
+        """
         super(WH, self).__init__(theta_a, capacitance, resistance, rated_power, COP, deadband, setpoint, tcl_number)
 
         self.C_wh = self.C*np.ones((self.N_wh, 1))  # thermal capacitance, set in parent class
@@ -121,6 +150,9 @@ class WH(VirtualBattery):
         # self.N = self.para[6] # number of TCL
 
     def calculate_twat(self,tout_avg,tout_madif):
+        """
+        Calculate twat for this analysis.
+        """
         tout_avg=tout_avg/5*9+32
 
         tout_madif=tout_madif/5*9
@@ -141,6 +173,9 @@ class WH(VirtualBattery):
 
     def prepare_pare_for_calculate_twat(self,tou_raw):
     
+        """
+        Implement prepare pare for calculate twat behavior for WH instances.
+        """
         tout_avg = sum(tou_raw)/len(tou_raw)
         
         mon=[31,28,31,30,31,30,31,31,30,31,30,31]
@@ -162,6 +197,9 @@ class WH(VirtualBattery):
     def generate(self):
         # theta_a is the ambient temperature
         # theta_a = (72-32)*5.0/9*np.ones((365, 24*60))   # This is a hard-coded 72degF, converted to degCel
+        """
+        Implement generate behavior for WH instances.
+        """
         theta_a = self.ambient#*np.ones((365, 24*60))  # theta_a == ambient temperature
         #nRow, nCol = theta_a.shape
         nRow, nCol = 365, 24*60
@@ -295,6 +333,9 @@ class WH(VirtualBattery):
 
 def run_fhec(ind, gt_demand, Input):
     
+    """
+    Run the fhec workflow and return its results.
+    """
     use_hour = int(ind["userHourLimit"]) # number of VB use hours specified by the user
     epsilon  = 1 #float(ind["energyReserve"]) # energy reserve parameter, range: 0 - 1
 
@@ -483,6 +524,9 @@ def run_okec(ind, Input):
 
     # Input.to_csv('okec_input.csv', index=False)
     
+    """
+    Run the okec workflow and return its results.
+    """
     use_hour = int(ind["userHourLimit"]) # number of VB use hours specified by the user
     epsilon  = 1 #float(ind["energyReserve"]) # energy reserve parameter, range: 0 - 1
 

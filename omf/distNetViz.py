@@ -1,5 +1,6 @@
 """
-Load an OMF feeder in to the new viewer.
+Prepare OMF feeder data for the distribution-network viewer, including coordinate
+insertion, component extraction, and local visualization launch helpers.
 """
 
 import tempfile, shutil, os, fileinput, json, webbrowser, sys
@@ -76,6 +77,9 @@ def contains_valid_coordinates(tree):
 
 # - TODO: move this into geo.py once the old editor is deprecated so that this whole file is easier to deprecate. Some imports will need to be changed
 def get_components():
+	"""
+	Return the components needed by this workflow.
+	"""
 	directory = os.path.join(omf.omfDir, "data/Component")
 	components = {}
 	for dirpath, dirnames, file_names in os.walk(directory):
@@ -190,6 +194,9 @@ def viz(pathToOmdOrGlm, forceLayout=False, outputPath=None, outputName='viewer.h
 		open_browser(tempDir, outputName)
 
 def open_browser(tempDir, outputName):
+	"""
+	Perform open browser processing for OMF helper-library workflows.
+	"""
 	webbrowser.open_new("file://" + tempDir + '/' + outputName)
 
 if __name__ == '__main__':

@@ -1,4 +1,7 @@
-''' Contextual Source Separation Method for solar dis-aggregation. '''
+"""
+Install and expose the contextual source-separation solver used for solar
+disaggregation.
+"""
 
 def pull_from_upstream():
 	''' pull down the upstream package. we cache a specific version though, so this is not usually run. '''

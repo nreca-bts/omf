@@ -1,4 +1,7 @@
-''' Cosimulation framework for GridLAB-D.'''
+"""
+Coordinate GridLAB-D co-simulation runs by stepping simulators, exchanging values, and
+letting agents inspect or perturb the running grid model.
+"""
 import subprocess, time, warnings
 try:
 	from urllib.request import urlopen
@@ -18,9 +21,15 @@ def writeDt(dtString):
 	return datetime.strftime(dtString, "%Y-%m-%d %H:%M:%S")
 
 class Coordinator(object):
+	"""
+	Coordinate time-stepped co-simulation objects and advance shared simulation time.
+	"""
 	__slots__ = 'agents', 'glw', 'log'
 
 	def __init__(self, agents, cosimProps):
+		"""
+		Internal helper for cosim init processing.
+		"""
 		self.agents = agents
 		# Start the simulation
 		self.glw = GridLabWorld(cosimProps['port'],cosimProps['hostname'],cosimProps['glmPath'],cosimProps['startTime'])
@@ -53,10 +62,16 @@ class Coordinator(object):
 
 	def returnLog(self):
 		# for testing purposes
+		"""
+		Implement return log behavior for Coordinator instances.
+		"""
 		return self.log
 
 	def drawResults(self, outputPath=None):
 		#return self.log
+		"""
+		Create a plot or display artifact for results results.
+		"""
 		html_str = """
 		<!DOCTYPE html>
 		<html>
@@ -95,6 +110,9 @@ class Coordinator(object):
 
 	def drawPrettyResults(self, outputPath=None):
 		#return self.log
+		"""
+		Create a plot or display artifact for pretty results results.
+		"""
 		html_str = """
 		<!DOCTYPE html>
 		<html>
@@ -176,9 +194,16 @@ class Coordinator(object):
 		Html_file.close()
 
 class GridLabWorld(object):
+	"""
+	Represent a GridLAB-D simulation world controlled through the OMF co-simulation
+	coordinator.
+	"""
 	__slots__ = 'PORT', 'HOST', 'GLM_PATH', 'START_PAUSE', 'baseUrl', 'procObject'
 
 	def __init__(self, PORT, HOST, GLM_PATH, START_PAUSE):
+		"""
+		Internal helper for cosim init processing.
+		"""
 		self.PORT = PORT
 		self.HOST = HOST
 		self.GLM_PATH = GLM_PATH
@@ -284,6 +309,9 @@ class GridLabWorld(object):
 		print(self.procObject.stderr.read())
 
 	def resume(self):
+		"""
+		Implement resume behavior for GridLabWorld instances.
+		"""
 		try:
 			with request.urlopen(self.baseUrl + 'control/resume') as f:
 				f.read()
@@ -302,6 +330,9 @@ class GridLabWorld(object):
 
 	def start(self, timeout = 30):
 		#TODO: watch out for in-use port.
+		"""
+		Implement start behavior for GridLabWorld instances.
+		"""
 		self.procObject = subprocess.Popen(['gridlabd', self.GLM_PATH, '--server', '-P', self.PORT, '-q','--define','pauseat="' + self.START_PAUSE + '"'], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 		# print 'MY START PID!', self.procObject.pid
 		# Wait for the dang server to start up and simulate.
@@ -322,6 +353,9 @@ class GridLabWorld(object):
 		raise Exception('GridLAB-D startup failed. Please check GLM.')
 
 def _test1():
+	"""
+	Internal helper for cosim test1 processing.
+	"""
 	glw = GridLabWorld('6267', 'localhost', omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', '2000-01-02 00:00:00')
 	glw.start()
 	# Read the clock, solar output voltage, battery state of charge, and inverter voltage input.
@@ -353,6 +387,9 @@ def _test1():
 
 def _test2():
 	# test with AlertAgent, ReadAttackAgent
+	"""
+	Internal helper for cosim test2 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 12:00:00', 'stepSizeSeconds':3600} #error with having 
 	agents = [cyberAttack.AlertAgent('AlertAgent', '2000-01-03 12:00:00')] 
@@ -362,6 +399,9 @@ def _test2():
 
 def _test3():
 	# test with AlertAgent, ReadAttackAgent
+	"""
+	Internal helper for cosim test3 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = [
@@ -374,6 +414,9 @@ def _test3():
 
 def _test4():
 	# test with AlertAgent, ReadAttackAgent, and ReadAttackIntervalAgent
+	"""
+	Internal helper for cosim test4 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = [
@@ -388,6 +431,9 @@ def _test4():
 def _test5():
 	# test with AlertAgent, ReadAttackAgent, ReadIntervalAttackAgent, and WriteAttackAgent
 	# shows how WriteAttackAgent and WriteIntervalAttackAgent interact with ReadAttackAgent and ReadIntervalAttackAgent
+	"""
+	Internal helper for cosim test5 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = []
@@ -405,6 +451,9 @@ def _test5():
 	print(coord.drawPrettyResults())
 
 def _test6():
+	"""
+	Internal helper for cosim test6 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = []
@@ -417,6 +466,9 @@ def _test6():
 
 def _test7():
 	# test with ReadMultAttackAgent
+	"""
+	Internal helper for cosim test7 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = [cyberAttack.ReadMultAttackAgent('ReadMult', '2000-01-01 01:00:00', 'tm_1', ['measured_power','measured_real_energy'])]
@@ -426,6 +478,9 @@ def _test7():
 
 def _test8():
 	# test with ReadMultAttackAgent and WriteMultAttackAgent
+	"""
+	Internal helper for cosim test8 processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm', 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
 	agents = []
@@ -437,6 +492,9 @@ def _test8():
 
 def _test9():
 	# test KillAllAtTime agent
+	"""
+	Internal helper for cosim test9 processing.
+	"""
 	glmPath = omf.omfDir + '/scratch/CIGAR/test_smsSingle.glm'
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':glmPath, 'startTime':'2000-01-01 00:00:00','endTime':'2000-01-05 00:00:00', 'stepSizeSeconds':3600}
@@ -456,6 +514,9 @@ def _test9():
 	print(coord.drawPrettyResults())
 
 def _testfault():
+	"""
+	Internal helper for cosim testfault processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_Exercise_4_2_1.glm', 'startTime':'2000-01-01 05:00:00','endTime':'2000-01-01 05:30:00', 'stepSizeSeconds':60}
 	agents = []
@@ -464,6 +525,9 @@ def _testfault():
 	print(coord.drawPrettyResults())
 
 def _testInverterAttack():
+	"""
+	Internal helper for cosim test inverter attack processing.
+	"""
 	from omf import cyberAttack
 	cosimProps = {'port':'6267', 'hostname':'localhost', 'glmPath':omf.omfDir + '/scratch/CIGAR/test_R1-12.47-1-AddSolar-Wye.glm', 'startTime':'2000-01-01 05:00:00','endTime':'2000-01-01 05:30:00', 'stepSizeSeconds':60}
 	agents = []
