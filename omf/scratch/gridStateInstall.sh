@@ -20,9 +20,9 @@ sudo ln -s /usr/bin/python /usr/local/bin/python
 sudo ln -s /usr/bin/pip2 /usr/local/bin/pip
 # Run the install script
 sudo python install.py
-# Install non-standard packages, if possible. Tensorflow is fine, fbprophet is not
+# Install non-standard packages, if possible. Tensorflow is fine, prophet is not
 sudo pip install tensorflow
-#sudo pip install fbprophet
+#sudo pip install prophet
 # Configure Jupyter notebook
 sudo python2 -m pip install ipykernel
 # Installing the kernelspec with sudo, but don't use sudo. There is only one user per container, so a system-wide kernelspec vs. a user-specific

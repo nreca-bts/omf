@@ -267,9 +267,9 @@ def nextDayPeakKatrinaForecast(
 
 
 def prophetForecast(rawData, startDate, modelDir, partitions):
-	"""Forecasting with fbprophet"""
-	from fbprophet import Prophet  # type: ignore
-	from fbprophet.diagnostics import cross_validation  # type: ignore
+	"""Forecasting with prophet"""
+	from prophet import Prophet  # type: ignore
+	from prophet.diagnostics import cross_validation  # type: ignore
 
 	partitions = int(partitions)
 	# initiate model

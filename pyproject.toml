@@ -56,6 +56,7 @@ dependencies = [
 [project.optional-dependencies]
 ml = [
   "tensorflow",
+  "prophet",
 ]
 
 [project.urls]
