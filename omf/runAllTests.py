@@ -11,6 +11,7 @@ if os.environ.get("GITHUB_ACTIONS") == "true":
 	IGNORE_FILES.extend([
 		'omf.cymeToGridlab',
 		'omf.feeder',
+		'omf.loadModelingAmi',
 		'omf.loadModelingScada',
 		'omf.milToGridlab',
 		'omf.solvers.gridlabd',
@@ -22,6 +23,7 @@ if os.environ.get("GITHUB_ACTIONS") == "true":
 		'omf.models.faultAnalysis',
 		'omf.models.gridlabMulti',
 		'omf.models.hostingExpansion',
+		'omf.models.microgridDesign',
 		'omf.models.phaseBalance',
 		'omf.models.pvWatts',
 		'omf.models.rfCoverage',
