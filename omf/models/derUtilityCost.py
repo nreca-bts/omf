@@ -22,7 +22,7 @@ from omf.solvers import reopt_jl
 ## Model metadata:
 tooltip = ('Performs a cost-benefit analysis for a utility or cooperative member interested in controlling behind-the-meter distributed energy resources (DERs).')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = True ## Keep the model hidden=True during active development
+hidden = False ## Keep the model hidden=True during active development
 
 def calculate_fval(peak, adjusted_peak, DER_contribution):
 	""" 
@@ -1660,44 +1660,44 @@ def new(modelDir):
 		'startupCosts': '200000',
 		'BESS_subsidy_onetime': '50.0',
 		'BESS_subsidy_ongoing': '10.0',
-		'TESS_subsidy_onetime_ac': '10.0',
-		'TESS_subsidy_ongoing_ac': '5.0',
-		'TESS_subsidy_onetime_hp': '10.0',
-		'TESS_subsidy_ongoing_hp': '5.0',
-		'TESS_subsidy_onetime_wh': '10.0',
-		'TESS_subsidy_ongoing_wh': '5.0',
+		'TESS_subsidy_onetime_ac': '0.0',
+		'TESS_subsidy_ongoing_ac': '1.0',
+		'TESS_subsidy_onetime_hp': '0.0',
+		'TESS_subsidy_ongoing_hp': '1.0',
+		'TESS_subsidy_onetime_wh': '0.0',
+		'TESS_subsidy_ongoing_wh': '3.0',
 		'GEN_subsidy_onetime': '0.0',
 		'GEN_subsidy_ongoing': '0.0',
-		'operationalCosts_ongoing': '1000.0',
-		'operationalCosts_onetime': '20000.0',
+		'operationalCosts_ongoing': '1000',
+		'operationalCosts_onetime': '20000',
 		
 		## Home Air Conditioner inputs (for vbatDispatch):
 		'load_type_ac': '1', 
 		'number_devices_ac': '33000',
 		'power_ac': '5.6',
-		'capacitance_ac': '2',
-		'resistance_ac': '2',
+		'capacitance_ac': '2.0',
+		'resistance_ac': '2.0',
 		'cop_ac': '2.5',
 		'setpoint_ac': '72.5',
-		'deadband_ac': '2',
+		'deadband_ac': '2.0',
 
 		## Home Heat Pump inputs (for vbatDispatch):
 		'load_type_hp': '2', 
 		'number_devices_hp': '16500',
 		'power_hp': '5.6',
-		'capacitance_hp': '2',
-		'resistance_hp': '2',
+		'capacitance_hp': '2.0',
+		'resistance_hp': '2.0',
 		'cop_hp': '3.5',
-		'setpoint_hp': '65',
-		'deadband_hp': '2',
+		'setpoint_hp': '67.0',
+		'deadband_hp': '2.0',
 
 		## Home Water Heater inputs (for vbatDispatch):
 		'load_type_wh': '4', 
 		'number_devices_wh': '33000',
 		'power_wh': '4.5',
 		'capacitance_wh': '0.4',
-		'resistance_wh': '120',
-		'cop_wh': '1',
+		'resistance_wh': '120.0',
+		'cop_wh': '1.0',
 		'setpoint_wh': '125.0', 
 		'deadband_wh': '5.4',
 	}
