@@ -2684,26 +2684,67 @@ def saveCommsMap(owner, modelName, feederName, feederNum):
 ###################################################
 
 
+_HOME_MODEL_METADATA_RE = re.compile(r'"(runTime|modelType|created)"\s*:\s*"([^"]*)"')
+
 def _fast_input_scan(file_path):
-	# quickly get key info from input data.
-	keys = {'runTime':None, 'modelType':None, 'created':None}
-	hits = 0
+	'''Quickly read only the home-page metadata from allInputData.json.'''
+	keys = {'runTime':'', 'modelType':'', 'created':''}
 	with open(file_path, 'r') as file_data:
-		for line in file_data:
-			if hits == 3:
+		pending = set(keys)
+		tail = ''
+		while pending:
+			chunk = file_data.read(8192)
+			if not chunk:
 				break
-			for key in keys:
-				if key in line:
-					keys[key] = line
-					hits += 1
-	for key in keys:
-		val = str(keys[key])
-		try:
-			clean_val = re.findall('"(.*?)"', val)[1]
-		except:
-			clean_val = ''
-		keys[key] = clean_val
+			text = tail + chunk
+			for key, val in _HOME_MODEL_METADATA_RE.findall(text):
+				if key in pending:
+					keys[key] = val
+					pending.remove(key)
+			tail = text[-100:]
 	return keys
+
+def _model_status_from_filenames(file_names):
+	'''Return the same status used by the default model getStatus without an extra listdir.'''
+	file_names = set(file_names)
+	if "PPID.txt" in file_names:
+		return 'running'
+	elif "allOutputData.json" in file_names:
+		return 'finished'
+	else:
+		return 'stopped'
+
+def _admin_model_dirs():
+	'''Yield all user-owned model directories with their already-listed files.'''
+	model_root = path_manager.join('data', 'Model')
+	try:
+		owner_entries = os.scandir(model_root)
+	except OSError:
+		return
+	with owner_entries:
+		for owner_entry in owner_entries:
+			if owner_entry.name.startswith('.') or not owner_entry.is_dir():
+				continue
+			try:
+				model_entries = os.scandir(owner_entry.path)
+			except OSError:
+				continue
+			with model_entries:
+				for model_entry in model_entries:
+					if model_entry.name.startswith('.') or not model_entry.is_dir():
+						continue
+					try:
+						file_entries = os.scandir(model_entry.path)
+					except OSError:
+						continue
+					with file_entries:
+						file_names = [entry.name for entry in file_entries]
+					yield {
+						'owner': owner_entry.name,
+						'name': model_entry.name,
+						'path': model_entry.path,
+						'file_names': file_names
+					}
 
 
 @app.route("/")
@@ -2726,33 +2767,43 @@ def root():
 		allModels.extend(shared_models)
 	# Allow admin to see all model instances.
 	isAdmin = User.cu() == "admin"
-	if isAdmin:
-		allModels = [{"owner":owner,"name":mod} for owner in _safe_list_dir("data/Model/")
-			for mod in _safe_list_dir("data/Model/" + owner)]
 	# Grab metadata for model instances.
 	safe_models = []
-	for mod in allModels:
-		try:
-            # - In the event of a poisoned .json file, skip the poisoned model
-			modPath = path_manager.join('data', 'Model', mod['owner'], mod['name'])
-		except PathManager.PathTraversalError:
-			continue
-		metadata_path = os.path.join(modPath, 'allInputData.json')
-		if not os.path.isfile(metadata_path):
-			continue
-		safe_models.append(mod)
-		key_vals = _fast_input_scan(metadata_path)
-		mod["runTime"] = key_vals.get("runTime","")
-		mod["modelType"] = key_vals.get("modelType","")
-		creation = key_vals.get("created","")
-		try:
-			mod["status"] = getattr(models, mod["modelType"]).getStatus(modPath)
-			mod["created"] = creation[0:creation.rfind('.')]
-			# mod["editDate"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(os.stat(modPath).st_ctime))
-		except: # the model type was deprecated, so the getattr will fail.
-			mod["created"] = creation
-			mod["status"] = "stopped"
-			mod["editDate"] = "N/A"
+	if isAdmin:
+		for mod_info in _admin_model_dirs():
+			if 'allInputData.json' not in mod_info['file_names']:
+				continue
+			mod = {'owner': mod_info['owner'], 'name': mod_info['name']}
+			key_vals = _fast_input_scan(os.path.join(mod_info['path'], 'allInputData.json'))
+			mod["runTime"] = key_vals.get("runTime","")
+			mod["modelType"] = key_vals.get("modelType","")
+			creation = key_vals.get("created","")
+			mod["created"] = creation.split('.', 1)[0]
+			mod["status"] = _model_status_from_filenames(mod_info['file_names'])
+			safe_models.append(mod)
+	else:
+		for mod in allModels:
+			try:
+				# In the event of a poisoned .json file, skip the poisoned model.
+				modPath = path_manager.join('data', 'Model', mod['owner'], mod['name'])
+			except PathManager.PathTraversalError:
+				continue
+			metadata_path = os.path.join(modPath, 'allInputData.json')
+			if not os.path.isfile(metadata_path):
+				continue
+			safe_models.append(mod)
+			key_vals = _fast_input_scan(metadata_path)
+			mod["runTime"] = key_vals.get("runTime","")
+			mod["modelType"] = key_vals.get("modelType","")
+			creation = key_vals.get("created","")
+			try:
+				mod["status"] = getattr(models, mod["modelType"]).getStatus(modPath)
+				mod["created"] = creation.split('.', 1)[0]
+				# mod["editDate"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(os.stat(modPath).st_ctime))
+			except: # the model type was deprecated, so the getattr will fail.
+				mod["created"] = creation
+				mod["status"] = "stopped"
+				mod["editDate"] = "N/A"
 	safe_models.sort(key=lambda x:x.get('created',''), reverse=True)
 	allModels = safe_models
 	# Get tooltips for model types.
