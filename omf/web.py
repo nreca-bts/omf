@@ -1,6 +1,6 @@
 ''' Web server for model-oriented OMF interface. '''
 
-import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii, gzip
+import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii, gzip, collections
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
@@ -54,6 +54,10 @@ COMPRESS_MIMETYPES = {
 	'image/svg+xml'
 }
 
+OMF_STATS_LOG_NAMES = ('omf.access.log', 'omf.error.log')
+OMF_STATS_DEFAULT_LOG_LINES = 250
+OMF_STATS_MAX_LOG_LINES = 1000
+
 
 def _add_vary_header(response, value):
 	current_vary = response.headers.get('Vary')
@@ -71,6 +75,48 @@ def _is_compressible_mimetype(mimetype):
 		mimetype.endswith('+json') or
 		mimetype.endswith('+xml')
 	)
+
+
+def _bounded_log_line_count():
+	try:
+		line_count = int(request.args.get('lines', OMF_STATS_DEFAULT_LOG_LINES))
+	except (TypeError, ValueError):
+		line_count = OMF_STATS_DEFAULT_LOG_LINES
+	return max(1, min(line_count, OMF_STATS_MAX_LOG_LINES))
+
+
+def _tail_log_file(log_name, line_count):
+	log_path = os.path.join(_omfDir, log_name)
+	log_info = {
+		'name': log_name,
+		'path': log_path,
+		'lines': [],
+		'exists': os.path.exists(log_path),
+		'size': 0,
+		'modified': None,
+		'error': None
+	}
+	if not log_info['exists']:
+		log_info['error'] = 'Log file not found.'
+		return log_info
+	try:
+		stat = os.stat(log_path)
+		log_info['size'] = stat.st_size
+		log_info['modified'] = dt.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+		with open(log_path, 'r', encoding='utf-8', errors='replace') as log_file:
+			log_info['lines'] = [line.rstrip('\n') for line in collections.deque(log_file, maxlen=line_count)]
+	except OSError as e:
+		log_info['error'] = str(e)
+	return log_info
+
+
+def _get_omf_stats_logs():
+	line_count = _bounded_log_line_count()
+	return {
+		'line_count': line_count,
+		'max_line_count': OMF_STATS_MAX_LOG_LINES,
+		'logs': [_tail_log_file(log_name, line_count) for log_name in OMF_STATS_LOG_NAMES]
+	}
 
 
 @app.after_request
@@ -957,7 +1003,8 @@ def omfStatsView():
 	'''Render log visualizations.'''
 	if User.cu() != "admin":
 		return redirect("/")
-	return render_template("omfStats.html")
+	log_context = _get_omf_stats_logs()
+	return render_template("omfStats.html", **log_context)
 
 
 @app.route("/regenOmfStats", methods=["POST"])

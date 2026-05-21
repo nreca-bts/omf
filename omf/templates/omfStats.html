@@ -1,4 +1,35 @@
 <head>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+		}
+		.logControls {
+			margin: 1em 0;
+		}
+		.logPanel {
+			margin: 1em 0;
+		}
+		.logMeta {
+			color: #555;
+			font-size: 0.9em;
+			margin: 0.4em 0;
+		}
+		.logViewer {
+			background: #111;
+			color: #eee;
+			font-family: Menlo, Consolas, monospace;
+			font-size: 12px;
+			line-height: 1.4;
+			max-height: 420px;
+			overflow: auto;
+			padding: 1em;
+			white-space: pre-wrap;
+			word-break: break-word;
+		}
+		.logError {
+			color: #a00;
+		}
+	</style>
 </head>
 <body>
 	<h1>OMF Stats</h1>
@@ -10,6 +41,30 @@
 	<a href="https://cloud.tenable.com/app.html#/dashboards/workbench/assets">Nessus Security Agent</a>
 	<br />
 	<br />
+	<h2>Recent Raw Logs</h2>
+	<form class="logControls" action="/omfStats" method="GET">
+		<label for="lines">Lines per log:</label>
+		<input id="lines" name="lines" type="number" min="1" max="{{ max_line_count }}" value="{{ line_count }}" />
+		<button type="submit">Refresh Logs</button>
+	</form>
+	{% for log in logs %}
+		<details class="logPanel" open>
+			<summary>{{ log.name }}{% if log.lines %} (latest {{ log.lines|length }} lines){% endif %}</summary>
+			<div class="logMeta">
+				{{ log.path }}
+				{% if log.modified %} | Modified: {{ log.modified }}{% endif %}
+				{% if log.size %} | Size: {{ "{:,}".format(log.size) }} bytes{% endif %}
+			</div>
+			{% if log.error %}
+				<p class="logError">{{ log.error }}</p>
+			{% elif log.lines %}
+				<pre class="logViewer">{% for line in log.lines %}{{ line }}
+{% endfor %}</pre>
+			{% else %}
+				<p>No log entries found.</p>
+			{% endif %}
+		</details>
+	{% endfor %}
 	<img src = "../static/model_db_stats.png" alt = "monthly user creation and model types" />
 	<img src = "../static/traffic_log_stats.png" alt = "traggic log stats" />
 	<iframe src="../static/ipLoc.html" style="width:1500px;height:800px"></iframe>
