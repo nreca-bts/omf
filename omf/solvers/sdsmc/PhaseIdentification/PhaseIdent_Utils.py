@@ -46,6 +46,10 @@ import datetime
 from scipy import stats
 import pandas as pd
 
+def _mode_value(values, **kwargs):
+    mode_result = stats.mode(values, **kwargs)
+    return np.asarray(mode_result.mode).reshape(-1)[0]
+
 ###############################################################################
 #
 # ConvertToPerUnit_Voltage
@@ -431,7 +435,7 @@ def CalcPredictedPhaseNoLabels(finalClusterLabels, clusteredPhaseLabelErrors,clu
         currentCluster = uniqueClusters[clustCtr]
         indices1 = np.where(finalClusterLabels==currentCluster)[0]     
         clusterPhases = clusteredPhaseLabelErrors[0,indices1]
-        pPhase = stats.mode(clusterPhases)[0][0]
+        pPhase = _mode_value(clusterPhases)
         predictedPhases[0,indices1] = pPhase        
 
     return predictedPhases
