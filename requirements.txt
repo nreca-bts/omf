@@ -22,5 +22,4 @@ seaborn
 pandapower>=3.1.2,<3.2
 openpyxl
 shapely
-geopandas
 nrel-pysam>=7.0.0

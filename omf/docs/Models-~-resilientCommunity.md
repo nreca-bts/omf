@@ -118,8 +118,7 @@ US Census ACS Data Variables:
 * import [json](https://docs.python.org/3/library/json.html)
 * import [math](https://docs.python.org/3/library/math.html)
 * import [pandas](https://pandas.pydata.org/docs/) as pd
-* from [shapely.geometry](https://pypi.org/project/shapely/) import Polygon, Point
-* import [geopandas](https://geopandas.org/en/stable/docs.html) as gpd
+* from [shapely.geometry](https://pypi.org/project/shapely/) import Polygon, Point, mapping
 * import [pygris](https://walker-data.com/pygris/)
 * import [networkx](https://networkx.org/documentation/latest/) as nx
 

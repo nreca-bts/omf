@@ -13,8 +13,7 @@ import numpy as np
 import json
 import math
 import pandas as pd
-from shapely.geometry import Polygon, Point
-import geopandas as gpd
+from shapely.geometry import Polygon, Point, mapping
 import networkx as nx
 import time
 from collections import OrderedDict
@@ -1153,12 +1152,36 @@ def addBgInfoToLoads(loadDict, blockgroupDict, loads2BgDict, avgPeakDemand):
 	addPctlToDict(loadDict, 'base crit score', 'distance_from_source')
 	addPctlToDict(loadDict, 'locational crit score', 'distance_from_source')
 
+def _geojson_property_value(value):
+	if not isinstance(value, (list, tuple, dict)) and pd.isna(value):
+		return None
+	if isinstance(value, np.generic):
+		return value.item()
+	return value
+
+def writeGeoJsonFeatures(geoDF, filepath):
+	'''Write a GeoJSON FeatureCollection from a DataFrame with a Shapely geometry column.'''
+	features = []
+	for _, row in geoDF.iterrows():
+		properties = {
+			column: _geojson_property_value(row[column])
+			for column in geoDF.columns
+			if column != 'geometry'
+		}
+		features.append({
+			'type': 'Feature',
+			'properties': properties,
+			'geometry': mapping(row['geometry'])
+		})
+	with open(filepath, 'w') as f:
+		json.dump({'type': 'FeatureCollection', 'features': features}, f)
+
 def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
 	''' Returns 3 dataframes (bgDF, bgGeoDF, sectionLoadSummaryDF) from the information in loadDict, blockgroupDict, and totalSections.
 
 		bgDF contains all info from blockgroupDict except geometry + a summary of info about loads in each blockgroup
 
-		bgGeoDF is a geoDataFrame containing all info from bgDF with columns renamed to names that should be displayed in tooltips for map polygons
+		bgGeoDF contains all info from bgDF with columns renamed to names that should be displayed in tooltips for map polygons
 
 		sectionLoadSummaryDF contains a summary of info about loads in each section with filled None values in sections that lack loads
 	'''
@@ -1218,8 +1241,7 @@ def organizeInfoIntoDFs (loadDict, blockgroupDict, totalSections):
 	])
 	bgDF = bgDF[list(orderedVar2DisplayName.keys())]
 	bgDF['geometry'] = bgDF['geometry'].apply(Polygon)
-	bgGeoDF = gpd.GeoDataFrame(bgDF, geometry=bgDF['geometry'], crs='EPSG:4326')
-	bgGeoDF = bgGeoDF.rename(columns=orderedVar2DisplayName)
+	bgGeoDF = bgDF.rename(columns=orderedVar2DisplayName)
 	bgDF = bgDF.drop(columns=['geometry'])
 	# Create sectionLoadSummaryDF, filling in any missing values that may occur
 	aggKwargs['avg_OIP_Score'] = ('oip score', 'mean')
@@ -1471,8 +1493,8 @@ def work(modelDir, inputDict):
 		colVal = None
 	# Load Geojson file more efficiently
 	smartRound = lambda x: round(x,2) if isinstance(x,float) else x
-	bgGeoDF = bgGeoDF.map(smartRound)
-	bgGeoDF.to_file(geoJson_shapes_file, driver="GeoJSON")
+	bgGeoDF = bgGeoDF.apply(lambda column: column.map(smartRound))
+	writeGeoJsonFeatures(bgGeoDF, geoJson_shapes_file)
 	bgDF.to_csv(oipDF_file)
 	with open(geoJson_shapes_file) as f1:
 		geoshapes =  json.load(f1)
@@ -1643,7 +1665,7 @@ if __name__ == '__main__':
 	#stripDownCensusNRI(['AVLN_AFREQ', 'CFLD_AFREQ', 'CWAV_AFREQ', 'DRGT_AFREQ', 'ERQK_AFREQ', 'HAIL_AFREQ', 'HWAV_AFREQ', 'HRCN_AFREQ', 'ISTM_AFREQ', 
 	#		'LNDS_AFREQ', 'LTNG_AFREQ', 'RFLD_AFREQ', 'SWND_AFREQ', 'TRND_AFREQ', 'TSUN_AFREQ', 'VLCN_AFREQ', 'WFIR_AFREQ', 'WNTW_AFREQ', 'AREA'])
 	#print("done")
-	#tests()
+	# tests()
 	#getDistributionSection(
 	#sectionExample("/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd")
 	#newSection("/Users/davidarmah/Documents/omf/omf/static/testFiles/resilientCommunity/iowa240_in_Florida_copy2.omd")
