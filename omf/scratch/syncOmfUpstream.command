@@ -11,3 +11,8 @@ git fetch upstream
 git checkout master
 git reset --hard upstream/master
 git push --force-with-lease origin master
+
+# Pause so output can be reviewed before the script exits (only when running in a terminal)
+if [ -t 1 ]; then
+	trap 'echo; read -r -p "Press Enter to exit..."' EXIT
+fi
