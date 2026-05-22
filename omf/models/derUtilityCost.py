@@ -450,6 +450,7 @@ def work(modelDir, inputDict):
 		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
 
 	## Run REopt
+	## NOTE: As of May 2026, run_with_sysimage=False until PackageCompiler can be updated to v2.1.19. Setting run_with_sysimage=True would speed up the runtime.
 	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False, tolerance=0.0001, random_seed=random_seed_HiGHS)
 
 	## Load the REopt results 
@@ -459,7 +460,7 @@ def work(modelDir, inputDict):
 		outData.update(reoptResults) ## Update output file with reopt results
 		reoptErrorMsgs = reoptResults['Messages']['errors']
 	except FileNotFoundError:
-		raise Exception(f'REopt did not produce any results. An error may have occurred.')
+		raise Exception('REopt did not produce any results. An error may have occurred.')
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
 	if BESScheck == 'enabled':
