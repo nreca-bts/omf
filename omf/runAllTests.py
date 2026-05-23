@@ -8,7 +8,7 @@ import sys, platform, pkgutil, importlib, omf, traceback
 PY_BIN_NAME = 'python3'
 
 # GitHub-hosted runners do not have the system solvers, GUI support, or stable external API access needed by these older integration-style tests.
-IGNORE_FILES = ['omf.models.forecastTool', 'omf.models.solarDisagg', 'omf.cymeToGridlab', 'omf.milToGridlab']
+IGNORE_FILES = ['omf.models.forecastTool', 'omf.models.solarDisagg', 'omf.cymeToGridlab', 'omf.milToGridlab', 'omf.models.transmission', 'omf.loadModelingAmi']
 
 if platform.system()=='Windows':
 	NO_WINDOWS_SUPPORT = ['omf.cymeToGridlab', 'omf.models.rfCoverage', 'omf.models.solarEngineering', 'omf.models.phaseBalance', 'omf.models.forecastTool', 'omf.distNetViz', 'omf.models.derInterconnection', 'omf.models.networkStructure', 'omf.models.smartSwitching'] # some tests are very finicky on windows
