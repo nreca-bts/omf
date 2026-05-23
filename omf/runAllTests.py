@@ -3,20 +3,16 @@ Discover OMF modules with test entrypoints and run their module-level smoke test
 repeatable order.
 """
 
-import os, sys, platform, pkgutil, importlib, omf, traceback
+import sys, platform, pkgutil, importlib, omf, traceback
 
-# Ignore some files that should never be tested.
-IGNORE_FILES = ['omf.runAllTests', 'omf.webProd', 'omf.web', 'omf.omfStats', 'omf.tests']
+PY_BIN_NAME = 'python3'
 
 # GitHub-hosted runners do not have the system solvers, GUI support, or stable external API access needed by these older integration-style tests.
-IGNORE_FILES.extend(['omf.loadModelingAmi', 'omf.models.forecastTool', 'omf.models.solarDisagg', 'omf.cymeToGridlab', 'omf.milToGridlab', 'omf.models.transmission'])
+IGNORE_FILES = ['omf.models.forecastTool', 'omf.models.solarDisagg', 'omf.cymeToGridlab', 'omf.milToGridlab']
 
-# Different platforms like to name the python binary differently
-PY_BIN_NAME = 'python3'
-# some tests are very finicky on windows
 if platform.system()=='Windows':
-	NO_WINDOWS_SUPPORT = ['omf.cymeToGridlab', 'omf.models.rfCoverage', 'omf.models.solarEngineering', 'omf.models.phaseBalance', 'omf.models.forecastTool', 'omf.distNetViz', 'omf.models.derInterconnection', 'omf.models.networkStructure', 'omf.models.smartSwitching']
-	PY_BIN_NAME = 'python'
+	NO_WINDOWS_SUPPORT = ['omf.cymeToGridlab', 'omf.models.rfCoverage', 'omf.models.solarEngineering', 'omf.models.phaseBalance', 'omf.models.forecastTool', 'omf.distNetViz', 'omf.models.derInterconnection', 'omf.models.networkStructure', 'omf.models.smartSwitching'] # some tests are very finicky on windows
+	PY_BIN_NAME = 'python' # also annoying binary naming on Windows
 	IGNORE_FILES.extend(NO_WINDOWS_SUPPORT)
 
 def get_all_testable_modules():
