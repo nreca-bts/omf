@@ -72,12 +72,12 @@ def work(modelDir, inputDict):
 	cmViridis = plt.get_cmap('viridis')
 	mapper = cm.ScalarMappable(norm=norm, cmap=cmViridis)
 	mapper._A = []
-	plt.figure(figsize=(10,10))
-	plt.colorbar(mapper)
-	plt.axis('off')
+	fig, ax = plt.subplots(figsize=(10,10))
+	plt.colorbar(mapper, ax=ax)
+	ax.axis('off')
 	plt.tight_layout()
-	plt.gca().invert_yaxis() # HACK: to make latitudes show up right. TODO: y-flip the transEdit.html and remove this.
-	plt.gca().set_aspect('equal')
+	ax.invert_yaxis() # HACK: to make latitudes show up right. TODO: y-flip the transEdit.html and remove this.
+	ax.set_aspect('equal')
 	busLocations = {}
 	i = 0
 	for busName, busInfo in networkJson["bus"].items():
