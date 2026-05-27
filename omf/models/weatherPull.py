@@ -44,7 +44,7 @@ def work(modelDir, inputDict):
 		param = inputDict['weatherParameterNSRDB']
 		lat = inputDict['LatInput']
 		long = inputDict['LonInput']
-		data = weather.nrl_get_nsrdb_data('goes_aggregated', float(long), float(lat), year, nsrdbkey, interval=60)
+		data = weather.nlr_get_nsrdb_data('goes_aggregated', float(long), float(lat), year, nsrdbkey, interval=60)
 		#Data must be a list. Extract correct column from returned pandas df, return this column as array of int
 		data = list(data[param].values[3:].astype(float))
 		print(f"NSRDB: {data}")

@@ -1540,7 +1540,7 @@ def nlr_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: i
 	if data.status_code != 200:
 		# This means something went wrong.
 		print(f"URL: {data.url}")
-		raise Exception(f'nrl_get_nsrdb_data() :: API Request Failed :: status code: {data.status_code} ' + data.text)
+		raise Exception(f'nlr_get_nsrdb_data() :: API Request Failed :: status code: {data.status_code} ' + data.text)
 	csv_lines = [line.decode() for line in data.iter_lines()]
 	reader = csv.reader(csv_lines, delimiter=',')
 	if filename is not None:

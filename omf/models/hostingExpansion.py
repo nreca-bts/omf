@@ -61,7 +61,7 @@ def work(modelDir, inputDict: dict) -> dict:
 	year = int( inputDict['year'] )
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	if requestSuccess:
 		pvwatts_model, pvwatts_data = pysam.run_pvwatts(modelDir=modelDir, sys_design=sys_design, dataFile="output_aggregated_data.csv")
@@ -71,7 +71,7 @@ def work(modelDir, inputDict: dict) -> dict:
 	inputDict['tilt'] = lat
 	sys_design_max = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	attributes_clearsky = ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']
-	nrlAPIResponse_clearsky = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes_clearsky, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
+	nrlAPIResponse_clearsky = weather.nlr_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes_clearsky, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
 	requestSuccess = True if nrlAPIResponse_clearsky.status_code == 200 else False
 	if requestSuccess:
 		maxSolar_model, maxSolar_data = pysam.run_pvwatts_historical_max(modelDir=modelDir, sys_design=sys_design_max, dataFile="output_aggregated_clearsky_data.csv")
