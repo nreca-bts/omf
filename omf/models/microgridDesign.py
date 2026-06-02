@@ -235,7 +235,8 @@ def work(modelDir, inputDict):
 		# elif annualCostSwitch == 'off':
 		# 	scenario['Scenario']['Site']['ElectricTariff']['blended_monthly_rates_us_dollars_per_kwh'] = energyCostMonthly
 		# 	scenario['Scenario']['Site']['ElectricTariff']['blended_monthly_demand_charges_us_dollars_per_kw'] = demandCostMonthly
-		# solar and battery have default 'max_kw' == 1000000000; Wind has default 'max_kw' == 0 and thus must be set explicitly; Check https://developer.nrel.gov/docs/energy-optimization/reopt-v1 for updates
+		# solar and battery have default 'max_kw' == 1000000000; Wind has default 'max_kw' == 0 and thus must be set explicitly; Check https://developer.nlr.gov/docs/energy-optimization/reopt/v3/ for updates
+		
 		scenario['PV']['existing_kw'] = solarExisting
 		if not solar:
 			scenario['PV']['max_kw'] = 0
@@ -384,7 +385,7 @@ def work(modelDir, inputDict):
 		#['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])
 		outData['yearOneEmissionsReducedPercent' + indexString] = round((y1_emissions_bau - y1_emissions)/y1_emissions_bau*100,0)
 		#(resultsSubset['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])/resultsSubset['year_one_emissions_tCO2_bau']*100,0)
-		outData['yearOnePercentRenewable' + indexString] = round(results['Site']['renewable_electricity_fraction']*100,0)
+		outData['yearOnePercentRenewable' + indexString] = round(results['Site']['onsite_and_grid_renewable_energy_fraction_of_total_load']*100,0)
 		#['annual_renewable_electricity_pct']*100,0)
 		outData['yearOneOMCostsBeforeTax' + indexString] = round(results['Financial']['year_one_om_costs_before_tax'])
 		#['year_one_om_costs_before_tax_us_dollars'],0)
@@ -401,7 +402,7 @@ def work(modelDir, inputDict):
 		outData['yearOneExportBenefit' + indexString] = results['ElectricTariff']['year_one_export_benefit_before_tax']
 		outData['totalElectricityProduced' + indexString] = 0
 
-		outData['totalRenewableEnergyProduced' + indexString] = results['Site']['annual_renewable_electricity_kwh']
+		outData['totalRenewableEnergyProduced' + indexString] = results['Site']['annual_onsite_renewable_electricity_kwh']
 		outData['reductionElectricBillFraction' + indexString] = (yearOneBillBAU - yearOneBill) / yearOneBillBAU * 100
 		outData['yearOneEmissionsTonsBAU' + indexString] = y1_emissions_bau
 		outData['utilityYearOneEmissionsTons' + indexString] = results['ElectricUtility']['annual_emissions_tonnes_CO2']
