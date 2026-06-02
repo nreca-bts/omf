@@ -1535,6 +1535,8 @@ def nlr_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: i
 	# spectral tmy
 	elif data_set == 'spectral_tmy':
 		request_url = f"{base_url}/api/nsrdb_api/solar/spectral_tmy_india_download.csv"
+	elif data_set == 'wind':
+		request_url = f"{base_url}/api/wind-toolkit/v2/wind/wtk-download.csv"
 	data = requests.get( url=request_url, params=params)
 	
 	if data.status_code != 200:

@@ -1,5 +1,5 @@
 """
-Wrap NREL PySAM photovoltaic, wind, and weather-data workflows for OMF renewable-energy
+Wrap NLR PySAM photovoltaic, wind, and weather-data workflows for OMF renewable-energy
 models.
 """
 
@@ -15,6 +15,8 @@ import requests
 # OMF Imports
 from omf import omfDir
 from omf import weather
+
+NLR_KEY = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
 
 def _pysam_sysDesignSetup(inputDict: dict, lat: float, long: float) -> dict:
 	'''
@@ -264,35 +266,7 @@ def run_pvwatts_historical_max(modelDir, sys_design: dict, dataFile: str="solar_
 	results_df = results_df.drop( columns=["timestamp"] )
 	return pvwatts_model, results_df
 
-
-def _nrel_getWindData(modelDir, year: int, longitude: float, latitude: float) -> bool:
-	'''
-
-	get wind data from https://developer.nrel.gov/api/wind-toolkit/v2/wind/ for PySAM Wind Turbine Generation
-
-	'''
-	successFlag = False
-	filesInModelDir = os.listdir(modelDir)
-	for file in filesInModelDir:
-		if file == "output_NREL_winddata.csv":
-			successFlag = True
-			return successFlag 
-	nrel_key = "rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56"
-	email = "admin@omf.coop"
-	base_url = f"https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.csv?api_key={nrel_key}"
-	#longitude, latitude 
-	modified_url = f"{base_url}&wkt=POINT({longitude} {latitude})&names={year}&utc=false&leap_day=true&email={email}&affiliation=NREL"
-	response = requests.get(modified_url)
-	if response.status_code == 400:
-		raise Exception(f"nrel_getWindData: API Request Failed :: Request Code: {response.status_code} :: Reason: {response.reason}")
-	else:
-		text = response.text
-		with open( Path(modelDir,"output_NREL_winddata.csv"), "w") as text_file:
-			text_file.write(text)
-		successFlag = True
-	return successFlag
-
-def nlr_pySam_getWind(modelDir, year: int, longitude: float, latitude: float) -> dict:
+def nlr_pysam_getWind(modelDir, year: int, longitude: float, latitude: float) -> dict:
 	'''
 		'windpower-inputs.json' - windpower defaults
 		'wind-turbines.json' - wind turbine data. 
@@ -309,11 +283,13 @@ def nlr_pySam_getWind(modelDir, year: int, longitude: float, latitude: float) ->
 			if k != 'number_inputs':
 				wind_turbine_model.value(k, v)
 
-	successFlag = _nrel_getWindData(modelDir, year, longitude, latitude)
-	if successFlag:
-		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NREL_winddata.csv')
+	nlrAPIResponse = weather.nlr_get_nsrdb_data(data_set="wind", longitude=longitude, latitude=latitude, year=year, api_key=NLR_KEY, filename="output_NLR_winddata.csv")
+	requestSuccess = True if nlrAPIResponse.status_code == 200 else False
+
+	if requestSuccess:
+		wind_turbine_model.value('wind_resource_filename', str(modelDir) + '/output_NLR_winddata.csv')
 	else:
-		raise Exception(f"nrel_pysamWin: API Request Failed")
+		raise Exception(f"nlr_pysam_getWind: API Request Failed")
 	wind_turbine_model.value('wind_resource_shear', 0.14)
 	# load wind turbine parameters from JSON
 	with open( Path(testFileDir, 'input_windTurbines.json'), 'r') as file:
