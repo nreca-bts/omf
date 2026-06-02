@@ -1,7 +1,7 @@
 """
 The Solar Financial model gives users the expected financial output of a PV system based
 on its costs and the amount energy it will likely produce. The model uses pvWatts, an
-NREL model, to calculate how much energy the solar system will produce and the user’s
+NLR model, to calculate how much energy the solar system will produce and the user’s
 assumptions about the price of installing and maintaining the array.
 """
 

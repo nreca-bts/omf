@@ -68,6 +68,8 @@ def work(modelDir, inputDict):
 		lat = inputDict['LatInput']
 		long = inputDict['LonInput']
 		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(long)))
+		# 2026-06 - This function...doesn't exist?
+		# Should I change this to tmy from nsrdb?
 		#Now get data for the year in question
 		data = data.loc[data['year']==year]
 		print(data)

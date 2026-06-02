@@ -1,5 +1,5 @@
 """
-The pvWatts model runs the NREL pvWatts tool for quick estimation of solar panel output.
+The pvWatts model runs the NLR pvWatts tool for quick estimation of solar panel output.
 """
 
 import shutil, datetime
