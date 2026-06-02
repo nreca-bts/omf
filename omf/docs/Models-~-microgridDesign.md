@@ -1,5 +1,5 @@
 # Overview
-The multiSiteMicrogridDesign model uses a 1yr load profile to determine the most economical combination of solar, wind, and storage technologies to use in a microgrid. The model also provides basic resiliency analysis. The financial and resiliency optimization is performed using the [NREL reOpt API](https://developer.nrel.gov/docs/energy-optimization/reopt-v1/)
+The multiSiteMicrogridDesign model uses a 1yr load profile to determine the most economical combination of solar, wind, and storage technologies to use in a microgrid. The model also provides basic resiliency analysis. The financial and resiliency optimization is performed using the [NREL reOpt API](https://developer.nlr.gov/docs/energy-optimization/reopt/v3/)
 
 You can run a [new copy of the model](https://omf.coop/newModel/microgridDesign/fromWiki) directly on omf.coop.
 
