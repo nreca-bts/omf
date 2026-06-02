@@ -55,7 +55,7 @@ def call_api():
 	Perform call api processing for the ev range model.
 	"""
 	api_key = get_randomized_api_key()
-	url = 'https://developer.nrel.gov/api/alt-fuel-stations/v1.json'
+	url = 'https://developer.nlr.gov/api/alt-fuel-stations/v1.json'
 	params = {
 		# 'limit': 50,
         'api_key': api_key,
