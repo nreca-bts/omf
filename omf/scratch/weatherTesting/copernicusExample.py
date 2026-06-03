@@ -12,5 +12,5 @@ print(ac_dc_df.head)
 
 # Not copernicus data but testing the nrel get wind stuff
 scratch_dir = Path(__neoMetaModel__._omfDir, "scratch", "weatherTesting")
-pysam.nrel_pysamWind(scratch_dir, 2009, latitude=40.770996916, longitude=-73.904663048)
+pysam.nlr_pysam_getWind(scratch_dir, 2009, latitude=40.770996916, longitude=-73.904663048)
 
