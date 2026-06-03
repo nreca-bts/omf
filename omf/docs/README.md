@@ -68,7 +68,6 @@ The OMF has an easy-to-use web frontend. You can run it yourself or use the free
 ### Developer Documentation
 
 * [Architecture Notes](./Dev-~-Architecture-Notes.md)
-* [Deploying the OMF Web Service](./Dev-~-Deploying-the-OMF-Web-Service.md)
 * [How to Create Your First Model Type](./Dev-~-How-to-Create-Your-First-Model-Type.md)
 * [How to Debug a Gridlab Model](./Dev-~-How-to-Debug-a-Gridlab-Model.md)
 * [HTTP API Container](./Dev-~-HTTP-API-Container.md)
