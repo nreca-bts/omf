@@ -43,6 +43,8 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
 
+STRICT_TRANSPORT_SECURITY_HEADER = 'max-age=31536000'
+
 COMPRESS_MIN_SIZE = 500
 COMPRESS_MIMETYPES = {
 	'text/html',
@@ -135,6 +137,13 @@ def _get_omf_stats_logs():
 		'max_line_count': OMF_STATS_MAX_LOG_LINES,
 		'logs': [_tail_log_file(log_name, line_count) for log_name in OMF_STATS_LOG_NAMES]
 	}
+
+
+@app.after_request
+def add_security_headers(response):
+	'''Add browser-enforced HTTPS policy for production TLS endpoints.'''
+	response.headers.setdefault('Strict-Transport-Security', STRICT_TRANSPORT_SECURITY_HEADER)
+	return response
 
 
 @app.after_request
