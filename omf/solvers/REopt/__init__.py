@@ -1,6 +1,10 @@
 """
-Call the hosted NREL REopt API and normalize optimization and resilience-analysis
+Call the hosted NLR REopt API and normalize optimization and resilience-analysis
 results for OMF models.
+
+2026-06-02 - REopt in the OMF has transitioned to the julia-based API in reopt_jl.
+This module wraps around developer.nlr.gov's REopt API v2 which is deprecated.
+https://developer.nlr.gov/docs/energy-optimization/reopt/v3/
 """
 
 import json
@@ -22,7 +26,7 @@ def run(inJSONPath, outputPath, api_key):
 	"""
 	Run the wrapped solver workflow and return its results or status.
 	"""
-	root_url = 'https://developer.nrel.gov/api/reopt'
+	root_url = 'https://developer.nlr.gov/api/reopt'
 	post_url = root_url + '/v2/job/?api_key=' + api_key
 	results_url = root_url + '/v2/job/<run_uuid>/results/?api_key=' + api_key
 	with open(inJSONPath) as f:
@@ -44,7 +48,7 @@ def runResilience(runID, outputPath, api_key):
 	"""
 	Run the resilience workflow and return its results.
 	"""
-	root_url = 'https://developer.nrel.gov/api/reopt'
+	root_url = 'https://developer.nlr.gov/api/reopt'
 	post_url = root_url + '/v2/outagesimjob/?api_key=' + api_key
 	results_url = root_url + '/v2/job/<RUN_ID>/resilience_stats/?api_key=' + api_key
 	response = requests.post(post_url, json={'run_uuid': runID, 'bau': False})
