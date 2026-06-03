@@ -1,0 +1,92 @@
+[
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt1205_dash_rdt1206_cp_r_8381",
+        "event_data": {
+            "dispatchable": false,
+            "state": "open",
+            "type": "breaker"
+        },
+        "event_type": "switch",
+        "timestep": 4
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt1204_dash_rdt1205_cp_r_8373",
+        "event_data": {
+            "dispatchable": false,
+            "state": "open",
+            "type": "breaker"
+        },
+        "event_type": "switch",
+        "timestep": 4
+    },
+    {
+        "affected_asset": "line.l_op_r_col_rdt1205_dash_rdt2043_cp__disconnect",
+        "event_data": {
+            "dispatchable": false,
+            "state": "open",
+            "type": "breaker"
+        },
+        "event_type": "switch",
+        "timestep": 4
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt1205_dash_rdt1206_cp_r_8381",
+        "event_data": {
+            "dispatchable": true
+        },
+        "event_type": "switch",
+        "timestep": 6
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt1204_dash_rdt1205_cp_r_8373",
+        "event_data": {
+            "dispatchable": true
+        },
+        "event_type": "switch",
+        "timestep": 6
+    },
+    {
+        "affected_asset": "line.l_op_r_col_rdt1205_dash_rdt2043_cp__disconnect",
+        "event_data": {
+            "dispatchable": true
+        },
+        "event_type": "switch",
+        "timestep": 6
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt870_dash_rdt873_cp_r_8367",
+        "event_data": {
+            "dispatchable": false,
+            "state": "open",
+            "type": "breaker"
+        },
+        "event_type": "switch",
+        "timestep": 15
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt870_dash_rdt872_cp_r_8366",
+        "event_data": {
+            "dispatchable": false,
+            "state": "open",
+            "type": "breaker"
+        },
+        "event_type": "switch",
+        "timestep": 15
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt870_dash_rdt873_cp_r_8367",
+        "event_data": {
+            "dispatchable": true
+        },
+        "event_type": "switch",
+        "timestep": 18
+    },
+    {
+        "affected_asset": "line.padswitch_op_r_col_rdt870_dash_rdt872_cp_r_8366",
+        "event_data": {
+            "dispatchable": true
+        },
+        "event_type": "switch",
+        "timestep": 18
+    }
+]
