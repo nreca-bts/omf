@@ -383,7 +383,8 @@ def work(modelDir, inputDict):
 		outData['yearOneEmissionsTons' + indexString] = round(y1_emissions)#['year_one_emissions_tCO2'])
 		outData['yearOneEmissionsReducedTons' + indexString] = round(y1_emissions_bau - y1_emissions)
 		#['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])
-		outData['yearOneEmissionsReducedPercent' + indexString] = round((y1_emissions_bau - y1_emissions)/y1_emissions_bau*100,0)
+		if y1_emissions_bau != 0:
+			outData['yearOneEmissionsReducedPercent' + indexString] = round((y1_emissions_bau - y1_emissions)/y1_emissions_bau*100,0)
 		#(resultsSubset['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])/resultsSubset['year_one_emissions_tCO2_bau']*100,0)
 		outData['yearOnePercentRenewable' + indexString] = round(results['Site']['onsite_and_grid_renewable_energy_fraction_of_total_load']*100,0)
 		#['annual_renewable_electricity_pct']*100,0)
