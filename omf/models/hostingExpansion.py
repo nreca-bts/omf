@@ -10,7 +10,7 @@ import shutil, datetime
 from pathlib import Path
 import numpy as np
 import plotly.utils as pu
-import plotly.express as px
+import plotly.graph_objects as go
 
 # OMF imports
 from omf import feeder
@@ -25,9 +25,11 @@ from omf.solvers import pysam
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
-'''
-Reviews any pvsystems or batteries in the circuit and sums up their kW values
+
 def checkCircuitSolar(modelDir, inputDict: dict):
+	'''
+	Reviews any pvsystems or batteries in the circuit and sums up their kW values
+	'''
 	returningKW = 0
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	inputDict['feederName1'] = feederName[:-4]
@@ -49,7 +51,7 @@ def checkCircuitSolar(modelDir, inputDict: dict):
 			returningKW += float(item)
 	print(f"returningkw: {returningKW}")
 	return returningKW
-'''
+
 
 def work(modelDir, inputDict: dict) -> dict:
 	''' Run the model in its directory. '''
@@ -83,20 +85,55 @@ def work(modelDir, inputDict: dict) -> dict:
 	# Slice solar data to match load data length
 	pvwatts_data_sliced = pvwatts_data.iloc[:data_length]
 	maxSolar_data_sliced = maxSolar_data.iloc[:data_length]
+	# Get existing storage capacity on circuit
+	storage_capacity = checkCircuitSolar(modelDir, inputDict)
 	full_df = pd.DataFrame({
 			'hour': pvwatts_data_sliced.index,
 			'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000, # Convert kW to W
 			'pysam_ac_watts': pvwatts_data_sliced['ac'].values,
+			'storage_capacity_w': storage_capacity * 1000, # Convert kW to W
 			'dc_nameplate_w': float(inputDict["systemCapacity"])*1000, # Convert kW to W 
 			'max_solar_ac_watts': maxSolar_data_sliced['ac'].values
 	})
 	full_df.to_csv(Path(modelDir, "output_LoadvsPySAM.csv"), index=False)
-	scatterFigure = px.line(full_df, x='hour', y=['total_load','pysam_ac_watts', 'dc_nameplate_w', 'max_solar_ac_watts'])
-	scatterFigure.update_traces(mode='lines')
-	scatterFigure.update_traces(selector=dict(name='total_load'), name='Total Load (W)', line=dict(color='blue', width=2))
-	scatterFigure.update_traces(selector=dict(name='pysam_ac_watts'), name='Solar Output (W)', line=dict(color='green', width=2))
-	scatterFigure.update_traces(selector=dict(name='dc_nameplate_w'), name='DC Nameplate Capaciy (W)', line=dict(color='red', width=2, dash='dash'))
-	scatterFigure.update_traces(selector=dict(name='max_solar_ac_watts'), name='Max Solar Output (W)', line=dict(color='darkgreen', width=2, dash='dash'))
+	scatterFigure = go.Figure()
+	scatterFigure.add_trace(go.Scatter( x=full_df['hour'],
+		y=full_df['storage_capacity_w'],
+		name='Storage Capacity (W)',
+		fill='tozeroy',
+		fillcolor='rgba(0, 200, 0, 0.3)',
+		line=dict(color='darkgreen', width=2),
+		mode='lines'
+	))
+	scatterFigure.add_trace(go.Scatter(
+		x=full_df['hour'],
+		y=full_df['pysam_ac_watts'] + full_df['storage_capacity_w'],
+		name='Solar Output (W)',
+		line=dict(color='darkgreen', width=2),
+		mode='lines'
+	))
+	scatterFigure.add_trace(go.Scatter(
+		x=full_df['hour'],
+		y=full_df['total_load'],
+		name='Total Load (W)',
+		line=dict(color='blue', width=2),
+		mode='lines'
+	))
+	scatterFigure.add_trace(go.Scatter(
+		x=full_df['hour'],
+		y=full_df['dc_nameplate_w'],
+		name='DC Nameplate Capacity (W)',
+		line=dict(color='red', width=2, dash='dash'),
+		mode='lines'
+	))
+	# Add max solar output
+	scatterFigure.add_trace(go.Scatter(
+		x=full_df['hour'],
+		y=full_df['max_solar_ac_watts'] + full_df['storage_capacity_w'],
+		name='Max Solar Output (W)',
+		line=dict(color='darkgreen', width=2, dash='dash'),
+		mode='lines'
+	))
 	scatterFigure.update_layout(
     title=None,
 		xaxis_title=None,
