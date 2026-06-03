@@ -81,7 +81,7 @@ def work(modelDir, inputDict):
 	########################################################################################################################################################
 	## Construct the timestamp array
 	## If the input year is a leap year, remove the last day in December and keep the extra day in February as recommended in REopt's documentation:
-	## https://reopt.nrel.gov/tool/reopt-user-manual.pdf#page=37 (Section 7.1 Actual (Custom) Load Profile)
+	## https://reopt.nlr.gov/tool/reopt-user-manual.pdf#page=37 (Section 7.1 Actual (Custom) Load Profile)
 	########################################################################################################################################################
 	start_date = pd.Timestamp(f'{year}-01-01')
 	is_leap_year = start_date.is_leap_year
