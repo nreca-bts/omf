@@ -44,7 +44,7 @@
 	<div id="input" class="content">
 		<form name="inputForm" action="/runModel/" onsubmit="event.preventDefault(); return isFormValid();" method="post" enctype="multipart/form-data">
 			<div class="shortInput">
-				<label>Model Type <a href="https://github.com/dpinney/omf/wiki/Models-~-hostingCapacity" target="blank">Help?</a></label>
+				<label>Model Type <a href="/docs/Models-~-hostingCapacity" target="_blank">Help?</a></label>
 				<input type="text" id="modelType" name="modelType" value="{{modelName}}" readonly/>
 			</div>
 			<div class="shortInput">
@@ -232,7 +232,6 @@
 			{{ omfModelButtons }}
 		</form>
 	</div>
-	<!--<div id="copyrightNotice" style="width:1000px; margin:-25px auto 10px auto; padding-left:5px; color:gray">PVWatts &copy; was developed by the <a href="http://pvwatts.nrel.gov/">National Renewable Energy Lab</a></div>-->
 	{{ omfRunDebugBlock }}
 	{% if modelStatus == 'finished' %}
 	<style>td, th {padding:7 0 5 20;text-align: left;font-size:0.8em; border: 1px solid #cccccc;} </style>

@@ -1,4 +1,7 @@
-''' The Open Modeling Framework for Power System Simulation. '''
+"""
+Initialize the Open Modeling Framework package and expose the shared modeling, solver,
+and utility modules used by OMF applications.
+"""
 
 __version__ = 0.2
 

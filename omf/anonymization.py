@@ -1,4 +1,7 @@
-''' Functions for anonymizing data in OMF distribution and transmission systems.'''
+"""
+Anonymize OMF distribution and transmission data by changing names, coordinates, load
+assignments, and equipment details while preserving useful model structure.
+"""
 
 import json, math, random, datetime, os
 from os.path import join as pJoin

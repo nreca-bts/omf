@@ -1,19 +1,10 @@
 """
-This script converts a CYME feeder model database to an OMF feeder tree
-dictionary object. The output is similar to that produced by milToGridlab.py
-
-An example of how to call the script is shown below:
-	from omf.cymeToGridlab import convertCymeModel
-	feederTree = convertCymeModel(network_db, modelDir)
-
-where:
-
-network_db is the full path to the CYME network and equipment .mdb database file.
-modelDir is the working directory for intermediate file output
+Convert CYME feeder databases into OMF feeder trees and GridLAB-D-ready circuit
+representations.
 """
 
 
-import csv, random, math, copy, subprocess, locale, warnings, os, json, traceback, shutil, platform
+import csv, random, math, copy, subprocess, locale, warnings, os, json, traceback, shutil
 #import tempfile
 from os.path import join as pJoin
 import numpy as np
@@ -23,8 +14,82 @@ from omf.solvers import gridlabd
 
 m2ft = 1.0 / 0.3048  # Conversion factor for meters to feet
 
+def _require_mdbtools():
+	"""
+	Internal helper for cyme to gridlab require mdbtools processing.
+	"""
+	if shutil.which("mdb-tables") and shutil.which("mdb-export"):
+		return
+	raise RuntimeError(
+		"CYME Access database import requires the mdbtools executables "
+		"`mdb-tables` and `mdb-export`. The preferred pure-Python "
+		"`access-parser` MDB reader also failed for this database."
+	)
+
+
+def _csv_value(value):
+	"""
+	Internal helper for cyme to gridlab csv value processing.
+	"""
+	if value is None:
+		return ""
+	if isinstance(value, bytes):
+		return value.decode("utf-8", errors="replace")
+	return value
+
+
+def _dump_table_to_csv(table, csv_path):
+	"""
+	Internal helper for cyme to gridlab dump table to csv processing.
+	"""
+	columns = list(table.keys())
+	row_count = 0
+	for values in table.values():
+		if isinstance(values, list):
+			row_count = max(row_count, len(values))
+	with open(csv_path, "w", newline="") as csv_file:
+		writer = csv.writer(csv_file)
+		writer.writerow(columns)
+		for row_index in range(row_count):
+			writer.writerow([
+				_csv_value(values[row_index]) if isinstance(values, list) and row_index < len(values) else ""
+				for values in table.values()
+			])
+
+
+def _csv_dump_with_access_parser(database_file, output_dir):
+	"""
+	Internal helper for cyme to gridlab csv dump with access parser processing.
+	"""
+	from access_parser import AccessParser
+
+	db = AccessParser(database_file)
+	for table_name in db.catalog:
+		if table_name.startswith("MSys"):
+			continue
+		table = db.parse_table(table_name)
+		filename = table_name.replace(" ", "_") + ".csv"
+		_dump_table_to_csv(table, pJoin(output_dir, filename))
+
+
+def _csv_dump_with_mdbtools(database_file, output_dir):
+	"""
+	Internal helper for cyme to gridlab csv dump with mdbtools processing.
+	"""
+	_require_mdbtools()
+	table_names = subprocess.check_output(["mdb-tables", "-1", database_file]).decode("utf-8")
+	for table in table_names.splitlines():
+		if table:
+			filename = table.replace(" ", "_") + ".csv"
+			contents = subprocess.check_output(["mdb-export", database_file, table]).decode("utf-8")
+			with open(pJoin(output_dir, filename), "w") as csv_file:
+				csv_file.write(contents)
+
 
 def flatten(*args, **kwargs):
+	"""
+	Perform flatten processing for OMF helper-library workflows.
+	"""
 	dicty = dict(*args, **kwargs)
 	for arg in args:
 		if isinstance(arg, dict):
@@ -37,58 +102,26 @@ def flatten(*args, **kwargs):
 
 
 def _csvDump(database_file, modelDir):
-	# Get the list of table names with "mdb-tables"
-	if platform.system() == "Linux" or platform.system() == "Darwin":
-		table_names = subprocess.Popen(
-			["mdb-tables", "-1", database_file], stdout=subprocess.PIPE
-		).communicate()[0]
-		table_names = table_names.decode('utf-8')
-		tables = table_names.split('\n')
-		if not os.path.isdir((pJoin(modelDir, "cymeCsvDump"))):
-			os.makedirs((pJoin(modelDir, "cymeCsvDump")))
-			# Dump each table as a CSV file using "mdb-export",
-			# converting " " in table names to "_" for the CSV filenames.
-		for table in tables:
-			if table != "":
-				filename = table.replace(' ', '_') + '.csv'
-				f = open(pJoin(modelDir, "cymeCsvDump", filename), "w+")
-				contents = subprocess.Popen(
-					["mdb-export", database_file, table], stdout=subprocess.PIPE
-				).communicate()[0]
-				contents = contents.decode('utf-8')
-				f.write(contents)
-				f.close()
-	elif platform.system() == "Windows":
-		# The following code uses mdb-tables in Windows 10, but requires the creators update and ubuntu
-		# One big problem:  after this function dumps the csv files, python crashes. So I have to run this routine twice.
-		originaldir = (
-			os.getcwd()
-		)  # bash command below wouldn't work if I appended path to database_file
-		os.chdir(modelDir)
-		database_file = database_file.split("\\")[-1]
-		table_names = subprocess.Popen(
-			["bash", "-c", "mdb-tables -1 " + database_file], stdout=subprocess.PIPE
-		).communicate()[0]
-		table_names = table_names.decode('utf-8')
-		tables = table_names.split('\n')
-		if not os.path.isdir((pJoin(modelDir, "cymeCsvDump"))):
-			os.makedirs((pJoin(modelDir, "cymeCsvDump")))
-			# Dump each table as a CSV file using "mdb-export",
-			# converting " " in table names to "_" for the CSV filenames.
-		for table in tables:
-			if table != "":
-				filename = table.replace(" ", "_") + ".csv"
-				file = open(pJoin(modelDir, "cymeCsvDump", filename), "w+")
-				contents = subprocess.Popen(
-					["bash", "-c", "mdb-export " + database_file + " " + table], stdout=subprocess.PIPE, text=True
-				).communicate()[0]
-				contents = contents.decode('utf-8')
-				file.write(contents)
-				file.close()
-		os.chdir(originaldir)
+	"""
+	Internal helper for cyme to gridlab csv dump processing.
+	"""
+	output_dir = pJoin(modelDir, "cymeCsvDump")
+	if not os.path.isdir(output_dir):
+		os.makedirs(output_dir)
+	try:
+		_csv_dump_with_access_parser(database_file, output_dir)
+	except Exception as exc:
+		warnings.warn(
+			f"Pure-Python Access database parsing failed; falling back to mdbtools. Error: {exc}",
+			RuntimeWarning,
+		)
+		_csv_dump_with_mdbtools(database_file, output_dir)
 
 
 def _findNetworkId(csvFile):
+	"""
+	Internal helper for cyme to gridlab find network id processing.
+	"""
 	networks = []
 	with open(csvFile, newline='') as f:
 		csvDict = csv.DictReader(f)
@@ -136,6 +169,9 @@ def _convertPhase(int_phase):
 
 
 def _convertRegulatorPhase(int_phase):
+	"""
+	Internal helper for cyme to gridlab convert regulator phase processing.
+	"""
 	ret = _convertPhase(int_phase)
 	return ret[:-1] if ret else None
 
@@ -169,6 +205,9 @@ def _csvToArray(csvFileName):
 
 
 def _csvToDictList(csvFileName, feederId):
+	"""
+	Internal helper for cyme to gridlab csv to dict list processing.
+	"""
 	included_columns = []
 	header = []
 	mapped = []
@@ -191,6 +230,9 @@ def _csvToDictList(csvFileName, feederId):
 def checkMissingNodes(
 	nodes, sectionDevices, objectList, feederId, modelDir, cymsection
 ):
+	"""
+	Perform check missing nodes processing for OMF helper-library workflows.
+	"""
 	dbNodes = []
 	MISSINGNO = {"name": None}
 	nodesNotMake = {}
@@ -556,16 +598,25 @@ def _readOverheadLineUnbalanced(feederId, modelDir):
 
 
 def _readOverheadLine(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read overhead line processing.
+	"""
 	return _readGenericLine("CYMOVERHEADLINE.csv", feederId, modelDir)
 
 
 def _readUndergroundLine(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read underground line processing.
+	"""
 	return _readGenericLine(
 		"CYMUNDERGROUNDLINE.csv", feederId, modelDir, underground=True
 	)
 
 
 def _readQOverheadLine(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read qoverhead line processing.
+	"""
 	data_dict = {}
 	struct = {
 		"name": None,  # Information structure for each object found in CYMOVERHEADBYPHASE
@@ -596,6 +647,9 @@ def _readQOverheadLine(feederId, modelDir):
 
 
 def _readReactors(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read reactors processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "configuration": None}
 	reactorIds = []
@@ -623,6 +677,9 @@ def _readReactors(feederId, modelDir):
 
 
 def _readEqReactors(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq reactors processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "reactance": None}
 	db = _csvToDictList(
@@ -772,6 +829,9 @@ def _findParents(sectionDict, deviceDict, loadDict):
 
 
 def _readSwitch(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read switch processing.
+	"""
 	data_dict = {}  # Stores information found in CYMSWITCH in the network database
 	struct = {
 		"name": None,  # Information structure for each object found in CYMSWITCH
@@ -804,6 +864,9 @@ def _readSwitch(feederId, modelDir):
 
 
 def _readSectionalizer(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read sectionalizer processing.
+	"""
 	data_dict = (
 		{}
 	)  # Stores information found in CYMSECTIONALIZER in the network database
@@ -835,6 +898,9 @@ def _readSectionalizer(feederId, modelDir):
 
 
 def _readFuse(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read fuse processing.
+	"""
 	data_dict = {}  # Stores information found in CYMFUSE in the network database
 	struct = {
 		"name": None,  # Information structure for each object found in CYMFUSE
@@ -865,6 +931,9 @@ def _readFuse(feederId, modelDir):
 
 
 def _readRecloser(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read recloser processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "status": None}
 	recloser_db = _csvToDictList(
@@ -890,6 +959,9 @@ def _readRecloser(feederId, modelDir):
 
 
 def _readRegulator(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read regulator processing.
+	"""
 	data_dict = {}
 	# Stores information found in CYMREGULATOR in the network database
 	struct = {
@@ -928,6 +1000,9 @@ def _readRegulator(feederId, modelDir):
 
 
 def _readShuntCapacitor(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read shunt capacitor processing.
+	"""
 	data_dict = {}
 	# Stores information found in CYMSHUNTCAPACITOR in the network database
 	struct = {
@@ -1066,6 +1141,9 @@ def _readShuntCapacitor(feederId, modelDir):
 
 
 def _determineLoad(l_type, l_v1, l_v2, conKVA):
+	"""
+	Internal helper for cyme to gridlab determine load processing.
+	"""
 	l_real = 0
 	l_imag = 0
 	conKVA = float(conKVA)
@@ -1090,6 +1168,9 @@ def _determineLoad(l_type, l_v1, l_v2, conKVA):
 
 
 def _setConstantPower(l_v2, l_real, l_imag):
+	"""
+	Internal helper for cyme to gridlab set constant power processing.
+	"""
 	if l_v2 >= 0.0:
 		cp_string = "{:0.3f}+{:0.3f}j".format(l_real, l_imag)
 	else:
@@ -1098,6 +1179,9 @@ def _setConstantPower(l_v2, l_real, l_imag):
 
 
 def _cleanPhases(phases):
+	"""
+	Internal helper for cyme to gridlab clean phases processing.
+	"""
 	p = ""
 	if "A" in phases:
 		p = p + "A"
@@ -1109,6 +1193,9 @@ def _cleanPhases(phases):
 
 
 def _readCustomerLoad(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read customer load processing.
+	"""
 	data_dict = (
 		{}
 	)  # Stores information found in CYMCUSTOMERLOAD in the network database
@@ -1204,6 +1291,9 @@ def _readCustomerLoad(feederId, modelDir):
 
 
 def _readThreeWindingTransformer(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read three winding transformer processing.
+	"""
 	data_dict = {}  # Stores information found in CYMREGULATOR in the network database
 	struct = {
 		"name": None,  # Information structure for each object found in CYMREGULATOR
@@ -1231,6 +1321,9 @@ def _readThreeWindingTransformer(feederId, modelDir):
 
 
 def _readTransformer(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read transformer processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "equipment_name": None}
 	# xfmrDb = networkDatabase.execute("SELECT DeviceNumber, EquipmentId FROM CYMTRANSFORMER WHERE NetworkId = '{:s}'".format(feederId)).fetchall()
@@ -1255,6 +1348,9 @@ def _readTransformer(feederId, modelDir):
 
 
 def _readEqConductor(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq conductor processing.
+	"""
 	data_dict = (
 		{}
 	)  # Stores information found in CYMEQCONDUCTOR in the equipment database
@@ -1350,6 +1446,9 @@ def _readEqOverheadLineUnbalanced(feederId, modelDir):
 
 
 def _readEqGeometricalArrangement(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq geometrical arrangement processing.
+	"""
 	data_dict = {}
 	# Stores information found in CYMEQGEOMETRICALARRANGEMENT in the equipment database
 	struct = {
@@ -1395,6 +1494,9 @@ def _readEqGeometricalArrangement(feederId, modelDir):
 
 
 def _readUgConfiguration(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read ug configuration processing.
+	"""
 	from itertools import product
 
 	data_dict = {}
@@ -1513,6 +1615,9 @@ def _readUgConfiguration(feederId, modelDir):
 
 
 def _readEqAvgGeometricalArrangement(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq avg geometrical arrangement processing.
+	"""
 	data_dict = {}
 	struct = {
 		"name": None,
@@ -1555,6 +1660,9 @@ def _readEqAvgGeometricalArrangement(feederId, modelDir):
 
 
 def _readEqRegulator(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq regulator processing.
+	"""
 	data_dict = (
 		{}
 	)  # Stores information found in CYMEQREGULATOR in the equipment database
@@ -1596,6 +1704,9 @@ def _readEqRegulator(feederId, modelDir):
 
 
 def _readEqThreeWAutoXfmr(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq three wauto xfmr processing.
+	"""
 	data_dict = {}
 	# Stores information found in CYMEQOVERHEADLINE in the equipment database
 	struct = {
@@ -1649,10 +1760,16 @@ def _readEqThreeWAutoXfmr(feederId, modelDir):
 
 
 def _readEqAutoXfmr(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq auto xfmr processing.
+	"""
 	return _readEqXfmr(feederId, modelDir, _auto=True)
 
 
 def _readEqXfmr(feederId, modelDir, _auto=False):
+	"""
+	Internal helper for cyme to gridlab read eq xfmr processing.
+	"""
 	transformer_text = "AUTOTRANSFORMER" if _auto else "TRANSFORMER"
 	data_dict = {}
 	struct = {
@@ -1704,6 +1821,9 @@ def _readEqXfmr(feederId, modelDir, _auto=False):
 
 
 def _readPhotovoltaic(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read photovoltaic processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "configuration": None}
 	cymphotovoltaic_db = _csvToDictList(
@@ -1727,6 +1847,9 @@ def _readPhotovoltaic(feederId, modelDir):
 
 
 def _readEqPhotovoltaic(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq photovoltaic processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "current": 4.59, "voltage": 17.30, "efficiency": 0.155}
 	cymeqphotovoltaic_db = _csvToDictList(
@@ -1751,6 +1874,9 @@ def _readEqPhotovoltaic(feederId, modelDir):
 
 
 def _readEqBattery(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read eq battery processing.
+	"""
 	data_dict = {}
 	struct = {
 		"name": None,
@@ -1791,6 +1917,9 @@ def _readEqBattery(feederId, modelDir):
 
 
 def _readBattery(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read battery processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "configuration": None, "phase": None}
 	cymbattery_db = _csvToDictList(
@@ -1815,6 +1944,9 @@ def _readBattery(feederId, modelDir):
 
 
 def _readGenerator(feederId, modelDir):
+	"""
+	Internal helper for cyme to gridlab read generator processing.
+	"""
 	data_dict = {}
 	struct = {"name": None, "generation": None, "power_factor": None}
 	cymgenerator_db = _csvToDictList(
@@ -1840,6 +1972,9 @@ def _readGenerator(feederId, modelDir):
 
 
 def _find_SPCT_rating(load_str):
+	"""
+	Internal helper for cyme to gridlab find spct rating processing.
+	"""
 	spot_load = (
 		abs(complex(load_str)) / 1000.0
 	)  # JOHN FITZGERALD KENNEDY.  needs to be in kVA for transformer rating estimation
@@ -1891,6 +2026,9 @@ def _find_SPCT_rating(load_str):
 def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 
 	# HACK: manual network ID detection.
+	"""
+	Convert cyme model data between solver or OMF representations.
+	"""
 	dbflag = 1 if "OakPass" in str(network_db) else 0
 
 	# Dictionary that will hold the feeder model for conversion to .glm format
@@ -2522,7 +2660,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 		elif dev_dict["device_type"] == 23:
 			# very similar to device 3
 			if dev_key not in cymUnbalancedOverheadLine.keys():
-				print("There is no line spec for ", oh1, " in the network database provided.\n")
+				print("There is no line spec for ", dev_key, " in the network database provided.\n")
 			elif dev_key not in ohls.keys():
 				struct = {
 					"object": "overhead_line",
@@ -2607,7 +2745,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 					# Create recloser dictionaries
 		elif dev_dict["device_type"] == 10:
 			if dev_key not in cymrecloser.keys():
-				print("There is no recloster spec for ", rc1, " in the network database provided.\n")
+				print("There is no recloster spec for ", dev_key, " in the network database provided.\n")
 			elif dev_key not in rcls.keys():
 				rcls[dev_key] = {
 					"object": "recloser",
@@ -2680,7 +2818,7 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 					"to": dev_dict["to"],
 				}
 				equipmentId = cymreactor[dev_key]["configuration"]
-				Zohms = float(cymeqdev_key[equipmentId]["reactance"])
+				Zohms = float(reactors[dev_key][equipmentId]["reactance"])
 				for ph in reactors[dev_key]["phases"]:
 					reactors[dev_key]["phase_" + ph + "_reactance"] = "{:0.6f}".format(
 						Zohms
@@ -3393,6 +3531,9 @@ def convertCymeModel(network_db, modelDir, test=False, _type=1, feeder_id=None):
 
 
 def _tests(keepFiles=True):
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	testFile = ["IEEE13.mdb"]
 	inputDir = os.path.join(os.path.dirname(__file__), 'static/testFiles/')
 	# outputDir = tempfile.mkdtemp()

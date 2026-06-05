@@ -1,4 +1,11 @@
-''' Give the expected reliability improvement from adding reclosers to a circuit '''
+"""
+The smartSwitching model takes in a feeder system and the line location for a new
+recloser to be added, then compares the expected outage costs and SAIDI/SAIFI/MAIFI
+metrics of the system without the recloser to the system with the recloser. It is
+possible to randomly generate fault data, or to use pre-existing fault data for the
+model. smartSwitching makes use of the reliability module in GridLAB-D and bases the
+outage cost calculation on customer cost, restoration cost, and hardware cost.
+"""
 import json, os, tempfile, shutil, csv, math, itertools, base64, re, datetime, platform
 from os.path import join as pJoin
 import pandas as pd
@@ -1089,6 +1096,10 @@ def distributiongraph(dist, param_1, param_2, nameOfGraph):
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the smart switching model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	# Write the feeder
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
@@ -1178,6 +1189,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -28,7 +28,7 @@
 		<form name="inputForm" action="/runModel/" onsubmit="event.preventDefault(); return isFormValid();" method="post">
 			<!-- Required Inputs -->
 			<div class="shortInput">
-				<label>Model Type <a href="https://github.com/dpinney/omf/wiki/Models:-modelSkeleton" target="blank">Help?</a></label>
+				<label>Model Type <a href="/docs/Dev-~-How-to-Create-Your-First-Model-Type#start-with-the-modelskeleton" target="_blank">Help?</a></label>
 				<input type="text" id="modelType" name="modelType" value="{{modelName}}" readonly/>
 			</div>
 			<div class="shortInput">
@@ -95,7 +95,7 @@
 				<input type="text" id="systemCapacity" name="systemCapacity" value="{{allInputDataDict.systemCapacity}}" pattern="^[1-9]\d*$" required="required">
 			</div>
 				<div class="shorterInput">
-				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northenr hemisphere is due South.</span></label>
+				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northern hemisphere is due South.</span></label>
 				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
 				<div class="shorterInput">
@@ -103,7 +103,7 @@
 				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
 			</div>
 				<div class="shorterInput">
-				<label class="tooltip">Losses<span class="classic">Losses.</span></label>
+				<label class="tooltip">Losses<span class="classic">DC System Losses as %.</span></label>
 				<input type="text" id="losses" name="losses" value="{{allInputDataDict.losses}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
 		{{ omfModelButtons }}

@@ -1,11 +1,11 @@
-'''
-Pull weather data from various sources.
-Source options include NOAA's USCRN, Iowa State University's METAR, and Weather Underground (currently deprecated).
-'''
+"""
+Fetch, parse, cache, and convert weather observations and forecasts used by OMF load,
+solar, wind, and resilience models.
+"""
 
 
 import os, csv, re, json, sys
-from math import sqrt, exp, cos, radians
+from math import sqrt, exp, cos, radians, sin, acos, degrees, pi
 import numpy as np
 from os.path import join as pJoin
 import datetime as dt
@@ -17,10 +17,8 @@ from omf import feeder
 import platform
 import pandas as pd
 from tempfile import mkdtemp
-import pysolar
 import pytz
 import xml.etree.ElementTree as ET
-import xmltodict
 from pathlib import Path
 
 omfDir = os.path.dirname(os.path.abspath(__file__))
@@ -196,6 +194,9 @@ def pullUscrn(year, station, datatype):
 	'''Returns hourly weather data from NOAA's quality-controlled USCRN dataset as array.
 	* Documentation: https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02/README.txt
 	* List of available stations: https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02'''
+	def get_diffuse_solar_component(irradiance_estimate):
+		'''The diffuse component of solar irradiance is estimated as 0.271 times the total irradiance estimate, based on the work of Erbs et al. (1982).'''
+		return 0.271 * irradiance_estimate
 	url = ('https://www1.ncdc.noaa.gov/pub/data/uscrn/products/hourly02/{0}/'
 		'CRNH0203-{0}-{1}.txt'.format(year, station))
 	r = requests.get(url)
@@ -238,7 +239,6 @@ def pullUscrn(year, station, datatype):
 		raw_diffuse = list(zip(rawData, diffuse))
 		return raw_diffuse #direct_diffuse
 	return rawData
-
 
 def _pullWeatherWunderground(start, end, airport, workDir):
 	'''	NOTE: WeatherUnderground moved behind a paywall but we'll keep this in case we get a license. 
@@ -801,6 +801,9 @@ def create_tsv(data, radiation_type, site, year):
 			output.writerow(item)
 
 def get_radiation_data(radiation_type, site, year, out_file=None):
+	"""
+	Return the radiation data needed by this workflow.
+	"""
 	print("radiation found!")
 	'''Get solard or surfrad data. Optional export to csv with out_file option
 		Data is returned in a list w/ ~8760 elements. Each element is a dictionary
@@ -989,11 +992,17 @@ Station_Dict = {
 
 
 def _getUscrnData(year='2018', location='TX_Austin_33_NW', dataType="SOLARAD"):
+	"""
+	Internal helper for weather get uscrn data processing.
+	"""
 	ghiData = pullUscrn(year, location, dataType)
 	return ghiData
 
 #Standard positional arguments are for TX_Austin
 def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key_pirateweather, units='si'):
+	"""
+	Internal helper for weather get pwcloud cover for year processing.
+	"""
 	cloudCoverByHour = {}
 	pressureByHour = {}
 	coords = '%0.2f,%0.2f' % (lat, lon)
@@ -1019,14 +1028,53 @@ def _getPWCloudCoverForYear(year='2018', lat=30.581736, lon=-98.024098, key=_key
 	return cloudCoverByHour, pressureByHour
 
 
+def _localized_datetime(datetime, timezone):
+    """
+    Internal helper for weather localized datetime processing.
+    """
+    tz = pytz.timezone(timezone)
+    if datetime.tzinfo is not None and datetime.utcoffset() is not None:
+        return datetime.astimezone(tz)
+    return tz.localize(datetime)
+
+
 def getSolarZenith(lat, lon, datetime, timezone):
-    date = pytz.timezone(timezone).localize(datetime)
-    solar_altitude = pysolar.solar.get_altitude(lat,lon,date)
-    solar_zenith = 90 - solar_altitude
-    return solar_zenith
+    '''Return solar zenith angle in degrees using NOAA's declination/equation-of-time approximation.'''
+    date = _localized_datetime(datetime, timezone)
+    minutes = date.hour * 60 + date.minute + date.second / 60 + date.microsecond / 60000000
+    gamma = 2 * pi / 365 * (date.timetuple().tm_yday - 1 + (minutes / 60 - 12) / 24)
+    equation_of_time = 229.18 * (
+        0.000075 +
+        0.001868 * cos(gamma) -
+        0.032077 * sin(gamma) -
+        0.014615 * cos(2 * gamma) -
+        0.040849 * sin(2 * gamma)
+    )
+    declination = (
+        0.006918 -
+        0.399912 * cos(gamma) +
+        0.070257 * sin(gamma) -
+        0.006758 * cos(2 * gamma) +
+        0.000907 * sin(2 * gamma) -
+        0.002697 * cos(3 * gamma) +
+        0.00148 * sin(3 * gamma)
+    )
+    timezone_offset = date.utcoffset().total_seconds() / 60
+    true_solar_time = (minutes + equation_of_time + 4 * lon - timezone_offset) % 1440
+    hour_angle = true_solar_time / 4 - 180
+    if hour_angle < -180:
+        hour_angle += 360
+    lat_rad = radians(lat)
+    hour_angle_rad = radians(hour_angle)
+    cos_zenith = sin(lat_rad) * sin(declination) + cos(lat_rad) * cos(declination) * cos(hour_angle_rad)
+    cos_zenith = min(1.0, max(-1.0, cos_zenith))
+    return degrees(acos(cos_zenith))
 
 
 def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station='TX_Austin_33_NW', timezone='US/Central'):
+    """
+    Perform prepare prediction vectors processing for OMF helper-library workflows.
+    """
     cloudCoverData, pressureData = _getPWCloudCoverForYear(year, lat, lon)
     ghiData = _getUscrnData(year, station, dataType="SOLARAD")
     #for each 8760 hourly time slots, make a timestamp for each slot, look up cloud cover by that slot
@@ -1055,7 +1103,10 @@ def preparePredictionVectors(year='2018', lat=30.581736, lon=-98.024098, station
     return input_array, ghiData, cosArray
 
 def predictNeuralNet(input_array, model_path):
-    from tensorflow import keras
+    """
+    Perform predict neural net processing for OMF helper-library workflows.
+    """
+    import tensorflow.keras as keras #type: ignore
     model = keras.models.load_model(model_path)
     #Takes in numpy array of proper shape
     """
@@ -1070,6 +1121,9 @@ def predictNeuralNet(input_array, model_path):
     return preds
 
 def get_synth_dhi_dni(uscrn_station='TX_Austin_33_NW', year='2020'):
+    """
+    Return the synth dhi dni needed by this workflow.
+    """
     lat = Station_Dict[uscrn_station][0]
     lon = Station_Dict[uscrn_station][1]
     timezone = Station_Dict[uscrn_station][2]
@@ -1087,6 +1141,9 @@ def get_synth_dhi_dni(uscrn_station='TX_Austin_33_NW', year='2020'):
 
 
 def easy_solar_tests(uscrn_station='TX_Austin_33_NW'):
+	"""
+	Perform easy solar tests processing for OMF helper-library workflows.
+	"""
 	print("********EASY SOLAR TEST STARTED************")
 	print(get_synth_dhi_dni())
 	print("Easy Solar Test Suceeded.........")
@@ -1107,6 +1164,9 @@ Single Point Unsummarized Data: Returns DWML-encoded NDFD data for a point
 """
 #Works
 def _singlePointDataQuery(lat1, lon1, product, begin, end, Unit='m', optional_params=['wspd', 'wdir']):
+	"""
+	Internal helper for weather single point data query processing.
+	"""
 	params = {
 		'lat':lat1,
 		'lon':lon1,
@@ -1132,6 +1192,9 @@ def _singlePointDataQuery(lat1, lon1, product, begin, end, Unit='m', optional_pa
 
 def _subGrid(centerPointLat, centerPointLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit='m', optional_params=['wspd', 'wdir']):
 	#Split into 3 dictionaries, each are encoded in a different manner
+	"""
+	Internal helper for weather sub grid processing.
+	"""
 	params = {
 		'centerPointLat':centerPointLat,
 		'centerPointLon':centerPointLon,
@@ -1161,17 +1224,59 @@ def _subGrid(centerPointLat, centerPointLon, distanceLat, distanceLon, resolutio
 
 #Main URL path
 def _ndfd_url(path=''):
+    """
+    Internal helper for weather ndfd url processing.
+    """
     return 'http://www.weather.gov/forecasts/xml/sample_products/browser_interface/ndfdXMLclient.php?' + path
 
 
 #This function acts as a general xml parser
+def _strip_xml_namespace(tag):
+	"""
+	Internal helper for weather strip xml namespace processing.
+	"""
+	if '}' in tag:
+		return tag.split('}', 1)[1]
+	return tag
+
+
+def _xml_element_to_dict(element):
+	'''Convert ElementTree nodes into the dictionary shape this module consumes.'''
+	children = list(element)
+	attributes = {'@' + _strip_xml_namespace(k): v for k, v in element.attrib.items()}
+	text = (element.text or '').strip()
+	if not children:
+		if attributes:
+			if text:
+				attributes['#text'] = text
+			return attributes
+		return text
+	node = dict(attributes)
+	for child in children:
+		child_tag = _strip_xml_namespace(child.tag)
+		child_value = _xml_element_to_dict(child)
+		if child_tag in node:
+			if not isinstance(node[child_tag], list):
+				node[child_tag] = [node[child_tag]]
+			node[child_tag].append(child_value)
+		else:
+			node[child_tag] = child_value
+	if text:
+		node['#text'] = text
+	return node
+
+
 def _generalParseXml(data):
-	o = xmltodict.parse(data.content)
-	d = json.dumps(o)
-	d = json.loads(d)
-	return d
+	"""
+	Internal helper for weather general parse xml processing.
+	"""
+	root = ET.fromstring(data.content)
+	return {_strip_xml_namespace(root.tag): _xml_element_to_dict(root)}
 
 def _run_ndfd_request(q):
+	"""
+	Internal helper for weather run ndfd request processing.
+	"""
 	print(_ndfd_url(q))
 	resp = requests.get(_ndfd_url(q))
 	if resp.status_code != 200:
@@ -1183,6 +1288,9 @@ def _run_ndfd_request(q):
 
 #Gets predictions from current moment to 10 weeks in future. Data not avaliable for past dates, not avaliable for too long in future
 def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), product='time-series', unit='m'):
+	"""
+	Return the ndfd data needed by this workflow.
+	"""
 	query = _singlePointDataQuery(lat1, lon1, product, begin, end, unit, optional_params)
 	res = _run_ndfd_request(query)
 	data = _generalParseXml(res)
@@ -1190,6 +1298,9 @@ def get_ndfd_data(lat1, lon1, optional_params=['wspd'], begin=str(dt.datetime.no
 
 #Wrapper to call _subGrid, return parsed dict
 def getSubGridData(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product='time-series', begin=str(dt.datetime.now().isoformat()), end=(dt.datetime.now()+dt.timedelta(weeks=+10)).isoformat(), Unit='m', optional_params=['critfireo', 'dryfireo']):
+	"""
+	Return the sub grid data needed by this workflow.
+	"""
 	data = _run_ndfd_request(_subGrid(centerLat, centerLon, distanceLat, distanceLon, resolutionSquare, product, begin, end, Unit, optional_params))
 	outData = _generalParseXml(data)
 	return outData
@@ -1203,17 +1314,26 @@ def lat_lon_diff(lat1, lat2, lon1, lon2):
 
 # Getting the data
 def api_request( request, target ):
-	import cdsapi
+	"""
+	Perform api request processing for OMF helper-library workflows.
+	"""
+	import cdsapi # type: ignore
 	dataset = "reanalysis-era5-single-levels"
 	client = cdsapi.Client()
 	client.retrieve(dataset, request=request, target=target)
 
 async def async_api_request(request, target):
+	"""
+	Perform async api request processing for OMF helper-library workflows.
+	"""
 	import asyncio
 	await asyncio.to_thread(api_request, request, target)
 
 # Default year if not given is last year
 async def format_request(variable="default", year:str=str(dt.date.today().year - 1), latitude=None, longitude=None, dataDir="./"):
+	"""
+	Perform format request processing for OMF helper-library workflows.
+	"""
 	import asyncio
 	request_params = { 
 		"data_format": "netcdf",
@@ -1300,6 +1420,9 @@ async def format_request(variable="default", year:str=str(dt.date.today().year -
 
 # This is the function to call to trigger getting the data
 def get_cds_coper_data(latitude, longitude, year, modelDir):
+	"""
+	Return the cds coper data needed by this workflow.
+	"""
 	import asyncio
 	requestSuccess = False
 
@@ -1341,7 +1464,7 @@ def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDat
 
 	'''
 	from zipfile import ZipFile
-	import xarray as xr
+	import xarray as xr # type: ignore
 	total_weather_data_ds = xr.Dataset()
 	total_weather_data_df = pd.DataFrame()
 	# For each file we downloaded ( month-1-2-data.zip )
@@ -1373,6 +1496,9 @@ def cds_processWeatherData(modelDir, dataDirName:str="copernicusData", outputDat
 
 # NSRDB
 def nsrbd_latlon_to_wkt(longitude, latitude):
+    """
+    Perform nsrbd latlon to wkt processing for OMF helper-library workflows.
+    """
     if not (-90 <= latitude <= 90):
         raise ValueError('invalid latitude')
     if not (-180 <= longitude <= 180):
@@ -1384,7 +1510,7 @@ def nsrbd_latlon_to_wkt(longitude, latitude):
     return f"POINT({lon_str} {lat_str})"
 
 
-def nrl_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: int, api_key, attributes=[], utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
+def nlr_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: int, api_key, attributes=[], utc='true', leap_day='false', email='admin@omf.coop', interval=None, filename=None):
 	'''Create nsrdb factory and execute query. Optional output to file or return the response object.'''
 	base_url = 'https://developer.nlr.gov'
 	request_url = ""
@@ -1409,12 +1535,14 @@ def nrl_get_nsrdb_data(data_set: str, longitude: float, latitude: float, year: i
 	# spectral tmy
 	elif data_set == 'spectral_tmy':
 		request_url = f"{base_url}/api/nsrdb_api/solar/spectral_tmy_india_download.csv"
+	elif data_set == 'wind':
+		request_url = f"{base_url}/api/wind-toolkit/v2/wind/wtk-download.csv"
 	data = requests.get( url=request_url, params=params)
 	
 	if data.status_code != 200:
 		# This means something went wrong.
 		print(f"URL: {data.url}")
-		raise Exception(f'nrl_get_nsrdb_data() :: API Request Failed :: status code: {data.status_code} ' + data.text)
+		raise Exception(f'nlr_get_nsrdb_data() :: API Request Failed :: status code: {data.status_code} ' + data.text)
 	csv_lines = [line.decode() for line in data.iter_lines()]
 	reader = csv.reader(csv_lines, delimiter=',')
 	if filename is not None:
@@ -1603,6 +1731,9 @@ def _tests():
 	# except:
 	# 	e = sys.exc_info()[0]
 	# 	print(e)
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	print("testing finished")
 	
 

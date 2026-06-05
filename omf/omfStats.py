@@ -1,10 +1,7 @@
-'''
-Run this to generate stats about the OMF user base.
-By david.pinney@nreca.coop and ian.george@nreca.coop in 2017.
-Prereqs: a database file pulled from omf.coop, python, libraries listed below in the import statements (all pip installable).
-Runtime: about 30 seconds.
-OOO Display the access and error logs as well?
-'''
+"""
+Generate operational statistics, model inventories, image summaries, and traffic
+summaries for an OMF deployment.
+"""
 
 import os, csv, json, time, collections, zipfile
 from datetime import datetime
@@ -79,6 +76,9 @@ def modelDatabaseStats(dataFilePath, outFilePath):
 	# Last run:
 	# REPIC(time.strftime("%c"))  #OUTPUT: Mon Nov 26 15:34:39 2018
 	# Import the data.
+	"""
+	Perform model database stats processing for OMF helper-library workflows.
+	"""
 	models = []
 	with open(dataFilePath, 'r') as inFile:
 		reader = csv.DictReader(inFile, delimiter='\t')
@@ -147,6 +147,9 @@ def modelDatabaseStats(dataFilePath, outFilePath):
 
 def trafficLogStats(logsPath, outFilePath):
 	# Read in a file containing the full access log.
+	"""
+	Perform traffic log stats processing for OMF helper-library workflows.
+	"""
 	if logsPath.endswith('.zip'):
 		# Support for reading zipped logs.
 		with zipfile.ZipFile(logsPath, 'r') as zfile:

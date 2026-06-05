@@ -1,18 +1,22 @@
-''' Web server for model-oriented OMF interface. '''
+"""
+Serve the OMF web application, including users, feeders, model runs, file management,
+API routes, and deployment utilities.
+"""
 
-import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii
+import json, os, hashlib, time, datetime as dt, shutil, csv, sys, platform, errno, io, signal, secrets, base64, hmac, binascii, gzip, collections
 from contextlib import contextmanager
 from multiprocessing import Process
 from passlib.hash import pbkdf2_sha512
 from functools import lru_cache, wraps
-from flask import (Flask, send_from_directory, request, redirect, render_template, session, abort, jsonify, url_for)
-import flask_login, boto3
-from flask_compress import Compress
+from flask import (Flask, send_from_directory, request, redirect, render_template, session, abort, jsonify, url_for, g, has_request_context)
+import boto3
 from jinja2 import Template
+import markdown
 import dateutil
 from subprocess import Popen
 import re
 from urllib.parse import urlsplit
+from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename
 from pathlib import Path
 try:
@@ -29,16 +33,342 @@ from omf import (models, feeder, transmission, milToGridlab, cymeToGridlab, weat
 	loadModelingAmi, geo, comms)
 from omf.solvers.opendss import dssConvert
 
-app = Flask("web")
-Compress(app)
+_omfDir = os.path.dirname(os.path.abspath(__file__))
+app = Flask("web", template_folder=os.path.join(_omfDir, "templates"), static_folder=os.path.join(_omfDir, "static"))
 URL = "http://www.omf.coop"
 
-# Ensure HttpOnly flags on cookies (session + Flask-Login remember cookie)
+# Ensure HttpOnly flags on cookies (session + remember cookie)
 # Explicit even if framework defaults cover session, to satisfy security review.
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=7)  # Expire remember_token after 1 week
-_omfDir = os.path.dirname(os.path.abspath(__file__))
+
+STRICT_TRANSPORT_SECURITY_HEADER = 'max-age=31536000'
+
+COMPRESS_MIN_SIZE = 500
+COMPRESS_MIMETYPES = {
+	'text/html',
+	'text/css',
+	'text/plain',
+	'text/xml',
+	'text/csv',
+	'application/json',
+	'application/javascript',
+	'application/x-javascript',
+	'application/xml',
+	'image/svg+xml'
+}
+
+OMF_STATS_LOG_NAMES = ('omf.access.log', 'omf.error.log')
+OMF_STATS_DEFAULT_LOG_LINES = 250
+OMF_STATS_MAX_LOG_LINES = 1000
+
+
+def _add_vary_header(response, value):
+	"""
+	Internal helper for web add vary header processing.
+	"""
+	current_vary = response.headers.get('Vary')
+	if not current_vary:
+		response.headers['Vary'] = value
+		return
+	if value.lower() not in [x.strip().lower() for x in current_vary.split(',')]:
+		response.headers['Vary'] = current_vary + ', ' + value
+
+
+def _is_compressible_mimetype(mimetype):
+	"""
+	Internal helper for web is compressible mimetype processing.
+	"""
+	return (
+		mimetype.startswith('text/') or
+		mimetype in COMPRESS_MIMETYPES or
+		mimetype.endswith('+json') or
+		mimetype.endswith('+xml')
+	)
+
+
+def _bounded_log_line_count():
+	"""
+	Internal helper for web bounded log line count processing.
+	"""
+	try:
+		line_count = int(request.args.get('lines', OMF_STATS_DEFAULT_LOG_LINES))
+	except (TypeError, ValueError):
+		line_count = OMF_STATS_DEFAULT_LOG_LINES
+	return max(1, min(line_count, OMF_STATS_MAX_LOG_LINES))
+
+
+def _tail_log_file(log_name, line_count):
+	"""
+	Internal helper for web tail log file processing.
+	"""
+	log_path = os.path.join(_omfDir, log_name)
+	log_info = {
+		'name': log_name,
+		'path': log_path,
+		'lines': [],
+		'exists': os.path.exists(log_path),
+		'size': 0,
+		'modified': None,
+		'error': None
+	}
+	if not log_info['exists']:
+		log_info['error'] = 'Log file not found.'
+		return log_info
+	try:
+		stat = os.stat(log_path)
+		log_info['size'] = stat.st_size
+		log_info['modified'] = dt.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+		with open(log_path, 'r', encoding='utf-8', errors='replace') as log_file:
+			log_info['lines'] = [line.rstrip('\n') for line in collections.deque(log_file, maxlen=line_count)]
+	except OSError as e:
+		log_info['error'] = str(e)
+	return log_info
+
+
+def _get_omf_stats_logs():
+	"""
+	Internal helper for web get omf stats logs processing.
+	"""
+	line_count = _bounded_log_line_count()
+	return {
+		'line_count': line_count,
+		'max_line_count': OMF_STATS_MAX_LOG_LINES,
+		'logs': [_tail_log_file(log_name, line_count) for log_name in OMF_STATS_LOG_NAMES]
+	}
+
+
+@app.after_request
+def add_security_headers(response):
+	'''Add browser-enforced HTTPS policy for production TLS endpoints.'''
+	response.headers.setdefault('Strict-Transport-Security', STRICT_TRANSPORT_SECURITY_HEADER)
+	return response
+
+
+@app.after_request
+def gzip_response(response):
+	'''Gzip eligible responses without depending on flask-compress.'''
+	if 'gzip' not in request.headers.get('Accept-Encoding', '').lower():
+		return response
+	if response.status_code < 200 or response.status_code in (204, 304):
+		return response
+	if response.direct_passthrough or response.is_streamed:
+		return response
+	if response.headers.get('Content-Encoding'):
+		return response
+	if not _is_compressible_mimetype(response.mimetype or ''):
+		return response
+	data = response.get_data()
+	if len(data) < COMPRESS_MIN_SIZE:
+		return response
+	compressed = gzip.compress(data)
+	if len(compressed) >= len(data):
+		return response
+	response.set_data(compressed)
+	response.headers['Content-Encoding'] = 'gzip'
+	response.headers['Content-Length'] = str(len(compressed))
+	_add_vary_header(response, 'Accept-Encoding')
+	return response
+
+
+class _AnonymousUser:
+	"""
+	Represent  anonymous user data used by this OMF workflow.
+	"""
+	username = None
+	is_authenticated = False
+	is_active = False
+	is_anonymous = True
+
+	def get_id(self):
+		"""
+		Return the id needed by this workflow.
+		"""
+		return None
+
+
+class _LoginManager:
+	"""
+	Represent  login manager data used by this OMF workflow.
+	"""
+	def __init__(self):
+		"""
+		Internal helper for web init processing.
+		"""
+		self.login_view = None
+		self._user_callback = None
+
+	def init_app(self, app):
+		"""
+		Implement init app behavior for _LoginManager instances.
+		"""
+		app.after_request(_update_remember_cookie)
+
+	def user_loader(self, callback):
+		"""
+		Implement user loader behavior for _LoginManager instances.
+		"""
+		self._user_callback = callback
+		return callback
+
+
+def _login_cookie_secret():
+	"""
+	Internal helper for web login cookie secret processing.
+	"""
+	secret = app.secret_key or ''
+	if isinstance(secret, bytes):
+		return secret
+	return str(secret).encode('utf-8')
+
+
+def _encode_remember_cookie(user_id):
+	"""
+	Internal helper for web encode remember cookie processing.
+	"""
+	payload = base64.urlsafe_b64encode(str(user_id).encode('utf-8')).decode('ascii').rstrip('=')
+	signature = hmac.new(_login_cookie_secret(), payload.encode('ascii'), hashlib.sha512).hexdigest()
+	return payload + '|' + signature
+
+
+def _decode_remember_cookie(cookie_value):
+	"""
+	Internal helper for web decode remember cookie processing.
+	"""
+	try:
+		payload, signature = str(cookie_value).split('|', 1)
+	except ValueError:
+		return None
+	expected = hmac.new(_login_cookie_secret(), payload.encode('ascii'), hashlib.sha512).hexdigest()
+	if not secrets.compare_digest(signature, expected):
+		return None
+	try:
+		padding = '=' * (-len(payload) % 4)
+		return base64.urlsafe_b64decode((payload + padding).encode('ascii')).decode('utf-8')
+	except (binascii.Error, UnicodeDecodeError):
+		return None
+
+
+def _remember_cookie_name():
+	"""
+	Internal helper for web remember cookie name processing.
+	"""
+	return app.config.get('REMEMBER_COOKIE_NAME', 'remember_token')
+
+
+def _remember_cookie_duration_seconds():
+	"""
+	Internal helper for web remember cookie duration seconds processing.
+	"""
+	duration = app.config.get('REMEMBER_COOKIE_DURATION', dt.timedelta(days=365))
+	if isinstance(duration, dt.timedelta):
+		return int(duration.total_seconds())
+	return int(duration)
+
+
+def _update_remember_cookie(response):
+	"""
+	Internal helper for web update remember cookie processing.
+	"""
+	action = session.pop('_remember', None)
+	cookie_name = _remember_cookie_name()
+	cookie_path = app.config.get('REMEMBER_COOKIE_PATH', '/')
+	if action == 'set':
+		user_id = session.get('_user_id')
+		if user_id:
+			response.set_cookie(
+				cookie_name,
+				_encode_remember_cookie(user_id),
+				max_age=_remember_cookie_duration_seconds(),
+				path=cookie_path,
+				secure=request.is_secure,
+				httponly=app.config.get('REMEMBER_COOKIE_HTTPONLY', True),
+				samesite=app.config.get('REMEMBER_COOKIE_SAMESITE', 'Lax')
+			)
+	elif action == 'clear':
+		response.delete_cookie(cookie_name, path=cookie_path)
+	return response
+
+
+def _get_current_user():
+	"""
+	Internal helper for web get current user processing.
+	"""
+	if not has_request_context():
+		return _AnonymousUser()
+	if hasattr(g, '_login_user'):
+		return g._login_user
+	user = None
+	user_id = session.get('_user_id')
+	if not user_id:
+		remember_cookie = request.cookies.get(_remember_cookie_name(), '')
+		user_id = _decode_remember_cookie(remember_cookie)
+		if user_id:
+			session['_user_id'] = user_id
+		elif remember_cookie:
+			session['_remember'] = 'clear'
+	if user_id and login_manager._user_callback is not None:
+		user = login_manager._user_callback(user_id)
+	if user is None:
+		session.pop('_user_id', None)
+		if user_id:
+			session['_remember'] = 'clear'
+		user = _AnonymousUser()
+	g._login_user = user
+	return user
+
+
+def _is_authenticated(user):
+	"""
+	Internal helper for web is authenticated processing.
+	"""
+	is_authenticated = user.is_authenticated
+	if callable(is_authenticated):
+		return is_authenticated()
+	return bool(is_authenticated)
+
+
+def login_user(user, remember=False):
+	"""
+	Perform login user processing for OMF helper-library workflows.
+	"""
+	user_id = user.get_id()
+	if user_id is None:
+		return False
+	session['_user_id'] = str(user_id)
+	session['_fresh'] = True
+	g._login_user = user
+	session['_remember'] = 'set' if remember else 'clear'
+	return True
+
+
+def logout_user():
+	"""
+	Perform logout user processing for OMF helper-library workflows.
+	"""
+	session.pop('_user_id', None)
+	session.pop('_fresh', None)
+	session['_remember'] = 'clear'
+	g._login_user = _AnonymousUser()
+
+
+def login_required(func):
+	"""
+	Perform login required processing for OMF helper-library workflows.
+	"""
+	@wraps(func)
+	def decorated_view(*args, **kwargs):
+		if _is_authenticated(current_user):
+			return func(*args, **kwargs)
+		if login_manager.login_view:
+			next_url = request.full_path if request.query_string else request.path
+			return redirect(url_for(login_manager.login_view, next=next_url))
+		abort(401)
+	return decorated_view
+
+
+current_user = LocalProxy(_get_current_user)
 
 PASSWORD_DIGEST_SECRET_ENV = 'OMF_PASSWORD_DIGEST_KEY'
 PASSWORD_DIGEST_PREFIX = 'omf_pwd_v1$'
@@ -101,6 +431,9 @@ ALLOWED_ORIGINS = {
 
 
 def _is_same_origin():
+	"""
+	Internal helper for web is same origin processing.
+	"""
 	origin = request.headers.get("Origin")
 	if origin:
 		return origin in ALLOWED_ORIGINS
@@ -133,6 +466,9 @@ def _csrf_failure_response():
 
 @app.before_request
 def only_same_origin():
+	"""
+	Perform only same origin processing for OMF helper-library workflows.
+	"""
 	if request.method in ("POST", "PUT", "PATCH", "DELETE"):
 		if not _is_same_origin():
 			abort(403)
@@ -146,6 +482,9 @@ class PathManager:
 
 	def __init__(self, root):
 		# Establish the absolute, resolved root jail
+		"""
+		Internal helper for web init processing.
+		"""
 		self._root = Path(root).resolve()
 
 	_WINDOWS_RESERVED = frozenset(
@@ -173,6 +512,9 @@ class PathManager:
 		return s
 
 	def join(self, *parts):
+		"""
+		Implement join behavior for PathManager instances.
+		"""
 		full_path = self._root
 		for p in parts:
 			safe_p = self._sanitize_component(p)
@@ -191,10 +533,96 @@ class PathManager:
 
 @app.errorhandler(PathManager.PathTraversalError)
 def _handle_pathtraversalerror(e):
+	"""
+	Internal helper for web handle pathtraversalerror processing.
+	"""
 	return 'Bad Request', 400
 
 
 path_manager = PathManager(_omfDir)
+docs_path_manager = PathManager(os.path.join(_omfDir, "docs"))
+DOC_PATH_ALIASES = {
+	"Models-~-flisr": "README",
+	"Models-~-microgridPlan": "Models-~-microgridDesign",
+	"Models-~-modelSkeleton": "Dev-~-How-to-Create-Your-First-Model-Type",
+	"Models-~-solarDisagg": "Models-~-disaggregation"
+}
+
+
+def _normalize_doc_path(doc_path):
+	'''Normalize old GitHub wiki page slugs to migrated markdown filenames.'''
+	doc_path = (doc_path or "").strip("/")
+	if doc_path == "":
+		return "README"
+	doc_path = doc_path.replace("Models:-~-", "Models-~-")
+	doc_path = doc_path.replace("Models:-", "Models-~-")
+	doc_path = doc_path.replace("Tools-~-", "Other-~-")
+	if doc_path == "Home":
+		return "README"
+	if doc_path in DOC_PATH_ALIASES:
+		return DOC_PATH_ALIASES[doc_path]
+	return doc_path
+
+
+def _safe_docs_path(doc_path):
+	"""
+	Internal helper for web safe docs path processing.
+	"""
+	path_pieces = [piece for piece in doc_path.split("/") if piece]
+	return docs_path_manager.join(*path_pieces)
+
+
+def _get_doc_candidates(doc_path):
+	"""
+	Internal helper for web get doc candidates processing.
+	"""
+	doc_path = _normalize_doc_path(doc_path)
+	candidates = [doc_path]
+	root, ext = os.path.splitext(doc_path)
+	if ext == "":
+		candidates.append(doc_path + ".md")
+		if doc_path.endswith("2"):
+			candidates.extend([doc_path[:-1], doc_path[:-1] + ".md"])
+	candidates.append(os.path.join(doc_path, "README.md"))
+	return candidates
+
+
+def _resolve_doc_path(doc_path):
+	"""
+	Internal helper for web resolve doc path processing.
+	"""
+	for candidate in _get_doc_candidates(doc_path):
+		try:
+			full_path = _safe_docs_path(candidate)
+		except PathManager.PathTraversalError:
+			continue
+		if os.path.isfile(full_path):
+			return full_path
+	return None
+
+
+def _doc_title(markdown_text, source_path):
+	"""
+	Internal helper for web doc title processing.
+	"""
+	for line in markdown_text.splitlines():
+		line = line.strip()
+		if line.startswith("# "):
+			return line[2:].strip()
+	return os.path.splitext(os.path.basename(source_path))[0].replace("-~-", ": ").replace("-", " ")
+
+
+def _render_markdown_doc(source_path):
+	"""
+	Internal helper for web render markdown doc processing.
+	"""
+	with open(source_path, "r", encoding="utf-8") as doc_file:
+		markdown_text = doc_file.read()
+	content = markdown.markdown(
+		markdown_text,
+		extensions=["extra", "sane_lists", "toc"],
+		output_format="html5")
+	return render_template("docs.html", title=_doc_title(markdown_text, source_path), content=content)
 
 
 @lru_cache(maxsize=1)
@@ -213,6 +641,9 @@ def _get_model_module(model_type):
 
 
 def _get_model_metadata(owner, model_name):
+	"""
+	Internal helper for web get model metadata processing.
+	"""
 	filepath = path_manager.join("data", "Model", owner, model_name, "allInputData.json")
 	with locked_open(filepath) as f:
 		model_metadata = json.load(f)
@@ -233,14 +664,23 @@ def _get_password_digest_secret():
 
 
 def _password_digest_encryption_enabled():
+	"""
+	Internal helper for web password digest encryption enabled processing.
+	"""
 	return _get_password_digest_secret() is not None
 
 
 def _is_encrypted_password_digest(password_digest):
+	"""
+	Internal helper for web is encrypted password digest processing.
+	"""
 	return isinstance(password_digest, str) and password_digest.startswith(PASSWORD_DIGEST_PREFIX)
 
 
 def _derive_password_digest_keys(salt):
+	"""
+	Internal helper for web derive password digest keys processing.
+	"""
 	secret = _get_password_digest_secret()
 	if secret is None:
 		raise ValueError('Password digest encryption secret is not configured.')
@@ -255,6 +695,9 @@ def _derive_password_digest_keys(salt):
 
 
 def _password_digest_keystream(enc_key, nonce, length):
+	"""
+	Internal helper for web password digest keystream processing.
+	"""
 	stream = bytearray()
 	counter = 0
 	while len(stream) < length:
@@ -366,17 +809,50 @@ def migrate_legacy_user_password_digests(usernames=None):
 
 
 class User:
-	def __init__(self, jsonBlob): self.username = jsonBlob["username"]
-	# Required flask_login functions.
-	def is_admin(self): return self.username == "admin"
-	def get_id(self): return self.username
-	def is_authenticated(self): return True
-	def is_active(self): return True
-	def is_anonymous(self): return False
+	"""
+	Represent an authenticated OMF web user loaded from persisted user metadata.
+	"""
+	def __init__(self, jsonBlob):
+		"""
+		Initialize the user wrapper from a stored user JSON object.
+		"""
+		self.username = jsonBlob["username"]
+
+	# Required login user functions.
+	def is_admin(self):
+		"""
+		Return whether this user has OMF administrator privileges.
+		"""
+		return self.username == "admin"
+
+	def get_id(self):
+		"""
+		Return the stable login identifier for this user.
+		"""
+		return self.username
+
+	def is_authenticated(self):
+		"""
+		Return whether this user represents an authenticated session.
+		"""
+		return True
+
+	def is_active(self):
+		"""
+		Return whether this user account is active for login purposes.
+		"""
+		return True
+
+	def is_anonymous(self):
+		"""
+		Return whether this user is the anonymous-user placeholder.
+		"""
+		return False
+
 	@classmethod
 	def cu(self):
 		"""Returns current user's username"""
-		return flask_login.current_user.username
+		return current_user.username
 
 
 def cryptoRandomString():
@@ -387,7 +863,7 @@ def cryptoRandomString():
 	return secrets.token_hex(32)
 
 
-login_manager = flask_login.LoginManager()
+login_manager = _LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login_page"
 app.secret_key = cryptoRandomString()
@@ -430,6 +906,9 @@ def set_csrf_cookie(response):
 
 
 def _send_email(recipient, subject, message):
+	"""
+	Internal helper for web send email processing.
+	"""
 	c = boto3.client('ses', region_name='us-east-1')
 	email_content = {
 		'Source': 'admin@omf.coop',
@@ -462,9 +941,7 @@ def _send_link(email, message, u=None):
 
 @login_manager.user_loader
 def load_user(username):
-	'''Required by flask_login to return instance of the current user.
-	Must return None if the user no longer exists (e.g. deleted account),
-	otherwise Flask-Login raises an unhandled exception on every request.'''
+	'''Return the current user instance, or None if the account no longer exists.'''
 	try:
 		with locked_open(path_manager.join('data', 'User', username + '.json')) as f:
 			data = json.load(f)
@@ -502,6 +979,11 @@ def _safe_redirect(target: str):
 	return redirect(target)
 
 
+def _current_user_is_authenticated():
+	'''Return whether the current request has an authenticated user.'''
+	return _is_authenticated(current_user)
+
+
 @app.route("/login", methods = ["POST"])
 def login():
 	''' Authenticate a user and send them to the URL they requested. '''
@@ -514,30 +996,41 @@ def login():
 			break
 	if userJson and verify_user_password(password, userJson):
 		user = User(userJson)
-		flask_login.login_user(user, remember = remember == "on")
+		login_user(user, remember = remember == "on")
 	nextUrl = str(request.form.get("next","/") or "/")
 	return _safe_redirect(nextUrl)
 
 
 @app.route("/login_page")
 def login_page():
+	"""
+	Perform login page processing for OMF helper-library workflows.
+	"""
 	nextUrl = str(request.args.get("next","/") or "/")
 	if not _is_safe_url(nextUrl):
 		nextUrl = "/"
-	if flask_login.current_user.is_authenticated:
+	if urlsplit(nextUrl).path == request.path:
+		nextUrl = "/"
+	if _current_user_is_authenticated():
 		return redirect(nextUrl)
 	return render_template("clusterLogin.html", next=nextUrl)
 
 
 @app.route("/logout", methods=["POST"])
 def logout():
-	flask_login.logout_user()
+	"""
+	Perform logout processing for OMF helper-library workflows.
+	"""
+	logout_user()
 	return redirect("/")
 
 
 @app.route("/deleteUser", methods=["POST"])
-@flask_login.login_required
+@login_required
 def deleteUser():
+	"""
+	Perform delete user processing for OMF helper-library workflows.
+	"""
 	if User.cu() != "admin":
 		return "You are not authorized to delete users"
 	username = request.form.get("username")
@@ -555,6 +1048,9 @@ def deleteUser():
 
 @app.route("/new_user", methods=["POST"])
 def new_user():
+	"""
+	Perform new user processing for OMF helper-library workflows.
+	"""
 	email = request.form.get("email")
 	if email == "": return "EMPTY"
 	path_manager.join('data', 'User', email + '.json')
@@ -569,6 +1065,9 @@ def new_user():
 
 @app.route("/forgotPassword/<email>", methods=["POST"])
 def forgotpwd(email):
+	"""
+	Perform forgotpwd processing for OMF helper-library workflows.
+	"""
 	try:
 		with locked_open(path_manager.join('data', 'User', f'{email}.json')) as f:
 			user = json.load(f)
@@ -596,14 +1095,17 @@ def fastNewUser(email):
 			json.dump(user, f, indent=4)
 		message = "Thank you for registering an account on OMF.coop.\n\nYour password is: " + randomPass + "\n\n You can change this password after logging in."
 		_send_email(email, 'OMF.coop User Account', message)
-		flask_login.login_user(User(user))
+		login_user(User(user))
 		nextUrl = str(request.args.get("next","/") or "/")
 		return _safe_redirect(nextUrl)
 
 
 @app.route("/register/<email>/<reg_key>", methods=["GET", "POST"])
 def register(email, reg_key):
-	if flask_login.current_user.is_authenticated:
+	"""
+	Perform register processing for OMF helper-library workflows.
+	"""
+	if current_user.is_authenticated:
 		return redirect("/")
 	try:
 		with locked_open(path_manager.join('data', 'User', f'{email}.json')) as f:
@@ -623,7 +1125,7 @@ def register(email, reg_key):
 		set_user_password_digest(user, password)
 		user.pop("reg_key", None)
 		user.pop("timestamp", None)
-		flask_login.login_user(User(user))
+		login_user(User(user))
 		with locked_open(path_manager.join('data', 'User', f'{user["username"]}.json'), 'w') as f: # Need 'w' mode to create new users? I would prefer r+ mode
 			json.dump(user, f, indent=4)
 	else:
@@ -632,8 +1134,11 @@ def register(email, reg_key):
 
 
 @app.route("/changepwd", methods=["POST"])
-@flask_login.login_required
+@login_required
 def changepwd():
+	"""
+	Perform changepwd processing for OMF helper-library workflows.
+	"""
 	old_pwd, new_pwd, conf_pwd = map(request.form.get, ['old_pwd', 'new_pwd', 'conf_pwd'])
 	user_filepath = os.path.join(_omfDir, 'data', 'User', User.cu() + '.json')
 	with locked_open(user_filepath) as f:
@@ -653,7 +1158,7 @@ def changepwd():
 
 
 @app.route("/adminControls")
-@flask_login.login_required
+@login_required
 def adminControls():
 	''' Render admin controls. '''
 	if User.cu() != "admin":
@@ -673,16 +1178,17 @@ def adminControls():
 
 
 @app.route("/omfStats")
-@flask_login.login_required
+@login_required
 def omfStatsView():
 	'''Render log visualizations.'''
 	if User.cu() != "admin":
 		return redirect("/")
-	return render_template("omfStats.html")
+	log_context = _get_omf_stats_logs()
+	return render_template("omfStats.html", **log_context)
 
 
 @app.route("/regenOmfStats", methods=["POST"])
-@flask_login.login_required
+@login_required
 def regenOmfStats():
 	'''Regenarate stats images.'''
 	if User.cu() != "admin":
@@ -693,7 +1199,7 @@ def regenOmfStats():
 
 
 @app.route("/myaccount")
-@flask_login.login_required
+@login_required
 def myaccount():
 	''' Render account info for any user. '''
 	return render_template("myaccount.html", user=User.cu())
@@ -701,7 +1207,23 @@ def myaccount():
 
 @app.route("/robots.txt")
 def static_from_root():
+	"""
+	Perform static from root processing for OMF helper-library workflows.
+	"""
 	return send_from_directory(app.static_folder, request.path[1:])
+
+
+@app.route("/docs")
+@app.route("/docs/")
+@app.route("/docs/<path:doc_path>")
+def docs(doc_path=""):
+	'''Render migrated wiki markdown docs and serve local doc assets.'''
+	source_path = _resolve_doc_path(doc_path)
+	if source_path is None:
+		abort(404)
+	if source_path.lower().endswith(".md"):
+		return _render_markdown_doc(source_path)
+	return send_from_directory(os.path.dirname(source_path), os.path.basename(source_path))
 
 
 def read_permission_function(func):
@@ -774,7 +1296,7 @@ def write_permission_function(func):
 
 
 @app.route("/model/<owner>/<modelName>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def showModel(owner, modelName):
 	''' Render a model template with saved data. '''
@@ -787,7 +1309,7 @@ def showModel(owner, modelName):
 
 
 @app.route("/newModel/<modelType>/<modelName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 # - Do not use @write_permission_function because the user is always writing to their own model directory
 def newModel(modelType, modelName):
 	''' Create a new model with given name. '''
@@ -798,7 +1320,7 @@ def newModel(modelType, modelName):
 
 
 @app.route("/runModel/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def runModel():
 	''' Start a model running and redirect to its running screen. '''
@@ -835,7 +1357,7 @@ def runModel():
 
 
 @app.route("/cancelModel/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cancelModel():
 	''' Cancel an already running model. '''
@@ -846,16 +1368,19 @@ def cancelModel():
 
 
 @app.route("/duplicateModel/<owner>/<modelName>/", methods=["POST"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def duplicateModel(owner, modelName):
+	"""
+	Perform duplicate model processing for OMF helper-library workflows.
+	"""
 	newName = secure_filename(request.form.get("newName","")) or 'model'
 	destination_path = path_manager.join('data', 'Model', User.cu(), newName)
 	shutil.copytree(path_manager.join('data', 'Model', owner, modelName), destination_path)
 	# Remove transient PID and error files so the duplicate doesn't appear
 	# "running" and cancelling it won't kill the original model's process.
 	for name in ['ZPID.txt', 'APID.txt', 'NPID.txt', 'CPID.txt', 'WPID.txt', 'TPPID.txt', 'PPID.txt',
-			'gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'rawError.txt']:
+			'gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'cimError.txt']:
 		p = os.path.join(destination_path, name)
 		if os.path.isfile(p):
 			os.remove(p)
@@ -871,7 +1396,7 @@ def duplicateModel(owner, modelName):
 
 
 @app.route("/shareModel", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def shareModel():
 	''' Share a model with other users by granting them read-only access. '''
@@ -1005,6 +1530,9 @@ def locked_open(filepath, mode='r', timeout=180, **io_open_args):
 
 
 def _write_to_input(workDir, entry, key):
+	"""
+	Internal helper for web write to input processing.
+	"""
 	try:
 		with locked_open(os.path.join(workDir, 'allInputData.json'), 'r+') as f:
 			allInput = json.load(f)
@@ -1017,7 +1545,7 @@ def _write_to_input(workDir, entry, key):
 
 
 @app.route("/gridEdit/<owner>/<modelName>/<int:feederNum>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def feederGet(owner, modelName, feederNum):
 	''' Editing interface for feeders. '''
@@ -1032,7 +1560,7 @@ def feederGet(owner, modelName, feederNum):
 
 
 @app.route("/network/<owner>/<modelName>/<int:networkNum>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def networkGet(owner, modelName, networkNum):
 	''' Editing interface for networks. '''
@@ -1052,7 +1580,7 @@ def networkGet(owner, modelName, networkNum):
 
 @app.route('/feeder/<owner>/<modelName>/<feeder_num>/test')
 @app.route('/feeder/<owner>/<modelName>/<feeder_num>')
-@flask_login.login_required
+@login_required
 @read_permission_function
 def distribution_get(owner, modelName, feeder_num):
 	'''Render the editing interface for distribution networks.'''
@@ -1089,7 +1617,7 @@ def distribution_get(owner, modelName, feeder_num):
 
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>/test')
 @app.route('/rawTextEdit/<owner>/<modelName>/<fileName>')
-@flask_login.login_required
+@login_required
 @read_permission_function
 def distribution_text_get(owner, modelName, fileName):
 	'''Render the raw text editing interface for distribution networks.'''
@@ -1123,8 +1651,11 @@ def distribution_text_get(owner, modelName, fileName):
 
 @app.route("/getComponents/")
 @app.route("/getComponents/<schema>")
-@flask_login.login_required
+@login_required
 def get_components(schema='gld'):
+	"""
+	Return the components needed by this workflow.
+	"""
 	if schema == 'dss':
 		directory = path_manager.join('data', 'ComponentDss')
 	else: #schema == 'gld'
@@ -1140,7 +1671,7 @@ def get_components(schema='gld'):
 
 
 @app.route("/checkConversion/<modelName>/<owner>", methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function # Viewers can load a feeder, and all feeders check for ongoing conversions, so this route must have read permissions
 def checkConversion(modelName, owner):
 	"""
@@ -1150,7 +1681,7 @@ def checkConversion(modelName, owner):
 	"""
 	print(modelName)
 	# First check for error files
-	for filename in ['gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'rawError.txt']:
+	for filename in ['gridError.txt', 'error.txt', 'weatherError.txt', 'matError.txt', 'cimError.txt']:
 		filepath = path_manager.join('data', 'Model', owner, modelName, filename)
 		if os.path.isfile(filepath):
 			with locked_open(filepath) as f:
@@ -1165,7 +1696,7 @@ def checkConversion(modelName, owner):
 
 
 @app.route("/milsoftImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def milsoftImport(owner):
 	''' API for importing a milsoft feeder. '''
@@ -1225,13 +1756,13 @@ def _mil_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/matpowerImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def matpowerImport(owner):
 	''' API for importing a MATPOWER network. '''
 	modelName = request.form.get('modelName', '')
 	model_dir, con_file_path = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('', 'ZPID.txt')]
-	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
+	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'cimError.txt')]
 	# Delete existing .m files to not clutter model.
 	for filename in _safe_list_dir(model_dir):
 		if filename.endswith(".m"):
@@ -1275,63 +1806,101 @@ def _mat_import_background(owner, modelName, networkName, networkNum):
 		os.remove(pid_filepath)
 
 
-@app.route("/rawImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@app.route("/cimImport/<owner>", methods=["POST"])
+@login_required
 @write_permission_function
-def rawImport(owner):
-	''' API for importing a RAW network. '''
+def cimImport(owner):
+	''' API for importing a CGMES/CIM network through pandapower. '''
 	modelName = request.form.get('modelName', '')
 	model_dir = path_manager.join('data', 'Model', owner, modelName)
 	con_file_path = path_manager.join('data', 'Model', owner, modelName, 'ZPID.txt')
-	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'rawError.txt')]
-	# Delete existing .raw and .m files to not clutter model.
+	error_paths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('matError.txt', 'cimError.txt')]
 	for filename in _safe_list_dir(model_dir):
-		if filename.endswith(".raw") or filename.endswith(".m"):
+		if filename.startswith('cim_import_'):
 			os.remove(os.path.join(model_dir, filename))
 	for error_path in error_paths:
 		if os.path.isfile(error_path):
 			os.remove(error_path)
-	with locked_open(con_file_path, 'w') as conFile:
-		conFile.write("WORKING")
-	networkName = secure_filename(str(request.form.get('networkNameR', 'network1'))) or 'network'
+	networkName = secure_filename(str(request.form.get('networkNameC', 'network1'))) or 'network'
 	networkNum = secure_filename(str(request.form.get("networkNum", '1'))) or '1'
+	cgmes_version = request.form.get('cgmesVersion', '2.4.15')
+	if cgmes_version not in ['2.4.15', '3.0']:
+		cgmes_version = '2.4.15'
 	if os.path.isfile(path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')):
 		return 'Name already exists', 409
-	network_filepath = path_manager.join('data', 'Model', owner, modelName, 'import.raw')
-	request.files['rawFile'].save(network_filepath)
-	importProc = Process(target=_raw_import_background, args=[owner, modelName, networkName, networkNum])
+	cim_filepaths = []
+	for i, cim_file in enumerate(request.files.getlist('cimFiles')):
+		if cim_file is None or cim_file.filename == '':
+			continue
+		filename = secure_filename(cim_file.filename) or ('file' + str(i))
+		filepath = path_manager.join('data', 'Model', owner, modelName, 'cim_import_' + str(i) + '_' + filename)
+		cim_file.save(filepath)
+		if not _is_safe_cim_upload(filepath):
+			for saved_filepath in cim_filepaths + [filepath]:
+				if os.path.isfile(saved_filepath):
+					os.remove(saved_filepath)
+			return 'Unsupported or unsafe file', 400
+		cim_filepaths.append(filepath)
+	if len(cim_filepaths) == 0:
+		return 'No files provided', 400
+	with locked_open(con_file_path, 'w') as conFile:
+		conFile.write("WORKING")
+	importProc = Process(target=_cim_import_background, args=[owner, modelName, networkName, networkNum, cgmes_version, cim_filepaths])
 	importProc.start()
 	return 'Success'
 
 
-def _raw_import_background(owner, modelName, networkName, networkNum):
-	''' Function to run in the background for Raw import. '''
+def _is_safe_cim_upload(filepath):
+	"""
+	Internal helper for web is safe cim upload processing.
+	"""
+	extension = os.path.splitext(filepath)[1].lower()
+	if extension not in ['.xml', '.rdf', '.zip']:
+		return False
+	if extension != '.zip':
+		return True
+	import zipfile
+	try:
+		with zipfile.ZipFile(filepath) as zip_file:
+			for member in zip_file.namelist():
+				member_path = Path(member)
+				if member_path.is_absolute() or '..' in member_path.parts:
+					return False
+	except zipfile.BadZipFile:
+		return False
+	return True
+
+
+def _cim_import_background(owner, modelName, networkName, networkNum, cgmes_version, cim_filepaths):
+	''' Function to run in the background for CGMES/CIM import. '''
 	model_dir = path_manager.join('data', 'Model', owner, modelName)
-	network_filepath = path_manager.join('data', 'Model', owner, modelName, 'import.raw')
 	pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'ZPID.txt')
 	new_network_filepath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
+	error_filepath = path_manager.join('data', 'Model', owner, modelName, 'cimError.txt')
 	try:
-		newNet = transmission.parseRaw(network_filepath, filePath=True)
-		transmission.layout(newNet)
-		with locked_open(network_filepath, 'w') as f:
+		newNet = transmission.parseCim(cim_filepaths, cgmes_version=cgmes_version)
+		if not any('latitude' in bus and 'longitude' in bus for bus in newNet.get('bus', {}).values()):
+			transmission.layout(newNet)
+		with locked_open(new_network_filepath, 'w') as f:
 			json.dump(newNet, f, indent=4)
-		os.rename(network_filepath, new_network_filepath)
 		_remove_network(owner, modelName, networkNum)
 		_write_to_input(model_dir, networkName, 'networkName' + str(networkNum))
-	except ValueError:
-		filepath = path_manager.join('data', 'Model', owner, modelName, 'rawError.txt')
-		with locked_open(filepath, 'w') as errorFile:
-			errorFile.write('rawError')
+	except ImportError:
+		with locked_open(error_filepath, 'w') as errorFile:
+			errorFile.write('pandapowerCimError')
 	except Exception:
-		filepath = path_manager.join('data', 'Model', owner, modelName, 'rawError.txt')
-		with locked_open(filepath, 'w') as errorFile:
-			errorFile.write('octaveError')
+		with locked_open(error_filepath, 'w') as errorFile:
+			errorFile.write('cimError')
 	finally:
-		os.remove(pid_filepath)
+		if os.path.isfile(pid_filepath):
+			os.remove(pid_filepath)
+		for filepath in cim_filepaths:
+			if os.path.isfile(filepath):
+				os.remove(filepath)
 
 
 @app.route("/gridlabdImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def gridlabdImport(owner):
 	'''This function is used for gridlabdImporting'''
@@ -1384,7 +1953,7 @@ def _gridlab_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/opendssImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def dssImport(owner):
 	'''This function is used for opendss importing in distnetviz'''
@@ -1434,10 +2003,13 @@ def _dss_import_background(owner, modelName, feederName, feederNum):
 
 
 @app.route("/scadaLoadshape/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def scadaLoadshape(owner, feederName):
 	#feederNum = request.form.get("feederNum", '1')
+	"""
+	Perform scada loadshape processing for OMF helper-library workflows.
+	"""
 	loadName = 'calibration'
 	modelName = request.form.get("modelName","")
 	# delete calibration csv, calibration folder, and error file if they exist
@@ -1459,6 +2031,9 @@ def scadaLoadshape(owner, feederName):
 
 def _background_scada_loadshape(owner, modelName, feederName, loadName):
 	# heavy lifting background process/omfCalibrate and then deletes PID file
+	"""
+	Internal helper for web background scada loadshape processing.
+	"""
 	try:
 		pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'CPID.txt')
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -1501,10 +2076,13 @@ def _background_scada_loadshape(owner, modelName, feederName, loadName):
 
 
 @app.route("/loadModelingAmi/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadModelingAmi(owner, feederName):
 	#feederNum = request.form.get('feederNum', '1')
+	"""
+	Load modeling ami data for OMF processing.
+	"""
 	loadName = 'ami'
 	modelName = request.form.get('modelName', '')
 	filepaths = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in ('amiError.txt', 'amiLoad.csv')]
@@ -1519,6 +2097,9 @@ def loadModelingAmi(owner, feederName):
 
 
 def _background_load_modeling_ami(owner, modelName, feederName, loadName):
+	"""
+	Internal helper for web background load modeling ami processing.
+	"""
 	try:
 		pid_filepath, ami_filepath, omdPath, outDir, error_filepath = [path_manager.join('data', 'Model', owner, modelName, filename) for filename in 
 			['APID.txt', loadName + '.csv', feederName + '.omd', 'amiOutput', 'error.txt']
@@ -1534,7 +2115,7 @@ def _background_load_modeling_ami(owner, modelName, feederName, loadName):
 
 # TODO: Check if rename mdb files worked
 @app.route("/cymeImport/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cymeImport(owner):
 	''' API for importing a cyme feeder. '''
@@ -1597,7 +2178,7 @@ def _new_simple_feeder(owner, modelName, feederNum=1, writeInput=False, feederNa
 
 
 @app.route("/newSimpleFeeder/<owner>/<modelName>/<int:feederNum>/<writeInput>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newSimpleFeederRequest(owner, modelName, feederNum=1, writeInput=False, feederName='feeder1'):
 	'''Route handler for creating a simple feeder.'''
@@ -1623,7 +2204,7 @@ def _new_simple_network(owner, modelName, networkNum=1, writeInput=False, networ
 
 
 @app.route("/newSimpleNetwork/<owner>/<modelName>/<int:networkNum>/<writeInput>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newSimpleNetworkRequest(owner, modelName, networkNum=1, writeInput=False, networkName='network1'):
 	'''Route handler for creating a simple network.'''
@@ -1631,7 +2212,7 @@ def newSimpleNetworkRequest(owner, modelName, networkNum=1, writeInput=False, ne
 
 
 @app.route("/newBlankFeeder/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newBlankFeeder(owner):
 	'''This function is used for creating a new blank feeder.'''
@@ -1653,7 +2234,7 @@ def newBlankFeeder(owner):
 
 
 # @app.route("/newBlankFile/<owner>", methods=["POST"])
-# @flask_login.login_required
+# @login_required
 # @write_permission_function
 # def newBlankFile(owner):
 # 	'''This function is used for creating a new blank feeder.'''
@@ -1678,7 +2259,7 @@ def newBlankFeeder(owner):
 
 
 @app.route("/newBlankNetwork/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def newBlankNetwork(owner):
 	'''This function is used for creating a new blank network.'''
@@ -1698,18 +2279,24 @@ def newBlankNetwork(owner):
 
 
 @app.route("/feederData/<owner>/<modelName>/<feederName>/")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def feederData(owner, modelName, feederName):
+	"""
+	Perform feeder data processing for OMF helper-library workflows.
+	"""
 	filepath = path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
 	with locked_open(filepath) as feedFile:
 		return feedFile.read(), 200, {'Content-Type': 'application/json'}
 
 
 @app.route("/networkData/<owner>/<modelName>/<networkName>/")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def networkData(owner, modelName, networkName):
+	"""
+	Perform network data processing for OMF helper-library workflows.
+	"""
 	filepath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
 	with locked_open(filepath) as netFile:
 		thisNet = json.load(netFile)
@@ -1728,7 +2315,7 @@ def _cleanup_error_files(model_dir):
 _RESERVED_FILENAMES = frozenset([
 	'ZPID.txt', 'APID.txt', 'NPID.txt', 'CPID.txt', 'WPID.txt', 'TPPID.txt', 'PPID.txt',
 	'allInputData.json', 'gridError.txt', 'error.txt', 'weatherError.txt',
-	'matError.txt', 'rawError.txt',
+	'matError.txt', 'cimError.txt',
 ])
 
 
@@ -1746,7 +2333,7 @@ def _cancel_pid_processes(model_dir):
 
 
 @app.route("/saveFeeder/<owner>/<modelName>/<feederName>/<int:feederNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveFeeder(owner, modelName, feederName, feederNum):
 	"""Save feeder data. Also used for cancelling a file import, file conversion, or feeder-load overwrite."""
@@ -1768,7 +2355,7 @@ def saveFeeder(owner, modelName, feederName, feederNum):
 
 
 @app.route("/saveFile/<owner>/<modelName>/<fileName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveFile(owner, modelName, fileName):
 	"""Save file data. Also used for cancelling a file import, file conversion, or file-load overwrite."""
@@ -1791,7 +2378,7 @@ def saveFile(owner, modelName, fileName):
 
 
 @app.route("/saveNetwork/<owner>/<modelName>/<networkName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveNetwork(owner, modelName, networkName, networkNum):
 	''' Save network data. '''
@@ -1809,7 +2396,7 @@ def saveNetwork(owner, modelName, networkName, networkNum):
 
 
 @app.route("/renameFeeder/<owner>/<modelName>/<oldName>/<newName>/<int:feederNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def renameFeeder(owner, modelName, oldName, newName, feederNum):
 	''' rename a feeder. '''
@@ -1826,7 +2413,7 @@ def renameFeeder(owner, modelName, oldName, newName, feederNum):
 
 
 @app.route("/renameNetwork/<owner>/<modelName>/<oldName>/<networkName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def renameNetwork(owner, modelName, oldName, networkName, networkNum):
 	''' rename a network. '''
@@ -1862,7 +2449,7 @@ def _remove_feeder(owner, modelName, feederNum, feederName=None):
 
 @app.route("/removeFeeder/<owner>/<modelName>/<int:feederNum>", methods=["POST"])
 @app.route("/removeFeeder/<owner>/<modelName>/<int:feederNum>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 	''' Remove feeder from web.'''
@@ -1871,7 +2458,7 @@ def removeFeederRequest(owner, modelName, feederNum, feederName=None):
 
 
 @app.route("/loadFeeder/<frfeederName>/<frmodelName>/<modelName>/<int:feederNum>/<frUser>/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 	'''Load a feeder from one model to another.'''
@@ -1897,7 +2484,7 @@ def loadFeeder(frfeederName, frmodelName, modelName, feederNum, frUser, owner):
 
 
 @app.route("/loadFile/<frfileName>/<frmodelName>/<modelName>/<int:fileNum>/<frUser>/<owner>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 	'''Load a file from one model to another.'''
@@ -1921,7 +2508,7 @@ def loadFile(frfileName, frmodelName, modelName, fileNum, frUser, owner):
 
 
 @app.route("/cleanUpFeeders/<owner>/<modelName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def cleanUpFeeders(owner, modelName):
 	'''Go through allInputData and fix feeder Name keys'''
@@ -1964,7 +2551,7 @@ def _remove_network(owner, modelName, networkNum):
 
 
 @app.route("/removeNetwork/<owner>/<modelName>/<int:networkNum>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def removeNetworkRequest(owner, modelName, networkNum):
 	'''Remove network from web.'''
@@ -1973,9 +2560,12 @@ def removeNetworkRequest(owner, modelName, networkNum):
 
 
 @app.route("/climateChange/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def climateChange(owner, feederName):
+	"""
+	Perform climate change processing for OMF helper-library workflows.
+	"""
 	model_name = request.form.get('modelName')
 	# Remove files that could be left over from a previous run
 	filepaths = [
@@ -1995,6 +2585,9 @@ def climateChange(owner, feederName):
 
 
 def _background_climate_change(owner, modelName, feederName, importOption, zipCode, station, year_str):
+	"""
+	Internal helper for web background climate change processing.
+	"""
 	try:
 		omdPath, pid_filepath, error_filepath = [
 			path_manager.join('data', 'Model', owner, modelName, filename) for filename in [feederName + '.omd', 'WPID.txt', 'error.txt']
@@ -2041,9 +2634,12 @@ def _background_climate_change(owner, modelName, feederName, importOption, zipCo
 
 
 @app.route("/anonymize/<owner>/<feederName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def anonymize(owner, feederName):
+	"""
+	Perform anonymize processing for OMF helper-library workflows.
+	"""
 	modelName = request.form.get('modelName')
 	# Validate paths before spawning background process
 	path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
@@ -2068,6 +2664,9 @@ def anonymize(owner, feederName):
 
 
 def _background_anonymize(owner, modelName, feederName, options):
+	"""
+	Internal helper for web background anonymize processing.
+	"""
 	try:
 		omdPath = path_manager.join('data', 'Model', owner, modelName, feederName + '.omd')
 		pid_filepath = path_manager.join('data', 'Model', owner, modelName, 'NPID.txt')
@@ -2114,9 +2713,12 @@ def _background_anonymize(owner, modelName, feederName, options):
 
 
 @app.route("/zillowHouses", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def zillow_houses():
+	"""
+	Perform zillow houses processing for OMF helper-library workflows.
+	"""
 	owner = request.form.get("user")
 	model_name = request.form.get("modelName")
 	model_dir = path_manager.join("data", "Model", owner, model_name)
@@ -2137,6 +2739,9 @@ def zillow_houses():
 
 
 def _background_zillow_houses(model_dir, triplex_objects):
+	"""
+	Internal helper for web background zillow houses processing.
+	"""
 	try:
 		pid_filepath = os.path.join(model_dir, "ZPID.txt")
 		with locked_open(pid_filepath, 'w') as pid_file:
@@ -2161,9 +2766,12 @@ def _background_zillow_houses(model_dir, triplex_objects):
 
 
 @app.route("/checkZillowHouses", methods=["POST"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def check_zillow_houses():
+	"""
+	Perform check zillow houses processing for OMF helper-library workflows.
+	"""
 	owner = request.form.get("user")
 	model_name = request.form.get("modelName")
 	model_dir = path_manager.join("data", "Model", owner, model_name)
@@ -2184,9 +2792,12 @@ def check_zillow_houses():
 
 
 @app.route("/anonymizeTran/<owner>/<networkName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def anonymizeTran(owner, networkName):
+	"""
+	Perform anonymize tran processing for OMF helper-library workflows.
+	"""
 	modelName = request.form.get('modelName')
 	# Validate path before spawning background process
 	path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
@@ -2210,6 +2821,9 @@ def anonymizeTran(owner, networkName):
 
 
 def _background_anonymizeTran(owner, modelName, networkName, options):
+	"""
+	Internal helper for web background anonymize tran processing.
+	"""
 	omtPath = path_manager.join('data', 'Model', owner, modelName, networkName + '.omt')
 	pid_path = path_manager.join('data', 'Model', owner, modelName, 'TPPID.txt')
 	with locked_open(omtPath, 'r') as inFile:
@@ -2238,17 +2852,20 @@ def _background_anonymizeTran(owner, modelName, networkName, options):
 
 
 @app.route("/checkAnonymizeTran/<owner>/<modelName>", methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def checkAnonymizeTran(owner, modelName):
 	# print 'Check conversion status:', os.path.exists(pidPath), 'for path', pidPath                                  
     # checks to see if PID file exists, if theres no PID file process is done.         
+	"""
+	Perform check anonymize tran processing for OMF helper-library workflows.
+	"""
 	pidPath = path_manager.join('data', 'Model', owner, modelName, 'TPPID.txt')
 	return jsonify(exists=os.path.exists(pidPath))
 
 
 @app.route('/displayMap/<owner>/<modelName>/<int:feederNum>', methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def displayOmdMap(owner, modelName, feederNum):
 	'''API to render omd on a leaflet map using a new template '''
@@ -2307,7 +2924,7 @@ def displayOmdMap(owner, modelName, feederNum):
 
 
 @app.route('/commsMap/<owner>/<modelName>/<int:feederNum>', methods=["GET"])
-@flask_login.login_required
+@login_required
 @read_permission_function
 def commsMap(owner, modelName, feederNum):
 	'''Render omc on a leaflet map.'''
@@ -2320,7 +2937,7 @@ def commsMap(owner, modelName, feederNum):
 
 
 @app.route('/redisplayGrid', methods=["POST"])
-@flask_login.login_required
+@login_required
 def redisplayGrid():
 	'''Redisplay comms grid on edits'''
 	geoDict = request.get_json()
@@ -2338,10 +2955,13 @@ def redisplayGrid():
 
 
 @app.route('/saveCommsMap/<owner>/<modelName>/<feederName>/<int:feederNum>', methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def saveCommsMap(owner, modelName, feederName, feederNum):
 	# Validate feederName before passing to comms.saveOmc (which uses os.path.join)
+	"""
+	Save comms map data produced by this workflow.
+	"""
 	path_manager.join('data', 'Model', owner, modelName, feederName + '.omc')
 	try:
 		geoDict = request.get_json()
@@ -2357,30 +2977,71 @@ def saveCommsMap(owner, modelName, feederName, feederNum):
 ###################################################
 
 
+_HOME_MODEL_METADATA_RE = re.compile(r'"(runTime|modelType|created)"\s*:\s*"([^"]*)"')
+
 def _fast_input_scan(file_path):
-	# quickly get key info from input data.
-	keys = {'runTime':None, 'modelType':None, 'created':None}
-	hits = 0
+	'''Quickly read only the home-page metadata from allInputData.json.'''
+	keys = {'runTime':'', 'modelType':'', 'created':''}
 	with open(file_path, 'r') as file_data:
-		for line in file_data:
-			if hits == 3:
+		pending = set(keys)
+		tail = ''
+		while pending:
+			chunk = file_data.read(8192)
+			if not chunk:
 				break
-			for key in keys:
-				if key in line:
-					keys[key] = line
-					hits += 1
-	for key in keys:
-		val = str(keys[key])
-		try:
-			clean_val = re.findall('"(.*?)"', val)[1]
-		except:
-			clean_val = ''
-		keys[key] = clean_val
+			text = tail + chunk
+			for key, val in _HOME_MODEL_METADATA_RE.findall(text):
+				if key in pending:
+					keys[key] = val
+					pending.remove(key)
+			tail = text[-100:]
 	return keys
+
+def _model_status_from_filenames(file_names):
+	'''Return the same status used by the default model getStatus without an extra listdir.'''
+	file_names = set(file_names)
+	if "PPID.txt" in file_names:
+		return 'running'
+	elif "allOutputData.json" in file_names:
+		return 'finished'
+	else:
+		return 'stopped'
+
+def _admin_model_dirs():
+	'''Yield all user-owned model directories with their already-listed files.'''
+	model_root = path_manager.join('data', 'Model')
+	try:
+		owner_entries = os.scandir(model_root)
+	except OSError:
+		return
+	with owner_entries:
+		for owner_entry in owner_entries:
+			if owner_entry.name.startswith('.') or not owner_entry.is_dir():
+				continue
+			try:
+				model_entries = os.scandir(owner_entry.path)
+			except OSError:
+				continue
+			with model_entries:
+				for model_entry in model_entries:
+					if model_entry.name.startswith('.') or not model_entry.is_dir():
+						continue
+					try:
+						file_entries = os.scandir(model_entry.path)
+					except OSError:
+						continue
+					with file_entries:
+						file_names = [entry.name for entry in file_entries]
+					yield {
+						'owner': owner_entry.name,
+						'name': model_entry.name,
+						'path': model_entry.path,
+						'file_names': file_names
+					}
 
 
 @app.route("/")
-@flask_login.login_required
+@login_required
 def root():
 	''' Render the home screen of the OMF. '''
 	# Gather object names.
@@ -2399,33 +3060,43 @@ def root():
 		allModels.extend(shared_models)
 	# Allow admin to see all model instances.
 	isAdmin = User.cu() == "admin"
-	if isAdmin:
-		allModels = [{"owner":owner,"name":mod} for owner in _safe_list_dir("data/Model/")
-			for mod in _safe_list_dir("data/Model/" + owner)]
 	# Grab metadata for model instances.
 	safe_models = []
-	for mod in allModels:
-		try:
-            # - In the event of a poisoned .json file, skip the poisoned model
-			modPath = path_manager.join('data', 'Model', mod['owner'], mod['name'])
-		except PathManager.PathTraversalError:
-			continue
-		metadata_path = os.path.join(modPath, 'allInputData.json')
-		if not os.path.isfile(metadata_path):
-			continue
-		safe_models.append(mod)
-		key_vals = _fast_input_scan(metadata_path)
-		mod["runTime"] = key_vals.get("runTime","")
-		mod["modelType"] = key_vals.get("modelType","")
-		creation = key_vals.get("created","")
-		try:
-			mod["status"] = getattr(models, mod["modelType"]).getStatus(modPath)
-			mod["created"] = creation[0:creation.rfind('.')]
-			# mod["editDate"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(os.stat(modPath).st_ctime))
-		except: # the model type was deprecated, so the getattr will fail.
-			mod["created"] = creation
-			mod["status"] = "stopped"
-			mod["editDate"] = "N/A"
+	if isAdmin:
+		for mod_info in _admin_model_dirs():
+			if 'allInputData.json' not in mod_info['file_names']:
+				continue
+			mod = {'owner': mod_info['owner'], 'name': mod_info['name']}
+			key_vals = _fast_input_scan(os.path.join(mod_info['path'], 'allInputData.json'))
+			mod["runTime"] = key_vals.get("runTime","")
+			mod["modelType"] = key_vals.get("modelType","")
+			creation = key_vals.get("created","")
+			mod["created"] = creation.split('.', 1)[0]
+			mod["status"] = _model_status_from_filenames(mod_info['file_names'])
+			safe_models.append(mod)
+	else:
+		for mod in allModels:
+			try:
+				# In the event of a poisoned .json file, skip the poisoned model.
+				modPath = path_manager.join('data', 'Model', mod['owner'], mod['name'])
+			except PathManager.PathTraversalError:
+				continue
+			metadata_path = os.path.join(modPath, 'allInputData.json')
+			if not os.path.isfile(metadata_path):
+				continue
+			safe_models.append(mod)
+			key_vals = _fast_input_scan(metadata_path)
+			mod["runTime"] = key_vals.get("runTime","")
+			mod["modelType"] = key_vals.get("modelType","")
+			creation = key_vals.get("created","")
+			try:
+				mod["status"] = getattr(models, mod["modelType"]).getStatus(modPath)
+				mod["created"] = creation.split('.', 1)[0]
+				# mod["editDate"] = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(os.stat(modPath).st_ctime))
+			except: # the model type was deprecated, so the getattr will fail.
+				mod["created"] = creation
+				mod["status"] = "stopped"
+				mod["editDate"] = "N/A"
 	safe_models.sort(key=lambda x:x.get('created',''), reverse=True)
 	allModels = safe_models
 	# Get tooltips for model types.
@@ -2449,7 +3120,7 @@ def root():
 
 
 @app.route("/delete/<objectType>/<owner>/<objectName>", methods=["POST"])
-@flask_login.login_required
+@login_required
 @write_permission_function
 def delete(objectType, objectName, owner):
 	''' Delete models or feeders. '''
@@ -2473,9 +3144,12 @@ def delete(objectType, objectName, owner):
 
 
 @app.route("/downloadModelData/<owner>/<modelName>/<path:fullPath>")
-@flask_login.login_required
+@login_required
 @read_permission_function
 def downloadModelData(owner, modelName, fullPath):
+	"""
+	Perform download model data processing for OMF helper-library workflows.
+	"""
 	pathPieces = fullPath.split('/')
 	fullValidatedPath = path_manager.join("data", "Model", owner, modelName, *pathPieces)
 	dirPath = os.path.dirname(fullValidatedPath)
@@ -2488,7 +3162,7 @@ def downloadModelData(owner, modelName, fullPath):
 
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>")
 @app.route("/uniqObjName/<objtype>/<owner>/<modelName>/<name>")
-@flask_login.login_required
+@login_required
 def uniqObjName(objtype, owner, modelName=None, name=None):
 	"""Checks if a given object type/owner/name is unique. More like checks if a file exists on the server"""
 	print("Entered uniqobjname", owner, modelName, name)

@@ -1,4 +1,9 @@
-''' Disaggregate load.'''
+"""
+The Disaggregation model breaks down provided power consumption data from a given meter
+into the constituent appliances. This model relies on training data to make accurate
+predictions and returns both an overall appliance level disaggregation and a
+disaggregation over time.
+"""
 import subprocess, pickle, warnings, os, base64, pathlib, time, sys
 from os.path import join as pJoin
 from omf.models import __neoMetaModel__
@@ -178,6 +183,9 @@ def getPath(dataSet):
 
 def convertTestData(modelDir, data, outputFilename):
 
+	"""
+	Convert test data data between solver or OMF representations.
+	"""
 	watts = []
 	timeStamps = []
 	samplePeriod = ''
@@ -245,6 +253,9 @@ def convertTestData(modelDir, data, outputFilename):
 
 def convertTrainData(modelDir, data, outputFilename):
 
+	"""
+	Convert train data data between solver or OMF representations.
+	"""
 	watts = []
 	timeStamps = []
 	appliances = []
@@ -365,6 +376,9 @@ def convertTrainData(modelDir, data, outputFilename):
 	return outputFilename
 
 def installNilm():
+	"""
+	Perform install nilm processing for the disaggregation model.
+	"""
 	print('------------------------------------------------------------------')
 	print('------------------------------------------------------------------')
 	print('------------------------------------------------------------------')
@@ -417,6 +431,9 @@ def new(modelDir):
 	return creationCode
 
 def _debugging():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	pass
 	## Location
 	#modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)

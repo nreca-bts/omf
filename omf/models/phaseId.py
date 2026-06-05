@@ -1,4 +1,11 @@
-''' Identify phasing from meter data.'''
+"""
+Meter phases can change due to transformer maintenance and load balancing. If the phase
+changes aren't recorded correctly, it makes future load balancing difficult. This model
+identifies the true phase of AMI meters based on clustering the meters based on voltage
+correlation. While power line carrier meter reading systems can typically identify meter
+phase automatically, radio frequency meter reading systems, which are now being widely
+deployed, cannot.
+"""
 import datetime, csv, os, shutil, re, itertools, base64, platform
 from os.path import join as pJoin
 from base64 import b64decode
@@ -23,6 +30,9 @@ tooltip = "Identifies true meter phases by clustering AMI data."
 hidden = False
 
 def _unzip(zipdir, target):
+	"""
+	Internal helper for phase id unzip processing.
+	"""
 	with ZipFile(zipdir, 'r') as zip:
 		# zip.printdir()
 		shutil.rmtree(target, ignore_errors=True)
@@ -324,6 +334,9 @@ def plot_confusion_matrix(
 	plt.tight_layout()
 
 def _to_percentage( val ):
+    """
+    Internal helper for phase id to percentage processing.
+    """
     percentage = val * 100
     return "{:.4g}%".format(percentage)
 
@@ -420,6 +433,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(
 		__neoMetaModel__._omfDir,
 		"data",

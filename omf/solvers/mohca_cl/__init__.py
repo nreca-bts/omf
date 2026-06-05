@@ -1,4 +1,7 @@
-''' mohca_cl, command line interface to the Model-Free Hosting Capacity Algorithm. '''
+"""
+Expose command-line entrypoints for model-free hosting-capacity and transformer-customer
+mapping algorithms.
+"""
 from . import sandia
 from . import sandia_TCHC
 from . import ISU_PINNbasedHCA
@@ -67,6 +70,9 @@ def run_all_tests():
 
 def init_cli():
   # Main Parser
+  """
+  Initialize the command-line interface for this solver workflow.
+  """
   parser = argparse.ArgumentParser(prog='MoHCA_CL', description='MoHCA Command Tool',
                                    epilog="Example: mohca_cl add x y")
   # Sub Parser

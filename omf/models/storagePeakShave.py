@@ -1,4 +1,13 @@
-''' Calculate the costs and benefits of energy storage from a distribution utility perspective. '''
+"""
+The storagePeakShave model calculates the value of a distribution utility deploying
+energy storage based on three possible battery dispatch strategies. While energy storage
+systems may have multiple streams of value, this model only calculates direct savings
+from demand charges. Users can model energy storage behavior using a perfect dispatch
+scheme, a daily dispatch scheme, or a custom dispatch scheme. The optimal dispatch
+scheme calculates the maximum possible peak reduction. The daily dispatch scheme
+simulates daily dispatch between user selected peak hours. The custom dispatch scheme
+allows the user to select precisely when they would like the batteries to dispatch.
+"""
 
 import sys, shutil, csv, base64
 from datetime import datetime as dt, timedelta
@@ -17,6 +26,9 @@ tooltip = ("The storagePeakShave model calculates the value of a distribution ut
 	"deploying energy storage based on three possible battery dispatch strategies.")
 
 def heat(l, alpha=.10):
+	"""
+	Perform heat processing for the storage peak shave model.
+	"""
 	r = []
 	for i, x in enumerate(l):
 		if i == 0:
@@ -39,6 +51,9 @@ def heat(l, alpha=.10):
 		return r
 
 def pulp24hrBattery(day_load, RATING, CAPACITY, battEff):
+	"""
+	Perform pulp24hr battery processing for the storage peak shave model.
+	"""
 	model = pulp.LpProblem("Daily demand charge minimization problem", pulp.LpMinimize)
 	power = pulp.LpVariable.dicts("ChargingPower", range(24))
 	energy = pulp.LpVariable.dicts("EnergyState", range(24))
@@ -201,6 +216,9 @@ def work(modelDir, inputDict):
 	return out
 
 def forecastWork(modelDir, ind):
+	"""
+	Perform forecast work processing for the storage peak shave model.
+	"""
 	import tensorflow as tf
 
 	''' Run the model in its directory.'''
@@ -363,6 +381,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	if isdir(modelLoc):

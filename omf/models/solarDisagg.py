@@ -1,4 +1,7 @@
-''' Disaggregate solar output from meter data. '''
+"""
+Disaggregate behind-the-meter solar production from net-load and weather data using
+contextual source-separation methods.
+"""
 
 import json, shutil, datetime, csv, requests
 from io import StringIO
@@ -16,6 +19,10 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True
 
 def work(modelDir, inputDict):
+	"""
+	Run the solar disagg model analysis and return the output data used by the OMF
+	interface.
+	"""
 	import pandas as pd
 
 	#plotly imports
@@ -288,6 +295,9 @@ def pullAsosRevised(start, station, datatype, end=None):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

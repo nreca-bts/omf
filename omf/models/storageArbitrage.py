@@ -1,4 +1,7 @@
-''' Calculate the costs and benefits of energy storage from a distribution utility perspective. '''
+"""
+The storageArbitrage model calculates the costs and benefits of using energy storage to
+buy energy in times of low prices and sell that energy at times of high prices.
+"""
 
 import sys, shutil, csv
 from datetime import datetime as dt, timedelta
@@ -175,6 +178,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	if isdir(modelLoc):

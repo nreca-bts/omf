@@ -1,3 +1,7 @@
+"""
+Smoke-test the bundled GridLAB-D v9.9.0 executable from OMF solver packaging.
+"""
+
 import subprocess, os
 
 myEnv = os.environ.copy()

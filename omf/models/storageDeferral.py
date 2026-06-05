@@ -1,4 +1,8 @@
-''' Calculate the costs and benefits of energy storage from a distribution utility perspective. '''
+"""
+The storageDeferral model calculates the amount of energy storage capacity needed to
+reduce the load on a substation transformer or line below a user-defined limit. That
+limit represents a thermal or voltage limit for the hardware in question.
+"""
 
 import sys, shutil, csv, math
 from os.path import isdir, join as pJoin
@@ -158,6 +162,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	if isdir(modelLoc):

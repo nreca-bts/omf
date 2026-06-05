@@ -1,4 +1,7 @@
-''' Model loads using various techniques.'''
+"""
+Generate and attach residential load models from archetypes, address metadata, building
+characteristics, and feeder context.
+"""
 import json, xml.etree.ElementTree as ET, random, os
 from functools import lru_cache
 import requests
@@ -64,6 +67,9 @@ def get_zillow_configured_new_house(lat=None, lon=None, address=None):
 
 
 def get_random_new_house():
+	"""
+	Return the random new house needed by this workflow.
+	"""
 	houseArchetypes = _get_house_archetypes()
 	new_house = dict(random.choice(list(houseArchetypes.values())))
 	# The 'name' and 'parent' attributes are replaced on the frontend
@@ -83,6 +89,9 @@ def _house_maker(name):
 
 @lru_cache(maxsize=1)
 def _get_house_archetypes():
+	"""
+	Internal helper for load modeling get house archetypes processing.
+	"""
 	return feeder.parse(os.path.join(omf.omfDir, "static/testFiles/houseArchetypes.glm"))
 
 

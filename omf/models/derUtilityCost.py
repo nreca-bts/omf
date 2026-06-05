@@ -1,5 +1,7 @@
-''' Performs a cost-benefit analysis for a utility or cooperative member interested in 
-controlling behind-the-meter distributed energy resources (DERs).'''
+"""
+omf.models.derUtilityCost is a new model currently under development. Check back in the
+coming months for updates!
+"""
 
 ## Python imports
 import warnings
@@ -22,7 +24,7 @@ from omf.solvers import reopt_jl
 ## Model metadata:
 tooltip = ('Performs a cost-benefit analysis for a utility or cooperative member interested in controlling behind-the-meter distributed energy resources (DERs).')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = True ## Keep the model hidden=True during active development
+hidden = False ## Keep the model hidden=True during active development
 
 def calculate_fval(peak, adjusted_peak, DER_contribution):
 	""" 
@@ -448,6 +450,7 @@ def work(modelDir, inputDict):
 		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
 
 	## Run REopt
+	## NOTE: As of May 2026, run_with_sysimage=False until PackageCompiler can be updated to v2.1.19. Setting run_with_sysimage=True would speed up the runtime.
 	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False, tolerance=0.0001, random_seed=random_seed_HiGHS)
 
 	## Load the REopt results 
@@ -457,7 +460,7 @@ def work(modelDir, inputDict):
 		outData.update(reoptResults) ## Update output file with reopt results
 		reoptErrorMsgs = reoptResults['Messages']['errors']
 	except FileNotFoundError:
-		raise Exception(f'REopt did not produce any results. An error may have occurred.')
+		raise Exception('REopt did not produce any results. An error may have occurred.')
 
 	## Check if DER technology is enabled by the user and define relevant variables from REopt
 	if BESScheck == 'enabled':
@@ -1660,44 +1663,44 @@ def new(modelDir):
 		'startupCosts': '200000',
 		'BESS_subsidy_onetime': '50.0',
 		'BESS_subsidy_ongoing': '10.0',
-		'TESS_subsidy_onetime_ac': '10.0',
-		'TESS_subsidy_ongoing_ac': '5.0',
-		'TESS_subsidy_onetime_hp': '10.0',
-		'TESS_subsidy_ongoing_hp': '5.0',
-		'TESS_subsidy_onetime_wh': '10.0',
-		'TESS_subsidy_ongoing_wh': '5.0',
+		'TESS_subsidy_onetime_ac': '0.0',
+		'TESS_subsidy_ongoing_ac': '1.0',
+		'TESS_subsidy_onetime_hp': '0.0',
+		'TESS_subsidy_ongoing_hp': '1.0',
+		'TESS_subsidy_onetime_wh': '0.0',
+		'TESS_subsidy_ongoing_wh': '3.0',
 		'GEN_subsidy_onetime': '0.0',
 		'GEN_subsidy_ongoing': '0.0',
-		'operationalCosts_ongoing': '1000.0',
-		'operationalCosts_onetime': '20000.0',
+		'operationalCosts_ongoing': '1000',
+		'operationalCosts_onetime': '20000',
 		
 		## Home Air Conditioner inputs (for vbatDispatch):
 		'load_type_ac': '1', 
 		'number_devices_ac': '33000',
 		'power_ac': '5.6',
-		'capacitance_ac': '2',
-		'resistance_ac': '2',
+		'capacitance_ac': '2.0',
+		'resistance_ac': '2.0',
 		'cop_ac': '2.5',
 		'setpoint_ac': '72.5',
-		'deadband_ac': '2',
+		'deadband_ac': '2.0',
 
 		## Home Heat Pump inputs (for vbatDispatch):
 		'load_type_hp': '2', 
 		'number_devices_hp': '16500',
 		'power_hp': '5.6',
-		'capacitance_hp': '2',
-		'resistance_hp': '2',
+		'capacitance_hp': '2.0',
+		'resistance_hp': '2.0',
 		'cop_hp': '3.5',
-		'setpoint_hp': '65',
-		'deadband_hp': '2',
+		'setpoint_hp': '67.0',
+		'deadband_hp': '2.0',
 
 		## Home Water Heater inputs (for vbatDispatch):
 		'load_type_wh': '4', 
 		'number_devices_wh': '33000',
 		'power_wh': '4.5',
 		'capacitance_wh': '0.4',
-		'resistance_wh': '120',
-		'cop_wh': '1',
+		'resistance_wh': '120.0',
+		'cop_wh': '1.0',
 		'setpoint_wh': '125.0', 
 		'deadband_wh': '5.4',
 	}
@@ -1705,8 +1708,11 @@ def new(modelDir):
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
 @neoMetaModel_test_setup
-def _tests():
+def _debugging():
 	# Model Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName) 
 	try: 	
 		# Blow away old test results if necessary.
@@ -1714,7 +1720,6 @@ def _tests():
 	except:
 		# No previous test results.
 		pass
-
 	# Create New.
 	new(modelLoc) 
 	# Pre-run.
@@ -1725,5 +1730,4 @@ def _tests():
 	__neoMetaModel__.renderAndShow(modelLoc) 
 
 if __name__ == '__main__':
-	_tests()
-	pass
+	_debugging()

@@ -1,9 +1,14 @@
-''' Gives users the expected financial output of a PV system based on its costs and the amount energy it will likely produce. '''
+"""
+The Solar Financial model gives users the expected financial output of a PV system based
+on its costs and the amount energy it will likely produce. The model uses pvWatts, an
+NLR model, to calculate how much energy the solar system will produce and the user’s
+assumptions about the price of installing and maintaining the array.
+"""
 
 import json, shutil, datetime as dt
 from os.path import join as pJoin
 from numpy_financial import irr, npv
-import xlwt
+from openpyxl import Workbook
 from pathlib import Path
 import numpy as np
 from math import prod
@@ -37,14 +42,14 @@ def work(modelDir, inputDict):
 	inputDict["losses"] = total_loss_percent
 	simStartDate = inputDict["simStartDate"]
 	start = pd.to_datetime(inputDict["simStartDate"])
-	# lat/long get checked in nrl_get_nsrdb_data
+	# lat/long get checked in nlr_get_nsrdb_data
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	# parameter validation
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	# We need DNI, DHI, GHI, windspeed, and temp
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
@@ -134,87 +139,93 @@ def work(modelDir, inputDict):
 	return outData
 
 def _dumpDataToExcel(modelDir):
-	""" Dump data into .xls file in model workspace """
+	""" Dump data into .xlsx file in model workspace """
 	# TODO: Think about a universal function
-	wb = xlwt.Workbook()
-	sh1 = wb.add_sheet("All Input Data")
+	wb = Workbook()
+	sh1 = wb.active
+	sh1.title = "All Input Data"
 	with open(pJoin(modelDir, "allInputData.json")) as f:
 		inJson = json.load(f)
 	size = len(inJson.keys())
 	keys = list(inJson.keys())
 	for i in range(size):
-		sh1.write(i, 0, keys[i])
+		sh1.cell(row=i + 1, column=1, value=keys[i])
 	values = list(inJson.values())
 	for i in range(size):
-		sh1.write(i, 1, values[i])
+		sh1.cell(row=i + 1, column=2, value=values[i])
 	with open(pJoin(modelDir, "allOutputData.json")) as f:
 		outJson = json.load(f)
-	sh1.write(0, 5, "Lat")
-	sh1.write(0, 6, "Lon")
-	sh1.write(0, 7, "Elev")
-	sh1.write(1, 5, outJson["lat"])
-	sh1.write(1, 6, outJson["lon"])
-	sh1.write(1, 7, outJson["elev"])
+	sh1.cell(row=1, column=6, value="Lat")
+	sh1.cell(row=1, column=7, value="Lon")
+	sh1.cell(row=1, column=8, value="Elev")
+	sh1.cell(row=2, column=6, value=outJson["lat"])
+	sh1.cell(row=2, column=7, value=outJson["lon"])
+	sh1.cell(row=2, column=8, value=outJson["elev"])
 
-	sh2 = wb.add_sheet("Hourly Data")
-	sh2.write(0, 0, "TimeStamp")
-	sh2.write(0, 1, "Power(kW-AC)")
-	sh2.write(0, 2, "Power due to Inverter clipping(kW-AC)")	
-	sh2.write(0, 3, "Plane of Array Irradiance (W/m^2)")	
-	sh2.write(0, 4, "Global Horizontal Radiation(W/m^2)")	
-	sh2.write(0, 5, "Wind Speed (m/s)")
-	sh2.write(0, 6, "Ambient Temperature (F)")
-	sh2.write(0, 7, "Cell Temperature (F)")
+	sh2 = wb.create_sheet("Hourly Data")
+	headers = [
+		"TimeStamp",
+		"Power(kW-AC)",
+		"Power due to Inverter clipping(kW-AC)",
+		"Plane of Array Irradiance (W/m^2)",
+		"Global Horizontal Radiation(W/m^2)",
+		"Wind Speed (m/s)",
+		"Ambient Temperature (F)",
+		"Cell Temperature (F)"
+	]
+	sh2.append(headers)
 
 	for i in range(len(outJson["timeStamps"])):
-		sh2.write(i + 1, 0, outJson["timeStamps"][i])
-		sh2.write(i + 1, 1, outJson["powerOutputAc"][i])
-		sh2.write(i + 1, 2, outJson["InvClipped"][i])
-		sh2.write(i + 1, 3, outJson["climate"]["Plane of Array Irradiance (W/m^2)"][i])			
-		sh2.write(i + 1, 4, outJson["climate"]["Global Horizontal Radiation (W/m^2)"][i])		
-		sh2.write(i + 1, 5, outJson["climate"]["Wind Speed (m/s)"][i])
-		sh2.write(i + 1, 6, outJson["climate"]["Ambient Temperature (F)"][i])
-		sh2.write(i + 1, 7, outJson["climate"]["Cell Temperature (F)"][i])
+		sh2.append([
+			outJson["timeStamps"][i],
+			outJson["powerOutputAc"][i],
+			outJson["InvClipped"][i],
+			outJson["climate"]["Plane of Array Irradiance (W/m^2)"][i],
+			outJson["climate"]["Global Horizontal Radiation (W/m^2)"][i],
+			outJson["climate"]["Wind Speed (m/s)"][i],
+			outJson["climate"]["Ambient Temperature (F)"][i],
+			outJson["climate"]["Cell Temperature (F)"][i]
+		])
 
-	sh2.panes_frozen = True
-	sh2.vert_split_pos = 1
+	sh2.freeze_panes = "B1"
 
-	sh3 = wb.add_sheet("Monthly Data")
-	sh3.write(0, 1, "Monthly Generation")
+	sh3 = wb.create_sheet("Monthly Data")
+	sh3.cell(row=1, column=2, value="Monthly Generation")
 	for i in range(24):
-		sh3.write(0, 3 + i, i + 1)
+		sh3.cell(row=1, column=4 + i, value=i + 1)
 	for i in range(12):
-		sh3.write(i + 1, 0, outJson["monthlyGeneration"][i][0])
-		sh3.write(i + 1, 1, outJson["monthlyGeneration"][i][1])
+		sh3.cell(row=i + 2, column=1, value=outJson["monthlyGeneration"][i][0])
+		sh3.cell(row=i + 2, column=2, value=outJson["monthlyGeneration"][i][1])
 	for i in range(len(outJson["seasonalPerformance"])):
-		sh3.write(outJson["seasonalPerformance"][i][1] + 1, outJson["seasonalPerformance"]
-				  [i][0] + 3, outJson["seasonalPerformance"][i][2])
-	sh3.panes_frozen = True
-	sh3.vert_split_pos = 3
-	sh3.horz_split_pos = 1
+		sh3.cell(
+			row=outJson["seasonalPerformance"][i][1] + 2,
+			column=outJson["seasonalPerformance"][i][0] + 4,
+			value=outJson["seasonalPerformance"][i][2]
+		)
+	sh3.freeze_panes = "D2"
 
-	sh4 = wb.add_sheet("Annual Data")
-	sh4.write(0, 0, "Year No.")
+	sh4 = wb.create_sheet("Annual Data")
+	sh4.cell(row=1, column=1, value="Year No.")
 	for i in range(len(outJson["netCashFlow"])):
-		sh4.write(i + 1, 0, i)
-	sh4.write(0, 1, "Net Cash Flow ($)")
-	sh4.write(0, 2, "Life O&M Costs ($)")
-	sh4.write(0, 3, "Life Purchase Costs ($)")
-	sh4.write(0, 4, "Cumulative Cash Flow ($)")
+		sh4.cell(row=i + 2, column=1, value=i)
+	sh4.cell(row=1, column=2, value="Net Cash Flow ($)")
+	sh4.cell(row=1, column=3, value="Life O&M Costs ($)")
+	sh4.cell(row=1, column=4, value="Life Purchase Costs ($)")
+	sh4.cell(row=1, column=5, value="Cumulative Cash Flow ($)")
 	for i in range(len(outJson["netCashFlow"])):
-		sh4.write(i + 1, 1, outJson["netCashFlow"][i])
-		sh4.write(i + 1, 2, outJson["lifeOmCosts"][i])
-		sh4.write(i + 1, 3, outJson["lifePurchaseCosts"][i])
-		sh4.write(i + 1, 4, outJson["cumCashFlow"][i])
-	sh4.write(0, 10, "ROI")
-	sh4.write(1, 10, outJson["ROI"])
-	sh4.write(0, 11, "NPV")
-	sh4.write(1, 11, outJson["NPV"])
-	sh4.write(0, 12, "IRR")
-	sh4.write(1, 12, outJson["IRR"])
-	# sh4.write(2, 11, xlwt.Formula("NPV(('All Input Data'!B15/100,'Annual Data'!B2:B31))"))
-	sh4.write(2, 12, xlwt.Formula("IRR(B2:B31)"))
-	filename = "omf.solarFinancial.xls"
+		sh4.cell(row=i + 2, column=2, value=outJson["netCashFlow"][i])
+		sh4.cell(row=i + 2, column=3, value=outJson["lifeOmCosts"][i])
+		sh4.cell(row=i + 2, column=4, value=outJson["lifePurchaseCosts"][i])
+		sh4.cell(row=i + 2, column=5, value=outJson["cumCashFlow"][i])
+	sh4.cell(row=1, column=11, value="ROI")
+	sh4.cell(row=2, column=11, value=outJson["ROI"])
+	sh4.cell(row=1, column=12, value="NPV")
+	sh4.cell(row=2, column=12, value=outJson["NPV"])
+	sh4.cell(row=1, column=13, value="IRR")
+	sh4.cell(row=2, column=13, value=outJson["IRR"])
+	# sh4.cell(row=3, column=12, value="=NPV('All Input Data'!B15/100,'Annual Data'!B2:B31)")
+	sh4.cell(row=3, column=13, value="=IRR(B2:B31)")
+	filename = "omf.solarFinancial.xlsx"
 	wb.save(pJoin(modelDir, filename))
 	outJson["excel"] = filename
 	with open(pJoin(modelDir,"allOutputData.json"),"w") as outFile:
@@ -264,6 +275,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

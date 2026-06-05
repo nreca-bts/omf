@@ -1,3 +1,7 @@
+"""
+Expose Sandia phase-identification routines used by OMF phase-identification models.
+"""
+
 if __package__ in [None, '']:
     import CA_Ensemble_Funcs
     import CA_Ensemble_SampleScripts

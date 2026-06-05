@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*
 """
+Adapt feedinlib base classes for OMF weather-dependent renewable generation
+calculations.
+
 Feed-in model classes.
 
-SPDX-FileCopyrightText: Birgit Schachler
-SPDX-FileCopyrightText: Uwe Krien <krien@uni-bremen.de>
-SPDX-FileCopyrightText: Stephan Günther
-SPDX-FileCopyrightText: Stephen Bosch
-SPDX-FileCopyrightText: Patrik Schönfeldt <patrik.schoenfeldt@dlr.de>
+SPDX-FileCopyrightText: Birgit Schachler SPDX-FileCopyrightText: Uwe Krien
+<krien@uni-bremen.de> SPDX-FileCopyrightText: Stephan Günther SPDX-FileCopyrightText:
+Stephen Bosch SPDX-FileCopyrightText: Patrik Schönfeldt <patrik.schoenfeldt@dlr.de>
 
 SPDX-License-Identifier: MIT
 
-This module provides abstract classes as blueprints for classes that implement
-feed-in models for weather dependent renewable energy resources. These models
-take in power plant and weather data to calculate power plant feed-in.
+This module provides abstract classes as blueprints for classes that implement feed-in
+models for weather dependent renewable energy resources. These models take in power
+plant and weather data to calculate power plant feed-in.
 """
 
 import warnings
@@ -36,6 +37,7 @@ class Base(ABC):
 
     def __init__(self, **kwargs):
         """
+        Internal helper for base init processing.
         """
         self._power_plant_requires = kwargs.get("powerplant_requires", None)
         self._requires = kwargs.get("requires", None)
@@ -66,6 +68,9 @@ class Base(ABC):
 
     @power_plant_requires.setter
     def power_plant_requires(self, names):
+        """
+        Implement power plant requires behavior for Base instances.
+        """
         self._power_plant_requires = names
 
     def _power_plant_requires_check(self, parameters):
@@ -106,6 +111,9 @@ class Base(ABC):
 
     @requires.setter
     def requires(self, names):
+        """
+        Implement requires behavior for Base instances.
+        """
         self._requires = names
 
     @abstractmethod

@@ -1,11 +1,100 @@
+"""
+Install, configure, and run local Julia REopt workflows for OMF optimization models.
+"""
+
 import json, time
-import os, platform
+import os, platform, shutil
 import random
 import subprocess
 from os.path import join as pJoin
 
 
 thisDir = str(os.path.abspath(os.path.dirname(__file__)))
+JULIA_VERSION = '1.9.4'
+JULIA_CACHE_HOME = os.path.normpath(os.path.expanduser(os.environ.get(
+	'OMF_JULIA_HOME',
+	pJoin('~', '.cache', 'omf', f'julia-{JULIA_VERSION}')
+)))
+
+def _env_flag_false(name):
+	"""
+	Internal helper for env flag false processing.
+	"""
+	value = os.environ.get(name)
+	return value is not None and value.lower() in ('0', 'false', 'no', 'off')
+
+def _julia_executable_name():
+	"""
+	Internal helper for julia executable name processing.
+	"""
+	return 'julia.exe' if platform.system() == 'Windows' else 'julia'
+
+def _julia_version_matches(julia_executable):
+	"""
+	Internal helper for julia version matches processing.
+	"""
+	try:
+		version_check = subprocess.run([julia_executable, '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
+		return version_check.returncode == 0 and f'version {JULIA_VERSION}' in version_check.stdout
+	except OSError:
+		return False
+
+def _prepend_to_path(path):
+	"""
+	Internal helper for prepend to path processing.
+	"""
+	path = os.path.abspath(os.path.expanduser(path))
+	path_entries = os.environ.get('PATH', '').split(os.pathsep)
+	if path not in path_entries:
+		os.environ['PATH'] = os.pathsep.join([path] + [entry for entry in path_entries if entry])
+
+def _julia_bin_candidates():
+	"""
+	Internal helper for julia bin candidates processing.
+	"""
+	candidates = []
+	for env_name in ('OMF_JULIA_BINDIR', 'JULIA_BINDIR'):
+		if os.environ.get(env_name):
+			candidates.append(os.environ[env_name])
+	for env_name in ('OMF_JULIA_HOME', 'JULIA_HOME'):
+		if os.environ.get(env_name):
+			candidates.append(pJoin(os.environ[env_name], 'bin'))
+	candidates += [
+		pJoin(JULIA_CACHE_HOME, 'bin'),
+		pJoin(thisDir, f'julia-{JULIA_VERSION}', 'bin'),
+		'/usr/local/bin'
+	]
+	return candidates
+
+def _julia_on_path():
+	"""
+	Internal helper for julia on path processing.
+	"""
+	julia_executable = shutil.which('julia')
+	return julia_executable is not None and _julia_version_matches(julia_executable)
+
+def _ensure_julia_on_path():
+	"""
+	Internal helper for ensure julia on path processing.
+	"""
+	if _julia_on_path():
+		return True
+	executable_name = _julia_executable_name()
+	for bin_dir in _julia_bin_candidates():
+		julia_executable = pJoin(os.path.expanduser(bin_dir), executable_name)
+		if os.path.isfile(julia_executable) and _julia_version_matches(julia_executable):
+			_prepend_to_path(bin_dir)
+			return True
+	return False
+
+def _run_install_commands(commands):
+	"""
+	Internal helper for run install commands processing.
+	"""
+	for command in commands:
+		exit_code = os.system(command)
+		if exit_code != 0:
+			raise RuntimeError(f"reopt_jl install command failed with exit code {exit_code}: {command}")
 
 def make_julia_script_file(juliaStr : str, cleanFileFormatting = True):
 	''' Creates a Julia File containing the script in juliaStr, cleans up file location formatting (optional), and returns:
@@ -41,13 +130,15 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 	sysimage_path = str(os.path.normpath(os.path.join(thisDir,"reopt_jl.so")))
 	precompile_path = str(os.path.normpath(os.path.join(thisDir,"precompile_reopt.jl")))
 
-	if os.path.isfile(instantiated_path):
+	if os.path.isfile(instantiated_path) and _ensure_julia_on_path():
 		if not os.path.isfile(sysimage_path) and build_sysimage:
 			print("error: reopt_jl.so not found - remove instantiated.txt to build \n attempting to run without sysimage... ")
 			return False
 		else:
 			print("reopt_jl dependencies installed - to reinstall remove instantiated.txt")
 			return build_sysimage
+	elif os.path.isfile(instantiated_path):
+		print("reopt_jl instantiated.txt found but julia is not on PATH; installing julia before continuing")
 	
 	try:
 		install_pyjulia = [
@@ -73,33 +164,50 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 				' '''
 			]
 		else:
-			build_julia_image = []
+			build_julia_image = [
+				f'''julia --project="{project_path}" -e '
+				import Pkg; Pkg.instantiate();
+				import REoptSolver;
+				' '''
+			]
 		if system == "Darwin":
-			commands = [ '''
+			commands = [] if _ensure_julia_on_path() else [ '''
 				HOMEBREW_NO_AUTO_UPDATE=1 brew list julia 1>/dev/null 2>/dev/null || 
 				{ brew tap homebrew/core; brew install julia; }
 				'''
 			]
 			commands += install_pyjulia
-			commands += [ f'touch "{instantiated_path}"' ]
 			commands += build_julia_image
+			commands += [ f'touch "{instantiated_path}"' ]
 		elif system == "Linux":
-			commands = [
-				'sudo apt-get install wget',
-				'wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz ',
-				#'''python3 -c 'from urllib.request import urlretrieve as wget; wget("https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.4-linux-x86_64.tar.gz", "./julia-1.9.4-linux-x86_64.tar.gz") ' ''',
-				'sudo tar -xvzf "julia-1.9.4-linux-x86_64.tar.gz" -C /usr/local --strip-components 1'
-			]
+			if _ensure_julia_on_path():
+				commands = []
+			else:
+				julia_tarball_path = pJoin('/tmp', f'julia-{JULIA_VERSION}-linux-x86_64.tar.gz')
+				commands = [
+					'sudo apt-get -y install wget',
+					f'mkdir -p "{JULIA_CACHE_HOME}"',
+					f'wget -q -O "{julia_tarball_path}" https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-{JULIA_VERSION}-linux-x86_64.tar.gz',
+					f'tar -xzf "{julia_tarball_path}" -C "{JULIA_CACHE_HOME}" --strip-components 1'
+				]
+				_prepend_to_path(pJoin(JULIA_CACHE_HOME, 'bin'))
+				_run_install_commands(commands)
+				if os.path.isfile(instantiated_path) and _ensure_julia_on_path():
+					if not os.path.isfile(sysimage_path) and build_sysimage:
+						print("error: reopt_jl.so not found - remove instantiated.txt to build \n attempting to run without sysimage... ")
+						return False
+					print("reopt_jl dependencies installed after restoring cached Julia - to reinstall remove instantiated.txt")
+					return build_sysimage
+				commands = []
 			commands += install_pyjulia
-			commands += [ f'touch "{instantiated_path}"' ]
 			commands += build_julia_image
+			commands += [ f'touch "{instantiated_path}"' ]
 		elif system == "Windows":
 			commands = [
-				f'cd "{thisDir}" & del julia-1.9.4-win64.zip',
+				f'cd "{thisDir}" & if exist julia-1.9.4-win64.zip del julia-1.9.4-win64.zip',
 				f'cd "{thisDir}" & curl -o julia-1.9.4-win64.zip https://julialang-s3.julialang.org/bin/winnt/x64/1.9/julia-1.9.4-win64.zip',
 				f'cd "{thisDir}" & tar -x -f julia-1.9.4-win64.zip' ]
 			commands += install_pyjulia
-			commands += [ f'copy nul {instantiated_path}' ]
 			if build_sysimage:
 				juliaStr = f'''import Pkg; Pkg.instantiate();
 					import REoptSolver; using PackageCompiler;
@@ -111,11 +219,13 @@ def install_reopt_jl(system : list = platform.system(), build_sysimage=True):
 					f'cd "{thisDir}\\julia-1.9.4\\bin" & julia --project="{project_path}" "{juliaFileLocation}"',
 					delCommand
 				]
+			else:
+				commands += [f'cd "{thisDir}\\julia-1.9.4\\bin" & julia --project="{project_path}" -e "import Pkg; Pkg.instantiate(); import REoptSolver;"']
+			commands += [ f'copy nul "{instantiated_path}"' ]
 		else:
 			raise ValueError(f'No installation script available yet for {system}')
 
-		for command in commands:
-			os.system(command)
+		_run_install_commands(commands)
 
 		return build_sysimage
 
@@ -302,6 +412,8 @@ def get_randomized_api_key():
 def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, microgrid_only=False, max_runtime_s=None, 
 				 run_with_sysimage=True, tolerance=0.05, random_seed=None):
 	''' calls 'run' function through run_reopt.jl (Julia file) '''
+	if _env_flag_false('OMF_REOPT_BUILD_SYSIMAGE'):
+		run_with_sysimage = False
 	
 	if inputFile == "" and not default:
 		print("Invalid inputs: inputFile needed if default=False")
@@ -375,6 +487,9 @@ def run_reopt_jl(path, inputFile="", loadFile="", default=False, outages=False, 
 
 
 def _test():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	run_reopt_jl(os.path.normpath(os.path.join(thisDir,"testFiles")), default=True)
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
-''' Run OpenDSS and plot the results for arbitrary circuits. '''
+"""
+Run OpenDSS circuits and expose conversion, plotting, and hosting-capacity helpers for
+OMF models.
+"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1063,6 +1066,9 @@ def applyCnxns(tree):
 	return tree
 
 def removeCnxns(tree):
+	"""
+	Perform remove cnxns processing for the wrapped solver workflow.
+	"""
 	for i,obj in enumerate(tree.copy()):
 		if obj.get('!CNXNS','NCX')!='NCX':
 			del tree[i]['!CNXNS']
@@ -1429,6 +1435,9 @@ def rollUpLoadTransformer(tree, combine_loads=True):
 	return tree
 
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	import omf
 	fpath = ['ieee37.clean.dss','ieee123_solarRamp.clean.dss','iowa240.clean.dss','ieeeLVTestCase.clean.dss','ieee8500-unbal_no_fuses.clean.dss']
 	for fname in fpath:

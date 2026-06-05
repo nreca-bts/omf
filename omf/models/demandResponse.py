@@ -1,4 +1,10 @@
-''' Calculate the costs and benefits of Time of Use (TOU) program from a distribution utility perspective. '''
+"""
+This model takes in historical demand data (hourly for a year) and calculates what
+demand changes in residential customers could be expected due to demand response
+programs. Program types the model can calculate are time of use pricing (TOU), peak time
+rebates (PTR), direct load control (DLC) or critical peak pricing (CPP). These
+calculations are done using the Brattle Group's PRISM model.
+"""
 
 import json, shutil, datetime, csv, calendar, math, operator, copy
 from pathlib import Path
@@ -372,6 +378,9 @@ def prism(prismDRDict):
 
 def DLC(DLCDict):
 	# Estimate load reduction from direct load control.
+	"""
+	Perform dlc processing for the demand response model.
+	"""
 	DLCDict['modLoad'] = list(DLCDict['origLoad'])
 	DLCDict['whTotalPower'] = DLCDict['residenceCount'] * DLCDict['whPercentage'] * DLCDict['whRatingkW'] * DLCDict['whDutyCycle']
 	DLCDict['hvacTotalPower'] = DLCDict['residenceCount'] * DLCDict['hvacPercentage'] * DLCDict['hvacRatingkW'] * DLCDict['hvacDutyCycle']
@@ -384,6 +393,9 @@ def DLC(DLCDict):
 
 def _prismTests():
 	# Run Direct Load Control sim.
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	with open('./test_load.csv') as f:
 		orig_load = [float(x) for x in f.readlines()]
 	orig_load_copy = copy.deepcopy(orig_load)
@@ -462,6 +474,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

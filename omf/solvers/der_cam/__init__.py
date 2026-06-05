@@ -1,30 +1,37 @@
+"""
+Wrap DER-CAM spreadsheet and API workflows for distributed-energy-resource optimization
+studies.
+"""
+
 import os, time, json
 import shutil
 import pandas, openpyxl
 import requests as req
-import keyring
 
 urlBase = 'https://microgrids1.lbl.gov:4000/api/xls' 
 fileMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+DER_CAM_API_KEY_ENV = 'DER_CAM_API_KEY'
 
 lock_file = "lock_file.txt"
 
 thisDir = os.path.abspath(os.path.dirname(__file__))
 
 def set_credentials(apiKey=""):
-    '''sets current user's API key using keyring'''
-    if apiKey != "":
-        userKey = apiKey
-    else:
-        userKey = input("Enter your API key for the DER-CAM API ( sign up found here: https://dercam-app.lbl.gov/u/api ): ")
-    keyring.set_password("my_program", "user", userKey)
-    return userKey
+    '''Set the DER-CAM API key for the current process. Prefer setting DER_CAM_API_KEY in the environment.'''
+    if apiKey == "":
+        raise ValueError(
+            f"DER-CAM API key required. Set {DER_CAM_API_KEY_ENV} or pass apiKey explicitly."
+        )
+    os.environ[DER_CAM_API_KEY_ENV] = apiKey
+    return apiKey
 
 def get_credentials():
-    '''returns API key for current user from keyring'''
-    userKey = keyring.get_password("my_program", "user")
-    if userKey == None:
-        userKey = set_credentials()
+    '''Return the DER-CAM API key from the environment.'''
+    userKey = os.environ.get(DER_CAM_API_KEY_ENV)
+    if not userKey:
+        raise ValueError(
+            f"DER-CAM API key required. Set {DER_CAM_API_KEY_ENV} or pass apiKey explicitly."
+        )
     return userKey
 
 def testfile_path(fileName):
@@ -270,6 +277,9 @@ def build_input_spreadsheet(path, reopt_input_file, der_cam_file_name, loadTempl
 #######################################################################
 
 def check_timeout(start_time, timeout):
+    """
+    Perform check timeout processing for the wrapped solver workflow.
+    """
     if timeout != 0:
         current_time = time.time()
         if current_time - start_time >= timeout:
@@ -322,10 +332,7 @@ def solve_model(path, modelFile, apiKey="", timeout=0):
     posts model file to DER-CAM API, waits to receive results, saves results 
     to {path}/results.csv, and ensures minimum runtime of 30 seconds per call (API limit)
     '''
-    if apiKey != "":
-        userKey = set_credentials(apiKey=apiKey)
-    else:
-        userKey = get_credentials()
+    userKey = apiKey if apiKey != "" else get_credentials()
 
     modelFilePath = os.path.normpath(os.path.join(path, modelFile))
     files = {'modelFile': ('model.xlsx', open(modelFilePath, 'rb'), fileMimeType, {'Expires': '0'})}
@@ -422,6 +429,9 @@ def run(path, modelFile="", reoptFile="", apiKey="", loadTemplate="", timeout=0)
 
 
 def _test():
+    """
+    Run this module's local smoke tests or debugging workflow.
+    """
     modelKey = run(os.path.normpath(os.path.join(thisDir,"testFiles")), modelFile="test.xlsx")
     print_model( modelKey )
 

@@ -1,4 +1,7 @@
-''' Performs a cost-benefit analysis for a member-consumer enrolling distributed energy resources (DERs) in a utility DER sharing program.'''
+"""
+❗ NOTE ❗ omf.models.derConsumer is a new model currently under development. Check back
+in the coming months for updates!
+"""
 
 ## Python imports
 import warnings
@@ -22,7 +25,7 @@ from omf.solvers import reopt_jl
 ## Model metadata:
 tooltip = ('Performs a cost-benefit analysis for a member-consumer enrolling distributed energy resources (DERs) in a utility DER sharing program.')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = True ## Keep the model hidden=True during active development
+hidden = False ## Keep the model hidden=True during active development
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -297,6 +300,7 @@ def work(modelDir, inputDict):
 		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
 		
 	## Run REopt
+	## NOTE: As of May 2026, run_with_sysimage=False until PackageCompiler can be updated to v2.1.19. Setting run_with_sysimage=True would speed up the runtime.
 	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False,  tolerance=0.0001, random_seed=random_seed_HiGHS)
 	
 	## Load the REopt results
@@ -1354,7 +1358,7 @@ def new(modelDir):
 		'latitude': '39.969753', ## Brighton, CO
 		'longitude': '-104.812599', ## Brighton, CO
 		'year': '2018',
-		'demandFileName': 'example_load_consumer_kW.csv',
+		'demandFileName': 'example_load_consumer_10kW.csv',
 		'demandCurve': demand_curve,
 		'temperatureFileName': 'example_temperatures_open-meteo-denverCO-noheaders.csv',
 		'temperatureCurve': temperature_curve,
@@ -1368,12 +1372,12 @@ def new(modelDir):
 		#'rateCompensation': '0.02', ## unit: $/kWh
 		'BESS_subsidy_onetime': '50.0',
 		'BESS_subsidy_ongoing': '10.0',
-		'TESS_subsidy_onetime_ac': '10.0',
-		'TESS_subsidy_ongoing_ac': '5.0',
-		'TESS_subsidy_onetime_hp': '10.0',
-		'TESS_subsidy_ongoing_hp': '5.0',
-		'TESS_subsidy_onetime_wh': '10.0',
-		'TESS_subsidy_ongoing_wh': '5.0',
+		'TESS_subsidy_onetime_ac': '0.0',
+		'TESS_subsidy_ongoing_ac': '1.0',
+		'TESS_subsidy_onetime_hp': '0.0',
+		'TESS_subsidy_ongoing_hp': '1.0',
+		'TESS_subsidy_onetime_wh': '0.0',
+		'TESS_subsidy_ongoing_wh': '3.0',
 		'GEN_subsidy_onetime': '0.0',
 		'GEN_subsidy_ongoing': '0.0',
 
@@ -1383,7 +1387,7 @@ def new(modelDir):
 		'BESS_kw': '5.0',
 		'BESS_kwh': '13.5',
 		'BESS_retrofit_cost': '0.0',
-		'utility_BESS_portion': '20',
+		'utility_BESS_portion': '20.0',
 		'replace_cost_per_kw': '0.0', #'324.0',
 		'replace_cost_per_kwh': '0.0', #'351.0',
 		'battery_replacement_year': '10',
@@ -1404,25 +1408,25 @@ def new(modelDir):
 
 		## Home Air Conditioner inputs (vbatDispatch):
 		'load_type_ac': '1',
-		'unitDeviceCost_ac': '13', #a cheap wifi-enabled smart outlet to plug the AC into is about $13 (see https://www.lowes.com/pd/Enbrighten-125-Volt-1-Outlet-Indoor-Smart-Plug/1003202046)
+		'unitDeviceCost_ac': '13',
 		'unitUpkeepCost_ac': '0.0', ## NOTE: Input is currently hidden in HTML
-		'power_ac': '5.6', ## Central air ~ 5.6; In-window air unit ~ 0.5
-		'capacitance_ac': '2',
-		'resistance_ac': '2',
+		'power_ac': '5.6',
+		'capacitance_ac': '2.0',
+		'resistance_ac': '2.0',
 		'cop_ac': '2.5',
 		'setpoint_ac': '72.5',
-		'deadband_ac': '2',
+		'deadband_ac': '2.0',
 
 		## Home Heat Pump inputs (vbatDispatch):
 		'load_type_hp': '2',
 		'unitDeviceCost_hp': '150',
 		'unitUpkeepCost_hp': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_hp': '5.6',
-		'capacitance_hp': '2',
-		'resistance_hp': '2',
+		'capacitance_hp': '2.0',
+		'resistance_hp': '2.0',
 		'cop_hp': '3.5',
-		'setpoint_hp': '65',
-		'deadband_hp': '2',
+		'setpoint_hp': '67.0',
+		'deadband_hp': '2.0',
 
 		## Home Water Heater inputs (vbatDispatch):
 		'load_type_wh': '4',
@@ -1430,17 +1434,20 @@ def new(modelDir):
 		'unitUpkeepCost_wh': '0.0', ## NOTE: Input is currently hidden in HTML
 		'power_wh': '4.5',
 		'capacitance_wh': '0.4',
-		'resistance_wh': '120',
-		'cop_wh': '1',
-		'setpoint_wh': '119.3',
+		'resistance_wh': '120.0',
+		'cop_wh': '1.0',
+		'setpoint_wh': '125.0',
 		'deadband_wh': '5.4',
 		}
 
 	return __neoMetaModel__.new(modelDir, defaultInputs)
 
 @neoMetaModel_test_setup
-def _tests():
+def _debugging():
 	# Model Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:
@@ -1459,5 +1466,4 @@ def _tests():
 	__neoMetaModel__.renderAndShow(modelLoc)
 
 if __name__ == '__main__':
-	_tests()
-	pass
+	_debugging()

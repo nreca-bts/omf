@@ -1,4 +1,7 @@
-''' Convert a Milsoft Windmil feeder model into an OMF-compatible version. '''
+"""
+Convert Milsoft WindMil feeder exports into OMF and GridLAB-D circuit models, with
+repair helpers for common data-quality issues.
+"""
 import os, csv, random, math, copy, locale, json, traceback, shutil, time, datetime, warnings, gc, platform
 from os.path import join as pJoin
 from io import StringIO
@@ -393,7 +396,7 @@ def convert(stdString, seqString, rescale=True):
 			if 'B' in overhead['phases'] and (ohLineList[20] != '0' or ohLineList[23] != '0'):
 				overhead['distributed_load_B'] = float(ohLineList[20])*1000 + float(ohLineList[23])*1000j
 			if 'C' in overhead['phases'] and (ohLineList[21] != '0' or ohLineList[24] != '0'):
-				 overhead['distributed_load_C'] = float(ohLineList[21])*1000 + float(ohLineList[24])*1000j
+				overhead['distributed_load_C'] = float(ohLineList[21])*1000 + float(ohLineList[24])*1000j
 			return overhead
 
 		def convertUgLine(ugLineList):
@@ -541,11 +544,11 @@ def convert(stdString, seqString, rescale=True):
 					}
 			# Check to see if there is distributed load on the line
 			if 'A' in underground['phases'] and (ugLineList[19] != '0' or ugLineList[22] != '0'):
-			    underground['distributed_load_A'] = float(ugLineList[19])*1000 + (float(ugLineList[22]))*1000j
+				underground['distributed_load_A'] = float(ugLineList[19])*1000 + (float(ugLineList[22]))*1000j
 			if 'B' in underground['phases'] and (ugLineList[20] != '0' or ugLineList[23] != '0'):
-			    underground['distributed_load_B'] = float(ugLineList[20])*1000 + (float(ugLineList[23]))*1000j
+				underground['distributed_load_B'] = float(ugLineList[20])*1000 + (float(ugLineList[23]))*1000j
 			if 'C' in underground['phases'] and (ugLineList[21] != '0' or ugLineList[24] != '0'):
-			    underground['distributed_load_C'] = float(ugLineList[21])*1000 + (float(ugLineList[24]))*1000j
+				underground['distributed_load_C'] = float(ugLineList[21])*1000 + (float(ugLineList[24]))*1000j
 			return underground
 
 		def convertRegulator(regList):
@@ -1692,16 +1695,6 @@ def rewriteStatePlaneToLatLon(tree, epsg = None):
 			tree[key]['latitude'], tree[key]['longitude'] = newCoords
 	return tree
 
-def _latCount(name):
-	''' Debug function to count up the meters and such and figure out whether we're lat/lon coding them correctly. '''
-	nameCount, myLatCount = (0,0)
-	for key in outGlm:
-		if outGlm[key].get('object','')==name:
-			nameCount += 1
-			if 'latitude' in outGlm[key]:
-				myLatCount += 1
-	warnings.warn(name, 'COUNT', nameCount, 'LAT COUNT', latCount, 'SUCCESS RATE', 1.0*latCount/nameCount)
-
 default_equipment = {
 	'underground_line_conductor': {
 		'name': "DG_1000ALTRXLPEJ15",
@@ -1726,12 +1719,18 @@ default_equipment = {
 }
 
 def _writeResultsCsv(testOutput, outName):
+	"""
+	Internal helper for mil to gridlab write results csv processing.
+	"""
 	with open(outName, 'w', newline='') as f:
 		w = csv.DictWriter(f, testOutput[0].keys(), delimiter=',', lineterminator='\n')
 		w.writeheader()
 		w.writerows(testOutput)
 
 def voltDistribution(pathToGlm, pathToVoltdumpCsv):
+	"""
+	Perform volt distribution processing for OMF helper-library workflows.
+	"""
 	with open(pathToGlm, 'r') as f:
 		tree = omf.feeder.parse(pathToGlm)
 	ntk = getNamesToKeys(tree)
@@ -1765,6 +1764,9 @@ def voltDistribution(pathToGlm, pathToVoltdumpCsv):
 
 def crappyhist(a, path, bins=50, width=80):
 	# from @tammoippen on github
+	"""
+	Perform crappyhist processing for OMF helper-library workflows.
+	"""
 	a = np.asarray(a)
 	h, b = np.histogram(a, bins)
 	with open(path, 'w') as f:
@@ -1833,6 +1835,9 @@ def _tests(
 	voltdumpCsvName='{}_VD.csv',
 	logAllWarnings=False
 ):
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	if testAttachments.get('climate.tmy2') is None:
 		with open(omf.omfDir + '/data/Climate/KY-LEXINGTON.tmy2') as f:
 			testAttachments['climate.tmy2'] = f.read()

@@ -1,4 +1,7 @@
-''' Container for all solvers. '''
+"""
+Collect solver wrapper modules that let OMF models call third-party simulation,
+optimization, and analysis engines.
+"""
 
 from omf.solvers import CSSS
 from omf.solvers import gfm
@@ -10,6 +13,7 @@ from omf.solvers import PowerModelsONM
 from omf.solvers import rdt
 from omf.solvers import REopt
 from omf.solvers import saxSequitur
+from omf.solvers import splat
 from omf.solvers import SteinmetzController
 from omf.solvers import VB
 from omf.solvers import mohca_cl

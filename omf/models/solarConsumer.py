@@ -1,4 +1,8 @@
-''' Calculate solar costs and benefits for consumers. '''
+"""
+This model calculates the expected costs for a consumer who buys solar in one of 3
+different ways: through a PPA with a 3rd party, through a community solar project, or by
+buying a rooftop system.
+"""
 
 # Python Imports
 from pathlib import Path
@@ -32,14 +36,14 @@ def work(modelDir, inputDict):
 	inputDict["inv_eff"] = 97.5
 	inputDict["losses"] = 15.53
 	inputDict["sys_cap"] = 750
-	# lat/long get checked in nrl_get_nsrdb_data
+	# lat/long get checked in nlr_get_nsrdb_data
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	# parameter validation
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	# We need DNI, DHI, GHI, windspeed, and temp
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
@@ -85,6 +89,9 @@ def work(modelDir, inputDict):
 
 def tjCode(inputs, outData):
 	# Make inputs the right types.
+	"""
+	Perform tj code processing for the solar consumer model.
+	"""
 	for k in inputs.keys():
 		try:
 			inputs[k] = float(inputs[k])
@@ -272,6 +279,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

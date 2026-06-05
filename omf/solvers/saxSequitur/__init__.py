@@ -1,3 +1,8 @@
+"""
+Provide SAX and Sequitur time-series motif utilities used by anomaly-detection
+workflows.
+"""
+
 import numpy as np
 
 def cuts_for_asize(a_size):
@@ -131,6 +136,9 @@ def getSaxString(series, win_size, alphabet_size=3, z_threshold=0.01):
 
 def makeReplacement(stringArray, encodingGrammar, decodingGrammar, ruleNum, occurances):
 
+    """
+    Perform make replacement processing for the wrapped solver workflow.
+    """
     ruleString = str(ruleNum)
 
     # go through each letter in the seq
@@ -183,6 +191,9 @@ def makeReplacement(stringArray, encodingGrammar, decodingGrammar, ruleNum, occu
 
 def sequitur(stringArray, encodingGrammar, decodingGrammar, ruleNum, occurances):
 
+    """
+    Perform sequitur processing for the wrapped solver workflow.
+    """
     ruleString = str(ruleNum)
     while len(stringArray) > 1:
 
@@ -212,6 +223,9 @@ def sequitur(stringArray, encodingGrammar, decodingGrammar, ruleNum, occurances)
 
 def findAll( mainString, substring ):
 
+    """
+    Find the all that satisfies this workflow's search criteria.
+    """
     locations = []
     startPoint = 0
     
@@ -229,6 +243,9 @@ def findAll( mainString, substring ):
 
 def getCounts(stringSeq, decodingGrammar):
 
+    """
+    Return the counts needed by this workflow.
+    """
     repeats = np.zeros([len(stringSeq.split(' ')),1])
     occurances = {}
 

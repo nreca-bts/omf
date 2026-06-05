@@ -1,4 +1,10 @@
-''' Get power and energy limits from PNNL VirtualBatteries (VBAT) load model.'''
+"""
+This model enables users to pull weather data at an hourly resolution for an entire year
+from two sets. The first set is NOAA's USCRN. The second is from Iowa State University's
+Iowa Environmental Mesonet. By selecting the set, year, station, and parameter, users
+can pull that information, obtain the validity of the data and download a .csv file
+based on their inputs.
+"""
 import shutil, csv
 from os.path import isdir, join as pJoin
 from omf import weather
@@ -38,7 +44,7 @@ def work(modelDir, inputDict):
 		param = inputDict['weatherParameterNSRDB']
 		lat = inputDict['LatInput']
 		long = inputDict['LonInput']
-		data = weather.nrl_get_nsrdb_data('goes_aggregated', float(long), float(lat), year, nsrdbkey, interval=60)
+		data = weather.nlr_get_nsrdb_data('goes_aggregated', float(long), float(lat), year, nsrdbkey, interval=60)
 		#Data must be a list. Extract correct column from returned pandas df, return this column as array of int
 		data = list(data[param].values[3:].astype(float))
 		print(f"NSRDB: {data}")
@@ -62,6 +68,8 @@ def work(modelDir, inputDict):
 		lat = inputDict['LatInput']
 		long = inputDict['LonInput']
 		data = weather.tmy3_pull(weather.nearest_tmy3_station(float(lat), float(long)))
+		# 2026-06 - This function...doesn't exist?
+		# Should I change this to tmy from nsrdb?
 		#Now get data for the year in question
 		data = data.loc[data['year']==year]
 		print(data)
@@ -177,6 +185,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir, "data", "Model", "admin", "Automated Testing of " + modelName)
 	if isdir(modelLoc):
 		shutil.rmtree(modelLoc)

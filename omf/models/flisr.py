@@ -1,4 +1,7 @@
-''' Calculate FLISR, fault location isolation and restoration. '''
+"""
+Analyze fault location, isolation, and service restoration switching options on a
+distribution feeder.
+"""
 import re, json, os, tempfile, shutil
 from os.path import join as pJoin
 import pandas as pd
@@ -18,6 +21,9 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = True
 
 def safeInt(x):
+	"""
+	Perform safe int processing for the flisr model.
+	"""
 	try: return int(x)
 	except: return 0
 
@@ -502,6 +508,9 @@ def flisr(pathToOmd, pathToTieLines, faultedLine, workDir, radial, drawMap):
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the flisr model analysis and return the output data used by the OMF interface.
+	"""
 	outData = {}
 	# Write the feeder
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
@@ -556,6 +565,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -1,4 +1,7 @@
-''' Code for running Gridlab and getting results into pythonic data structures. '''
+"""
+Locate, install, run, and parse GridLAB-D simulations for OMF distribution-model
+analyses.
+"""
 
 import sys, os, subprocess, platform, re, datetime, shutil, traceback, math, time, tempfile, json
 from os.path import join as pJoin
@@ -7,6 +10,82 @@ from copy import deepcopy
 # OMF imports.
 import omf
 import omf.feeder
+
+_GRIDLABD_AUTO_INSTALL_ENV = "OMF_GRIDLABD_AUTO_INSTALL"
+_gridlabd_install_checked = False
+
+def _gridlabd_on_path():
+	"""
+	Internal helper for gridlabd on path processing.
+	"""
+	return shutil.which("gridlabd") is not None
+
+def _run_gridlabd_installer(command):
+	"""
+	Internal helper for run gridlabd installer processing.
+	"""
+	try:
+		return subprocess.call(command) == 0
+	except Exception as err:
+		print("Unable to run bundled GridLAB-D installer:", err)
+		return False
+
+def _linux_distro_text():
+	"""
+	Internal helper for linux distro text processing.
+	"""
+	try:
+		with open("/etc/os-release") as os_release:
+			return os_release.read().lower()
+	except OSError:
+		return ""
+
+def _install_gridlabd_if_missing():
+	'''Best-effort GridLAB-D install for platforms with bundled installers.'''
+	global _gridlabd_install_checked
+	if _gridlabd_install_checked:
+		return
+	_gridlabd_install_checked = True
+	if os.environ.get(_GRIDLABD_AUTO_INSTALL_ENV, "1").lower() in ("0", "false", "no"):
+		return
+	if _gridlabd_on_path():
+		return
+	source_dir = os.path.abspath(pJoin(os.path.dirname(__file__), "..", "..", ".."))
+	system = platform.system()
+	print("GridLAB-D was not found on PATH; attempting bundled GridLAB-D install.")
+	if system == "Windows":
+		installer = pJoin(source_dir, "omf", "static", "gridlabd-4.0_RC1.exe")
+		if not os.path.exists(installer):
+			print("Bundled GridLAB-D installer not found:", installer)
+			return
+		_run_gridlabd_installer([installer, "/silent"])
+	elif system == "Darwin":
+		dmg = pJoin(source_dir, "omf", "static", "gridlabd-4.0_RC1.dmg")
+		if not os.path.exists(dmg):
+			print("Bundled GridLAB-D installer not found:", dmg)
+			return
+		volume = "/Volumes/GridLAB-D 4.0.0"
+		if _run_gridlabd_installer(["sudo", "hdiutil", "attach", dmg]):
+			try:
+				_run_gridlabd_installer(["sudo", "installer", "-package", pJoin(volume, "gridlabd.mpkg"), "-target", "/"])
+			finally:
+				_run_gridlabd_installer(["sudo", "hdiutil", "detach", volume])
+	elif system == "Linux":
+		rpm = pJoin(source_dir, "omf", "static", "gridlabd-4.0.0-1.el6.x86_64.rpm")
+		if not os.path.exists(rpm):
+			print("Bundled GridLAB-D installer not found:", rpm)
+			return
+		if "ubuntu" in _linux_distro_text():
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "update"])
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "install", "alien"])
+			_run_gridlabd_installer(["sudo", "alien", "-i", rpm])
+			_run_gridlabd_installer(["sudo", "apt-get", "-y", "install", "-f"])
+		else:
+			_run_gridlabd_installer(["sudo", "rpm", "-Uvh", rpm])
+	if not _gridlabd_on_path():
+		print("GridLAB-D install did not add `gridlabd` to PATH.")
+
+_install_gridlabd_if_missing()
 
 def checkStatus(modelDir):
 	'''Reads a current gridlabD simulation time from stdErr.txt,
@@ -210,6 +289,9 @@ def _strClean(x):
 
 def runToCompletionForMacOS(feederTree, attachments=[], keepFiles=False, workDir=None, glmName=None, gldBinary=None):
 	#TODO: port repeated running code from Kevin in here.
+	"""
+	Run the to completion for mac os workflow and return its results.
+	"""
 	MAX_ERROR_RUN = 12
 	for i in range(MAX_ERROR_RUN):
 		gridlabOut = runInFilesystem(
@@ -246,6 +328,9 @@ def anaDataTree(studyPath, fileNameTest):
 	return data
 
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	print("Full path to Gridlab executable we're using:", _addGldToPath())
 	print("Testing string cleaning.")
 	strTestCases = [

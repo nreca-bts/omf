@@ -1,4 +1,8 @@
-''' Operational interface for multi-day-ahead load forecasts. '''
+"""
+The forecastTool model attempts to predict the next day’s electric consumption.
+Furthermore, it attempts to place tomorrow's peak in a monthly context, giving the
+statistical likelihood that tomorrow will be the monthly peak.
+"""
 
 import shutil, base64
 from datetime import datetime as dt, timedelta
@@ -15,12 +19,18 @@ modelName, template = __neoMetaModel__.metadata(__file__)
 tooltip = "This model predicts whether the following day will be a monthly peak."
 
 def peak_likelihood(hist=None, tomorrow=None, tomorrow_std=None, two_day=None, two_day_std=None, three_day=None, three_day_std=None):
+	"""
+	Perform peak likelihood processing for the forecast tool model.
+	"""
 	A = norm(tomorrow, tomorrow_std).cdf(hist)
 	B = norm(0, 1).cdf(-(tomorrow - two_day) / ((tomorrow_std**2 + two_day_std**2)**.5))
 	C = norm(0, 1).cdf(-(tomorrow - three_day) / ((tomorrow_std**2 + three_day_std**2)**.5))
 	return round((1 - A)*(1 - B)*(1 - C)*100, 2)
 
 def highest_peak_this_month(df, predicted_day):
+	"""
+	Perform highest peak this month processing for the forecast tool model.
+	"""
 	y = predicted_day.year
 	m = predicted_day.month
 	d = predicted_day.day
@@ -250,6 +260,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	if isdir(modelLoc):

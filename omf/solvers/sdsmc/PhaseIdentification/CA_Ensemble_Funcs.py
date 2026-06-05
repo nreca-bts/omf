@@ -1,53 +1,54 @@
 # -*- coding: utf-8 -*-
 """
+Implement Sandia constrained-agglomerative ensemble functions for AMI meter phase
+identification.
+
 BSD 3-Clause License
 
-Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain rights in this software.
+Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under
+the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain
+rights in this software.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright notice, this   list of
+conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+* Redistributions in binary form must reproduce the above copyright notice,   this list
+of conditions and the following disclaimer in the documentation   and/or other materials
+provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
+* Neither the name of the copyright holder nor the names of its   contributors may be
+used to endorse or promote products derived from   this software without specific prior
+written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+CA_Ensemble_Funcs.py
 
- CA_Ensemble_Funcs.py
+This file contains the functions that implement the Co-Association Matrix Ensemble
+Method for the phase identification task.
 
-This file contains the functions that implement the Co-Association Matrix
-Ensemble Method for the phase identification task.
+Functions:         -  SPClustering         -  SPClustering_Precomp         -  CAEnsemble
+Publications related to this method:      L. Blakely and M. J. Reno, “Phase
+Identification Using Co-Association Matrix Ensemble Clustering,” IET Smart Grid, no.
+Machine Learning Special Issue, Jun. 2020. B. D. Pena, L. Blakely, and M. J. Reno,
+“Parameter Tuning Analysis for Phase Identification Algorithms in Distribution System
+Model Calibration,” presented at the KPEC, Apr. 2021. L. Blakely, M. J. Reno, and K.
+Ashok, “AMI Data Quality And Collection Method Consideration for Improving the Accuracy
+of Distribution System Models,” presented at the IEEE Photovoltaic Specialists
+Conference (PVSC), Chicago, IL, USA, 2019.
 
-    Functions:
-        -  SPClustering
-        -  SPClustering_Precomp
-        -  CAEnsemble
-   
-    
-Publications related to this method:
-    
-L. Blakely and M. J. Reno, “Phase Identification Using Co-Association Matrix Ensemble Clustering,” IET Smart Grid, no. Machine Learning Special Issue, Jun. 2020.
-B. D. Pena, L. Blakely, and M. J. Reno, “Parameter Tuning Analysis for Phase Identification Algorithms in Distribution System Model Calibration,” presented at the KPEC, Apr. 2021.
-L. Blakely, M. J. Reno, and K. Ashok, “AMI Data Quality And Collection Method Consideration for Improving the Accuracy of Distribution System Models,” presented at the IEEE Photovoltaic Specialists Conference (PVSC), Chicago, IL, USA, 2019.
 
-    
 """
 
 

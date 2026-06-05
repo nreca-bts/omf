@@ -1,4 +1,9 @@
-''' Calculate phase unbalance and determine mitigation options. '''
+"""
+The phaseBalance tool will allow co-ops to better evaluate and simulate the consequences
+of implementing distributed Steinmetz control methods to their specific feeder. The tool
+will enable its users not only to see how distributed generation impacts their feeder
+overall, but also the financial consequences of the implementation.
+"""
 
 import json, os, shutil, math, base64
 from os.path import join as pJoin
@@ -18,12 +23,18 @@ tooltip = "Calculate phase unbalance and determine mitigation options."
 # hidden = True
 
 def get_loss_items(tree):
+	"""
+	Return the loss items needed by this workflow.
+	"""
 	s = set()
 	for i, d in tree.items():
 		s.add(d.get('object', ''))
 	return [l for l in ['transformer', 'underground_line', 'overhead_line', 'triplex_line'] if any([l in x for x in s])]
 
 def motor_efficiency(x):
+	"""
+	Perform motor efficiency processing for the phase balance model.
+	"""
 	return .0179 + .402*x + .134*x**2 # curve fit from data from NREL analysis
 
 def lifespan(x, ind):
@@ -31,17 +42,29 @@ def lifespan(x, ind):
 	return float(ind['motor_lifetime'])-19.8*math.exp(-.679*x) # curve fit from data from NREL analysis
 
 def pf(real, var):
+	"""
+	Perform pf processing for the phase balance model.
+	"""
 	real = floats(real) if type(real) == str else float(real)
 	var = floats(var) if type(var) == str else float(var)
 	return float(real) / math.sqrt(real**2 + var**2)
 
 def n(num):
+	"""
+	Perform n processing for the phase balance model.
+	"""
 	return "{:,.2f}".format(num)
 
 def floats(f):
+	"""
+	Perform floats processing for the phase balance model.
+	"""
 	return float(f.replace(',', ''))
 
 def parse_complex(x):
+    """
+    Parse complex data into an OMF-friendly representation.
+    """
     if 'd' not in x:
         return complex(x) if x != '+0+0i' else complex(0)
     else:
@@ -52,6 +75,9 @@ def parse_complex(x):
         return transformed
 
 def respect_pf(x, constant_pf):
+	"""
+	Perform respect pf processing for the phase balance model.
+	"""
 	m = parse_complex(x)
 	rating_VA = m.real
 	if constant_pf < 1:
@@ -383,6 +409,9 @@ def work(modelDir, ind):
 	return o
 
 def _addCollectors(tree, suffix=None, pvConnection=None):
+	"""
+	Internal helper for phase balance add collectors processing.
+	"""
 	for x in tree.values():
 		if 'object' in x and ('load' in x['object'].lower() or 'node' in x['object'].lower()) and all([phase in x['phases'] for phase in 'ABC']):
 			x['groupid'] = 'threePhase'
@@ -450,12 +479,18 @@ def _addCollectors(tree, suffix=None, pvConnection=None):
 	return tree
 
 def _turnOffSolar(tree):
+	"""
+	Internal helper for phase balance turn off solar processing.
+	"""
 	for k, v in tree.items():
 		if v.get("object", "") in ["solar", "inverter"]:
 			tree[k]["generator_status"] = "OFFLINE"
 	return tree
 
 def _readVoltage(filename, motor_names, objectiveFunction):
+	"""
+	Internal helper for phase balance read voltage processing.
+	"""
 	return_df = pd.DataFrame()
 	df = pd.read_csv(filename, skiprows=1)
 	df_motors = df[df['node_name'].isin(motor_names)]
@@ -470,6 +505,9 @@ def _readVoltage(filename, motor_names, objectiveFunction):
 	return return_df
 
 def unbalanceVUF(r):
+	"""
+	Perform unbalance vuf processing for the phase balance model.
+	"""
 	a = complex(r['voltA_real'], r['voltA_imag'])
 	b = complex(r['voltB_real'], r['voltB_imag'])
 	c = complex(r['voltC_real'], r['voltC_imag'])
@@ -479,6 +517,9 @@ def unbalanceVUF(r):
 	return abs(V_n)/abs(V_p)*100
 
 def unbalanceI(r):
+	"""
+	Perform unbalance i processing for the phase balance model.
+	"""
 	a = float(r['voltA'])
 	b = float(r['voltB'])
 	c = float(r['voltC'])
@@ -487,6 +528,9 @@ def unbalanceI(r):
 	return maxDiff/avgVolts*100
 
 def _readCSV(filename, voltage=True):
+	"""
+	Internal helper for phase balance read csv processing.
+	"""
 	df = pd.read_csv(filename, skiprows=8)
 	df = df.T
 	if voltage:
@@ -499,6 +543,9 @@ def _readCSV(filename, voltage=True):
 	return df
 
 def _totals(filename, component=None):
+	"""
+	Internal helper for phase balance totals processing.
+	"""
 	df = pd.read_csv(filename, skiprows=8)
 	df = df.T
 	df = df[~df.index.str.startswith('#')]
@@ -567,6 +614,9 @@ def new(modelDir):
 
 @neoMetaModel_test_setup
 def _tests():
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	if os.path.isdir(modelLoc):
 		shutil.rmtree(modelLoc)

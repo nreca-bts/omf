@@ -1,4 +1,10 @@
-''' Calculate solar photovoltaic system output using our special financial model. '''
+"""
+The solarSunda model allows you to run multiple instances of the SUNDA Solar Costing
+Financing Screening Tool and compare their output visually. This tool allows a co-op to
+compare the levelized cost of a utility-scale solar installation using different
+financing structures. The financing structures included in this analysis are direct
+loan, NCREBs Financing, Lease Buyback, Tax-Equity Flip, and PPA.
+"""
 
 import json, shutil, math, datetime as dt
 from numpy_financial import npv, pmt, ppmt, ipmt, irr
@@ -24,14 +30,14 @@ def work(modelDir, inputDict):
 	# Defaults
 	inputDict["systemSize"] = 750
 	panelSize = 305
-	# lat/long get checked in nrl_get_nsrdb_data
+	# lat/long get checked in nlr_get_nsrdb_data
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	# parameter validation
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	# We need DNI, DHI, GHI, windspeed, and temp
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
@@ -551,6 +557,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -1,4 +1,10 @@
-''' Reconstruct distribution network structure from meter data. '''
+"""
+The networkStructure model takes in a feeder system and a .csv file containing voltage
+data, then compares the actual connectivity of the system to connectivity arrived at by
+minimizing distances and difference in voltages between nodes. It can also take in a
+list of training data as a .csv file and train a machine learning model to determine
+connectivity using support vector machines.
+"""
 import json, os, tempfile, shutil, csv, math, re, base64
 from os.path import join as pJoin
 import pandas as pd
@@ -465,6 +471,10 @@ def createTrainingData(trainPath, pathToCsv, workDir, X_train, y_train, useDist,
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the network structure model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 	# Write the feeder
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0][:-4]
@@ -574,6 +584,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

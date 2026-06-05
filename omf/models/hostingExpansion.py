@@ -1,4 +1,7 @@
-''' A model skeleton for future models: Calculates the sum of two integers. '''
+"""
+Estimate distribution hosting-capacity expansion options and visualize upgrade scenarios
+for additional DER adoption.
+"""
 
 import warnings
 # warnings.filterwarnings("ignore")
@@ -22,7 +25,33 @@ from omf.solvers import pysam
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
-def work(modelDir, inputDict):
+'''
+Reviews any pvsystems or batteries in the circuit and sums up their kW values
+def checkCircuitSolar(modelDir, inputDict: dict):
+	returningKW = 0
+	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
+	inputDict['feederName1'] = feederName[:-4]
+	pathToOmd = Path(modelDir, feederName)
+	tree = opendss.dssConvert.omdToTree(pathToOmd)
+	pvsystems = [x for x in tree if x.get('object', 'N/A').startswith('pvsystem.')]
+	print(pvsystems)
+	batteries = [x for x in tree if x.get('object', 'N/A').startswith('battery.')]
+	print(batteries)
+	if len(pvsystems) == 0 and len(batteries) == 0:
+		return returningKW
+	if len(pvsystems) != 0:
+		kwFromPV = [x['kw'] for x in pvsystems if 'kw' in x]
+		for item in kwFromPV:
+			returningKW += float(item)
+	if len(batteries) != 0:
+		kwFromBattery = [x['kw'] for x in batteries if 'kw' in x]
+		for item in kwFromBattery:
+			returningKW += float(item)
+	print(f"returningkw: {returningKW}")
+	return returningKW
+'''
+
+def work(modelDir, inputDict: dict) -> dict:
 	''' Run the model in its directory. '''
 	# Delete output file every run if it exists
 	outData = {}
@@ -32,32 +61,34 @@ def work(modelDir, inputDict):
 	year = int( inputDict['year'] )
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	if requestSuccess:
 		pvwatts_model, pvwatts_data = pysam.run_pvwatts(modelDir=modelDir, sys_design=sys_design, dataFile="output_aggregated_data.csv")
 	else:
 		raise Exception("hostingExpansion.py: API request 1 Failed")
-
 	# For Max Solar - Set tilt = latitude
 	inputDict['tilt'] = lat
 	sys_design_max = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	attributes_clearsky = ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']
-	nrlAPIResponse_clearsky = weather.nrl_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes_clearsky, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
+	nrlAPIResponse_clearsky = weather.nlr_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes_clearsky, filename=Path(modelDir,"output_aggregated_clearsky_data.csv"))
 	requestSuccess = True if nrlAPIResponse_clearsky.status_code == 200 else False
 	if requestSuccess:
 		maxSolar_model, maxSolar_data = pysam.run_pvwatts_historical_max(modelDir=modelDir, sys_design=sys_design_max, dataFile="output_aggregated_clearsky_data.csv")
 	else:
 		raise Exception("hostingExpansion.py: API request 2 Failed")
-
-	#downlineload_df = hostingCapacity.run_downlineLoadAlgorithm(modelDir=modelDir, inputDict=inputDict, outData=outData)
 	amiData = pd.read_csv( Path(modelDir, inputDict["AmiDataFileName"]) )
+	# Determine the length of available data (use load data length, should be max 1 year)
+	data_length = len(amiData)
+	# Slice solar data to match load data length
+	pvwatts_data_sliced = pvwatts_data.iloc[:data_length]
+	maxSolar_data_sliced = maxSolar_data.iloc[:data_length]
 	full_df = pd.DataFrame({
-    'hour': pvwatts_data.index,
-    'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000,
-		'pysam_ac_watts': pvwatts_data['ac'].values,
-		'dc_nameplate_w': float(inputDict["systemCapacity"])*1000, # Convert kW to W 
-		'max_solar_ac_watts': maxSolar_data['ac'].values
+			'hour': pvwatts_data_sliced.index,
+			'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000, # Convert kW to W
+			'pysam_ac_watts': pvwatts_data_sliced['ac'].values,
+			'dc_nameplate_w': float(inputDict["systemCapacity"])*1000, # Convert kW to W 
+			'max_solar_ac_watts': maxSolar_data_sliced['ac'].values
 	})
 	full_df.to_csv(Path(modelDir, "output_LoadvsPySAM.csv"), index=False)
 	scatterFigure = px.line(full_df, x='hour', y=['total_load','pysam_ac_watts', 'dc_nameplate_w', 'max_solar_ac_watts'])
@@ -79,7 +110,6 @@ def work(modelDir, inputDict):
       "x": 1
 		}
 	)
-
 	outData['scatterFigure'] = json.dumps( scatterFigure, cls=pu.PlotlyJSONEncoder )
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	pathToOmd = Path(modelDir, feederName)
@@ -140,6 +170,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

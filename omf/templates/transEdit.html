@@ -171,7 +171,7 @@
 						<li><a href='javascript:renameNetwork();'>Rename</a></li>
 						<li><a href='javascript:showModal("blankNetworkModal");'>New Blank Network...</a></li>
 						<li><a href='javascript:showModal("matpowerModal");'>MATPOWER Import...</a></li>
-						<li><a href='javascript:showModal("rawModal");'>RAW Import...</a></li>
+						<li><a href='javascript:showModal("cimModal");'>CGMES/CIM Import...</a></li>
 						<li><a href='javascript:downloadTextFile("networkData.omt", JSON.stringify(networkData, null, 2));'>Download .omt File</a></li>
 					</ul>
 					{% endif %}
@@ -223,24 +223,33 @@
 			<iframe class="hide_me" id="take_the_reload" name="take_the_reload" style="width:0px;height:0px;"></iframe>
 		</div>
 	</div>
-	<div id="rawModal" class= 'modal'>
-		<div class="modalContent" id='rawModalContent' style='width:350px;'>
-			<form onsubmit='startConversion("networkNameR", "raw", 2); return false;' action="/rawImport/{{ owner }}" id='raw' enctype='multipart/form-data' method='post'>
+	<div id="cimModal" class= 'modal'>
+		<div class="modalContent" id='cimModalContent' style='width:350px;'>
+			<form onsubmit='startConversion("networkNameC", "cim", 2); return false;' action="/cimImport/{{ owner }}" id='cim' enctype='multipart/form-data' method='post'>
 				<input type="hidden" name="_csrf_token" value="{{ csrf_token() }}" />
 				<input type="hidden" id="networkNum" name="networkNum" value="{{ networkNum }}" />
 				<input type="hidden" id="modelName" name="modelName" value="{{ modelName }}" />
 				<table class='importOptions'>
-				<th style="background:transparent;color:black;">RAW Conversion</th>
+				<th style="background:transparent;color:black;">CGMES/CIM Conversion</th>
 					<tr>
 						<td>Name</td>
-						<td><input type='text' id='networkNameR' name='networkNameR' required/></td>
+						<td><input type='text' id='networkNameC' name='networkNameC' required/></td>
 					</tr>
 					<tr>
-						<td>Data File (.raw)</td>
-						<td><input type='file' name='rawFile' accept = '.raw' required/></td>
+						<td>Data Files</td>
+						<td><input type='file' name='cimFiles' accept='.xml,.rdf,.zip' multiple required/></td>
 					</tr>
 					<tr>
-						<td><a id='modalCancel' href="#" onclick='closeModal("rawModal")' style="text-align:center;font-size:10pt;">Cancel</a></td>
+						<td>CGMES Version</td>
+						<td>
+							<select name='cgmesVersion'>
+								<option value='2.4.15' selected>2.4.15</option>
+								<option value='3.0'>3.0</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td><a id='modalCancel' href="#" onclick='closeModal("cimModal")' style="text-align:center;font-size:10pt;">Cancel</a></td>
 						<td><input type='submit' value='Import' style='min-width:45px;'/></td>
 					</tr>
 				</table>
@@ -1233,20 +1242,21 @@ async function startConversion(elementName, formId, nextAction) {
 			if (data.exists) {
 				alert('You already have a Network named "' + newName + '", please choose a different name.')
 			} else {
-				// The filename does not already exist. Submit the form with the matpower file
-				if (nextAction == 1)	// 1 for blank network modal
+				// The filename does not already exist. Submit the form.
+				if (nextAction == 1) {	// 1 for blank network modal
 					newnetwork.submit()
-				else					// 2 for matpower and raw modal
+				} else {					// 2 for file import modals
 					submitForm = true;
+				}
 			}
 		})
 	}
 	if (!submitForm) return;
 
-	// Do the conversion (matpower/raw import)
+	// Do the conversion.
 	showProgressDialog('spinner', 'Converting network', 'conversion');
 	const form = document.getElementById(formId);
-    const formData = new FormData(form);
+	const formData = new FormData(form);
 	const formRequest = $.ajax({
         type: 'POST',
         url: form.action,
@@ -1279,8 +1289,8 @@ function checkConversion() {
 			if (data.error) {
 				var messages = {
 					'matError': 'The .m file does not contain any valid data.',
-					'rawError': 'The .raw file does not contain any valid data.',
-					'octaveError': 'Matpower/Octave setup is incorrect; please contact your system administrator.'
+					'cimError': 'The CGMES/CIM files could not be converted by pandapower.',
+					'pandapowerCimError': 'The installed pandapower package does not include the CGMES/CIM converter.'
 				};
 				window.clearInterval(intervalId);
 				alert(messages[data.error] || data.error);

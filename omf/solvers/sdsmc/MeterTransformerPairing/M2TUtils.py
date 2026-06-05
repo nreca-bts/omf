@@ -1,33 +1,38 @@
 # -*- coding: utf-8 -*-
 """
+Provide Sandia meter-to-transformer pairing utilities for voltage windows, correlations,
+distances, and regression features.
+
 BSD 3-Clause License
 
-Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain rights in this software.
+Copyright 2021 National Technology & Engineering Solutions of Sandia, LLC (NTESS). Under
+the terms of Contract DE-NA0003525 with NTESS, the U.S. Government retains certain
+rights in this software.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Redistribution and use in source and binary forms, with or without modification, are
+permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+* Redistributions of source code must retain the above copyright notice, this   list of
+conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+* Redistributions in binary form must reproduce the above copyright notice,   this list
+of conditions and the following disclaimer in the documentation   and/or other materials
+provided with the distribution.
 
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
+* Neither the name of the copyright holder nor the names of its   contributors may be
+used to endorse or promote products derived from   this software without specific prior
+written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 """
 
@@ -39,11 +44,10 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 from pathlib import Path
 import datetime
+import math
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import pickle
-import haversine as hs
-from haversine import Unit
 import pandas as pd
 
 
@@ -811,6 +815,34 @@ def PrettyPrintChangedCustomers(predictedTransLabels,transLabelsErrors,custIDInp
 #
 #       CreateDistanceMatrix
 #
+def _haversine_distance(loc1, loc2, units='m'):
+    """Return great-circle distance between (lat, lon) pairs in the requested units."""
+    unit_factors = {
+        'm': 1.0,
+        'meter': 1.0,
+        'meters': 1.0,
+        'km': 0.001,
+        'kilometer': 0.001,
+        'kilometers': 0.001,
+        'mi': 1.0 / 1609.344,
+        'mile': 1.0 / 1609.344,
+        'miles': 1.0 / 1609.344,
+        'ft': 3.280839895013123,
+        'foot': 3.280839895013123,
+        'feet': 3.280839895013123,
+    }
+    unit_key = str(units).lower()
+    if unit_key not in unit_factors:
+        raise ValueError("Unsupported haversine distance unit: " + str(units))
+    lat1, lon1 = map(math.radians, loc1)
+    lat2, lon2 = map(math.radians, loc2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2.0)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2.0)**2
+    distance_m = 6371008.8 * 2.0 * math.asin(min(1.0, math.sqrt(a)))
+    return distance_m * unit_factors[unit_key]
+
+
 def CreateDistanceMatrix(latLonDict, labels,distTypeFlag='euclidean',units='m'):
     """ This function takes a list of x,y coordinates indexed by customer
             and creates a dictionary for lat/lon keyed to the transformer 
@@ -863,12 +895,12 @@ def CreateDistanceMatrix(latLonDict, labels,distTypeFlag='euclidean',units='m'):
         for rowCtr in range(0,len(labelsList)):
             currRowLabel = labelsList[rowCtr]
             if currRowLabel not in latLonDict:
-                print('Label ' + str(currLabel) + ' is not present in the latLonDict.  This label was skipped and NaN placed in the distMatrix')
+                print('Label ' + str(currRowLabel) + ' is not present in the latLonDict.  This label was skipped and NaN placed in the distMatrix')
                 continue
             colCtr = rowCtr + 1
             while colCtr < len(labelsList):
                 currColLabel = labelsList[colCtr]
-                distance = np.round(hs.haversine(latLonDict[currRowLabel],latLonDict[currColLabel],unit=units),decimals=2)
+                distance = np.round(_haversine_distance(latLonDict[currRowLabel],latLonDict[currColLabel],units=units),decimals=2)
                 distMatrix[rowCtr,colCtr] = distance
                 distMatrix[colCtr,rowCtr] = distance
                 colCtr = colCtr + 1
@@ -886,6 +918,9 @@ def CreateDistanceMatrix(latLonDict, labels,distTypeFlag='euclidean',units='m'):
 #
 
 def ConvertCSVtoNPY( csv_file ):
+    """
+    Perform convert csvto npy processing for the wrapped solver workflow.
+    """
     dataSet = pd.read_csv( csv_file, header=None )
     return np.array( pd.DataFrame(dataSet).values )
 
@@ -896,6 +931,9 @@ def ConvertCSVtoNPY( csv_file ):
 #       ImprovementAnalysis
 #
 def ImprovementAnalysis(saveResultsPath, predictedTransLabels, transLabelsErrors, transLabelsTrue, custIDInput):
+    """
+    Perform improvement analysis processing for the wrapped solver workflow.
+    """
     incorrectTrans, incorrectPairedIndices, incorrectPairedIDs = CalcTransPredErrors(predictedTransLabels,transLabelsTrue,custIDInput,singleCustMarker=-999)
     incorrectTransOrg, incorrectPairedIndicesOrg, incorrectPairedIDsOrg = CalcTransPredErrors(transLabelsErrors,transLabelsTrue,custIDInput, singleCustMarker=-999)
     improvementNum = (len(incorrectTransOrg) - len(incorrectTrans))

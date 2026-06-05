@@ -1,4 +1,12 @@
-''' Calculate solar photovoltaic system output using our special financial model. '''
+"""
+The solarCashflow model allows a utility to calculate what impact consumer-owned solar
+systems will have on their costs. The model takes financial data from the utility as
+well as information about their consumers’ typical solar system size to determine the
+average monthly bill for solar and non-solar customers as well as the total cost of
+power for all consumers. The model uses pvWatts, software from NREL, to calculate how
+much energy the solar system will produce. The economic inputs can all be collected from
+the RUS Form 7.
+"""
 
 import shutil, datetime
 from os.path import join as pJoin
@@ -22,14 +30,14 @@ hidden = False
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
-	# lat/long get checked in nrl_get_nsrdb_data
+	# lat/long get checked in nlr_get_nsrdb_data
 	lat = float( inputDict['latitude'] )
 	long = float( inputDict['longitude'] )
 	# parameter validation
 	sys_design = pysam._pysam_sysDesignSetup(inputDict, lat, long)
 	# We need DNI, DHI, GHI, windspeed, and temp
 	attributes = ['dni,dhi,ghi,wind_speed,air_temperature']
-	nrlAPIResponse = weather.nrl_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
+	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_tmy", longitude=long, latitude=lat, year="tmy", api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_tmy_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	# If getting the data was successful:
 	# - Combine data + system parameters into pvwatts model and execute
@@ -410,6 +418,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:

@@ -1,4 +1,7 @@
-''' Communications network modeling and visualization.'''
+"""
+Build, analyze, and visualize communications networks overlaid on electric distribution
+feeders, including smart-meter bandwidth and RF planning helpers.
+"""
 import json, os, shutil, math, tempfile, random, webbrowser
 from os.path import join as pJoin
 from collections import defaultdict
@@ -149,6 +152,9 @@ def setRFCollectors(nxG, edgeType='switch'):
 
 
 def setRFCollectorCapacity(nxG, rfBandwidthCap=1000):
+	"""
+	Set the rfcollector capacity value used by this workflow.
+	"""
 	for rfCollector  in nx.get_node_attributes(nxG, 'rfCollector'):
 		if nxG.nodes[rfCollector].get('rfCollector', False):
 			nxG.nodes[rfCollector]['bandwidthCapacity'] = rfBandwidthCap
@@ -229,6 +235,9 @@ def getsmartMetersCost(nxG, smartMeterCost):
 def calcBandwidth(nxG):
 	#go through rfCollectors and smartMeters
 	#adust later to accept different lengh of rfCollectors
+	"""
+	Calculate bandwidth for this analysis.
+	"""
 	substation = getSubstation(nxG)
 	nxG.nodes[substation]['bandwidthUse'] = 0
 	rfCollectors = [rfCollector for rfCollector in nx.get_node_attributes(nxG, 'rfCollector') if nxG.nodes[rfCollector].get('rfCollector', False)]
@@ -280,6 +289,9 @@ def setMeshLevel(nxG):
 
 
 def addMeshLevel(nxG, hull, radius):
+	"""
+	Perform add mesh level processing for OMF helper-library workflows.
+	"""
 	rfRange = radius * 2
 	#go through all smart meters
 	for start in hull:
@@ -370,6 +382,9 @@ def levelCount(nxG, meshLevel):
 
 
 def caclulateMeshNetwork(nxG, geoJsonMesh):
+	"""
+	Perform caclulate mesh network processing for OMF helper-library workflows.
+	"""
 	meshLevel = 1
 	setMeshLevel(nxG)
 	radius = .0005
@@ -395,6 +410,9 @@ def meshMap(nxG):
 
 
 def convexDiff(nxG):
+	"""
+	Perform convex diff processing for OMF helper-library workflows.
+	"""
 	pass
 	#get the previous convex hull = cvx1
 	#get the current convex hull = cvx2
@@ -600,6 +618,9 @@ def latLonValidation(inGraph):
 
 
 def statePlaneToLatLon(easting, northing, epsg = None):
+	"""
+	Perform state plane to lat lon processing for OMF helper-library workflows.
+	"""
 	if not epsg:
 		# Center of the USA default
 		epsg = 26978
@@ -694,6 +715,9 @@ def stitch_boundaries(edges):
 
 def _tests():
 	#setup a comms network, run calculations and display
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	nxG = createGraph(omf.omfDir + '/static/publicFeeders/Olin Barre LatLon.omd')
 	#Create a comms network
 	setSmartMeters(nxG)

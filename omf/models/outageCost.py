@@ -1,4 +1,9 @@
-''' Calculate costs of outages. '''
+"""
+The outageCost model takes in a feeder system and a .csv file containing outage data,
+then computes the SAIDI/SAIFI/MAIFI metrics of the system and graphs an outage timeline
+to better illustrate the fault data. It then can create a set of random faults from this
+outage data and graph a leaflet map of the original data, the new data, or both.
+"""
 import random, re, datetime, json, os, tempfile, shutil, csv, math
 from os.path import join as pJoin
 import pandas as pd
@@ -105,6 +110,9 @@ def nearestLine(location, lines, component):
 	return (str(trueLatitude) + ' ' + str(trueLongitude))
 
 def generateMultiple(mc):
+	"""
+	Perform generate multiple processing for the outage cost model.
+	"""
 	if 'Start' in mc.columns:
 		row = 0
 		row_count_mc = mc.shape[0]
@@ -120,6 +128,9 @@ def generateMultiple(mc):
 		print('"Start" is not present in the input data.')
 
 def generateDistribution(mc, test, faultsGenerated):
+	"""
+	Perform generate distribution processing for the outage cost model.
+	"""
 	numberDurations = int(faultsGenerated)
 	mc['duration'] = 0
 
@@ -255,6 +266,9 @@ def generateDistribution(mc, test, faultsGenerated):
 	return newDurations
 
 def faultData(mc, start, test, durTime, duration, row, compType, durCause, cause):
+	"""
+	Perform fault data processing for the outage cost model.
+	"""
 	if (test == 'dependent' and 'Finish' in mc.columns and 'Start' in mc.columns):
 		thisDuration = datetime_to_float(datetime.datetime.strptime(mc.loc[row, 'Finish'], '%Y-%m-%d %H:%M:%S')) - datetime_to_float(datetime.datetime.strptime(mc.loc[row, 'Start'], '%Y-%m-%d %H:%M:%S'))
 	else:
@@ -301,6 +315,9 @@ def faultData(mc, start, test, durTime, duration, row, compType, durCause, cause
 def createMap(cause, start, test, duration, compType):
 	# find the total number of faults that occur in each dictionary
 	# create a heat map by dividing the number of each individual item by the total number found
+	"""
+	Create the map structure used by this workflow.
+	"""
 	totalCause = sum(cause.values(), 0.0)
 	cause = {k: v / totalCause for k, v in cause.items()}
 	totalStart = sum(start.values(), 0.0)
@@ -1103,6 +1120,10 @@ def outageCostAnalysis(pathToOmd, pathToCsv, workDir, generateRandom, graphData,
 
 def work(modelDir, inputDict):
 	# Copy specific climate data into model directory
+	"""
+	Run the outage cost model analysis and return the output data used by the OMF
+	interface.
+	"""
 	outData = {}
 
 	# Write in the feeder
@@ -1201,6 +1222,9 @@ def new(modelDir):
 def _debugging():
 	# outageCostAnalysis(omf.omfDir + '/static/publicFeeders/Olin Barre LatLon.omd', omf.omfDir + '/public/testFiles/smartswitch_Outages.csv', None, '60', '1')
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
 	# Blow away old test results if necessary.
 	try:

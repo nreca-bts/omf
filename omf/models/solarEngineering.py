@@ -1,4 +1,9 @@
-''' Shows users the technical system impacts of solar on a feeder including DG power generated, regulator tap changes, capacitor activation, and meter voltages '''
+"""
+The Solar Engineering model calculates the technical system impacts of solar on a feeder
+including the amount of distributed power generated, regulator tap changes, capacitor
+activation, current flows, and meter voltages. Solar Engineering uses GridLAB-D as the
+engine to calculate these outputs.
+"""
 
 import json, os, csv, shutil, datetime, math, gc, platform
 from os.path import join as pJoin
@@ -482,6 +487,11 @@ def generateVoltChart(tree, rawOut, modelDir, neatoLayout=True):
 		return nodeColors,
 	mapTimestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 	anim = FuncAnimation(voltChart, update, frames=len(rawOut['aVoltDump.csv']['# timestamp']), interval=200, blit=False)
+	try:
+		import imageio_ffmpeg
+		matplotlib.rcParams['animation.ffmpeg_path'] = imageio_ffmpeg.get_ffmpeg_exe()
+	except ImportError:
+		pass
 	ffmpegwriter = animation.FFMpegWriter(codec='h264', extra_args=['-pix_fmt', 'yuv420p'])
 	anim.save(pJoin(modelDir,'voltageChart_'+ mapTimestamp +'.mp4'), writer=ffmpegwriter)
 	# Reclaim memory by closing, deleting and garbage collecting the last chart.
@@ -564,6 +574,9 @@ def _groupBy(inL, func):
 	return newL
 
 def stringToMag(s):
+	"""
+	Perform string to mag processing for the solar engineering model.
+	"""
 	if 'd' in s:
 		return complex(s.replace('d','j')).real
 	elif 'j' in s or 'i' in s:
@@ -589,6 +602,9 @@ def new(modelDir):
 @neoMetaModel_test_setup
 def _tests():
 	# Location
+	"""
+	Run this module's local smoke tests or debugging workflow.
+	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:
