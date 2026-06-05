@@ -378,7 +378,7 @@ def work(modelDir, inputDict):
 		#['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])
 		outData['yearOneEmissionsReducedPercent' + indexString] = round((y1_emissions_bau - y1_emissions)/y1_emissions_bau*100,0)
 		#(resultsSubset['year_one_emissions_tCO2_bau'] - resultsSubset['year_one_emissions_tCO2'])/resultsSubset['year_one_emissions_tCO2_bau']*100,0)
-		outData['yearOnePercentRenewable' + indexString] = round(results['Site']['renewable_electricity_fraction']*100,0)
+		outData['yearOnePercentRenewable' + indexString] = round(results['Site'].get('onsite_renewable_electricity_fraction_of_elec_load', results['Site'].get('renewable_electricity_fraction', 0))*100,0)
 		#['annual_renewable_electricity_pct']*100,0)
 		outData['yearOneOMCostsBeforeTax' + indexString] = round(results['Financial']['year_one_om_costs_before_tax'])
 		#['year_one_om_costs_before_tax_us_dollars'],0)
@@ -395,7 +395,7 @@ def work(modelDir, inputDict):
 		outData['yearOneExportBenefit' + indexString] = results['ElectricTariff']['year_one_export_benefit_before_tax']
 		outData['totalElectricityProduced' + indexString] = 0
 
-		outData['totalRenewableEnergyProduced' + indexString] = results['Site']['annual_renewable_electricity_kwh']
+		outData['totalRenewableEnergyProduced' + indexString] = results['Site'].get('annual_onsite_renewable_electricity_kwh', results['Site'].get('annual_renewable_electricity_kwh', 0))
 		outData['reductionElectricBillFraction' + indexString] = (yearOneBillBAU - yearOneBill) / yearOneBillBAU * 100
 		outData['yearOneEmissionsTonsBAU' + indexString] = y1_emissions_bau
 		outData['utilityYearOneEmissionsTons' + indexString] = results['ElectricUtility']['annual_emissions_tonnes_CO2']
