@@ -22,7 +22,8 @@ tooltip = "Calculate hosting capacity using AMI-based or model-based methods."
 modelName, template = __neoMetaModel__.metadata(__file__)
 hidden = False
 
-def convertTime( seconds: float ) -> str:
+
+def convertTime(seconds: float) -> str:
 	"""
 	Convert time data between solver or OMF representations.
 	"""
@@ -33,7 +34,8 @@ def convertTime( seconds: float ) -> str:
 	seconds, milliseconds = divmod(remainder, 1000)
 	return "{:02d}:{:02d}:{:02d}.{:03d}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
 
-def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
+
+def hostingCapacityMap(modelDir, inputDict: dict, outData: dict):
 	"""
 	Perform hosting capacity map processing for the hosting capacity model.
 
@@ -42,7 +44,7 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 	"""
 	feederName = [x for x in os.listdir(modelDir) if x.endswith('.omd')][0]
 	pathToOmd = Path(modelDir, feederName)
-	starting_omd = json.load(open(pathToOmd)) 
+	starting_omd = json.load(open(pathToOmd))
 	# Starting there are no warnings
 	outData['mapWarningFlag'] = False
 	outData['hideMap'] = False
@@ -56,14 +58,17 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 			if v['object'] == 'bus':
 				omdTreeBuses.append(v['name'])
 		modelFreeBuses = modelFreeData_df['busname'].unique()
-		# Finding the buses from mohca thats in the circuit. this is what we will color
+		# Finding the buses from mohca data that overlaps in circuit to color
 		modelFreeBusesInOmdFile = list(set(modelFreeBuses).intersection(omdTreeBuses))
 		if len(modelFreeBusesInOmdFile) != 0:
-			# Great, there are some buses in the mohca file that are in the omd file. That means we can have some color!
-			# Note: If buses are in the omd and not in the Model-Free results, nothing is done.
-			# 			If buses are in the Model-Free results and not in the omd, nothing is done.
+			# Great, there are some buses in the mohca file that are in the omd file.
+			# That means we can have some color!
+			# Note:
+			# 	If buses are in omd and not in the mohca data, nothing is done
+			# 	If buses are in the mohca data and not in the omd, nothing is done
 			# If this were to change:
-			# - These are the buses that are in the model-free results and not in the omd file they would have to get dropped.
+			# - These are the buses that are in the mohca data and not in the omd file
+			# 	they would have to get dropped because they don't exist on the map
 			# 	buses_in_mohca_not_in_omd = set(mohca_buses) - set(omdTreeBuses)
 			attachment_keys = {
 				"coloringFiles": {
@@ -94,27 +99,27 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 		colorPath = Path(modelDir, 'color.omd')
 		if colorPath.exists():
 			# Just add model-based coloring
-				modelBasedColor = {
-					"colorByModelBased.csv": {
-						"csv": "<content>",
-						"colorOnLoadColumnIndex": "0"
-					}
+			modelBasedColor = {
+				"colorByModelBased.csv": {
+					"csv": "<content>",
+					"colorOnLoadColumnIndex": "0"
 				}
-				modelBasedColorData = Path(modelDir, 'colorByModelBased.csv').read_text()
-				originalFileData = json.load( open(colorPath) )
-				originalFileData['attachments']['coloringFiles'].update(modelBasedColor)
-				originalFileData['attachments']['coloringFiles']['colorByModelBased.csv']['csv'] = modelBasedColorData
-				with open(colorPath, 'w+') as out_file:
-					json.dump(originalFileData, out_file, indent=4)
-				omf.geo.map_omd(colorPath, modelDir, open_browser=False )
-				outData['hostingCapacityMap'] = open(Path(modelDir, "geoJson_offline.html"), 'r' ).read()
+			}
+			modelBasedColorData = Path(modelDir, 'colorByModelBased.csv').read_text()
+			originalFileData = json.load( open(colorPath) )
+			originalFileData['attachments']['coloringFiles'].update(modelBasedColor)
+			originalFileData['attachments']['coloringFiles']['colorByModelBased.csv']['csv'] = modelBasedColorData
+			with open(colorPath, 'w+') as out_file:
+				json.dump(originalFileData, out_file, indent=4)
+			omf.geo.map_omd(colorPath, modelDir, open_browser=False)
+			outData['hostingCapacityMap'] = open(Path(modelDir, "geoJson_offline.html"), 'r' ).read()
 		else:
 			attachment_keys = {
 				"coloringFiles": {
-				"colorByModelBased.csv": {
-					"csv": "<content>",
-					"colorOnLoadColumnIndex": "1"
-				},
+					"colorByModelBased.csv": {
+						"csv": "<content>",
+						"colorOnLoadColumnIndex": "1"
+					},
 				}
 			}
 			modelBasedColorData = Path(modelDir, 'colorByModelBased.csv').read_text()
@@ -123,7 +128,7 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 			starting_omd['attachments'] = attachment_keys
 			with open(new_omd_path, 'w+') as out_file:
 				json.dump(starting_omd, out_file, indent=4)
-			omf.geo.map_omd(new_omd_path, modelDir, open_browser=False )
+			omf.geo.map_omd(new_omd_path, modelDir, open_browser=False)
 			outData['hostingCapacityMap'] = open(Path(modelDir, "geoJson_offline.html"), 'r' ).read()
 	if inputDict['runDownlineAlgorithm'] == 'on':
 		# Same thing as the above if. We need to check if its created already. If it is, we just adding the color, if its not, we need to create the map setup as well
@@ -146,10 +151,10 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 		else:
 			attachment_keys = {
 				"coloringFiles": {
-				"output_downlineLoad.csv": {
-					"csv": "<content>",
-					"colorOnLoadColumnIndex": "1"
-				},
+					"output_downlineLoad.csv": {
+						"csv": "<content>",
+						"colorOnLoadColumnIndex": "1"
+					},
 				}
 			}
 			downlineColorData = Path(modelDir, 'output_downlineLoad.csv').read_text()
@@ -158,14 +163,15 @@ def hostingCapacityMap( modelDir, inputDict: dict, outData: dict ):
 			starting_omd['attachments'] = attachment_keys
 			with open(new_omd_path, 'w+') as out_file:
 				json.dump(starting_omd, out_file, indent=4)
-			omf.geo.map_omd(new_omd_path, modelDir, open_browser=False )
+			omf.geo.map_omd(new_omd_path, modelDir, open_browser=False)
 			outData['hostingCapacityMap'] = open(Path(modelDir, "geoJson_offline.html"), 'r' ).read()
 
 	if outData["mapWarningFlag"] == True and inputDict['runModelBasedAlgorithm'] == 'off' and inputDict['runDownlineAlgorithm'] == 'off':
 		# If there are no buses in the .csv that match the circuit, and model based and downline load both are not running, we don't need the map
 		outData["hideMap"] = True
 
-def run_downlineLoadAlgorithm( modelDir, inputDict: dict, outData: dict ) -> pd.DataFrame:
+
+def run_downlineLoadAlgorithm(modelDir, inputDict: dict, outData: dict) -> pd.DataFrame:
 	"""
 	Run the downline load algorithm workflow and return its results.
 	"""
@@ -217,6 +223,7 @@ def run_downlineLoadAlgorithm( modelDir, inputDict: dict, outData: dict ) -> pd.
 	outData['downline_runtime'] = convertTime( downline_end_time - downline_start_time )
 	return sorted_downlineDF
 
+
 def checkKvar( inputPathAMIData )-> bool:
 	''' Uses sandia's get_has_input_q function from mohca_cl.sandia to check presence of reactive power'''
 	data = pd.read_csv(inputPathAMIData)
@@ -227,6 +234,7 @@ def checkKvar( inputPathAMIData )-> bool:
 	else:
 		return False
 	
+
 def getBool( string ) -> bool:
 	''' Converts string of boolean word to python bool type'''
 	retVal = False
@@ -235,6 +243,7 @@ def getBool( string ) -> bool:
 	elif string.lower() == 'false':
 		retVal = False
 	return retVal
+
 
 def run_AMIAlgorithm( modelDir, inputDict: dict, outData: dict ):
 	''' mohca data-driven hosting capacity
