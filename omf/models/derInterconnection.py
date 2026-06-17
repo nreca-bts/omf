@@ -726,7 +726,7 @@ def drawPlot(tree, nodeDict=None, edgeDict=None, edgeLabsDict=None, displayLabs=
 		custom_cm = matplotlib.colors.LinearSegmentedColormap.from_list('custColMap',[(0.0,'blue'),(0.15,'darkgray'),(0.7,'darkgray'),(1.0,'red')])
 		custom_cm.set_under(color='black')
 	else:
-		custom_cm = plt.cm.get_cmap('viridis')
+		custom_cm = plt.colormaps.get_cmap('viridis')
 	
 	drawColorbar = False
 	emptyColors = {}
