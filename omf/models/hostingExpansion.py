@@ -1,23 +1,23 @@
 """
-Estimate distribution hosting-capacity expansion options and visualize upgrade scenarios
-for additional DER adoption.
+Estimate distribution hosting-capacity expansion options
+& visualize upgrade scenarios for additional DER adoption.
 """
 
-import warnings
-# warnings.filterwarnings("ignore")
-
-import shutil, datetime
+# Python Imports
+import shutil
+import datetime
+import json
+import os
+import pandas as pd
 from pathlib import Path
-import numpy as np
+import logging
 import plotly.utils as pu
 import plotly.graph_objects as go
 
 # OMF imports
-from omf import feeder
 from omf.models import __neoMetaModel__
 from omf.models.__neoMetaModel__ import *
 from omf import weather
-from omf.models import hostingCapacity
 from omf.solvers import opendss
 from omf.solvers import pysam
 
@@ -36,9 +36,7 @@ def checkCircuitSolar(modelDir, inputDict: dict):
 	pathToOmd = Path(modelDir, feederName)
 	tree = opendss.dssConvert.omdToTree(pathToOmd)
 	pvsystems = [x for x in tree if x.get('object', 'N/A').startswith('pvsystem.')]
-	print(pvsystems)
 	batteries = [x for x in tree if x.get('object', 'N/A').startswith('battery.')]
-	print(batteries)
 	if len(pvsystems) == 0 and len(batteries) == 0:
 		return returningKW
 	if len(pvsystems) != 0:
@@ -49,7 +47,6 @@ def checkCircuitSolar(modelDir, inputDict: dict):
 		kwFromBattery = [x['kw'] for x in batteries if 'kw' in x]
 		for item in kwFromBattery:
 			returningKW += float(item)
-	print(f"returningkw: {returningKW}")
 	return returningKW
 
 
@@ -66,7 +63,11 @@ def work(modelDir, inputDict: dict) -> dict:
 	nrlAPIResponse = weather.nlr_get_nsrdb_data(data_set="goes_aggregated", longitude=long, latitude=lat, year=year, api_key="rnvNJxNENljf60SBKGxkGVwkXls4IAKs1M8uZl56", attributes=attributes, filename=Path(modelDir,"output_aggregated_data.csv"))
 	requestSuccess = True if nrlAPIResponse.status_code == 200 else False
 	if requestSuccess:
-		pvwatts_model, pvwatts_data = pysam.run_pvwatts(modelDir=modelDir, sys_design=sys_design, dataFile="output_aggregated_data.csv")
+		pvwatts_model, pvwatts_data = pysam.run_pvwatts(
+			modelDir=modelDir,
+			sys_design=sys_design,
+			dataFile="output_aggregated_data.csv"
+		)
 	else:
 		raise Exception("hostingExpansion.py: API request 1 Failed")
 	# For Max Solar - Set tilt = latitude
@@ -86,20 +87,21 @@ def work(modelDir, inputDict: dict) -> dict:
 	pvwatts_data_sliced = pvwatts_data.iloc[:data_length]
 	maxSolar_data_sliced = maxSolar_data.iloc[:data_length]
 	# Get existing storage capacity on circuit
-	storage_capacity = checkCircuitSolar(modelDir, inputDict)
+	storage_output = checkCircuitSolar(modelDir, inputDict)
 	full_df = pd.DataFrame({
 			'hour': pvwatts_data_sliced.index,
-			'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000, # Convert kW to W
+			'total_load': amiData.iloc[:, 1:].sum(axis=1)*1000,  # Convert kW to W
 			'pysam_ac_watts': pvwatts_data_sliced['ac'].values,
-			'storage_capacity_w': storage_capacity * 1000, # Convert kW to W
-			'dc_nameplate_w': float(inputDict["systemCapacity"])*1000, # Convert kW to W 
+			'storage_output_w': storage_output * 1000,  # Convert kW to W
+			'dc_nameplate_w': float(inputDict["systemCapacity"])*1000,  # kW to W
 			'max_solar_ac_watts': maxSolar_data_sliced['ac'].values
 	})
 	full_df.to_csv(Path(modelDir, "output_LoadvsPySAM.csv"), index=False)
 	scatterFigure = go.Figure()
-	scatterFigure.add_trace(go.Scatter( x=full_df['hour'],
-		y=full_df['storage_capacity_w'],
-		name='Storage Capacity (W)',
+	scatterFigure.add_trace(go.Scatter(
+		x=full_df['hour'],
+		y=full_df['storage_output_w'],
+		name='Storage Output (W)',
 		fill='tozeroy',
 		fillcolor='rgba(0, 200, 0, 0.3)',
 		line=dict(color='darkgreen', width=2),
@@ -107,7 +109,7 @@ def work(modelDir, inputDict: dict) -> dict:
 	))
 	scatterFigure.add_trace(go.Scatter(
 		x=full_df['hour'],
-		y=full_df['pysam_ac_watts'] + full_df['storage_capacity_w'],
+		y=full_df['pysam_ac_watts'] + full_df['storage_output_w'],
 		name='Solar Output (W)',
 		line=dict(color='darkgreen', width=2),
 		mode='lines'
@@ -129,22 +131,22 @@ def work(modelDir, inputDict: dict) -> dict:
 	# Add max solar output
 	scatterFigure.add_trace(go.Scatter(
 		x=full_df['hour'],
-		y=full_df['max_solar_ac_watts'] + full_df['storage_capacity_w'],
+		y=full_df['max_solar_ac_watts'] + full_df['storage_output_w'],
 		name='Max Solar Output (W)',
 		line=dict(color='darkgreen', width=2, dash='dash'),
 		mode='lines'
 	))
 	scatterFigure.update_layout(
-    title=None,
+	title=None,
 		xaxis_title=None,
 		yaxis_title=None,
 		hovermode='x unified',
 		legend={
-      "orientation": "h",
-      "yanchor": "bottom",
-      "y": 1.02,
-      "xanchor": "right",
-      "x": 1
+			"orientation": "h",
+			"yanchor": "bottom",
+			"y": 1.02,
+			"xanchor": "right",
+			"x": 1
 		}
 	)
 	outData['scatterFigure'] = json.dumps( scatterFigure, cls=pu.PlotlyJSONEncoder )
@@ -158,6 +160,7 @@ def work(modelDir, inputDict: dict) -> dict:
 	outData["stderr"] = ""
 	return outData
 
+
 def new(modelDir):
 	''' Create a new instance of this model. Returns true on success, false on failure. '''
 	amiFileName = "input_mackelroy.csv"
@@ -170,9 +173,9 @@ def new(modelDir):
 	newInterconnFilePath = Path(omf.omfDir,'static','testFiles', 'hostingExpansion', newInterconnFileName)
 	
 	defaultInputs = {
-		"user" : "admin",
+		"user": "admin",
 		"modelType": modelName,
-		"created":str(datetime.datetime.now()),
+		"created": str(datetime.datetime.now()),
 		"feederName1": 'iowa240.clean.dss',
 		"AmiUIDisplay": amiFileName,
 		"AmiDataFileName": amiFileName,
@@ -210,7 +213,7 @@ def _tests():
 	"""
 	Run this module's local smoke tests or debugging workflow.
 	"""
-	modelLoc = Path(__neoMetaModel__._omfDir,"data","Model","admin","Automated Testing of " + modelName)
+	modelLoc = Path(__neoMetaModel__._omfDir, "data", "Model", "admin", "Automated Testing of " + modelName)
 	# Blow away old test results if necessary.
 	try:
 		shutil.rmtree(modelLoc)
