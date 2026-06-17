@@ -492,7 +492,7 @@ def drawPlot(path, workDir=None, neatoLayout=False, edgeLabs=None, nodeLabs=None
 			vmax = 1.25
 		custom_cm.set_under(color='black')
 	else:
-		custom_cm = plt.cm.get_cmap('viridis')
+		custom_cm = plt.colormaps.get_cmap('viridis')
 		if scaleMin != None and scaleMax != None:
 			vmin = scaleMin
 			vmax = scaleMax
