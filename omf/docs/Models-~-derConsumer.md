@@ -33,7 +33,7 @@ This section contains the inputs for the demand curve, temperature curve, geogra
 ### Demand Curve
 The demand curve is the hourly kW consumption of the home for an entire year. This must be formatted as a .csv file with a length of 8760 values representing the hourly demand (kW) for one entire year beginning on January 1. The demand curve data may be obtained from the utility.
 
-Default: `example_load_consumer_10kW.csv` (.csv file). 
+Default: `example_load_consumer_10kW.csv` (.csv file)
 
 >NOTE: All provided input data are assumed to begin on Jan 1. If the data correspond to a leap year, it is recommended to remove December 31 from the dataset. This preserves the extra day in February and allows the REopt model to run correctly (with 8760 total values).
 
@@ -274,52 +274,52 @@ Default: `25` (int, unit: years)
 ### Home BESS - Upfront Subsidy Amount 
 The total upfront dollars paid to you by the utility for enrolling your home battery (not including any recurring subsidies).
 
-Default: `50.0` (decimal, unit: \$)
+Default: `50.0` (decimal, unit: $\$$)
 
 ### Home BESS - Monthly Recurring Subsidy Amount 
 The total monthly recurring dollars paid to you by the utility for keeping your home battery enrolled (not including any upfront subsidies).
 
-Default: `10.0` (decimal, unit: \$)
+Default: `10.0` (decimal, unit: $\$$)
 
 ### Home Heat Pump - Upfront Subsidy Amount 
 The total upfront dollars paid to you by the utility for enrolling your heat pump (not including any recurring subsidies).
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Home Heat Pump - Monthly Recurring Subsidy Amount 
 The total monthly recurring dollars paid to you by the utility for keeping your home heat pump enrolled (not including any upfront subsidies).
 
-Default: `1.0` (decimal, unit: \$)
+Default: `1.0` (decimal, unit: $\$$)
 
 ### Home Air Conditioner - Upfront Subsidy Amount
 The total upfront dollars paid to you by the utility for enrolling your air conditioner (not including any recurring subsidies).
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Home Air Conditioner - Monthly Recurring Subsidy Amount
 The total monthly recurring dollars paid to you by the utility for keeping your home air conditioner enrolled (not including any upfront subsidies).
 
-Default: `1.0` (decimal, unit: \$)
+Default: `1.0` (decimal, unit: $\$$)
 
 ### Home Water Heater - Upfront Subsidy Amount 
 The total upfront dollars paid to you by the utility for enrolling your water heater (not including any recurring subsidies).
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Home Water Heater - Monthly Recurring Subsidy Amount 
 The total monthly recurring dollars paid to you by the utility for keeping your home water heater enrolled (not including any upfront subsidies).
 
-Default: `3.0` (decimal, unit: \$)
+Default: `3.0` (decimal, unit: $\$$)
 
 ### Home Generator - Upfront Subsidy Amount
 The total upfront dollars paid to you by the utility for enrolling your home generator (not including any recurring subsidies). 
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Home Generator - Monthly Recurring Subsidy Amount
 The total monthly recurring dollars paid to you by the utility for keeping your home generator enrolled (not including any upfront subsidies).
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ## Fossil Fuel Generator Device Inputs
 ![Fossil Fuel Generator Inputs](./images/derConsumer_inputs_GEN.png)
@@ -356,7 +356,7 @@ Default: `35` (int, unit: \%)
 ### Retrofit Cost 
 Specify the cost to enable the generator for utility control.
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Available Fuel
 The maximum amount of generator fuel available per device. The default value is based on a Generac 20 kW diesel model with a fuel tank capacity of 95 gallons. This input will change if a different fuel type is selected (see table above). 
@@ -366,12 +366,12 @@ Default: `95` (int, unit: gallons)
 ### Fuel Cost
 The cost in USD per gallon (or cu.ft. in the case of natural gas) of fuel used for the generator. This input will change if a different fuel type is selected (see table above). 
 
-Default: `3.49` (decimal, unit: \$/gal)
+Default: `3.49` (decimal, unit: $\$$/gal)
 
 ### Generator Replacement Cost
-The cost of replacing the generator in $/kW. This value is usually around $450 every 15 years.
+The cost of replacing the generator in $\$/\rm{kW}$. This value is usually around $450 every 15 years.
 
-Default: `0.0` (decimal, unit: \$/kWh)
+Default: `0.0` (decimal, unit: $\$/\rm{kWh}$)
 
 ### Generator Lifetime
 The number of years until the generator will be replaced.
@@ -397,9 +397,9 @@ The battery energy capacity in kWh for each individual battery enrolled by a mem
 Default: `13.5` (decimal, unit: kWh)
 
 ### Retrofit Cost
-Specify the cost to enable the battery for utility control. Typically, the BESS will already be enabled and this cost will be \$0.
+Specify the cost to enable the battery for utility control. Typically, the BESS will already be enabled and this cost will be $\$0$.
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Portion of Charge Shared with Utility
 The maximum percentage of full charge that is available for the utility to use at any time.
@@ -407,16 +407,16 @@ The maximum percentage of full charge that is available for the utility to use a
 Default: `20.0` (int, unit: %) 
 
 ### Battery Replacement Power Cost 
-The cost of replacing the battery in $/kW. A suggested starting value of $324 is based on a Tesla Powerwall battery (see NOTE below).
+The cost of replacing the battery in $\$/\rm{kW}$. A suggested starting value of $324 is based on a Tesla Powerwall battery (see NOTE below).
 
-Default: `0.0` (decimal, unit: \$/kW)
+Default: `0.0` (decimal, unit: $\$/\rm{kW}$)
 
 > NOTE: The total battery replacement cost is modeled as (BESS kW Power Capacity) * ($324/kW) + (BESS kWh Energy Capacity) * ($351/kWh). These values were derived by reducing the 2022 values from Figure 4 in [NREL FY23 OSTI](https://www.nrel.gov/docs/fy23osti/85332.pdf) to 90%.
 
 ### Battery Replacement Energy Cost
-The cost of replacing the battery in $/kWh. A suggested starting value is $351 based on a Tesla Powerwall battery.
+The cost of replacing the battery in $\$/\rm{kWh}$. A suggested starting value is $351 based on a Tesla Powerwall battery.
 
-Default: `0.0` (decimal, unit: \$/kWh)
+Default: `0.0` (decimal, unit: $\$/\rm{kWh}$)
 
 > NOTE: The total battery replacement cost is modeled as (BESS kW Power Capacity) * ($324/kW) + (BESS kWh Energy Capacity) * ($351/kWh). These values were derived by reducing the 2022 values from Figure 4 in [NREL FY23 OSTI](https://www.nrel.gov/docs/fy23osti/85332.pdf) to 90%.
 
@@ -428,7 +428,7 @@ Default: `10` (int, unit: years)
 ### Inverter Replacement Cost 
 The cost of replacing the inverter. A suggested starting value would be $2400.
 
-Default: `0.0` (decimal, unit: \$)
+Default: `0.0` (decimal, unit: $\$$)
 
 ### Inverter Lifetime 
 The number of years until the battery inverter will need to be replaced at the cost specified in Inverter Replacement Cost.
@@ -451,7 +451,7 @@ Default: `5.6` (decimal, unit: kW)
 ### Retrofit Cost
 The cost to equip the air conditioner to respond to utility load control signals. For an in-window unit, this would be the cost of installing a Wi-Fi enabled smart plug, typically about $13 (see References [[5]](#references)). For central air conditioner, this would be around $120 for something like a smart thermostat (see References [[7]](#references), a Google Nest smart thermostat). If the heat pump technology is also enabled, consider that typically only one smart thermostat is needed to control both the central AC and heat pump, depending on the home.
 
-Default: `120` (decimal, unit: \$) 
+Default: `120` (decimal, unit: $\$$) 
 
 ### Thermal Capacitance 
 Thermal capacitance of the air conditioner. Must be between 0.2 and 2.5 with exactly one decimal digit.
@@ -494,7 +494,7 @@ Default: `5.6` (decimal, unit: kW)
 ### Retrofit Cost 
 The cost to equip heat pump to respond to utility load control signals (e.g. see References #7, Google Nest smart thermostat). If the air conditioner technology is also enabled, consider that typically a single smart thermostat is needed to control both the central AC and heat pump, depending on the home.
 
-Default: `150` (decimal, unit: \$)
+Default: `150` (decimal, unit: $\$$)
 
 ### Thermal Capacitance
 Thermal capacitance of the heat pump. Must be between 0.2 and 2.5 with exactly one decimal digit. 
@@ -536,9 +536,9 @@ Maximum input power of the water heater. Must be a positive rational number betw
 Default: `4.5` (decimal, unit: kW)
 
 ### Retrofit Cost
-The cost to equip water heater to respond to utility load control signals. E.g. for a virtual power plant program, this would be the cost of installing a Wi-Fi enabled water heater control unit, typically about \$175 [[6]](#references).
+The cost to equip water heater to respond to utility load control signals. E.g. for a virtual power plant program, this would be the cost of installing a Wi-Fi enabled water heater control unit, typically about $\$175$ [[6]](#references).
 
-Default: `175` (int, unit: \$)
+Default: `175` (int, unit: $\$$)
 
 ### Thermal Capacitance 
 Thermal capacitance of the water tank. Must be between 0.2 and 2.5 with exactly one decimal digit.  
@@ -646,15 +646,15 @@ This table shows the monthly cost breakdown with and without DER.
 ### Total Peak Demand (kW)
 This is the total peak demand (kW) for each month. 
 
-If the [Use URDB Label?](#use-urdb-label) is selected and the user provides demand rate structure information in that .json file, the [Total Peak Demand (kW)](#total-peak-demand-kw) is the sum of all the corresponding kW for the maximum dollar amount (peak kW x rate \$/kW) in each rate period window during that month. 
+If the [Use URDB Label?](#use-urdb-label) is selected and the user provides demand rate structure information in that .json file, the [Total Peak Demand (kW)](#total-peak-demand-kw) is the sum of all the corresponding kW for the maximum dollar amount (peak kW x rate $\$/\rm{kW}$) in each rate period window during that month. 
 
-For example, if the `demandratestructure` in the .json file has rates of 0, 0.01, 1, this corresponds Rate Periods numbered 0, 1, 2. For the month of January, let's say Rate Period 1 is applied every day from 12am-12pm, and Rate Period 2 is applied every day from 12pm - 12am. Within each rate period, the hourly kW in January from the [Demand Curve](#demand-curve) is multiplied by the demand rate for that rate period (e.g. at 1am on Jan 1 if the kW is 2.4 kW, then the demand charge dollar amount is equal to 2.4 kW x \$0.01/kW = \$0.024). Then, the corresponding kW of the maximum dollar amount between all the demand charge dollar amounts in Period 1 on Jan 1 is added to the [Total Peak Demand (kW)](#total-peak-demand-kw), and the same is done for Period 2 on Jan 1, Period 1 on Jan 2, Period 2 on Jan 2, and so on. 
+For example, if the `demandratestructure` in the .json file has rates of 0, 0.01, 1, this corresponds Rate Periods numbered 0, 1, 2. For the month of January, let's say Rate Period 1 is applied every day from 12am-12pm, and Rate Period 2 is applied every day from 12pm - 12am. Within each rate period, the hourly kW in January from the [Demand Curve](#demand-curve) is multiplied by the demand rate for that rate period (e.g. at 1am on Jan 1 if the kW is 2.4 kW, then the demand charge dollar amount is equal to $2.4 \rm{kW} \times \$0.01\rm{/kW} = \$0.024$). Then, the corresponding kW of the maximum dollar amount between all the demand charge dollar amounts in Period 1 on Jan 1 is added to the [Total Peak Demand (kW)](#total-peak-demand-kw), and the same is done for Period 2 on Jan 1, Period 1 on Jan 2, Period 2 on Jan 2, and so on. 
 
 ### Total Adjusted Peak Demand (kW): 
 This is similar to the [Total Peak Demand (kW)](#total-peak-demand-kw) but performed e for the demand curve that has been adjusted by the DERs discharging and charging.
 
 ### Demand Charge: 
-If the [Use URDB Label?](#use-urdb-label) is selected and the residential rate structure contains demand (kW) tariff information, the demand charge is calculated as the total monthly peak demand cost (\$). If the demand rate tariff is a flat rate \$/kW for each month, this is simply the maximum dollar amount for the month when each hour's demand (kW) is multiplied by the \$/kW of that month. If the demand rate tariff is more complex (e.g. a weekday window of 2-8pm is charged at some \$/kW rate, whereas a weekend window could be 5-10pm at a different \$/kW rate, and so on), then the maximum peak dollar amount (\$) is the sum of all the maximum peak dollar amounts in each rate period window of that month (i.e. in each 2-8pm window there is a maximum \$ amount found by multiplying each hour kW by the corresponding \$/kW rate and taking the maximum \$. All maximum \$ amounts in each 2-8pm window in that month is added together to get the total monthly \$ for that window. If there are any other windows such as the 5-10pm weekend rate example, those are calculated similarly and added together for the month. All total maximum \$ for all rate period windows are added together to give the total monthly demand charge).
+If the [Use URDB Label?](#use-urdb-label) is selected and the residential rate structure contains demand (kW) tariff information, the demand charge is calculated as the total monthly peak demand cost ($\$$). If the demand rate tariff is a flat rate $\$/\rm{kW}$ for each month, this is simply the maximum dollar amount for the month when each hour's demand (kW) is multiplied by the $\$/\rm{kW}$ of that month. If the demand rate tariff is more complex (e.g. a weekday window of 2-8pm is charged at some $\$/\rm{kW}$ rate, whereas a weekend window could be 5-10pm at a different $\$/\rm{kW}$ rate, and so on), then the maximum peak dollar amount ($\$$) is the sum of all the maximum peak dollar amounts in each rate period window of that month (i.e. in each 2-8pm window there is a maximum $\$$ amount found by multiplying each hour kW by the corresponding $\$/\rm{kW}$ rate and taking the maximum $\$$. All maximum $\$$ amounts in each 2-8pm window in that month is added together to get the total monthly $\$$ for that window. If there are any other windows such as the 5-10pm weekend rate example, those are calculated similarly and added together for the month. All total maximum $\$$ for all rate period windows are added together to give the total monthly demand charge).
 
 If the [Use URDB Label?](#use-urdb-label) is not selected and the user provides demand rate structure information in the [(Optional) Residential Rate Structure](#optional-residential-rate-structure) json file, then the demand charge is calculated the same as described above.
 
@@ -670,35 +670,35 @@ For each month of the year, this shows the sum total kWh of the [Demand Curve](#
 ### Adjusted Energy (kWh): 
 The monthly [Energy](#energy-kwh) that includes the adjustments made by all DERs discharging and charging.
 
-### Energy Cost (\$): 
-For each month of the year, this is the sum total of [Energy](#energy-kwh) multiplied by each corresponding hourly energy tariff \$/kWh.
+### Energy Cost ($\$$):
+For each month of the year, this is the sum total of [Energy](#energy-kwh) multiplied by each corresponding hourly energy tariff $\$/\rm{kWh}$.
 
-### Adjusted Energy Cost (\$): 
-The adjusted energy cost is similar to [Energy Cost](#energy-cost), but it uses the demand curve that has been adjusted by all DERs discharging and charging. For each month, the adjusted energy cost is the sum total of the [Adjusted Energy](#adjusted-energy-kwh) multiplied by the energy tariff (\$/kWh) for each corresponding hour.
+### Adjusted Energy Cost ($\$$): 
+For each month, the adjusted energy cost is the sum total of the [Adjusted Energy](#adjusted-energy-kwh) multiplied by the energy tariff ($\$/\rm{kWh}$) for each corresponding hour. The adjusted energy cost is similar to [Energy Cost](#energy-cost-), but it uses the demand curve that has been adjusted by all DERs discharging and charging.
 
-### Energy Cost Savings (\$): 
-This is calculated by taking the difference between the Energy Cost and Adjusted Energy Cost: [Energy Cost](#energy-cost) - [Adjusted Energy Cost](#adjusted-energy-cost).
+### Energy Cost Savings ($\$$): 
+This is calculated by taking the difference between [Energy Cost](#energy-cost-) - [Adjusted Energy Cost](#adjusted-energy-cost-).
 
-### Total Cost of Service (\$): 
-This is calculated by adding Energy Cost and Demand Charge: [Energy Cost](#energy-cost) + [Demand Charge](#demand-charge).
+### Total Cost of Service ($\$$): 
+This is calculated by adding [Energy Cost](#energy-cost-) + [Demand Charge](#demand-charge).
 
-### Adjusted Total Cost of Service (\$): 
-This is calculated by adding Adjusted Energy Cost and Adjusted Demand Charge: [Adjusted Energy Cost](#adjusted-energy-cost) and [Adjusted Demand Charge](#adjusted-demand-charge).
+### Adjusted Total Cost of Service ($\$$): 
+This is calculated by adding [Adjusted Energy Cost](#adjusted-energy-cost-) + [Adjusted Demand Charge](#adjusted-demand-charge).
 
-### Utility Subsidies Paid (\$): 
+### Utility Subsidies Paid ($\$$): 
 This is the sum total dollar amount paid to the member-consumer for all subsidies.
 
-### Generator Fuel Cost (\$): 
+### Generator Fuel Cost ($\$$): 
 The cost to the consumer for all fossil fuel consumption used in the program.
 
-### Total Consumer Savings (\$): 
-This is the total savings for the consumer given by [Energy Cost Savings](#energy-cost-savings) + [Demand Cost Savings](#demand-cost-savings) + [Utility Subsidies Paid](#utility-subsidies-paid).
+### Total Consumer Savings ($\$$): 
+This is the total savings for the consumer given by [Energy Cost Savings](#energy-cost-savings-) + [Demand Cost Savings](#demand-cost-savings) + [Utility Subsidies Paid](#utility-subsidies-paid-).
 
-### Total Consumer Costs (\$): 
+### Total Consumer Costs ($\$$): 
 For each month, this is the total cost to the consumer. Costs include replacement costs, fuel costs, and retrofit costs. All of the retrofit costs are applied to the first month. 
 
-### Net Consumer Savings (\$): 
-This is the net savings for the consumer given by [Total Consumer Savings](#total-consumer-savings) - [Total Consumer Costs](#total-consumer-costs).
+### Net Consumer Savings ($\$$): 
+This is the net savings for the consumer given by [Total Consumer Savings](#total-consumer-savings-) - [Total Consumer Costs](#total-consumer-costs-).
 
 ## Plot: Cash Flow Projection
 ![Cashflow Projection plot](./images/derConsumer_outputs_cashflowprojection.png)
@@ -718,20 +718,20 @@ $\displaystyle\sum_{t=0}^{M-1} \frac{values_t}{(1+rate)^t}$ [[8]](#references)
 
 Where `rate` is the discount rate given as user input in the General Model Inputs, and `values` are the projected cash flows = (`Consumer Savings` – `Consumer Costs`)$_t$ for each year, $t$, up to a total projection length of $M$ years.
 
-`Consumer Savings` = all DER kW Demand Savings (\$) + all DER kWh Consumption Savings (\$) + all subsidies (\$)
+`Consumer Savings` = all DER kW Demand Savings ($\$$) + all DER kWh Consumption Savings ($\$$) + all subsidies ($\$$)
 
-`Consumer Costs` = retrofit costs (\$)
+`Consumer Costs` = retrofit costs ($\$$)
 
 ### Simple Payback Period
 The SPP is the number of years it takes to recover all initial costs based on the first year’s cash flows. It is represented by the following equation:
 
 $\frac{\rm{Initial \ Investment}}{\rm{Consumer \ Savings} - \rm{Consumer \ Costs}}$
 
-Where `Initial Investment` = startup costs (\$) + one-time operational costs (\$) + one-time subsidies (\$).
+Where `Initial Investment` = startup costs ($\$$) + one-time operational costs ($\$$) + one-time subsidies ($\$$).
 
-`Consumer Savings` = all DER kW Demand Savings (\$) in Year 1 + all DER kWh Consumption Savings (\$) in Year 1 + all subsidies (\$) in Year 1.
+`Consumer Savings` = all DER kW Demand Savings ($\$$) in Year 1 + all DER kWh Consumption Savings ($\$$) in Year 1 + all subsidies ($\$$) in Year 1.
 
-`Consumer Costs` = retrofit costs (\$) in Year 1.
+`Consumer Costs` = retrofit costs ($\$$) in Year 1.
 
 
 ## Plot: Savings Breakdown Per Technology
@@ -741,7 +741,7 @@ This plot shows the yearly savings and incentives breakdown for the BESS, TESS, 
 ![Savings Breakdown Per Technology Plot TESS example](./images/derConsumer_outputs_savingsbreakdown_TESSexample.png) 
 This shows only the TESS Savings and TESS Incentives toggled on, for example.
 
-This plot is useful for technology-specific insights for evaluating the overall benefit of individual DER. TESS here is an aggregate of all thermal technologies (i.e. WH+AC+HP). 
+This plot is useful for technology-specific insights for evaluating the overall benefit of individual DER. TESS here is an aggregate of all thermal technologies (i.e. WH + AC + HP). 
 
 The incentives represent the subsidy amounts for each technology. The savings are broken up into a Demand (kW) Savings and a Consumption (kWh) savings for each DER.
 

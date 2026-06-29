@@ -239,7 +239,7 @@ The example above was created using the REopt Web Tool custom electric rate tari
 Although the REopt Web Tool provides options to include more information (e.g. Fixed monthly charge, facility demand charge), the derUtilityCost model currently does not handle that information. If monthly demand charges are desired, then it's suggested to use the optional Monthly Demand Charges (.csv) input along with the optional Wholesale Energy Rate Curve (.csv) input, and un-selecting the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) input to allow these optional inputs to be used.
 
 ### (Optional) Wholesale Energy Rate Curve
-A .csv file containing 8760 rows representing the hourly \$/kWh rate that the utility or cooperative pays to the wholesale energy supplier.
+A .csv file containing 8760 rows representing the hourly $\$/\rm{kWh}$ rate that the utility or cooperative pays to the wholesale energy supplier.
 
 Default: `example_TODrate66a13566e90ecdb7d40581d2.csv` (.csv file)
 
@@ -280,7 +280,7 @@ For example, this URDB rate webpage https://openei.org/apps/IURDB/rate/view/5b75
 -->
 
 ### (Optional) Monthly Demand Charges 
-The monthly demand charges (\$/kW) that the utility pays their G&T provider for the entire Year. The expected format is a .csv file containing 12 elements corresponding to each month. For example: </li>
+The monthly demand charges ($\$/\rm{kW}$) that the utility pays their G&T provider for the entire Year. The expected format is a .csv file containing 12 elements corresponding to each month. For example: </li>
 
 Default: `example_utility_monthly_demand_charges.csv` (.csv)
 
@@ -298,7 +298,7 @@ Default: `example_utility_monthly_demand_charges.csv` (.csv)
 50
 50
 ```
-This file represents \$50/hr demand charge for all 12 months.
+This file represents $\$50$ demand charge for all 12 months.
 
 ### Financial Projection Length 
 The number of years to project out estimated financial savings. Must be between 1 and 75 years. Note that the financial analysis only takes into account the first year (since only a one year demand curve is provided) and project those financial findings out for all subsequent years. 
@@ -313,67 +313,67 @@ Default: `1` (int, unit: %)
 ### Program Startup Costs 
 The total costs for the utility to start the DER program.
 
-Default: `200000` (int/decimal, unit: \$)
+Default: `200000` (int/decimal, unit: $\$$)
 
 ### Ongoing Operational Costs 
 The total monthly costs to the utility for all operational costs (e.g. API calls per month).
 
-Default: `1000` (int/decimal, unit: \$/month). 
+Default: `1000` (int/decimal, unit: $\$/\rm{month}$). 
 
 ### One-time Operational Costs 
 The total one-time costs to the utility for all operational costs (e.g. contracted agreements for DER device usage, etc.). 
 
-Default: `20000` (int/decimal, unit: \$)
+Default: `20000` (int/decimal, unit: $\$$)
 
 ### Home BESS - Upfront Subsidy Amount 
 The one-time subsidy amount paid to the member-consumer for enrolling their BESS in the DER-sharing program.
 
-Default: `50.0` (int/decimal, unit: \$) 
+Default: `50.0` (int/decimal, unit: $\$$) 
 
 ### Home BESS - Monthly Recurring Subsidy Amount 
 The monthly subsidy paid to the member-consumer for continuous monthly participation in the DER-sharing program. 
 
-Default: `10.0` (int/decimal, unit: \$) 
+Default: `10.0` (int/decimal, unit: $\$$) 
 
 ### Home Heat Pump - Upfront Subsidy Amount 
 The one-time subsidy amount paid to the member-consumer for enrolling their Heat Pump in the DER-sharing program. 
 
-Default: `0.0` (int/decimal, unit: \$) 
+Default: `0.0` (int/decimal, unit: $\$$) 
 
 ### Home Heat Pump - Monthly Recurring Subsidy Amount 
 The monthly subsidy paid to the member-consumer for continuous monthly participation in the DER-sharing program.  
 
-Default: `1.0` (int/decimal, unit: \$) 
+Default: `1.0` (int/decimal, unit: $\$$) 
 
 ### Home Air Conditioner - Upfront Subsidy Amount
 The one-time subsidy amount paid to the member-consumer for enrolling their Air Conditioner in the DER-sharing program. 
 
-Default: `0.0` (int/decimal, unit: \$) 
+Default: `0.0` (int/decimal, unit: $\$$) 
 
 ### Home Air Conditioner - Monthly Recurring Subsidy Amount
 The monthly subsidy paid to the member-consumer for continuous monthly participation in the DER-sharing program. 
 
-Default: `1.0` (int/decimal, unit: \$) 
+Default: `1.0` (int/decimal, unit: $\$$) 
 
 ### Home Water Heater - Upfront Subsidy Amount
 The one-time subsidy amount paid to the member-consumer for enrolling their Water Heater in the DER-sharing program. 
 
-Default: `0.0` (int/decimal, unit: \$) 
+Default: `0.0` (int/decimal, unit: $\$$) 
 
 ### Home Water Heater - Monthly Recurring Subsidy Amount 
 The monthly subsidy paid to the member-consumer for continuous monthly participation in the DER-sharing program. 
 
-Default: `3.0` (int/decimal, unit: \$)  
+Default: `3.0` (int/decimal, unit: $\$$)  
 
 ### Home Generators - Upfront Subsidy Amount 
 The one-time subsidy amount paid to the member-consumer for enrolling their fossil fuel generator in the DER-sharing program. 
 
-Default: `0.0` (int/decimal, unit: \$) 
+Default: `0.0` (int/decimal, unit: $\$$) 
 
 ### Home Generators - Monthly Recurring Subsidy Amount 
 The monthly subsidy paid to the member-consumer for continuous monthly participation in the DER-sharing program. 
 
-Default: `0.0` (int/decimal, unit: \$) 
+Default: `0.0` (int/decimal, unit: $\$$) 
 
 ## Home Fossil Fuel Device Inputs
 ![Fossil Fuel Generator Inputs](./images/derUtilityCost_inputs_GEN.png)
@@ -415,7 +415,7 @@ Default: `95` (int, unit: gallons)
 ### Fuel Cost
 The cost in USD per gallon (or cu.ft. in the case of natural gas) of fuel used for the generator. This input will change if a different fuel type is selected (see table above). 
 
-Default: `3.49` (decimal, unit: \$/gal)
+Default: `3.49` (decimal, unit: $\$/\rm{gal}$)
 
 ## Chemical Energy Storage Device Inputs
 ![Chemical Battery Inputs](./images/derUtilityCost_inputs_BESS.png)
@@ -611,7 +611,7 @@ The plot is zoomed into a two-day timescale here.
 ### Prioritization of Water Heater, Air Conditioner, and Heat Pump
 Each type of thermal technology (WH, AC, HP) is calculated independently from the others because of the constraints of the vbatDispatch model. A result of this decoupling is instances of two or more technologies charging at the same time, which can create a larger peak demand (and thus larger expense) for the utility. To address this, a thermal DER prioritization plan was introduced into the code that prevents multiple devices from charging simultaneously. The thermal technologies are prioritized in the following order: 
 
-          Water Heater > Air Conditioner > Heat Pump
+                  Water Heater > Air Conditioner > Heat Pump
 
 ![Before and after the thermal prioritization scheme](./images/TESSprioritization.png)
 
@@ -638,26 +638,29 @@ To reproduce the results of a model run:
 
 ## Plot: Home Thermal Battery Power Profile 
 ![Thermal Battery Power Profile Plot](./images/derUtilityCost_outputs_thermalPower.png)
+
 This plot shows the minimum and maximum calculated power capacity and the Actual Power Utilized for all of the thermal technologies combined. This is useful for diagnosing the behavior of the thermal technologies and/or the underlying vbatDispatch model used to simulate them.
 
 ## Plot: Home Chemical BESS State of Charge (Utility Portion)
 ![Chemical battery state of charge plot](./images/derUtilityCost_outputs_SOC.png)
+
 This plot shows the state of charge of all chemical batteries in the analysis. 100% here means the maximum charge of the battery allowed to the utility. If the `Portion of Charge Used by Utility (%)` input is 20\%, then 100% in this plot would correspond to the full 20\% of every chemical battery's energy capacity (kWh) allowed for utility use.
 
 ## Table: Monthly Cost Comparison
 ![Monthly Cost Comparison Plot](./images/derUtilityCost_outputs_MCC.png)
+
 This plot shows a detailed monthly overview of all the energy, demand, and financial variables. Below is a detailed explanation of each variable in this plot.
 
 ### Total Peak Demand (kW)
-This is the total peak demand (kW) for each month. If the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) is selected and the user provides demand rate structure information in that .json file, the [Total Peak Demand (kW)](#total-peak-demand-kw) is the sum of all the corresponding kW for the maximum dollar amount (peak kW x rate \$/kW) in each rate period window during that month. 
+This is the total peak demand (kW) for each month. If the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) is selected and the user provides demand rate structure information in that .json file, the [Total Peak Demand (kW)](#total-peak-demand-kw) is the sum of all the corresponding kW for the maximum dollar amount (peak kW x rate $\$/\rm{kW}$) in each rate period window during that month. 
 
-For example, if the `demandratestructure` in the .json file has rates of 0, 0.01, 1, this corresponds Rate Periods numbered 0, 1, 2. For the month of January, let's say Rate Period 1 is applied every day from 12am-12pm, and Rate Period 2 is applied every day from 12pm - 12am. Within each rate period, the hourly kW in January from the [Demand Curve](#demand-curve) is multiplied by the demand rate for that rate period (e.g. at 1am on Jan 1 if the kW is 2.4 kW, then the demand charge dollar amount is equal to 2.4 kW x \$0.01/kW = \$0.024). Then, the corresponding kW of the maximum dollar amount between all the demand charge dollar amounts in Period 1 on Jan 1 is added to the [Total Peak Demand (kW)](#total-peak-demand-kw), and the same is done for Period 2 on Jan 1, Period 1 on Jan 2, Period 2 on Jan 2, and so on. 
+For example, if the `demandratestructure` in the .json file has rates of 0, 0.01, 1, this corresponds Rate Periods numbered 0, 1, 2. For the month of January, let's say Rate Period 1 is applied every day from 12am-12pm, and Rate Period 2 is applied every day from 12pm - 12am. Within each rate period, the hourly kW in January from the [Demand Curve](#demand-curve) is multiplied by the demand rate for that rate period (e.g. at 1am on Jan 1 if the kW is 2.4 kW, then the demand charge dollar amount is equal to $2.4 \rm{kW} \times \$0.01/\rm{kW} = \$0.024$). Then, the corresponding kW of the maximum dollar amount between all the demand charge dollar amounts in Period 1 on Jan 1 is added to the [Total Peak Demand (kW)](#total-peak-demand-kw), and the same is done for Period 2 on Jan 1, Period 1 on Jan 2, Period 2 on Jan 2, and so on. 
 
 ### Total Adjusted Peak Demand (kW): 
 This is similar to the [Total Peak Demand (kW)](#total-peak-demand-kw) but performed e for the demand curve that has been adjusted by the DERs discharging and charging.
 
 ### Demand Charge: 
-If the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) is selected and the user provides demand rate structure information in that .json file, then the demand charge is calculated as the total monthly peak demand cost (\$). If the demand rate tariff is a flat rate \$/kW for each month, this is simply the maximum dollar amount for the month when each hour's demand (kW) is multiplied by the \$/kW of that month. If the demand rate tariff is more complex (e.g. a weekday window of 2-8pm is charged at some \$/kW rate, whereas a weekend window could be 5-10pm at a different \$/kW rate, and so on), then the maximum peak dollar amount (\$) is the sum of all the maximum peak dollar amounts in each rate period window of that month (i.e. in each 2-8pm window there is a maximum \$ amount found by multiplying each hour kW by the corresponding \$/kW rate and taking the maximum \$. All maximum \$ amounts in each 2-8pm window in that month is added together to get the total monthly \$ for that window. If there are any other windows such as the 5-10pm weekend rate example, those are calculated similarly and added together for the month. All total maximum \$ for all rate period windows are added together to give the total monthly demand charge).
+If the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) is selected and the user provides demand rate structure information in that .json file, then the demand charge is calculated as the total monthly peak demand cost ($\$$). If the demand rate tariff is a flat rate $\$/\rm{kW}$ for each month, this is simply the maximum dollar amount for the month when each hour's demand (kW) is multiplied by the $\$/\rm{kW}$ of that month. If the demand rate tariff is more complex (e.g. a weekday window of 2-8pm is charged at some $\$/\rm{kW}$ rate, whereas a weekend window could be 5-10pm at a different $\$/\rm{kW}$ rate, and so on), then the maximum peak dollar amount ($\$$) is the sum of all the maximum peak dollar amounts in each rate period window of that month (i.e. in each 2-8pm window there is a maximum $\$$ amount found by multiplying each hour kW by the corresponding $\$/\rm{kW}$ rate and taking the maximum $\$$. All maximum $\$$ amounts in each 2-8pm window in that month is added together to get the total monthly $\$$ for that window. If there are any other windows such as the 5-10pm weekend rate example, those are calculated similarly and added together for the month. All total maximum $\$$ for all rate period windows are added together to give the total monthly demand charge).
 
 If the [Use Wholesale Energy & Demand Rate Structure (.json) file?](#use-wholesale-energy--demand-rate-structure-json-file) is NOT selected and the user provides demand rate structure information in the [(Optional) Monthly Demand Charges (.csv)](#optional-monthly-demand-charges) file, then the demand charge is calculated the same as described above using the rate information in the [(Optional) Monthly Demand Charges (.csv)](#optional-monthly-demand-charges) file.
 
@@ -673,39 +676,39 @@ For each month of the year, this shows the sum total kWh of the [Demand Curve](#
 ### Adjusted Energy (kWh): 
 The monthly [Energy](#energy-kwh) that includes the adjustments made by all DERs discharging and charging.
 
-### Energy Cost (\$): 
-For each month of the year, this is the sum total of [Energy](#energy-kwh) multiplied by each corresponding hourly energy tariff \$/kWh.
+### Energy Cost ($\$$): 
+For each month of the year, this is the sum total of [Energy](#energy-kwh) multiplied by each corresponding hourly energy tariff $\$/\rm{kWh}$.
 
-### Adjusted Energy Cost (\$): 
-The adjusted energy cost is similar to [Energy Cost](#energy-cost), but it uses the demand curve that has been adjusted by all DERs discharging and charging. For each month, the adjusted energy cost is the sum total of the [Adjusted Energy](#adjusted-energy-kwh) multiplied by the energy tariff (\$/kWh) for each corresponding hour.
+### Adjusted Energy Cost ($\$$): 
+The adjusted energy cost is similar to [Energy Cost](#energy-cost-), but it uses the demand curve that has been adjusted by all DERs discharging and charging. For each month, the adjusted energy cost is the sum total of the [Adjusted Energy](#adjusted-energy-kwh) multiplied by the energy tariff ($\$/\rm{kWh}$) for each corresponding hour.
 
-### Energy Cost Savings (\$): 
-This is calculated by taking the difference between the Energy Cost and Adjusted Energy Cost: [Energy Cost](#energy-cost) - [Adjusted Energy Cost](#adjusted-energy-cost).
+### Energy Cost Savings ($\$$): 
+This is calculated by taking the difference between the Energy Cost and Adjusted Energy Cost: [Energy Cost](#energy-cost-) - [Adjusted Energy Cost](#adjusted-energy-cost-).
 
-### Total Cost of Service (\$): 
-This is calculated by adding Energy Cost and Demand Charge: [Energy Cost](#energy-cost) + [Demand Charge](#demand-charge).
+### Total Cost of Service ($\$$): 
+This is calculated by adding Energy Cost and Demand Charge: [Energy Cost](#energy-cost-) + [Demand Charge](#demand-charge). 
 
-### Adjusted Total Cost of Service (\$): 
-This is calculated by adding Adjusted Energy Cost and Adjusted Demand Charge: [Adjusted Energy Cost](#adjusted-energy-cost) and [Adjusted Demand Charge](#adjusted-demand-charge).
+### Adjusted Total Cost of Service ($\$$): 
+This is calculated by adding Adjusted Energy Cost and Adjusted Demand Charge: [Adjusted Energy Cost](#adjusted-energy-cost-) and [Adjusted Demand Charge](#adjusted-demand-charge).
 
-### Total Consumer Compensation (\$): 
+### Total Consumer Compensation ($\$$): 
 This is the sum total dollar amount paid to the member-consumer for all subsidies.
 
-### Program Startup and Operational Costs (\$): 
+### Program Startup and Operational Costs ($\$$): 
 This is a fixed cost representing any one-time startup or operational costs the utility pays to begin the DER sharing program.
 
-### Total Utility Savings (\$): 
-This is the total savings for the utility given by [Energy Cost Savings](#energy-cost-savings) + [Demand Cost Savings](#demand-cost-savings)
+### Total Utility Savings ($\$$): 
+This is the total savings for the utility given by [Energy Cost Savings](#energy-cost-savings-) + [Demand Cost Savings](#demand-cost-savings)
 
-### Total Utility Costs (\$): 
-For each month, this is the total costs for the utility given by [Program Startup and Operational Costs](#program-startup-and-operational-costs) + [subsidies paid to consumer](#total-consumer-compensation).
+### Total Utility Costs ($\$$): 
+For each month, this is the total costs for the utility given by [Program Startup and Operational Costs](#program-startup-and-operational-costs-) + subsidies paid to consumer.
 
-### Net Utility Savings (\$): 
-This is the net savings for the utility given by [Total Utility Savings](#total-utility-savings) - [Total Utility Costs](#total-utility-costs).
+### Net Utility Savings ($\$$): 
+This is the net savings for the utility given by [Total Utility Savings](#total-utility-savings-) - [Total Utility Costs](#total-utility-costs-).
 
 ## Plot: Cash Flow Projection
 ![Cashflow Projection plot](./images/derUtilityCost_outputs_cashflowprojection.png)
-This plot shows the yearly cash flow projection based only on the results from year 1 (see Monthly Cost Comparison table for year 1 values). The `Utility Savings` is the sum of the monthly [Total Utility Savings](#total-utility-savings) values in the Monthly Cost Comparison chart, and the `Utility Costs` are similarly the sum of the monthly [Total Utility Costs](#total-utility-costs) in the Monthly Cost Comparison chart. The `Cumulative Return` series is the cumulative sum of the [Net Utility Savings](#net-utility-savings) cash flow.
+This plot shows the yearly cash flow projection based only on the results from year 1 (see Monthly Cost Comparison table for year 1 values). The `Utility Savings` are the sum of the monthly [Total Utility Savings](#total-utility-savings-) values in the Monthly Cost Comparison chart, and the `Utility Costs` are similarly the sum of the monthly [Total Utility Costs](#total-utility-costs-) in the Monthly Cost Comparison chart. The `Cumulative Return` series is the cumulative sum of the [Net Utility Savings](#net-utility-savings-)cash flow.
 
 Simply click on the variable names to toggle them on/off.
 
@@ -721,16 +724,16 @@ $\displaystyle\sum_{t=0}^{M-1} \frac{values_t}{(1+rate)^t}$ [[5]](#references)
 
 Where `rate` is the discount rate given as user input in the General Model Inputs, and `values` are the projected cash flows = (`Utility Savings` – `Utility Costs`)$_t$ for each year, $t$, up to a total projection length of $M$ years.
 
-`Utility Savings` = all DER kW Demand Savings (\$) + all DER kWh Consumption Savings (\$)
+`Utility Savings` = all DER kW Demand Savings ($\$$) + all DER kWh Consumption Savings ($\$$)
 
-`Utility Costs` = startup costs (\$) + all operational costs (\$) + all subsidies (\$)
+`Utility Costs` = startup costs ($\$$) + all operational costs ($\$$) + all subsidies ($\$$)
 
 ### Simple Payback Period
 The SPP is the number of years it takes to recover all initial costs based on the first year’s cash flows. It is represented by the following equation:
 
 $\frac{\rm{Initial \ Investment}}{\rm{Utility \ Savings}-\rm{Utility \ Costs}}$
 
-Where `Initial Investment` = startup costs (\$) + one-time operational costs (\$) + one-time subsidies (\$)
+Where `Initial Investment` = startup costs ($\$$) + one-time operational costs ($\$$) + one-time subsidies ($\$$)
 
 `Utility Savings` = all DER Demand (kW) Savings in Year 1 + all DER Consumption (kWh) Savings in Year 1
 
@@ -783,10 +786,9 @@ At the very end of the model outputs is a collection of all raw inputs and outpu
 - allOutputData.json
 
 # Caveats
-This model does NOT include functionality for the following items:
+This model is limited in scope. Below are some considerations for users:
 - Leap years. If demand curve data correspond to a leap year, it is recommended to remove Dec 31 before uploading data to the model. The corresponding temperature curve should also reflect this change.
-- Real time market fluctuations.
-- First meter fixed charges.
+- Real time market fluctuations. This model does not currently consider real time data or anaylses.
 - When using the Use Wholesale Energy & Demand Rate Structure (.json) file input, any information about `fixed monthly charge ($/day)` or `facility demand charges` are not considered in the current state of this model.
 - Thermal DER dispatch schedule optimized with tariff information. All thermal DERs considered in this model use the omf.models.vbatDispatch model to simulate the thermal DER virtual battery dispatch schedule. It creates this schedule using the demand curve and temperature curve information, but not information of the demand or energy rate structure. This can sometimes lead to negative demand savings in the outputs if the thermal DER is dispatching when the $/kW tariff is more expensive.
 - Be mindful of bias among the thermal DER dispatch/charging. The dispatch and charging of thermal DER are prioritized in order of highest to lowest priority as follows: 1. Water heaters 2. Air Conditioners 3. Heat Pump. This prioritization is in place to prevent a new, more expensive peak demand from forming that is the result of the underlying thermal model (vbatDispatch) not currently able to account for a simultaneous mix of technologies in its optimization. 
