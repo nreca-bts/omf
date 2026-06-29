@@ -1,5 +1,5 @@
 """
-❗ NOTE ❗ omf.models.derConsumer is a new model currently under development. Check back
+omf.models.derConsumer is a new model currently under development. Check back
 in the coming months for updates!
 """
 
@@ -25,7 +25,7 @@ from omf.solvers import reopt_jl
 ## Model metadata:
 tooltip = ('Performs a cost-benefit analysis for a member-consumer enrolling distributed energy resources (DERs) in a utility DER sharing program.')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = False ## Keep the model hidden=True during active development
+hidden = True ## Keep the model hidden=True during active development
 
 def work(modelDir, inputDict):
 	''' Run the model in its directory. '''
@@ -300,8 +300,7 @@ def work(modelDir, inputDict):
 		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
 		
 	## Run REopt
-	## NOTE: As of May 2026, run_with_sysimage=False until PackageCompiler can be updated to v2.1.19. Setting run_with_sysimage=True would speed up the runtime.
-	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False,  tolerance=0.0001, random_seed=random_seed_HiGHS)
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=True,  tolerance=0.0001, random_seed=random_seed_HiGHS)
 	
 	## Load the REopt results
 	try: 
@@ -364,7 +363,6 @@ def work(modelDir, inputDict):
 		'temperatureCurve': '\n'.join(f'{temp:.2f}' for temp in temperatures_degC), ## Convert temperatures_degC into the expected format for vbatDispatch
 		'energyRateCurve': '\n'.join(f'{rate:.2f}' for rate in energy_rate_array), ## Convert energy_rate_array into the expected format for vbatDispatch
 		'set_random_numbers': inputDict['set_random_numbers'],
-		#'random_seed_PuLP': inputDict['random_seed_PuLP'],
 		'randomNumbersFileName': inputDict['randomNumbersFileName'],
 		'randomNumbers': inputDict['randomNumbers'],
 	}
@@ -615,7 +613,7 @@ def work(modelDir, inputDict):
 	## Peak demand charge cost ($) for the adjusted demand curve (with DERs)
 	monthly_demand_charge_cost_withDERs, monthly_total_kw_withDERs, period_max_dollar_indices_withDERs = derUtilityCost.construct_monthly_demand_charge_array(response_file, timestamps, adjusted_demand, monthHours)
 
-	#peakDemandCharge = np.zeros(12) ## TODO: update this if flatdemandstructure is defined in JSON file. Setting to zero for now until Lisa has looked at the JSON inputs from coops.
+	#peakDemandCharge = np.zeros(12) ## TODO: update this if flatdemandstructure is defined in the input JSON file. Setting to zero for now.
 
 	if 'demandratestructure' in response_file:
 		## Re-stack tuples into arrays
@@ -752,7 +750,6 @@ def work(modelDir, inputDict):
 		if 'Generator' in reoptResults:
 			gen_annual_fuel_consumption_gal = reoptResults['Generator']['annual_fuel_consumption_gal']
 		else:
-			
 			gen_annual_fuel_consumption_gal = 0.0
 		gen_fuel_cost = float(inputDict['fuel_cost'])
 		btu_per_kwh = 3412.0 ## constant
@@ -810,7 +807,7 @@ def work(modelDir, inputDict):
 		costs_allyears_GEN[0] += retrofit_cost_GEN
 		retrofit_cost_total += retrofit_cost_GEN
 
-	## Thermal retrofit costs (TODO: Add replacement costs later?)
+	## Thermal retrofit costs
 	if float(inputDict['load_type_wh']) > 0:  ## Check if water heater is enabled
 		retrofit_cost_wh = float(inputDict['unitDeviceCost_wh'])
 		costs_allyears_wh[0] += retrofit_cost_wh
@@ -972,8 +969,7 @@ def work(modelDir, inputDict):
 	generator_W = generator * 1000.
 
 	showlegend = True ## either enable or disable the legend toggle in the plot
-	#lineshape = 'linear'
-	lineshape = 'hv'
+	lineshape = 'hv' #'linear'
 
 	###################################################################################################################################
 	## Impact to Demand plot 
@@ -1045,10 +1041,6 @@ def work(modelDir, inputDict):
 	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
 
 	## Convert all values from kW to Watts for plotting purposes only
-	#try:
-	#	grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
-	#except KeyError:
-	#	raise Exception('No ElectricUtility found in REopt outputs. Cannot get electric grid to load series.')
 	if 'ElectricUtility' in reoptResults:
 		grid_to_load = reoptResults['ElectricUtility']['electric_to_load_series_kw']
 	else:
@@ -1287,10 +1279,6 @@ def work(modelDir, inputDict):
 	## Savings Breakdown Per Technology Plot variables
 	## NOTE: Costs are converted to a negative value for plotting purposes
 	######################################################################################################################################################
-	#outData['savings_allyears_BESS'] = list(totalSavings_BESS_allyears_array)
-	#outData['savings_allyears_TESS'] = list(totalSavings_TESS_allyears_array)
-	#outData['savings_allyears_GEN'] = list(totalSavings_GEN_allyears_array)
-	##TODO: check against the totals above
 	outData['savings_consumption_BESS_allyears'] = list(BESS_consumption_savings_allyears)
 	outData['savings_consumption_TESS_allyears'] = list(TESS_consumption_savings_allyears)
 	outData['savings_consumption_GEN_allyears'] = list(GEN_consumption_savings_allyears)
@@ -1329,15 +1317,11 @@ def new(modelDir):
 		temperature_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_residential_tariff.json')) as jsonFile:
 		residential_rate_structure = json.load(jsonFile)
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
-	# residential_rate_curve = json.load(jsonFile)
-	#with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','TOU_rate_schedule.csv')) as f:
-	# energy_rates_per_kwh = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derConsumer','example_water_heater_random_numbers.csv')) as f:
 		random_numbers = f.read()
 	
 	defaultInputs = {
-		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings?
+		## TODO: maybe incorporate float, int, bool types on the html side instead of only strings
 		
 		## OMF inputs:
 		'user' : 'admin',
@@ -1449,8 +1433,8 @@ def _debugging():
 	Run this module's local smoke tests or debugging workflow.
 	"""
 	modelLoc = pJoin(__neoMetaModel__._omfDir,'data','Model','admin','Automated Testing of ' + modelName)
-	# Blow away old test results if necessary.
 	try:
+		# Blow away old test results if necessary.
 		shutil.rmtree(modelLoc)
 	except:
 		# No previous test results.

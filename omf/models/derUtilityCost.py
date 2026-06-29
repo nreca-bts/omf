@@ -24,7 +24,7 @@ from omf.solvers import reopt_jl
 ## Model metadata:
 tooltip = ('Performs a cost-benefit analysis for a utility or cooperative member interested in controlling behind-the-meter distributed energy resources (DERs).')
 modelName, template = __neoMetaModel__.metadata(__file__)
-hidden = False ## Keep the model hidden=True during active development
+hidden = True ## Keep the model hidden=True during active development
 
 def calculate_fval(peak, adjusted_peak, DER_contribution):
 	""" 
@@ -450,8 +450,7 @@ def work(modelDir, inputDict):
 		f.write('BESS & GEN: ' + str(random_seed_HiGHS) + '\n')
 
 	## Run REopt
-	## NOTE: As of May 2026, run_with_sysimage=False until PackageCompiler can be updated to v2.1.19. Setting run_with_sysimage=True would speed up the runtime.
-	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=False, tolerance=0.0001, random_seed=random_seed_HiGHS)
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_input_scenario.json', run_with_sysimage=True, tolerance=0.0001, random_seed=random_seed_HiGHS)
 
 	## Load the REopt results 
 	try: 
@@ -710,155 +709,6 @@ def work(modelDir, inputDict):
 	vbat_discharge_component = np.array(combined_device_results['vbat_discharge'])
 	vbat_charge_component = np.array(combined_device_results['vbat_charge_flipsign'])
 	vbat_charge_component[vbat_charge_component == -0.0] = 0.0 ## convert all -0 to just 0 for precaution
-
-	## NOTE: temporarily comment out the two derConsumer runs. This needs some development since derConsumer.py has changed over time.
-	"""
-	## Scale down the utility demand to create an ad-hoc small consumer load (1 kW average) and large consumer load (10 kW average)
-	utilityLoadAverage = np.average(demand)
-	smallConsumerTargetAverage = 1.0 #Unit: kW
-	largeConsumerTargetAverage = 10.0 #Unit: kW
-	smallConsumerLoadScaleFactor = smallConsumerTargetAverage / utilityLoadAverage 
-	largeConsumerLoadScaleFactor = largeConsumerTargetAverage / utilityLoadAverage 
-	smallConsumerLoad = demand * smallConsumerLoadScaleFactor
-	largeConsumerLoad = demand * largeConsumerLoadScaleFactor
-
-	## Convert small and large consumer load arrays into strings and pass it back to derConsumer
-	smallConsumerLoadString = '\n'.join([str(value) for value in smallConsumerLoad])
-	largeConsumerLoadString = '\n'.join([str(value) for value in largeConsumerLoad])
-
-	## Create a new derConsumer model directory to store the results for both small and large consumers
-	newDir_smallderConsumer = pJoin(modelDir,'smallderConsumer')
-	newDir_largederConsumer = pJoin(modelDir,'largederConsumer')
-	os.makedirs(newDir_smallderConsumer, exist_ok=True)
-	os.makedirs(newDir_largederConsumer, exist_ok=True)
-	os.chdir(newDir_smallderConsumer)
-	print("Current Directory:", os.getcwd())
-
-	## Set up model inputs for derConsumer and pass the small and large consumer loads to omf/models/derConsumer
-	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','residential_critical_load.csv')) as f:
-		criticalLoad_curve = f.read()
-	
-	derConsumerInputDict = {
-		## OMF inputs:
-		'user' : 'admin',
-		'modelType': modelName,
-		'created': str(datetime.datetime.now()),
-
-		## REopt inputs:
-		## NOTE: Variables are strings as dictated by the html input options
-		'latitude':  inputDict['latitude'], ## use utility's lat and lon 
-		'longitude': inputDict['longitude'], 
-		'year' : '2018',
-		'urdbLabel': inputDict['urdbLabel'],
-		'fileName': 'residential_PV_load.csv',
-		'tempFileName': 'residential_extended_temperature_data.csv',
-		'criticalLoadFileName': 'residential_critical_load.csv', ## critical load here = 50% of the daily demand
-		'demandCurve': smallConsumerLoadString,
-		'tempCurve': inputDict['tempCurve'],
-		'criticalLoad': criticalLoad_curve,
-		'criticalLoadSwitch': 'Yes',
-		'criticalLoadFactor': '0.50',
-		'PV': 'Yes',
-		'BESS': 'Yes',
-		'generator': 'No',
-		'outage': True,
-		'outage_start_hour': '4637',
-		'outage_duration': '3',
-
-		## Financial Inputs
-		'demandChargeURDB': 'Yes',
-		'demandChargeCost': '25',
-		'projectionLength': '25',
-
-		## vbatDispatch inputs:
-		'load_type': '2', ## Heat Pump
-		'number_devices': '1',
-		'power': '5.6',
-		'capacitance': '2',
-		'resistance': '2',
-		'cop': '2.5',
-		'setpoint': '19.5',
-		'deadband': '0.625',
-		'electricityCost': '0.16',
-		'discountRate': '2',
-		'unitDeviceCost': '150',
-		'unitUpkeepCost': '5',
-
-		## DER Program Design inputs:
-		'utilityProgram': 'No',
-		'rateCompensation': '0.1', ## unit: $/kWh
-		#'maxBESSDischarge': '0.80', ## Between 0 and 1 (Percent of total BESS capacity) #TODO: Fix the HTML input for this
-		'subsidy': '12',
-	}
-	smallConsumerOutput = derConsumer.work(newDir_smallderConsumer,derConsumerInputDict)
-
-	## Change directory to large derConsumer and run that case
-	os.chdir(newDir_largederConsumer)
-	derConsumerInputDict['demandCurve'] = largeConsumerLoadString
-	derConsumerInputDict['number_devices'] = '2'
-	largeConsumerOutput = derConsumer.work(newDir_largederConsumer,derConsumerInputDict)
-
-	## Change directory back to derUtilityCost
-	os.chdir(modelDir)
-	outData.update({
-		'TESSsavingsSmallConsumer': smallConsumerOutput['savings'],
-		'TESSsavingsLargeConsumer': largeConsumerOutput['savings']
-	})
-
-	
-	#####################################################################################################################################################################################################
-	## Compensation rate to member-consumer
-	compensationRate = float(inputDict['rateCompensation'])
-	subsidy = float(inputDict['subsidy']) ## TODO: Amount for the entire analysis - should we divide this up by # of months and add to the monthly consumer savings?
-	consumptionCost = float(inputDict['electricityCost'])
-
-	monthHours = [(0, 744), (744, 1416), (1416, 2160), (2160, 2880), 
-					(2880, 3624), (3624, 4344), (4344, 5088), (5088, 5832), 
-					(5832, 6552), (6552, 7296), (7296, 8016), (8016, 8760)]
-	
-	load_smallConsumer_monthly = np.asarray([sum(smallConsumerLoad[s:f]) for s, f in monthHours])
-	load_largeConsumer_monthly = np.asarray([sum(largeConsumerLoad[s:f]) for s, f in monthHours])
-	loadCost_smallConsumer_monthly = load_smallConsumer_monthly * consumptionCost
-	loadCost_largeConsumer_monthly = load_largeConsumer_monthly * consumptionCost
-
-	## Check if REopt results include a BESS output that is not an empty list
-	if 'ElectricStorage' in reoptResults and any(reoptResults['ElectricStorage']['storage_to_load_series_kw']):
-		BESS_utility = reoptResults['ElectricStorage']['storage_to_load_series_kw'] ## The BESS that is recommended for the utility
-		BESS_smallConsumer = smallConsumerOutput['ElectricStorage']['storage_to_load_series_kw'] ## A scaled down version of the utility's load to represent a small consumer (1 kWh average load)
-		BESS_largeConsumer = largeConsumerOutput['ElectricStorage']['storage_to_load_series_kw'] ## A scaled down version of the utility's load to represent a large consumer (10 kWh average load)
-		BESS_smallConsumer_monthly = np.asarray([sum(BESS_smallConsumer[s:f]) for s, f in monthHours])
-		BESS_largeConsumer_monthly = np.asarray([sum(BESS_largeConsumer[s:f]) for s, f in monthHours])
-		BESSCost_smallConsumer_monthly = BESS_smallConsumer_monthly * compensationRate
-		BESSCost_largeConsumer_monthly = BESS_largeConsumer_monthly * compensationRate
-
-		## Divide subsidy amount up into the monthly consumer savings
-		subsidy_monthly = np.full(12, subsidy/12)
-
-		## Add BESS + TESS + subsidy(divided by 12 months) = total savings
-		TESSCost_smallConsumer_monthly = np.asarray(outData['TESSsavingsSmallConsumer'])
-		TESSCost_largeConsumer_monthly = np.asarray(outData['TESSsavingsLargeConsumer'])
-		totalCost_smallConsumer_monthly = TESSCost_smallConsumer_monthly + BESSCost_smallConsumer_monthly + subsidy_monthly
-		totalCost_largeConsumer_monthly = TESSCost_largeConsumer_monthly + BESSCost_largeConsumer_monthly + subsidy_monthly
-
-		## Update the consumer savings output to represent both thermal BESS (vbatDispatch results) and REopt's BESS results
-		outData.update({
-			'totalSavingsSmallConsumer': list(totalCost_smallConsumer_monthly),
-			'totalSavingsLargeConsumer': list(totalCost_largeConsumer_monthly)
-		})
-
-		## Print some monthly costs/savings for analysis
-		print('Small Consumer consumption cost (w/o BESS): ${:,.2f}'.format(np.sum(loadCost_smallConsumer_monthly)))
-		print('Small Consumer savings for BESS only: ${:,.2f} \n'.format(np.sum(BESSCost_smallConsumer_monthly)))	
-		print('Large Consumer consumption cost (w/o BESS): ${:,.2f}'.format(np.sum(loadCost_largeConsumer_monthly)))
-		print('Large Consumer savings for BESS only: ${:,.2f}'.format(np.sum(BESSCost_largeConsumer_monthly)))
-		BESS_compensated_to_consumer = np.sum(BESS_utility)*compensationRate+subsidy
-		print('--------------------------------------------------------')
-		print('Utility total compensation for consumer BESS ($ annually): ${:,.2f}'.format(BESS_compensated_to_consumer))
-		BESS_bought_from_grid = np.sum(BESS_utility) * consumptionCost
-		print('Utility BESS savings (1 year BESS kWh x electricity cost): ${:,.2f}'.format(BESS_bought_from_grid))
-		print('Difference (Utility BESS savings - Compensation to consumers): ${:,.2f}'.format(BESS_bought_from_grid-BESS_compensated_to_consumer))
-
-	"""
 
 	#########################################################################################################################################################
 	### Calculate the monthly consumption (kWh) costs and savings
@@ -1176,7 +1026,7 @@ def work(modelDir, inputDict):
 	#allDevices_compensation_allyears_array = BESS_compensation_allyears_array + GEN_compensation_allyears_array + TESS_compensation_allyears_array
 
 	## Calculate ongoing and onetime operational costs
-	## NOTE: This includes costs for things like API calls to control the DERs
+	## NOTE: Operational costs are for things like API calls to control the DERs
 	operationalCosts_ongoing = float(inputDict['operationalCosts_ongoing'])
 	operationalCosts_onetime = float(inputDict['operationalCosts_onetime'])
 	operationalCosts_year1_total = operationalCosts_onetime + (operationalCosts_ongoing*12.0)
@@ -1315,8 +1165,7 @@ def work(modelDir, inputDict):
 	generator_W = generator * 1000.
 
 	showlegend = True ## either enable or disable the legend toggle in the plot
-	#lineshape = 'linear'
-	lineshape = 'hv'
+	lineshape = 'hv' #'linear'
 
 	###################################################################################################################################
 	## Impact to Demand plot 
@@ -1582,7 +1431,6 @@ def work(modelDir, inputDict):
 	outData['batteryChargeData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
 	outData['batteryChargeLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
 
-	## Model operations typically end here.
 	## Stdout/stderr.
 	outData['stdout'] = 'Success'
 	outData['stderr'] = ''
@@ -1599,8 +1447,8 @@ def new(modelDir):
 		wholesale_rate_curve = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','example_TODrate66a13566e90ecdb7d40581d2.json')) as jsonFile:
 		wholesale_rate_structure = json.load(jsonFile)
-	#responseFilename = 'TODrate66a13566e90ecdb7d40581d2.json' ## TOD rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
-	#responseFilename = 'TOUrate5b311c595457a3496d8367be.json' ## TOU rate JSON file (created using instructions from https://github.com/NREL/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates)
+	#responseFilename = 'TODrate66a13566e90ecdb7d40581d2.json' ## TOD rate JSON file (created using instructions from https://github.com/NatLabRockies/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates
+	#responseFilename = 'TOUrate5b311c595457a3496d8367be.json' ## TOU rate JSON file (created using instructions from https://github.com/NatLabRockies/REopt-Analysis-Scripts/wiki/5.-Custom-Electric-Rates
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','example_utility_monthly_demand_charges.csv')) as f:
 		monthly_demand_charges = f.read()
 	with open(pJoin(__neoMetaModel__._omfDir,'static','testFiles','derUtilityCost','example_water_heater_random_numbers.csv')) as f:
@@ -1720,6 +1568,7 @@ def _debugging():
 	except:
 		# No previous test results.
 		pass
+
 	# Create New.
 	new(modelLoc) 
 	# Pre-run.
