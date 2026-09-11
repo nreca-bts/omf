@@ -3,7 +3,7 @@ Install, configure, and run local Julia REopt workflows for OMF optimization mod
 """
 
 import json, time
-import os, platform, shutil
+import os, platform, shutil, tempfile
 import random
 import subprocess
 from os.path import join as pJoin
@@ -107,9 +107,11 @@ def make_julia_script_file(juliaStr : str, cleanFileFormatting = True):
 	'''
 	if cleanFileFormatting:
 		juliaStr = juliaStr.replace('\\','/')
-	# time.time() is added for the sake of uniqueness to avoid collisions between things running at the same time
-	juliaFileLocation = pJoin(thisDir, f'temp_julia_script_{time.time()}.jl')
-	with open(juliaFileLocation, 'w') as juliaFile:
+	# - mkstemp creates the file exclusively (O_EXCL), so two processes can never end up sharing one script file. The previous time.time() suffix was not
+	#   unique because forked workers that start together (e.g. MicrogridUP running one REopt job per microgrid) produced identical timestamps, so one
+	#   worker's script overwrote another's before Julia read it and both Julia processes ran the same scenario
+	fileDescriptor, juliaFileLocation = tempfile.mkstemp(prefix='temp_julia_script_', suffix='.jl', dir=thisDir)
+	with os.fdopen(fileDescriptor, 'w') as juliaFile:
 		juliaFile.write(juliaStr)
 
 	OSName = platform.system()
