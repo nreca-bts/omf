@@ -64,6 +64,9 @@ def work(modelDir, inputDict):
 	demandCost = float(inputDict['demandCost'])
 	if urdbLabelSwitch:
 		urdbLabel = str(inputDict['urdbLabel'])
+	urdbResponse = inputDict.get('urdbResponse')
+	if isinstance(urdbResponse, str):
+		urdbResponse = json.loads(urdbResponse) if urdbResponse.strip() != '' else None
 	# TODO: Enable all instances of 'annualCostSwitch', 'energyCostMonthly', 'demandCostMonthly' in mgDesign.py once a suitable way to enter a list of 12 monthly rates is found for mgDesign.html
 	# annualCostSwitch = inputDict['annualCostSwitch']
 	# energyCostMonthly = inputDict['energyCostMonthly']
@@ -302,8 +305,11 @@ def work(modelDir, inputDict):
 		#adding outage results (REopt.jl)
 		#scenario['ElectricUtility']['outage_durations'] = [ outage_duration ] #not sure if correct
 
-		# set rates
-		if not urdbLabelSwitch:
+		# - urdb_response takes precedence over the URDB label and the blended rates. MicrogridUP only sends urdb_response or the blended rates. The URDB
+		#   label path remains for runs started from microgridDesign.html
+		if urdbResponse is not None:
+			scenario['ElectricTariff']['urdb_response'] = urdbResponse
+		elif not urdbLabelSwitch:
 			scenario['ElectricTariff']['blended_annual_energy_rate'] = energyCost
 			#['blended_annual_rates_us_dollars_per_kwh'] = energyCost
 			scenario['ElectricTariff']['blended_annual_demand_rate'] = demandCost
