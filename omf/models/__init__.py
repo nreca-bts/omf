@@ -60,3 +60,4 @@ from omf.models import hostingExpansion
 from omf.models import pvWatts
 #from omf.models import microgridPlan
 from omf.models import newResDist
+from omf.models import wteFeasibility

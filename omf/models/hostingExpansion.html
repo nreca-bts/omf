@@ -1,15 +1,29 @@
 <head>
 	{{ omfHeaders }}
+	<style>
+		th {
+			position: sticky;
+			top: 0;
+			background-color: white;
+		}
+		table {
+			position: relative;
+		}
+		@media print {
+			#optimalUpgradesTable {overflow-y:visible !important; max-height:none !important;}
+			#bindingConstraintsTable {overflow-y:visible !important; max-height:none !important;}
+		}
+	</style>
 	<script src="{{pathPrefix}}/static/highcharts4.src.js"></script>
 	<!--  Macro for direct file upload macro usage:
 		file_upload('fileInputID', 'userInputVoltage', 'voltageDataFileName')
 		line 1: input for the actual file. There should be no value in inputDict that matches this one.
 		line 2: button for file upload, thats it.
 		line 3: the name of the file the user is using/inputting in. We wanna save this for display. Originally its set as the default.
-		line 4: This is hidden. This is the name of the file we want always = .csv name <- default naming convention 
+		line 4: This is hidden. This is the name of the file we want always = .csv name <- default naming convention
 	-->
-	{% macro file_upload(fileInputID, userFileDisplayNameID, dataFileNameID) -%}
-    <input type="file" id="{{fileInputID}}" name="{{ allInputDataDict[dataFileNameID] }}" accept=".csv" class="fileButton" onchange="updateFileNameDisplay('{{fileInputID}}', '{{userFileDisplayNameID}}', '{{dataFileNameID}}')" style="display:none"><br>
+	{% macro file_upload(fileInputID, userFileDisplayNameID, dataFileNameID, acceptType='.csv') -%}
+    <input type="file" id="{{fileInputID}}" name="{{ allInputDataDict[dataFileNameID] }}" accept="{{acceptType}}" class="fileButton" onchange="updateFileNameDisplay('{{fileInputID}}', '{{userFileDisplayNameID}}', '{{dataFileNameID}}')" style="display:none"><br>
     <label for="{{fileInputID}}" class="fileButton">Choose File</label>
     <input id="{{userFileDisplayNameID}}" name="{{userFileDisplayNameID}}" value="{{ allInputDataDict[userFileDisplayNameID] }}" readonly class="uploadFileName">
     <input id="{{dataFileNameID}}" name= {{dataFileNameID}} type="hidden" value="{{ allInputDataDict[dataFileNameID] }}">
@@ -76,10 +90,10 @@
 				<div>{{ file_upload('newInterconnDataFile', 'newInterconnUIDisplay', 'newInterconnDataFileName') }}</div>
 			</div>
 			<div class="wideInput">
-				<p class="inputSectionHeader">PV Details</p>
+				<p class="inputSectionHeader">PV Specifications</p>
 			</div>
 			<div class="shorterInput">
-				<label class="tooltip">Year<span class="classic">1998-2024</span></label>
+				<label class="tooltip">year<span class="classic">1998-2024</span></label>
 				<input type="text" id="year" name="year" value="{{allInputDataDict.year}}" pattern="^(199(8|9)|20[0-2][0-4])$" required="required">
 			</div>
 			<div class="shorterInput">
@@ -94,17 +108,28 @@
 				<label class="tooltip">System Capacity (kWp-DC)<span class="classic">DC output rating of the solar panels in kilowatts.</span></label>
 				<input type="text" id="systemCapacity" name="systemCapacity" value="{{allInputDataDict.systemCapacity}}" pattern="^[1-9]\d*$" required="required">
 			</div>
-				<div class="shorterInput">
+			<div class="shorterInput">
 				<label class="tooltip">Azimuth (degrees)<span class="classic">Cardinal direction the PV system will face. 180 in the northern hemisphere is due South.</span></label>
 				<input type="text" id="azimuth" name="azimuth" value="{{allInputDataDict.azimuth}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
-				<div class="shorterInput">
+			<div class="shorterInput">
 				<label class="tooltip">Tilt (degrees)<span class="classic">The tilt of the solar panels measured as an angle in degrees between panels and ground. If '-' is entered, the latitude of the zipcode will be used.</span></label>
 				<input type="text" id="tilt" name="tilt" value="{{allInputDataDict.tilt}}" pattern="^(90|[1-8]\d|\d)?$|-" required="required"/>
 			</div>
-				<div class="shorterInput">
+			<div class="shorterInput">
 				<label class="tooltip">Losses<span class="classic">DC System Losses as %.</span></label>
 				<input type="text" id="losses" name="losses" value="{{allInputDataDict.losses}}" pattern="^\d+\.?\d*$" required="required"/>
+			</div>
+			<div class="wideInput">
+				<p class="inputSectionHeader">Optimal Upgrades Specifications</p>
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">Site ID<span class="classic">bus name or site id. ex: "bus3131"</span></label>
+				<input type="text" id="siteID" name="siteID" value="{{allInputDataDict.siteID}}" pattern="^[a-zA-Z0-9_.-]*$" required="required">
+			</div>
+			<div class="shorterInput">
+				<label class="tooltip">Target Hosting Capacity (mW) <span class="classic">Target Hosting Capacity in mW.</span></label>
+				<input type="text" id="targetHCMW" name="targetHCMW" value="{{allInputDataDict.targetHCMW}}" pattern="^\d+\.?\d*$" required="required"/>
 			</div>
 		{{ omfModelButtons }}
 		</form>
@@ -119,6 +144,148 @@
 					plotGraph("scatterFigure", allOutputData["scatterFigure"])
 				</script>
 			</div>
+	<!-- Optimal Upgrades Outputs -->
+	<style>td, th {padding:7 0 5 20;text-align: left;font-size:0.8em; border: 1px solid #cccccc;} </style>
+	{% if not allOutputDataDict['optUpg_success'] %}
+	<p class="reportTitle" style="page-break-before:always;"><b>Optimal Upgrades Warning</b></p>
+	<div id="optimalUpgradesWarning" class="tightContent">
+		<p style="font-size: 20px; padding: 8px;"><span style="color: red; font-weight: bold;">WARNING: </span> The optimal upgrades analysis did not finish successfully. Reason: {{ allOutputDataDict['optUpg_failureReason'] or 'No reason given.' }}</p>
+	</div>
+	{% elif not allOutputDataDict['optUpg_upgradeRequired'] %}
+	<p class="reportTitle" style="page-break-before:always;"><b>Optimal Upgrades Note</b></p>
+	<div id="optimalUpgradesNote" class="tightContent">
+		<p style="font-size: 20px; padding: 8px;"><span style="color:cadetblue; font-weight: bold;">NOTE: </span> No upgrades are needed. Baseline hosting capacity already meets the target.</p>
+	</div>
+	{% elif not allOutputDataDict['optUpg_targetAchieved'] %}
+	<p class="reportTitle" style="page-break-before:always;"><b>Optimal Upgrades Warning</b></p>
+	<div id="optimalUpgradesTargetWarning" class="tightContent">
+		<p style="font-size: 20px; padding: 8px;"><span style="color: red; font-weight: bold;">WARNING: </span> The upgrades below do not reach the target hosting capacity.</p>
+	</div>
+	{% endif %}
+	{% if allOutputDataDict['optUpg_success'] %}
+	<p class="reportTitle" style="page-break-before:always">Optimal Upgrades Summary</p>
+	<div id="optimalUpgradesSummary" class="tightContent">
+		<table style='margin:5px;width:990px;'>
+			<tr>
+			{% for header in allOutputDataDict["optUpg_summaryHeadings"] %}
+				<th>{{ header }}</th>
+			{% endfor %}
+			</tr>
+			{% for values in allOutputDataDict["optUpg_summaryValues"] %}
+			<tr>
+				{% for val in values %}
+				<td>{{ val }}</td>
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+	<p class="reportTitle">Hosting Capacity by Upgrade Step</p>
+	<div id="optimalUpgradesFigure" class="tightContent">
+		<div id="optUpg_hcFigure" style="width:1000px"></div>
+		<script type="text/javascript">
+			plotGraph("optUpg_hcFigure", allOutputData["optUpg_hcFigure"])
+		</script>
+	</div>
+	{% if allOutputDataDict["optUpg_upgradeValues"] %}
+	<p class="reportTitle">Ranked Upgrades</p>
+	<div id="optimalUpgradesTable" class="tightContent" style="max-height:340px; overflow-y: auto;">
+		<p id="optUpgSortStatus" style="margin:8px 5px 0 5px;font-size:0.8em;"></p>
+		<p style="margin:2px 5px 6px 5px;font-size:0.8em;color:#555555;">{{ allOutputDataDict["optUpg_defaultSortNote"] }}</p>
+		<table id="optUpgUpgradeTable" style='margin:5px;width:990px;'>
+			<thead>
+				<tr>
+				{% for header in allOutputDataDict["optUpg_upgradeHeadings"] %}
+					<th style="cursor:pointer;" title="Click to sort by {{ header }}" onclick="sortOptUpgTable({{ loop.index0 }})">{{ header }}<span class="optUpgSortArrow"></span></th>
+				{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+			{% for values in allOutputDataDict["optUpg_upgradeValues"] %}
+				{% set rowIndex = loop.index0 %}
+				<tr>
+					{% for val in values %}
+					<td data-sort="{{ allOutputDataDict['optUpg_upgradeSortValues'][rowIndex][loop.index0] }}">{{ val }}</td>
+					{% endfor %}
+				</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<script type="text/javascript">
+		var optUpgSortColumn = {{ allOutputDataDict["optUpg_defaultSortColumn"] }};
+		var optUpgSortAscending = {{ 'true' if allOutputDataDict["optUpg_defaultSortDirection"] == 'asc' else 'false' }};
+
+		function sortOptUpgTable(columnIndex, keepDirection) {
+			if (!keepDirection) {
+				if (columnIndex === optUpgSortColumn) {
+					optUpgSortAscending = !optUpgSortAscending;
+				} else {
+					optUpgSortAscending = true;
+				}
+			}
+			optUpgSortColumn = columnIndex;
+			var table = document.getElementById("optUpgUpgradeTable");
+			var body = table.getElementsByTagName("tbody")[0];
+			var rows = Array.prototype.slice.call(body.getElementsByTagName("tr"));
+			rows.sort(function (rowA, rowB) {
+				var a = rowA.getElementsByTagName("td")[columnIndex].getAttribute("data-sort");
+				var b = rowB.getElementsByTagName("td")[columnIndex].getAttribute("data-sort");
+				// Blank cells always sort to the bottom
+				if (a === "" && b === "") { return 0; }
+				if (a === "") { return 1; }
+				if (b === "") { return -1; }
+				var numberA = parseFloat(a);
+				var numberB = parseFloat(b);
+				var result;
+				if (!isNaN(numberA) && !isNaN(numberB)) {
+					result = numberA - numberB;
+				} else {
+					result = String(a).toLowerCase().localeCompare(String(b).toLowerCase());
+				}
+				return optUpgSortAscending ? result : -result;
+			});
+			for (var i = 0; i < rows.length; i++) {
+				body.appendChild(rows[i]);
+			}
+			var headers = table.getElementsByTagName("th");
+			for (var j = 0; j < headers.length; j++) {
+				var arrow = headers[j].getElementsByClassName("optUpgSortArrow")[0];
+				if (j === columnIndex) {
+					arrow.innerHTML = optUpgSortAscending ? " &#9650;" : " &#9660;";
+					headers[j].style.textDecoration = "underline";
+				} else {
+					arrow.innerHTML = "";
+					headers[j].style.textDecoration = "none";
+				}
+			}
+			var headerText = headers[columnIndex].firstChild.textContent.trim();
+			document.getElementById("optUpgSortStatus").innerHTML = "<b>Sorted by:</b> " + headerText + " (" + (optUpgSortAscending ? "lowest first" : "highest first") + ")";
+		}
+
+		sortOptUpgTable(optUpgSortColumn, true);
+	</script>
+	{% endif %}
+	{% if allOutputDataDict["optUpg_constraintValues"] %}
+	<p class="reportTitle">Binding Constraints Relieved by Each Upgrade</p>
+	<div id="bindingConstraintsTable" class="tightContent" style="max-height:300px; overflow-y: auto;">
+		<table style='margin:5px;width:990px;'>
+			<tr>
+			{% for header in allOutputDataDict["optUpg_constraintHeadings"] %}
+				<th>{{ header }}</th>
+			{% endfor %}
+			</tr>
+			{% for values in allOutputDataDict["optUpg_constraintValues"] %}
+			<tr>
+				{% for val in values %}
+				<td>{{ val }}</td>
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+	{% endif %}
+	{% endif %}
 	<div id="output">
 		{{ rawOutputFiles }}
 	</div>

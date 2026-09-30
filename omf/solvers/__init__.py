@@ -21,3 +21,4 @@ from omf.solvers import sdsmc
 from omf.solvers import reopt_jl
 #from omf.solvers import protsetopt
 from omf.solvers import der_cam
+from omf.solvers import decaf_cl
