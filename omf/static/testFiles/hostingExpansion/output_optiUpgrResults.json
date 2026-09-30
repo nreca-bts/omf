@@ -1,0 +1,59 @@
+{
+	"site_id": "bus3131",
+	"baseline_hc_mw": 1.0488652759811978,
+	"target_hc_mw": 1.2,
+	"upgrade_required": true,
+	"target_achieved": true,
+	"post_upgrade_hc_mw": 1.2306334594484591,
+	"released_hc_mw": 0.1817681834672613,
+	"total_cost_usd": 2000.0,
+	"upgrades": [
+		{
+			"iteration": 1,
+			"asset_id": "Reg_contr_B",
+			"asset_type": "regulator",
+			"incremental_cost_usd": 2000.0,
+			"kkt_weighted_score": 181.7684630424796,
+			"hc_before_mw": 1.0488652759811978,
+			"hc_after_mw": 1.2306334594484591,
+			"realized_hc_gain_mw": 0.1817681834672613,
+			"binding_constraints_before": [
+				{
+					"family": "voltage",
+					"hour": 4189,
+					"constraint": "upper_margin__bus3131.2",
+					"slack": 0.0,
+					"dual_kw_per_pu": 29187.32021443749
+				}
+			],
+			"guidance_source": "current maximum-HC LP KKT",
+			"location": "Reg_contr_B",
+			"regulator_location": "Reg_contr_B",
+			"old_state": {
+				"tap": 0
+			},
+			"new_state": {
+				"tap": -1
+			},
+			"old_tap": 0,
+			"new_tap": -1,
+			"selected_response_source": "offline Iowa240 OpenDSS discrete tap perturbation at frozen 80 critical hours; 2026-09-05 package build",
+			"response_anchor_information": {
+				"anchors": [
+					-16,
+					-12,
+					-8,
+					-4,
+					0
+				],
+				"old_tap_mode": "exact_anchor",
+				"new_tap_mode": "linear_interpolation"
+			},
+			"reason": "maximum-HC KKT screening with frozen Iowa240 response; selected by realized HC gain per incremental cost after LP re-solve",
+			"action_type": "regulator_tap_setting"
+		}
+	],
+	"runtime_sec": 283.52658701199834,
+	"success": true,
+	"failure_reason": null
+}
