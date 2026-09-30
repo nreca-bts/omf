@@ -169,6 +169,12 @@ def work(modelDir, inputDict):
 	## Save all input files
 	with open(pJoin(modelDir, 'demand_input_wteFeasibility.csv'), 'w') as f:
 		f.write(inputDict['demandCurve'].replace('\r', ''))
+
+	"""Very basic implementation of consumer demand info
+	with open(pJoin(modelDir, 'consumer_demand_input_wteFeasibility.csv'), 'w') as f:
+			f.write(inputDict['consumerDemandCurve'].replace('\r', ''))
+	"""
+	
 	"""
 	with open(pJoin(modelDir, 'temperature_input_wteFeasibility.csv'), 'w') as f:
 		f.write(inputDict['temperatureCurve'].replace('\r', ''))
@@ -200,6 +206,14 @@ def work(modelDir, inputDict):
 	demand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
 	if len(demand) != 8760:
 		raise Exception(f'Demand Curve must have exactly 8760 elements, but got {len(demand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.')
+
+	"""Very basic implementation of consumer demand info
+	consumerDemand = [float(value) for value in inputDict['demandCurve'].split('\n') if value.strip()]
+	
+	## Check if the demand and temperature curves are the correct length and account for leap years by removing Dec 31 data.
+	if len(consumerDemand) != 8760:
+		raise Exception(f'Consumer Demand Curve must have exactly 8760 elements, but got {len(consumerDemand)}. If this is a leap year, remove December 31 and ensure there are 8760 elements.')
+	"""
 
 	## Gather input variables to pass to the omf.solvers.reopt_jl model
 	latitude = float(inputDict['latitude'])
@@ -849,6 +863,126 @@ def work(modelDir, inputDict):
 	outData['derOverviewData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
 	outData['derOverviewLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
 
+	""" Very basic implementation of consumer demand info
+	########################################################################################################################
+	## Inputs for REopt.jl solver
+	########################################################################################################################
+
+	## Create a REopt input dictionary called 'scenario' (required input for omf.solvers.reopt_jl)
+	consumerScenario = {
+		'Site': {
+			'latitude': latitude,
+			'longitude': longitude
+		},
+		'ElectricTariff': {
+			'add_tou_energy_rates_to_urdb_rate': True
+		},
+		'ElectricLoad': {
+			'loads_kw': consumerDemand,
+			'year': year
+		},
+		'Financial': {
+			'analysis_years': projectionLength
+		}
+	}
+
+	## Add fossil fuel (diesel) generator to input scenario (if enabled)
+	consumerScenario['Generator'] = {
+		'existing_kw': float(inputDict['existing_gen_kw']), ## Existing generator
+		'max_kw': 0.0, ## New generator minumum
+		'min_kw': 0.0, ## New generator maximum
+		'only_runs_during_grid_outage': False,
+		#'replacement_year': int(inputDict['generator_replacement_year']),
+		#'replace_cost_per_kw': float(inputDict['replace_cost_generator_per_kw']),
+		'fuel_avail_gal': availableFuel,
+		'fuel_cost_per_gallon': gasProductionCost,
+		#'can_curtail': True,
+	}
+
+	## Save the scenario file
+	## NOTE: reopt_jl currently requires a path for the input file, so the file must be saved to a location - preferrably in the modelDir directory
+	with open(pJoin(modelDir, 'reopt_consumer_input_scenario.json'), 'w') as jsonFile:
+		json.dump(consumerScenario, jsonFile)
+	
+	########################################################################################################################
+	## Run REopt.jl to model the BESS and GEN technologies
+	########################################################################################################################
+	## Set the random seed for the HiGHS solver https://ergo-code.github.io/HiGHS/dev/options/definitions/#option-random-seed
+	if inputDict['set_random_numbers'] == 'Yes':
+		random_seed_HiGHS = int(inputDict['random_seed_HiGHS_REopt'])
+	else:
+		random_seed_HiGHS = np.random.randint(0,2147483647)
+
+	## Save HiGHS random seed to the output with the rest of the random seeds (e.g. CBC MILP solver seeds for the thermal DERs)
+	with open(pJoin(modelDir, 'random_seeds.csv'), 'a') as f:
+		f.write('GEN: ' + str(random_seed_HiGHS) + '\n')
+		
+	## Run REopt
+	reopt_jl.run_reopt_jl(modelDir, 'reopt_consumer_input_scenario.json', run_with_sysimage=True,  tolerance=0.0001, random_seed=random_seed_HiGHS)
+
+	## Load the REopt consumer results
+	try: 
+		with open(pJoin(modelDir, 'results.json')) as jsonFile:
+			reoptConsumerResults = json.load(jsonFile)
+		outData.update(reoptConsumerResults) ## Update output file with reopt results
+		reoptConsumerErrorMsgs = reoptConsumerResults['Messages']['errors']
+	except FileNotFoundError:
+		raise Exception(f'REopt did not produce any consumer results. An error may have occurred.')
+
+	try:
+		consumerGenerator = np.array(reoptConsumerResults['Generator']['electric_to_load_series_kw'])
+	except KeyError:
+		raise Exception(f'No fossil fuel generator found in REopt results. An error may have occurred, see REopts warning list: {reoptErrorMsgs}.')
+	
+	consumer_demand_W = np.array(consumerDemand) * 1000.
+	consumer_generator_W = consumerGenerator * 1000.
+
+	###################################################################################################################################
+	## Impact to Consumer Demand plot 
+	###################################################################################################################################
+	fig = go.Figure()
+	new_consumer_demand = consumer_demand_W + consumer_generator_W
+
+	## Original load piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = consumer_demand_W,
+						yaxis='y1',
+						mode='none',
+						name='Original Demand',
+						fill='tozeroy',
+						fillcolor='rgba(81,40,136,1)',
+						showlegend=showlegend))
+	## Make original load and its legend name hidden in the plot by default
+	#fig.update_traces(legendgroup='Original Demand', visible='legendonly', selector=dict(name='Original Demand')) 
+
+	## New demand piece (minus any vbat or BESS charging aka 'new/additional loads')
+	fig.add_trace(go.Scatter(x=timestamps,
+						y = new_consumer_demand,
+						yaxis='y1',
+						mode='none',
+						name='New Demand',
+						fill='tozeroy',
+						fillcolor='rgba(235,97,35,0.5)',
+						showlegend=showlegend))
+	
+	## Plot layout
+	fig.update_layout(
+		xaxis=dict(title='Timestamp'),
+		#yaxis=dict(title='Power (W)',type='log'),
+		yaxis=dict(title='Power (W)'),
+		legend=dict(orientation='h',yanchor='bottom',y=1.02,xanchor='right',x=1)
+	)
+	
+		## NOTE: This opens a window that displays the correct figure with the appropriate patterns. For some reason, the slash-mark patterns are not showing up on the HTML output page otherwise. Eventually we will delete this part.
+		#fig.show()
+		#outData['derOverviewHtml'] = fig.to_html(full_html=False)
+	fig.write_html(pJoin(modelDir, 'Plot_NewConsumerDemand.html'))
+	
+		## Encode plot data as JSON for showing in the HTML 
+	outData['newConsumerDemandData'] = json.dumps(fig.data, cls=plotly.utils.PlotlyJSONEncoder)
+	outData['newConsumerDemandLayout'] = json.dumps(fig.layout, cls=plotly.utils.PlotlyJSONEncoder)
+	"""
+	
 	"""
 	########################################################################################################################################################
 	## Thermal DER Serving Load Overview plot 
