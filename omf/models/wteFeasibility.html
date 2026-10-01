@@ -68,6 +68,19 @@
 					<input id="fileName" name="fileName" value="{{allInputDataDict.fileName}}" value='' readonly class="uploadFileName">
 				</div>
 			</div>
+
+			<!--Very basic implementation of consumer demand info
+			<div class="shortInput">
+				<label class="tooltip">Consumer Demand Curve (.csv file)<span class="classic">Please see the documentation at the green 'Help?' link above for the required format and an example file.</span></label>
+				<input id="consumerDemandCurveFile" type="file" style="display:none" onchange="handle_files(this.files,'consumerDemandCurve','consumerDemandFileName')">
+				<input id="consumerDemandCurve" name="consumerDemandCurve" value="{{allInputDataDict.consumerDemandCurve}}" type="hidden">
+				<div>
+					<label for="consumerDemandCurveFile" class="fileButton">Choose File</label>
+					<input id="consumerDemandFileName" name="demandFileName" value="{{allInputDataDict.consumerDemandFileName}}" value='' readonly class="uploadFileName">
+				</div>
+			</div>
+			-->
+
 			<!-- Keeping in case we want to reintroduce temperature later
 			<div class="shortInput">
 				<label class="tooltip">Temperature Curve in &degF (.csv file)<span class="classic">Please see the documentation at the help link for the required format and an example temperature file.</span></label>
@@ -483,6 +496,21 @@
 		</div>
 
 	</div>
+
+	<!-- Very basic implementation of consumer demand info
+	<script type="text/javascript">
+		$(window).on('pageshow',function(){
+			plotGraph('newConsumerDemandData', allOutputData['newConsumerDemandData'], allOutputData['newConsumerDemandLayout']);
+			});
+	</script>
+	-->
+	<!-- Consumer Output tables, graphs, etc -->
+	<!--
+	<div id="output">
+		<p class="reportTitle" style="page-break-before:always">Impact to Demand - Consumer</p>
+		<div id="newConsumerDemandData" class="tightContent" style="width: 1000px; height: 600px;"></div>
+	</div>
+	-->
 
 	<!-- Raw Input and Output Files -->
 	{{ rawOutputFiles }}
