@@ -16,6 +16,7 @@ import dateutil
 from subprocess import Popen
 import re
 from urllib.parse import urlsplit
+from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.local import LocalProxy
 from werkzeug.utils import secure_filename
 from pathlib import Path
@@ -1300,12 +1301,21 @@ def write_permission_function(func):
 @read_permission_function
 def showModel(owner, modelName):
 	''' Render a model template with saved data. '''
-	modelType = _get_model_metadata(owner, modelName).get('modelType', '')
-	thisModel = _get_model_module(modelType)
-	return thisModel.renderTemplate(
-		path_manager.join('data', 'Model', owner, modelName),
-		absolutePaths=False,
-		datastoreNames=_get_data_names())
+	try:
+		modelType = _get_model_metadata(owner, modelName).get('modelType', '')
+		try:
+			thisModel = _get_model_module(modelType if isinstance(modelType, str) else '')
+		except BadRequest:
+			return render_template('modelLoadError.html', modelName=modelName, unavailable=True), 400
+		return thisModel.renderTemplate(
+			path_manager.join('data', 'Model', owner, modelName),
+			absolutePaths=False,
+			datastoreNames=_get_data_names())
+	except (HTTPException, PathManager.PathTraversalError):
+		raise
+	except Exception:
+		app.logger.exception('Could not render saved model %r', modelName)
+		return render_template('modelLoadError.html', modelName=modelName, unavailable=False), 500
 
 
 @app.route("/newModel/<modelType>/<modelName>", methods=["POST"])
@@ -2748,13 +2758,7 @@ def _background_zillow_houses(model_dir, triplex_objects):
 			pid_file.write(str(os.getpid()))
 		zillow_houses = {}
 		for obj in triplex_objects:
-			house = loadModeling.get_zillow_configured_new_house(obj['latitude'], obj['longitude'])
-			if house is None:
-				# If a request for some house fails, get a random house
-				house = loadModeling.get_random_new_house()
-			zillow_houses[obj['key']] = house
-			# The APIs we use require us to limit our requests to a maximum of 1 per second. Exceeding that throughput will get us IP banned faster.
-			time.sleep(1)
+			zillow_houses[obj['key']] = loadModeling.get_random_new_house()
 		payload_filepath = os.path.join(model_dir, "zillow_houses.json")
 		with locked_open(payload_filepath, 'w') as f:
 			json.dump(zillow_houses, f)

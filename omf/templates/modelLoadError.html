@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Could not open model</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='omf.css') }}">
+</head>
+<body>
+	<main class="content">
+		<h1>Could not open {{ modelName }}</h1>
+		{% if unavailable %}
+		<p>This saved model uses a model type that is unavailable on this OMF server. Create a new model using an available type or contact support if you need to recover this analysis.</p>
+		{% else %}
+		<p>Try opening the model again from your model list. If the problem persists, contact support with the model name.</p>
+		{% endif %}
+		<p><a href="{{ url_for('root') }}">Return to models</a></p>
+	</main>
+</body>
+</html>
