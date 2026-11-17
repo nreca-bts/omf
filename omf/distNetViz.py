@@ -12,30 +12,11 @@ from omf.solvers import opendss
 from omf.solvers.opendss import dssConvert
 
 def _tests():
-	''' Handle the command line arguments for distNetViz.'''
-	argCount = len(sys.argv)
-	errorMessage = 'Incorrect inputs. Usage: distNetViz [-f (force layout)] <Path_to_feeder.glm/.omd/.dss>'
-	if argCount == 1:
-		print('Running tests. Normal usage: distNetViz [-f (force layout)] <Path_to_feeder.glm/.omd/.dss>')
-		viz(omf.omfDir + '/static/publicFeeders/Simple Market System.omd', forceLayout=True, open_file=False) # No coordinates
-		viz(omf.omfDir + '/static/publicFeeders/Simple Market System.omd', forceLayout=False, open_file=False) # No coordinates
-		viz(omf.omfDir + '/static/testFiles/IEEE13.glm', forceLayout=True, open_file=False) # Has coordinates
-		viz(omf.omfDir + '/static/testFiles/IEEE13.glm', forceLayout=False, open_file=False) # Has coordinates
-		return
-	elif argCount == 2:
-		print('Beginning display of ' + sys.argv[1])
-		DO_FORCE_LAYOUT = False
-		FEEDER_PATH = sys.argv[1]
-	elif argCount == 3:
-		print('Force laying out and displaying ' + sys.argv[2])
-		if sys.argv[1] == '-f':
-			DO_FORCE_LAYOUT = True
-		else:
-			print(errorMessage)
-		FEEDER_PATH = sys.argv[2]
-	elif argCount > 3:
-		print(errorMessage)
-	viz(FEEDER_PATH, forceLayout=DO_FORCE_LAYOUT, outputPath=None)
+	'''Render example OMD and GLM feeders with both layout options.'''
+	for feeder in ('static/publicFeeders/Simple Market System.omd', 'static/testFiles/IEEE13.glm'):
+		path = os.path.join(omf.omfDir, feeder)
+		for force_layout in (True, False):
+			viz(path, forceLayout=force_layout, open_file=False)
 
 def insert_coordinates(tree):
 	# type: (dict) -> None
@@ -200,13 +181,13 @@ def open_browser(tempDir, outputName):
 	webbrowser.open_new("file://" + tempDir + '/' + outputName)
 
 if __name__ == '__main__':
-	_tests()
-	#viz('/Users/tuomastalvitie/OneDrive/NRECA Code/DEC Robinsonville Original.omd', forceLayout=False, outputPath=None)
-	#viz('C:\Users\Tuomas\SkyDrive\NRECA Code\Utility Data\DEC Robinsonville Substation\DEC Robinsonville Original.omd', forceLayout=False, outputPath=None)
-	# viz('/Users/dpinney/Desktop/LATERBASE/NRECA/GridBallast/DM1.3.1 Go-No-Go - Demonstration of GridBallast Performance in Simulation - FINISHED/Utility Data/DEC Robinsonville Substation/DEC Robinsonville Original.omd', forceLayout=False, outputPath=None)
-	# viz('static/publicFeeders/ieee37fixed.omd', forceLayout=True)
-	# viz('static/publicFeeders/DEC Red Base.omd', forceLayout=True)
-	# viz('static/publicFeeders/Olin Barre Geo.omd', forceLayout=True)
-	# viz('static/publicFeeders/greensboro_NC_rural.omd')
-	viz('static/publicFeeders/ieee240.dss.omd', forceLayout=False)
-	# viz('/Users/ryanmahoney/omf/omf/scratch/RONM/nreca1824cleanCoords.dss.omd')
+	if len(sys.argv) == 1:
+		_tests()
+	else:
+		import argparse
+
+		parser = argparse.ArgumentParser(description='Open a distribution feeder in the viewer.')
+		parser.add_argument('-f', dest='force_layout', action='store_true', help='Force a new feeder layout.')
+		parser.add_argument('feeder', help='Path to a .glm, .omd, or .dss feeder.')
+		args = parser.parse_args()
+		viz(args.feeder, forceLayout=args.force_layout)
