@@ -451,7 +451,7 @@
                             <li>Mass edit...</li>
                             <li data-web="scada" class="not4dss">Scada Loadshapes...</li>
                             <li class="not4dss">Static loads to houses</li>
-                            <li data-web="zillowHouse" class="not4dss">Static loads to Zillow houses</li>
+                            <li data-web="zillowHouse" class="not4dss">Static loads to random synthetic houses</li>
                             <li>Change opacity...</li>
                             <li>Color circuit...</li>
                         {% else %}
@@ -3075,7 +3075,7 @@ function fillClimateModalOptions() {
 }
 
 /**
- * Start the server process to convert every triplex load and/or triplex node into a Zillow house.
+ * Start the server process to convert every triplex load and/or triplex node into a random synthetic house.
  */
 function startZillowHouses() {
     let cancelled = false
@@ -3084,13 +3084,11 @@ function startZillowHouses() {
         cancelled = true;
         modal.hide();
     });
-    const triplexObjects = Object.entries(gTree.tree).filter(([key, obj]) => 
-        obj.object === 'triplex_load' || obj.object === 'triplex_node'
-        ).map(([key, obj]) => 
-            ({ key: key, latitude: obj.latitude, longitude: obj.longitude })
-        );
+    const triplexObjects = Object.entries(gTree.tree)
+        .filter(([, obj]) => obj.object === 'triplex_load' || obj.object === 'triplex_node')
+        .map(([key]) => ({ key }));
     if (triplexObjects.length === 0) {
-        modal.clearAndAddMessage('This data has no triplex load or triplex node objects that can be converted into Zillow houses.');
+        modal.clearAndAddMessage('This data has no triplex load or triplex node objects that can be converted into synthetic houses.');
         modal.hideCancelButton();
         modal.finish();
         return;
@@ -3122,7 +3120,7 @@ function startZillowHouses() {
 }
 
 /**
- * Poll the server until the Zillow house information is ready for download.
+ * Poll the server until the synthetic houses are ready for download.
  */
 function pollZillowHouses() {
     let cancelled = false;
@@ -3131,7 +3129,7 @@ function pollZillowHouses() {
         cancelled = true;
         modal.hide();
     });
-    modal.clearAndAddMessage('Converting triplex objects into real-world Zillow houses. This could take many minutes...');
+    modal.clearAndAddMessage('Converting triplex objects into synthetic houses...');
     const formData = new FormData();
     formData.set('user', gThisOwner);
     formData.set('modelName', gThisModelName);
@@ -3152,7 +3150,7 @@ function pollZillowHouses() {
                         gTree.tree[key].name = "zillow_house" + key;
                     });
                     createSvgData(keys).draw(gViewport); // redraw so nodes are proper color
-                    modal.clearAndAddMessage(`Success. ${keys.length} triplex objects were converted into Zillow houses.`);
+                    modal.clearAndAddMessage(`Success. ${keys.length} triplex objects were converted into synthetic houses.`);
                     modal.hideCancelButton();
                     modal.finish();
                 }

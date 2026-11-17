@@ -2748,13 +2748,7 @@ def _background_zillow_houses(model_dir, triplex_objects):
 			pid_file.write(str(os.getpid()))
 		zillow_houses = {}
 		for obj in triplex_objects:
-			house = loadModeling.get_zillow_configured_new_house(obj['latitude'], obj['longitude'])
-			if house is None:
-				# If a request for some house fails, get a random house
-				house = loadModeling.get_random_new_house()
-			zillow_houses[obj['key']] = house
-			# The APIs we use require us to limit our requests to a maximum of 1 per second. Exceeding that throughput will get us IP banned faster.
-			time.sleep(1)
+			zillow_houses[obj['key']] = loadModeling.get_random_new_house()
 		payload_filepath = os.path.join(model_dir, "zillow_houses.json")
 		with locked_open(payload_filepath, 'w') as f:
 			json.dump(zillow_houses, f)
