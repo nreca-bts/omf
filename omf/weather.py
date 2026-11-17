@@ -1629,6 +1629,49 @@ def weatherGov_forecast(latitude: float, longitude: float, interval="", nws_code
 	return df
 
 
+def _write_nsrdb_test_response(*, data_set, longitude, latitude, year, api_key, attributes, filename):
+	"""Write synthetic NSRDB-format weather for model smoke tests."""
+	standard = ['DNI', 'DHI', 'GHI', 'Wind Speed', 'Temperature']
+	clearsky = ['Clearsky DNI', 'Clearsky DHI', 'Clearsky GHI']
+	requested = ','.join(attributes).split(',')
+	if requested == ['dni', 'dhi', 'ghi', 'wind_speed', 'air_temperature']:
+		columns = standard
+	elif requested == ['clearsky_dhi', 'clearsky_dni', 'clearsky_ghi']:
+		columns = clearsky
+	else:
+		raise ValueError(f'Unexpected NSRDB smoke-test attributes: {attributes}')
+	if data_set == 'goes_tmy' and year == 'tmy':
+		start = dt.datetime(2019, 1, 1, 0, 30)
+		step = dt.timedelta(hours=1)
+	elif data_set == 'goes_aggregated':
+		start = dt.datetime(int(year), 1, 1)
+		step = dt.timedelta(minutes=30)
+	else:
+		raise ValueError(f'Unexpected NSRDB smoke-test data set: {data_set}')
+
+	with open(filename, 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile)
+		writer.writerow(['Source', 'Location ID', 'City', 'State', 'Country',
+			'Latitude', 'Longitude', 'Time Zone', 'Elevation', 'Version'])
+		writer.writerow(['Synthetic smoke test', 0, '', '', '', latitude, longitude, 0, 200, 1])
+		padding = [''] * (5 - len(columns))
+		writer.writerow(['Year', 'Month', 'Day', 'Hour', 'Minute', *columns, *padding])
+		timestamp = start
+		while timestamp.year == start.year:
+			if (timestamp.month, timestamp.day) != (2, 29):
+				local_hour = (timestamp.hour + timestamp.minute / 60 + longitude / 15) % 24
+				daylight = max(0, 1 - abs(local_hour - 12) / 6)
+				irradiance = [round(peak * daylight, 2) for peak in (750, 95, 620)]
+				values = irradiance + [3, 20] if columns == standard else irradiance
+				writer.writerow([timestamp.year, timestamp.month, timestamp.day,
+					timestamp.hour, timestamp.minute, *values, *padding])
+			timestamp += step
+
+	response = requests.Response()
+	response.status_code = 200
+	return response
+
+
 def _tests():
 	# import traceback
 	# print('weather.py tests currently disabled to keep them from sending too many HTTP requests.')
