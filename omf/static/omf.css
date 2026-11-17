@@ -474,7 +474,6 @@ VERSION FLAGS
 **********************************************/
 div#triangle-parent {
 	position: absolute;
-	visibility: hidden;
 }
 
 div#triangle-message {

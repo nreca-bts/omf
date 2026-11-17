@@ -68,14 +68,6 @@
 				restoreInputs()
 				$("#modelName").prop("readonly", true)
 			}
-			if (allOutputData != null) {
-				if (allOutputData['oldVersion'] == true) {
-					try {
-						document.getElementById("triangle-parent").style.visibility = "visible";
-					}
-					catch (e){}
-				}
-			} 
 			if (allInputData != null) {
 				modelUser = allInputData["user"]
 			} else {
