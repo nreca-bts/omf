@@ -188,6 +188,10 @@ def work(modelDir, inputDict):
 	faultPOIVolts = []
 	faultVoltsThreshold = float(inputDict['faultVoltsThreshold'])
 
+	# Only load and generator status change across the plotted scenarios.
+	plot_graph = feeder.treeToNxGraph(tree)
+	positions = _plot_positions(plot_graph, neato)
+
 	# run analysis for both load conditions
 	count = 0
 	for loadCondition in ['Peak', 'Min']:
@@ -246,19 +250,19 @@ def work(modelDir, inputDict):
 
 			# generate voltage, current and thermal plots
 			filename = 'voltageDer' + der + loadCondition
-			chart = drawPlot(tree,nodeDict=data['percentChangeVolts'], neatoLayout=neato, nodeFlagBounds=[114, 126], defaultNodeVal=120)
+			chart = _draw_plot(plot_graph, positions, nodeDict=data['percentChangeVolts'], nodeFlagBounds=[114, 126], defaultNodeVal=120)
 			chart.savefig(pJoin(modelDir, filename + 'Chart.png'))
 			with open(pJoin(modelDir,filename + 'Chart.png'),'rb') as inFile:
 				outData[filename] = base64.standard_b64encode(inFile.read()).decode('ascii')
 
 			filename = 'currentDer' + der + loadCondition
-			chart = drawPlot(tree,nodeDict=data['edgeCurrentSum'], neatoLayout=neato)
+			chart = _draw_plot(plot_graph, positions, nodeDict=data['edgeCurrentSum'])
 			chart.savefig(pJoin(modelDir, filename + 'Chart.png'))
 			with open(pJoin(modelDir,filename + 'Chart.png'),'rb') as inFile:
 				outData[filename] = base64.standard_b64encode(inFile.read()).decode('ascii')
 
 			filename = 'thermalDer' + der + loadCondition
-			chart = drawPlot(tree,nodeDict=data['edgeValsPU'], neatoLayout=neato)
+			chart = _draw_plot(plot_graph, positions, nodeDict=data['edgeValsPU'])
 			chart.savefig(pJoin(modelDir, filename + 'Chart.png'))
 			with open(pJoin(modelDir,filename + 'Chart.png'),'rb') as inFile:
 				outData[filename] = base64.standard_b64encode(inFile.read()).decode('ascii')
@@ -421,7 +425,7 @@ def work(modelDir, inputDict):
 
 		# plot flicker
 		filename = 'flicker' + loadCondition
-		chart = drawPlot(tree,nodeDict=flicker, neatoLayout=neato)
+		chart = _draw_plot(plot_graph, positions, nodeDict=flicker)
 		chart.savefig(pJoin(modelDir,filename + 'Chart.png'))
 		with open(pJoin(modelDir,filename + 'Chart.png'),"rb") as inFile:
 			outData[filename] = base64.standard_b64encode(inFile.read()).decode('ascii')
@@ -691,11 +695,24 @@ def drawPlot(tree, nodeDict=None, edgeDict=None, edgeLabsDict=None, displayLabs=
 	edgeCol and nodeCol can be set to false to avoid coloring edges or nodes
 	customColormap=True means use a one that is nicely scaled to perunit values highlighting extremes.
 	Returns a matplotlib object.'''
-	# Be quiet matplotlib:
-	# warnings.filterwarnings('ignore')
+	graph = feeder.treeToNxGraph(tree)
+	positions = _plot_positions(graph, neatoLayout)
+	return _draw_plot(graph, positions, nodeDict, edgeDict, edgeLabsDict, displayLabs,
+		customColormap, perUnitScale, rezSqIn, nodeFlagBounds, defaultNodeVal)
 
-	# Build the graph.
-	fGraph = feeder.treeToNxGraph(tree)
+
+def _plot_positions(graph, force_layout):
+	if force_layout:
+		layout_graph = nx.Graph(graph.edges())
+		layout_graph.add_nodes_from(graph)
+		positions = nx.kamada_kawai_layout(layout_graph)
+		return {node: (1000 * x, 1000 * y) for node, (x, y) in positions.items()}
+	return {node: graph.nodes[node].get('pos', (0, 0))[::-1] for node in graph}
+
+
+def _draw_plot(fGraph, positions, nodeDict=None, edgeDict=None, edgeLabsDict=None,
+	displayLabs=False, customColormap=False, perUnitScale=False, rezSqIn=400,
+	nodeFlagBounds=(-float('inf'), float('inf')), defaultNodeVal=1):
 	# TODO: consider whether we can set figsize dynamically.
 	wlVal = int(math.sqrt(float(rezSqIn)))
 
@@ -709,17 +726,6 @@ def drawPlot(tree, nodeDict=None, edgeDict=None, edgeLabsDict=None, displayLabs=
 	edgeNames = []
 	for e in fGraph.edges():
 		edgeNames.append((fGraph.edges[e].get('name','BLANK')).replace('"',''))
-	
-	#set axes step equal
-	if neatoLayout:
-		# HACK: work on a new graph without attributes because graphViz tries to read attrs.
-		cleanG = nx.Graph(fGraph.edges())
-		cleanG.add_nodes_from(fGraph)
-		# positions = graphviz_layout(cleanG, prog='neato')
-		positions = nx.kamada_kawai_layout(cleanG)
-		positions = {k:(1000 * positions[k][0],1000 * positions[k][1]) for k in positions} # get out of array notation
-	else:
-		positions = {n:fGraph.nodes[n].get('pos',(0,0))[::-1] for n in fGraph}
 	
 	#create custom colormap
 	if customColormap:

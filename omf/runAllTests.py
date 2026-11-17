@@ -3,7 +3,9 @@ Discover OMF modules with test entrypoints and run their module-level smoke test
 repeatable order.
 """
 
-import sys, platform, pkgutil, importlib, omf, traceback
+import os, subprocess, sys, platform, pkgutil, importlib, omf, traceback
+from concurrent.futures import ThreadPoolExecutor
+from tempfile import TemporaryDirectory
 from time import perf_counter
 
 PY_BIN_NAME = 'python3'
@@ -51,20 +53,58 @@ def _print_header(header):
 	print(f'{header.upper()}', flush=True)
 	print('+------------------------+\n', flush=True)
 
-def run_all_tests():
-	''' Run every test in the OMF and return results.'''
+def _run_test_subprocess(module):
+	'''Run a selected test with its own working directory and solver process state.'''
+	env = os.environ.copy()
+	package_root = os.path.dirname(os.path.dirname(os.path.abspath(omf.__file__)))
+	env['PYTHONPATH'] = os.pathsep.join(filter(None, (package_root, env.get('PYTHONPATH'))))
+	started_at = perf_counter()
+	with TemporaryDirectory(prefix='omf-test-') as work_dir:
+		result = subprocess.run(
+			[sys.executable, '-m', 'omf.runAllTests', module],
+			cwd=work_dir, env=env, stdout=subprocess.PIPE,
+			stderr=subprocess.STDOUT, text=True, errors='replace')
+	return result, perf_counter() - started_at
+
+
+def run_all_tests(parallel_modules=()):
+	'''Run every discovered test, optionally isolating selected modules in subprocesses.'''
 	all_testable_mods = get_all_testable_modules()
+	selected = list(dict.fromkeys(parallel_modules))
+	unknown = set(selected).difference(all_testable_mods)
+	if unknown:
+		raise ValueError('Parallel modules must be discovered tests: ' + ', '.join(sorted(unknown)))
+
 	misfires = []
-	for mod in all_testable_mods:
-		print(f'!!!!! NOW TESTING {mod} !!!!!', flush=True)
-		started_at = perf_counter()
-		try:
-			run_tests_on_module(mod)
-		except:
-			misfires.append(mod)
-			traceback.print_exc()
-		finally:
-			print(f'{mod} took {perf_counter() - started_at:.2f}s', flush=True)
+	with ThreadPoolExecutor(max_workers=2) as pool:
+		background = {
+			mod: pool.submit(_run_test_subprocess, mod)
+			for mod in selected
+		}
+		for mod in all_testable_mods:
+			if mod in background:
+				continue
+			print(f'!!!!! NOW TESTING {mod} !!!!!', flush=True)
+			started_at = perf_counter()
+			try:
+				run_tests_on_module(mod)
+			except:
+				misfires.append(mod)
+				traceback.print_exc()
+			finally:
+				print(f'{mod} took {perf_counter() - started_at:.2f}s', flush=True)
+
+		for mod, future in background.items():
+			print(f'!!!!! NOW TESTING {mod} !!!!!', flush=True)
+			try:
+				result, elapsed = future.result()
+				print(result.stdout, end='', flush=True)
+				print(f'{mod} took {elapsed:.2f}s (including subprocess startup)', flush=True)
+				if result.returncode:
+					misfires.append(mod)
+			except Exception:
+				misfires.append(mod)
+				traceback.print_exc()
 	_print_header('regular tests report')
 	print(f'Number of modules tested: {len(all_testable_mods)}', flush=True)
 	print(all_testable_mods, flush=True)
@@ -82,9 +122,13 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(description='Run all OMF smoke tests or test one module.')
 	parser.add_argument('module', nargs='?', help='Dotted OMF module name, such as omf.models.modelSkeleton')
+	parser.add_argument('--parallel-module', action='append', default=[],
+		help='Queue this discovered module for an isolated worker (repeat in priority order).')
 	args = parser.parse_args()
 	if args.module is None:
-		run_all_tests()
+		run_all_tests(args.parallel_module)
+	elif args.parallel_module:
+		parser.error('--parallel-module applies only when running the full suite.')
 	elif args.module.startswith('omf.'):
 		run_tests_on_module(args.module)
 	else:
