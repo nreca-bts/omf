@@ -68,34 +68,14 @@ jobs:
           test -s "$CACHE_DIR/reopt_jl.so"
           test -f "$CACHE_DIR/instantiated.txt"
           julia_home="$HOME/.cache/omf/julia-1.9.4"
-          test -x "$CACHE_DIR/runtime/bin/julia"
-          test -d "$CACHE_DIR/depot"
-
-          # An exact cache hit is already saved. Move fresh installs into place.
-          restore_directory() {
-            if test -d "$2"; then
-              cp -a "$1/." "$2/"
-            else
-              mkdir -p "$(dirname "$2")"
-              mv "$1" "$2"
-            fi
-          }
-          restore_directory "$CACHE_DIR/runtime" "$julia_home"
-          restore_directory "$CACHE_DIR/depot" "$HOME/.julia"
-          mv "$CACHE_DIR/instantiated.txt" "$CACHE_DIR/reopt_jl.so" "$REOPT_DIR/"
+          mkdir -p "$julia_home" "$HOME/.julia"
+          cp -a "$CACHE_DIR/runtime/." "$julia_home/"
+          cp -a "$CACHE_DIR/depot/." "$HOME/.julia/"
+          cp -a "$CACHE_DIR/instantiated.txt" "$CACHE_DIR/reopt_jl.so" "$REOPT_DIR/"
           echo "Restored the REopt system image and install marker from cache."
       - name: Run All OMF Tests
         working-directory: ${{ runner.temp }}
-        env:
-          OMF_GRIDLABD_AUTO_INSTALL: "0"
-          OMF_SPLAT_AUTO_INSTALL: "0"
-        # Start Julia and phase balance first, then reuse the same two worker slots.
-        run: >-
-          python -m omf.runAllTests
-          --parallel-module omf.models.microgridDesign
-          --parallel-module omf.models.phaseBalance
-          --parallel-module omf.models.vbatDispatch
-          --parallel-module omf.models.derInterconnection
+        run: python -m omf.runAllTests
       - name: Stage complete REopt artifacts for caching
         if: steps.reopt-cache.outputs.cache-hit != 'true'
         env:
