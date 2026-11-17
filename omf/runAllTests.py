@@ -4,6 +4,7 @@ repeatable order.
 """
 
 import sys, platform, pkgutil, importlib, omf, traceback
+from time import perf_counter
 
 PY_BIN_NAME = 'python3'
 
@@ -56,11 +57,14 @@ def run_all_tests():
 	misfires = []
 	for mod in all_testable_mods:
 		print(f'!!!!! NOW TESTING {mod} !!!!!', flush=True)
+		started_at = perf_counter()
 		try:
 			run_tests_on_module(mod)
 		except:
 			misfires.append(mod)
 			traceback.print_exc()
+		finally:
+			print(f'{mod} took {perf_counter() - started_at:.2f}s', flush=True)
 	_print_header('regular tests report')
 	print(f'Number of modules tested: {len(all_testable_mods)}', flush=True)
 	print(all_testable_mods, flush=True)
