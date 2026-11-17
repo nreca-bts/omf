@@ -433,7 +433,9 @@ def _tests():
 	# Pre-run.
 	__neoMetaModel__.renderAndShow(modelLoc)
 	# Run the model.
-	__neoMetaModel__.runForeground(modelLoc)
+	from unittest.mock import patch
+	with patch.object(weather, 'nlr_get_nsrdb_data', side_effect=weather._write_nsrdb_test_response):
+		__neoMetaModel__.runForeground(modelLoc)
 	# Show the output.
 	__neoMetaModel__.renderAndShow(modelLoc)
 

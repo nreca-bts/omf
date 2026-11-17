@@ -36,45 +36,46 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           python -c 'import importlib.util; from pathlib import Path; print("dir=" + str(Path(importlib.util.find_spec("omf").origin).parent / "solvers" / "reopt_jl"))' >> "$GITHUB_OUTPUT"
-      - name: Restore REopt Julia artifacts
+      # The root cache action is allowed upstream. Keep its path absent on a cold run
+      # until all artifacts are present, so the post-job save cannot cache half a build.
+      - name: Cache REopt Julia artifacts
         id: reopt-cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
-          path: |
-            ~/.cache/omf/julia-1.9.4
-            ~/.julia
-            ${{ steps.reopt-path.outputs.dir }}/instantiated.txt
-            ${{ steps.reopt-path.outputs.dir }}/reopt_jl.so
-          key: reopt-sysimage-v1-${{ matrix.os }}-${{ runner.arch }}-py${{ steps.python.outputs.python-version }}-julia-1.9.4-${{ hashFiles('omf/solvers/reopt_jl/__init__.py', 'omf/solvers/reopt_jl/REoptSolver/**/*.jl', 'omf/solvers/reopt_jl/REoptSolver/Project.toml', 'omf/solvers/reopt_jl/REoptSolver/Manifest.toml', 'omf/solvers/reopt_jl/precompile_reopt.jl') }}
-      - name: Check restored REopt system image
+          path: ${{ runner.temp }}/reopt-cache
+          key: reopt-sysimage-v2-${{ matrix.os }}-${{ runner.arch }}-py${{ steps.python.outputs.python-version }}-julia-1.9.4-${{ hashFiles('omf/solvers/reopt_jl/__init__.py', 'omf/solvers/reopt_jl/REoptSolver/**/*.jl', 'omf/solvers/reopt_jl/REoptSolver/Project.toml', 'omf/solvers/reopt_jl/REoptSolver/Manifest.toml', 'omf/solvers/reopt_jl/precompile_reopt.jl') }}
+      - name: Restore installed REopt artifacts
         if: steps.reopt-cache.outputs.cache-hit == 'true'
         env:
+          CACHE_DIR: ${{ runner.temp }}/reopt-cache
           REOPT_DIR: ${{ steps.reopt-path.outputs.dir }}
         run: |
-          test -s "$REOPT_DIR/reopt_jl.so"
-          test -f "$REOPT_DIR/instantiated.txt"
+          set -eu
+          test -s "$CACHE_DIR/reopt_jl.so"
+          test -f "$CACHE_DIR/instantiated.txt"
+          julia_home="$HOME/.cache/omf/julia-1.9.4"
+          mkdir -p "$julia_home" "$HOME/.julia"
+          cp -a "$CACHE_DIR/runtime/." "$julia_home/"
+          cp -a "$CACHE_DIR/depot/." "$HOME/.julia/"
+          cp -a "$CACHE_DIR/instantiated.txt" "$CACHE_DIR/reopt_jl.so" "$REOPT_DIR/"
           echo "Restored the REopt system image and install marker from cache."
       - name: Run All OMF Tests
         working-directory: ${{ runner.temp }}
         run: python -m omf.runAllTests
-      - name: Check for a newly built REopt system image
-        id: reopt-built
+      - name: Stage complete REopt artifacts for caching
         if: steps.reopt-cache.outputs.cache-hit != 'true'
         env:
+          CACHE_DIR: ${{ runner.temp }}/reopt-cache
           REOPT_DIR: ${{ steps.reopt-path.outputs.dir }}
         run: |
-          if test -s "$REOPT_DIR/reopt_jl.so" && test -f "$REOPT_DIR/instantiated.txt"; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No compiled REopt system image was produced. The cache will not be saved."
+          set -eu
+          julia_home="$HOME/.cache/omf/julia-1.9.4"
+          if ! test -s "$REOPT_DIR/reopt_jl.so" || ! test -f "$REOPT_DIR/instantiated.txt" ||
+             ! test -x "$julia_home/bin/julia" || ! test -d "$HOME/.julia"; then
+            echo "No complete REopt build was produced. The cache will not be saved."
+            exit 0
           fi
-      - name: Save complete REopt Julia artifacts
-        if: steps.reopt-built.outputs.ready == 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae
-        with:
-          path: |
-            ~/.cache/omf/julia-1.9.4
-            ~/.julia
-            ${{ steps.reopt-path.outputs.dir }}/instantiated.txt
-            ${{ steps.reopt-path.outputs.dir }}/reopt_jl.so
-          key: ${{ steps.reopt-cache.outputs.cache-primary-key }}
+          mkdir -p "$CACHE_DIR"
+          mv "$julia_home" "$CACHE_DIR/runtime"
+          mv "$HOME/.julia" "$CACHE_DIR/depot"
+          cp -a "$REOPT_DIR/instantiated.txt" "$REOPT_DIR/reopt_jl.so" "$CACHE_DIR/"

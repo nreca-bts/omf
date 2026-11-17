@@ -41,10 +41,35 @@
 		 }
 
 		 .tableContainer {max-height: 80%; overflow-y: auto;}
-		 @media print{
-		 	.tableContainer{max-height: none; overflow: visible;}
-		 	div#triangle-parent{visibility: hidden;}
-		 }
+		@media print {
+			body {min-width: 0;}
+			div.content, div.tightContent {
+				box-sizing: border-box;
+				width: 100%;
+				min-width: 0;
+				max-width: 100%;
+			}
+			.tableContainer {max-height: none; overflow: visible;}
+			div#triangle-parent, .tab {display: none;}
+			.tabPlots .tabContent {
+				display: block !important;
+				break-inside: avoid;
+			}
+			.tabPlots .tabContent::before {
+				display: block;
+				padding: 0.5em;
+				font-weight: bold;
+			}
+			.voltageDiagram::before {content: "Voltage diagram";}
+			.currentDiagram::before {content: "Current diagram";}
+			.thermalDiagram::before {content: "Line loading diagram";}
+			.flickerDiagram::before {content: "Flicker diagram";}
+			.tabPlots .tabContent img {
+				display: block;
+				max-width: 100%;
+				height: auto !important;
+			}
+		}
 	</style>
 	<script src="/static/sorttable.js"></script>
 	<script type="text/javascript">

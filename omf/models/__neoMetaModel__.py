@@ -216,13 +216,15 @@ def renderTemplate(modelDir, absolutePaths=False, datastoreNames={}):
 				</div>
 			</div>
 		</div>
+		{% if showVersionWarning %}
 		<div id="triangle-parent">
 			<div id="triangle-message">New Version<span class="classic-triangle">A new version of the model has been added to the OMF. To get the new outputs, please fill in any missing inputs and hit "Run Model". You can also just look at the old inputs, outputs.</span></div>
 			<div id="triangle-topright"></div>
 		</div>
-		<script>{% if allOutputDataDict['oldVersion'] %}document.getElementById("triangle-parent").style.visibility = "visible";{% endif %}</script>
+		{% endif %}
 		'''
-	omfModelTitle = Template(omfModelTitleTemplate).render(allInputDataDict=inJson, allOutputDataDict=allOutputData)
+	omfModelTitle = Template(omfModelTitleTemplate).render(
+		allInputDataDict=inJson, showVersionWarning=bool(outJson and outJson.get("oldVersion")))
 	# Generate standard status content.
 	omfModelButtons = Template(omfModelButtonsTemplate).render(modelStatus=modelStatus, loggedInUser=loggedInUser, modelOwner=modelOwner)
 	now = datetime.datetime.now()
