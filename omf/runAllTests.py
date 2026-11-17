@@ -77,5 +77,15 @@ def run_all_tests():
 	if len(misfires) > 0:
 		sys.exit(1) # trigger build failure.
 
-if __name__ == "__main__"  :
-	run_all_tests()
+if __name__ == '__main__':
+	import argparse
+
+	parser = argparse.ArgumentParser(description='Run all OMF smoke tests or test one module.')
+	parser.add_argument('module', nargs='?', help='Dotted OMF module name, such as omf.models.modelSkeleton')
+	args = parser.parse_args()
+	if args.module is None:
+		run_all_tests()
+	elif args.module.startswith('omf.'):
+		run_tests_on_module(args.module)
+	else:
+		parser.error('module must be a dotted name beginning with omf.')

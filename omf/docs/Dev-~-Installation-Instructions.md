@@ -12,4 +12,10 @@ To run the integration suite from that environment, use the same command as CI.
 python -m omf.runAllTests
 ```
 
+For a quick check using a bundled model, run just the model skeleton's smoke test.
+
+```bash
+python -m omf.runAllTests omf.models.modelSkeleton
+```
+
 The repository also provides an [OMF Dockerfile](https://github.com/nreca-bts/omf/blob/master/omf.dockerfile). The hosted version is available at [omf.coop](https://omf.coop/).
